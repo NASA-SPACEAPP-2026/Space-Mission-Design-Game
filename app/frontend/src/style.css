@@ -47,6 +47,26 @@ body,
   color: #b2c2e7;
 }
 
+.mission-picker {
+  margin-top: 12px;
+}
+
+.mission-picker label {
+  display: block;
+  font-size: 0.75rem;
+  color: #97acd7;
+  margin-bottom: 4px;
+}
+
+.mission-picker select {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(121, 152, 228, 0.45);
+  padding: 8px 10px;
+  background: rgba(15, 27, 52, 0.9);
+  color: #e8edf8;
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -95,4 +115,23 @@ body,
 
 #noGoButton {
   background: linear-gradient(90deg, #d94a55, #af323a);
+}
+
+.status {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.status.idle {
+  color: #a9b9dc;
+}
+
+.status.ok {
+  color: #6de99d;
+}
+
+.status.err {
+  color: #ff888f;
 }

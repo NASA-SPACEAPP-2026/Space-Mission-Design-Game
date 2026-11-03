@@ -78,7 +78,7 @@ app.post("/api/telemetry", (request: Request, response: Response) => {
 
   const accepted = powerKw <= mission.maxPowerKw && budgetMUsd <= mission.budgetMUsd;
 
-  response.status(accepted ? 202 : 409).json({
+  response.status(200).json({
     missionId,
     accepted,
     reason: accepted

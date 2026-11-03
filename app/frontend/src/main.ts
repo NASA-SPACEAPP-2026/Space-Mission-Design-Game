@@ -1,6 +1,21 @@
 import * as pc from "playcanvas";
 import "./style.css";
 
+type MissionProfile = {
+  id: string;
+  title: string;
+  objective: string;
+  budgetMUsd: number;
+  maxMassKg: number;
+  maxPowerKw: number;
+};
+
+type TelemetryResponse = {
+  missionId: string;
+  accepted: boolean;
+  reason: string;
+};
+
 const canvas = document.getElementById("scene");
 if (!(canvas instanceof HTMLCanvasElement)) {
   throw new Error("Scene canvas not found.");
@@ -13,6 +28,12 @@ const app = new pc.Application(canvas, {
   },
   mouse: new pc.Mouse(canvas),
   touch: new pc.TouchDevice(canvas)
+});
+
+pc.WasmModule.setConfig("DracoDecoderModule", {
+  glueUrl: "https://www.gstatic.com/draco/versioned/decoders/1.5.7/draco_wasm_wrapper.js",
+  wasmUrl: "https://www.gstatic.com/draco/versioned/decoders/1.5.7/draco_decoder.wasm",
+  fallbackUrl: "https://www.gstatic.com/draco/versioned/decoders/1.5.7/draco_decoder.js"
 });
 
 app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
@@ -28,6 +49,7 @@ camera.addComponent("camera", {
   farClip: 2500,
   toneMapping: pc.TONEMAP_ACES
 });
+camera.camera?.requestSceneColorMap(true);
 camera.setLocalPosition(0, 28, 64);
 camera.lookAt(0, 6, 0);
 app.root.addChild(camera);
@@ -143,22 +165,182 @@ addNasaAsset(
   10
 );
 
+const station = new pc.Entity("station");
+station.addComponent("render", { type: "box" });
+station.setLocalScale(5, 2, 5);
+station.setLocalPosition(10, 1, -8);
+const stationMaterial = new pc.StandardMaterial();
+stationMaterial.diffuse = new pc.Color(0.21, 0.29, 0.4);
+stationMaterial.emissive = new pc.Color(0.04, 0.08, 0.13);
+stationMaterial.update();
+station.render!.material = stationMaterial;
+app.root.addChild(station);
+
+const satellite = new pc.Entity("satellite");
+satellite.addComponent("render", { type: "capsule" });
+satellite.setLocalScale(0.8, 1.8, 0.8);
+satellite.setLocalPosition(-6, 16, 0);
+const satelliteMaterial = new pc.StandardMaterial();
+satelliteMaterial.diffuse = new pc.Color(0.84, 0.86, 0.9);
+satelliteMaterial.emissive = new pc.Color(0.2, 0.2, 0.26);
+satelliteMaterial.update();
+satellite.render!.material = satelliteMaterial;
+app.root.addChild(satellite);
+
 const goButton = document.getElementById("goButton");
 const noGoButton = document.getElementById("noGoButton");
 const power = document.getElementById("power");
+const budget = document.getElementById("budget");
+const mass = document.getElementById("mass");
+const objective = document.getElementById("objective");
+const missionSelectElement = document.getElementById("missionSelect");
+const statusText = document.getElementById("statusText");
 
-if (!goButton || !noGoButton || !power) {
+if (
+  !goButton ||
+  !noGoButton ||
+  !power ||
+  !budget ||
+  !mass ||
+  !objective ||
+  !(missionSelectElement instanceof HTMLSelectElement) ||
+  !statusText
+) {
   throw new Error("HUD controls not found.");
 }
 
-goButton.addEventListener("click", () => {
-  power.textContent = "5.4 kW / 6.0 kW";
-  missionMarker.setLocalPosition(10, 2.6, -8);
+const missionSelect = missionSelectElement;
+
+const setStatus = (message: string, kind: "idle" | "ok" | "err"): void => {
+  statusText.textContent = message;
+  statusText.className = `status ${kind}`;
+};
+
+const missions = new Map<string, MissionProfile>();
+let activeMissionId = "";
+let currentBudgetMUsd = 1200;
+let currentPowerKw = 4.8;
+
+const renderMissionStats = (mission: MissionProfile): void => {
+  budget.textContent = `$${currentBudgetMUsd.toFixed(0)}M / $${mission.budgetMUsd.toFixed(0)}M`;
+  mass.textContent = `5.4 t / ${(mission.maxMassKg / 1000).toFixed(1)} t`;
+  power.textContent = `${currentPowerKw.toFixed(1)} kW / ${mission.maxPowerKw.toFixed(1)} kW`;
+  objective.textContent = `${mission.title}: ${mission.objective}`;
+};
+
+const loadMissions = async (): Promise<void> => {
+  setStatus("Loading mission profiles...", "idle");
+
+  const response = await fetch("/api/missions");
+  if (!response.ok) {
+    throw new Error(`Mission profiles request failed (${response.status})`);
+  }
+
+  const payload = (await response.json()) as MissionProfile[];
+  if (!Array.isArray(payload) || payload.length === 0) {
+    throw new Error("No mission profiles available from backend.");
+  }
+
+  missionSelect.innerHTML = "";
+  missions.clear();
+
+  for (const mission of payload) {
+    missions.set(mission.id, mission);
+    const option = document.createElement("option");
+    option.value = mission.id;
+    option.textContent = mission.title;
+    missionSelect.append(option);
+  }
+
+  activeMissionId = payload[0].id;
+  currentBudgetMUsd = payload[0].budgetMUsd;
+  currentPowerKw = payload[0].maxPowerKw * 0.8;
+  renderMissionStats(payload[0]);
+  setStatus("Mission profiles loaded.", "ok");
+};
+
+const submitTelemetry = async (status: "go" | "no-go"): Promise<void> => {
+  const mission = missions.get(activeMissionId);
+  if (!mission) {
+    throw new Error("No active mission selected.");
+  }
+
+  const response = await fetch("/api/telemetry", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      missionId: mission.id,
+      status,
+      powerKw: currentPowerKw,
+      budgetMUsd: currentBudgetMUsd
+    })
+  });
+
+  const payload = (await response.json()) as TelemetryResponse | { error: string };
+  if (!response.ok && !("accepted" in payload)) {
+    const message = "error" in payload ? payload.error : "Telemetry request failed.";
+    throw new Error(message);
+  }
+
+  const result = payload as TelemetryResponse;
+  setStatus(
+    `${status.toUpperCase()} for ${mission.title}: ${result.reason}`,
+    result.accepted ? "ok" : "err"
+  );
+};
+
+missionSelect.addEventListener("change", () => {
+  const selectedId = missionSelect.value;
+  const mission = missions.get(selectedId);
+  if (!mission) {
+    setStatus("Selected mission is not available.", "err");
+    return;
+  }
+
+  activeMissionId = mission.id;
+  currentBudgetMUsd = mission.budgetMUsd;
+  currentPowerKw = mission.maxPowerKw * 0.8;
+  missionMarker.setLocalPosition(10, 2.2, -8);
+  renderMissionStats(mission);
+  setStatus(`Mission selected: ${mission.title}`, "idle");
 });
 
-noGoButton.addEventListener("click", () => {
-  power.textContent = "6.4 kW / 6.0 kW";
+goButton.addEventListener("click", async () => {
+  const mission = missions.get(activeMissionId);
+  if (!mission) {
+    setStatus("Cannot run GO without an active mission.", "err");
+    return;
+  }
+
+  currentPowerKw = mission.maxPowerKw * 0.9;
+  renderMissionStats(mission);
+  missionMarker.setLocalPosition(10, 2.6, -8);
+
+  try {
+    await submitTelemetry("go");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Telemetry submission failed.";
+    setStatus(message, "err");
+  }
+});
+
+noGoButton.addEventListener("click", async () => {
+  const mission = missions.get(activeMissionId);
+  if (!mission) {
+    setStatus("Cannot run NO-GO without an active mission.", "err");
+    return;
+  }
+
+  currentPowerKw = mission.maxPowerKw * 1.1;
+  renderMissionStats(mission);
   missionMarker.setLocalPosition(10, 1.5, -8);
+
+  try {
+    await submitTelemetry("no-go");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Telemetry submission failed.";
+    setStatus(message, "err");
+  }
 });
 
 let elapsed = 0;
@@ -167,6 +349,16 @@ app.on("update", (dt: number) => {
   earth.rotate(0, 8 * dt, 0);
   orbit.rotate(0, 0, 4 * dt);
   missionMarker.setLocalEulerAngles(0, 0, Math.sin(elapsed * 3) * 6);
+  satellite.setLocalPosition(
+    -18 + Math.cos(elapsed * 0.7) * 16,
+    9 + Math.sin(elapsed * 0.7) * 3,
+    Math.sin(elapsed * 0.7) * 16
+  );
   camera.setLocalPosition(Math.sin(elapsed * 0.12) * 8, 28, 64);
   camera.lookAt(0, 6, 0);
+});
+
+loadMissions().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : "Mission loading failed.";
+  setStatus(message, "err");
 });

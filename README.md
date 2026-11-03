@@ -169,11 +169,13 @@ From repository root:
 
 ```bash
 npm install
-npm run dev:frontend
+npm run dev:backend
 ```
 
 In a second terminal:
 
 ```bash
-npm run dev:backend
+npm run dev:frontend
 ```
+
+Frontend calls `/api/*` and Vite proxies those requests to `http://localhost:8080`.

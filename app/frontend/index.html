@@ -10,7 +10,13 @@
       <canvas id="scene"></canvas>
       <section class="hud-panel">
         <h1>Mission Control - Go / No-Go</h1>
-        <p>Prototype world based on NASA 3D assets and PlayCanvas.</p>
+        <p id="objective">
+          Prototype world based on NASA 3D assets and PlayCanvas.
+        </p>
+        <div class="mission-picker">
+          <label for="missionSelect">Mission profile</label>
+          <select id="missionSelect" aria-label="Mission profile selector"></select>
+        </div>
         <div class="stats">
           <div><span>Budget</span><strong id="budget">$1,200M</strong></div>
           <div><span>Mass</span><strong id="mass">5.4 t / 7.0 t</strong></div>
@@ -20,6 +26,7 @@
           <button id="goButton">GO</button>
           <button id="noGoButton">NO-GO</button>
         </div>
+        <p id="statusText" class="status idle">Ready</p>
       </section>
     </div>
     <script type="module" src="/src/main.ts"></script>
