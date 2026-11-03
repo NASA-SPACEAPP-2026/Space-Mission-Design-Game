@@ -114,7 +114,7 @@ The mapper must use a pinned v32 DTO/schema grounded in the source, not a generi
 4. Submit the validated save over HTTPS to an authenticated import operation with `consent: true`, a stable consent-copy version, and an `Idempotency-Key`. The exact route/path belongs to the API-contract task; this design specifies its payload and transaction behavior.
 5. Backend revalidates the full v32 DTO and recomputes the canonical SHA-256 digest. It does not trust a client digest, account ID, agency ID, resource total, or derived report.
 6. In one InnoDB transaction, lock the authenticated account row; return the prior result for a completed identical import; reject a changed source after a completed import; reject importing over any existing non-empty account game; otherwise create the agency, all missions and their state, resolve `cur`, and insert the one-time `legacy_imports` consent/success record. Commit all or none.
-7. A retry after rollback is safe. Concurrent submissions serialize on the user row/unique keys. Same successful digest is idempotent; another save after success returns a conflict requiring an explicit user decision rather than replacing cloud data.
+7. A retry after rollback is safe. Concurrent submissions serialize on the user row/unique keys. Same successful digest is idempotent; another save after success returns a conflict requiring an explicit user decision rather than replacing cloud data. Reject import if the account already has an agency/game state; do not overwrite even an apparently empty cloud agency.
 8. On success, report counts and the resulting agency/mission IDs. Leave the local key byte-for-byte unchanged. Offer deletion only as a separate, explicit local action after successful import; never delete automatically.
 
 ### Request/response DTO intent
@@ -123,14 +123,14 @@ The mapper must use a pinned v32 DTO/schema grounded in the source, not a generi
 LegacyV32ImportRequest {
   consent: true,
   consentCopyVersion: "gng32-import-v1",
-  idempotencyKey: UUID,
+  sourceVersion: 32,
   save: LegacySaveV32
 }
 ```
 
-Authentication supplies `userId`; it is never accepted from the request body. Server consent evidence is recorded only after the affirmative import request succeeds: `consented_at`, `consent_copy_version`, source version, digest, import time, resulting agency, and mission count. Do not retain IP/user-agent or the complete payload in the ledger absent a separate approved need. Never log the body, password hash, or raw session token.
+Send the retry key in the `Idempotency-Key` header (a UUID); the body `sourceVersion` must match `save.v`. Authentication supplies `userId`; it is never accepted from the request body. Server consent evidence is recorded only after the affirmative import request succeeds: `consented_at`, `consent_copy_version`, source version, digest, import time, resulting agency, and mission count. Do not retain IP/user-agent or the complete payload in the ledger absent a separate approved need. Never log the body, password hash, or raw session token.
 
-Expected outcomes: `401` unauthenticated; `400` absent consent, malformed/unsupported save, or invalid mission selection; `409` account already has game state, import already completed for another digest, or idempotency-key reuse with a different payload; `413` configured body limit exceeded; success returns the committed result (or the same result for an identical replay). Keep detailed parser errors safe and useful without reflecting untrusted input.
+Expected outcomes: `401` unauthenticated; `400` malformed transport or absent consent; `422` unsupported version, invalid nested save, or data that cannot be mapped faithfully; `409` account already has agency/game state, import already completed for another digest, or idempotency-key reuse with a different payload; `413` configured body limit exceeded; success returns the committed result (or the same result for an identical replay). Keep detailed parser errors safe and useful without reflecting untrusted input.
 
 ### Failure and preservation invariants
 
@@ -189,6 +189,7 @@ Expected outcomes: `401` unauthenticated; `400` absent consent, malformed/unsupp
 - `.github/modernize/rearchitecture/artifacts/t1-pm.md` — `INV-02`, `INV-12`, `INV-13`, `REQ-003`, `REQ-018`–`REQ-020`, `SC-005` and `SC-006` define gameplay continuity, identity, and import acceptance.
 - `.github/modernize/rearchitecture/artifacts/t2-architect.md` — current backend is health-only; save storage is localStorage key `gng32.save`; no DB or API persistence exists.
 - `.github/modernize/rearchitecture/artifacts/t2.1-architect.md` — persistence/import mitigation contract requires full validation, affirmative consent, idempotency, non-destructive failures, and import retry tests.
+- `.github/modernize/rearchitecture/artifacts/t3-architect.md` — API conventions and importer behavior specify the authenticated v1 DTO boundary, `Idempotency-Key`, ownership rules, and `422` for valid-but-unmappable legacy data.
 - `.github/modernize/rearchitecture/artifacts/data-model.md` — observed legacy root fields, mission-array/current-index relationship, and version-32 load behavior.
 - `.github/modernize/rearchitecture/decisions.md` — retain `Go-No-Go.html` as behavioral reference only; user-approved in-place rewrite.
 - `.github/modernize/rearchitecture/team/dba/inbox.md` — prior architecture notes reinforcing the reference-only iframe cut and import preservation gates.
@@ -198,6 +199,7 @@ Expected outcomes: `401` unauthenticated; `400` absent consent, malformed/unsupp
 - `t1-pm.md#INV-13`, `#REQ-019`–`#REQ-020`, `#SC-005`–`#SC-006` → account-owned agency/mission rows, session/profile tables, one-time import ledger, and explicit import test matrix.
 - `t2-architect.md#Key Risk Evidence` and `data-model.md#Root game-state fields observed` → source-to-target mapping and JSON extension strategy preserve legacy state without treating key presence as validity.
 - `t2.1-architect.md#Persistence/import cutover` → consent-before-read, strict v32 validation, atomic transaction, idempotent retry, no cloud overwrite, and original-save preservation invariants.
+- `t3-architect.md#API conventions` and `#Legacy v32 import protocol` → header-based idempotency, authenticated import DTO, all-or-nothing mapping, and `422` for unfaithful mappings.
 - `clarification.md#Backend` and `clarification-answers.md#B3` → new MySQL schema, account identity and consent-only browser-save import.
 
 ## Test Results
