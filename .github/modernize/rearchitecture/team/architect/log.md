@@ -18,3 +18,10 @@
 - Debugging dead-ends and what actually worked: scenario `context.md` and `.github/modernize/rearchitecture/decisions.md` are absent; root `decisions.md` carries the approved architect decisions. `Get-Date -AsUTC` is unsupported in this PowerShell version; `[DateTime]::UtcNow.ToString('o')` gives UTC. User-owned `board.md` and `project-profile.yaml` edits were left untouched.
 - Techniques/patterns worth reusing: compare declared semver ranges with installed workspace resolution; check both development serving and production asset emission when auditing iframe/runtime boundaries; validate per-unit artifact counts and decomposition `commit: false`.
 - Learnings consumed: [architect/legacy-iframe-runtime-boundary, architect/high-baseline-gap-dispositions]
+
+## [t3] Designed target architecture and API contracts
+- Codebase/domain discoveries: target design needs server-authoritative gameplay APIs for all 14 inventoried groups; browser local storage is reserved for unimported v32 source data and non-authoritative preferences.
+- Wrong assumptions and corrections: the clarification mentions microservices, but this task's explicit direction to avoid needless distributed services plus transaction-coupled single-player mission rules supports one modular Express deployment with bounded internal domains.
+- Debugging dead-ends and what actually worked: the task-scope `context.md` file is absent; the board, canonical clarification, submitted answers, decisions, and upstream artifacts supplied the controlling requirements. `npm view playcanvas@2.12 version --json` confirmed the published patch line ends at 2.12.4; official versioning docs explain why a caret range can escape the required minor.
+- Techniques/patterns worth reusing: use ETag/If-Match for mission revision conflicts; pair idempotency keys with transactionally stored outcomes; detect the legacy storage key without reading its value, and only call `getItem` after affirmative consent.
+- Learnings consumed: [architect/legacy-iframe-runtime-boundary, architect/high-baseline-gap-dispositions]
