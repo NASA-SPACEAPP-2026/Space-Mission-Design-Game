@@ -1,0 +1,622 @@
+{
+  "schema": "clarification-questions/v1",
+  "generated_at": "2026-11-03T15:01:33.413Z",
+  "user_input": "Dovrà andare online usa MySql come DB! E ovviamnete col sistema DAO -DTO e quelle robe li! Usa un sistema di HCI e professionalità nel BackEnd, usiamo un'Architttura a MicroServizi, dobbiamo sembraree dei professionisti! POI: Vorrei che una volta entrati il mondo del Go-No-Go me lo costruissi tu in 3D cosi da potrmi muovre con l'avatar in prima persona che è l'astronauta! E da li in poi inizi a fare tutto quello che cè li dentro ma vorrei che fosse tutto il gioco in 3D!! Con io che sno l'astronauta e giro e faccio quelle robe li! Manca il pavimnto nella scherma iniziale hahaha cosi non si capisce cosè!",
+  "title": "Go-No-Go 3D completo e backend online",
+  "assessment_snapshot": {
+    "intro": "Il repository contiene già una base web PlayCanvas e il gioco Go-No-Go esistente, con questi elementi rilevanti:",
+    "bullets": [
+      "Frontend TypeScript/Vite con PlayCanvas 2.12.x; menu e HUD HTML/CSS senza libreria di componenti UI dedicata.",
+      "Il gioco Go-No-Go completo resta in Go-No-Go.html e include le sue meccaniche e un salvataggio browser gng32.save; oggi è mostrato dentro una console iframe, non ricostruito in 3D.",
+      "Backend attuale: un servizio Express 5 minimale con health check; non risultano MySQL, DAO/DTO, autenticazione o servizi di dominio.",
+      "Sono già presenti asset NASA locali Astronaut.glb e Crab-Nebula.glb; la richiesta è di convertire l'intero flusso di gioco in un'esperienza 3D controllata dall'astronauta e pubblicabile online."
+    ]
+  },
+  "proposed_outcome": "Ricostruire Go-No-Go come gioco web 3D PlayCanvas, con astronauta controllabile in prima persona e tutte le attività del gioco originale trasformate in ambienti e interazioni 3D, mantenendo menu, caricamento e salvataggi. Strutturare il backend online in microservizi TypeScript professionali con DAO/DTO e persistenza MySQL; definire insieme le scelte mancanti su UX/HCI, migrazione dei salvataggi, account, API e distribuzione.",
+  "scope": [
+    "frontend",
+    "backend",
+    "generic"
+  ],
+  "status": "answered",
+  "questions": [
+    {
+      "id": "F1",
+      "kit": "frontend",
+      "field": "target.framework",
+      "title": "Motore e framework frontend",
+      "question": "Confermi PlayCanvas con TypeScript come base del nuovo client 3D, oppure vuoi cambiare motore/framework?",
+      "importance": "required",
+      "impact": 5,
+      "recommended": "PlayCanvas 2.12.x + TypeScript (stack attuale)",
+      "default": null,
+      "prefilled": true,
+      "prefilled_value": "PlayCanvas 2.12.x + TypeScript (stack attuale)",
+      "answer": {
+        "value": "PlayCanvas 2.12.x + TypeScript (stack attuale)",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "PlayCanvas 2.12.x + TypeScript (stack attuale)",
+          "label": "PlayCanvas + TypeScript (attuale)"
+        },
+        {
+          "value": "Three.js + TypeScript",
+          "label": "Three.js + TypeScript"
+        },
+        {
+          "value": "Babylon.js + TypeScript",
+          "label": "Babylon.js + TypeScript"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "F2",
+      "kit": "frontend",
+      "field": "target.component_library",
+      "title": "Sistema UI per menu e HUD",
+      "question": "Quale sistema UI vuoi per menu, pannelli di missione, HUD e interazioni, oltre alla scena 3D?",
+      "importance": "required",
+      "impact": 4,
+      "recommended": "HTML/CSS accessibile senza libreria componenti (attuale)",
+      "default": null,
+      "prefilled": true,
+      "prefilled_value": "HTML/CSS accessibile senza libreria componenti (attuale)",
+      "answer": {
+        "value": "Tailwind CSS con componenti accessibili custom",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "HTML/CSS accessibile senza libreria componenti (attuale)",
+          "label": "HTML/CSS accessibile senza libreria"
+        },
+        {
+          "value": "Tailwind CSS con componenti accessibili custom",
+          "label": "Tailwind CSS + componenti custom"
+        },
+        {
+          "value": "React con una libreria UI dedicata",
+          "label": "React + libreria UI"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "F3",
+      "kit": "frontend",
+      "field": "visual.screenshots",
+      "title": "Riferimenti visivi",
+      "question": "La pagina browser condivisa e il gioco originale sono i riferimenti da replicare? Aggiungi eventuali screenshot o registrazioni di schermate/attività che devono essere ricostruite in 3D.",
+      "importance": "required",
+      "impact": 5,
+      "recommended": null,
+      "default": null,
+      "prefilled": true,
+      "prefilled_value": "Pagina condivisa in questa sessione: http://localhost:5173/; gioco di riferimento: Go-No-Go.html. Integrare screenshot/registrazioni aggiuntivi se necessari.",
+      "answer": {
+        "value": "Pagina condivisa in questa sessione: http://localhost:5173/; gioco di riferimento: Go-No-Go.html. Integrare screenshot/registrazioni aggiuntivi se necessari.",
+        "source": "user"
+      },
+      "depends_on": null,
+      "type": "text"
+    },
+    {
+      "id": "F4",
+      "kit": "frontend",
+      "field": "visual.design_system",
+      "title": "Direzione visiva e design system",
+      "question": "Quale direzione visiva deve guidare il nuovo gioco e la sua HCI?",
+      "importance": "required",
+      "impact": 4,
+      "recommended": "Mantenere identità e colori attuali, formalizzando token e migliorando HCI/accessibilità",
+      "default": "match existing pixel-by-pixel using extracted CSS custom properties",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "Definire un nuovo design system professionale per una simulazione spaziale NASA-like",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "Mantenere identità e colori attuali, formalizzando token e migliorando HCI/accessibilità",
+          "label": "Mantenere l'identità attuale e migliorarla"
+        },
+        {
+          "value": "Definire un nuovo design system professionale per una simulazione spaziale NASA-like",
+          "label": "Nuovo design system professionale"
+        },
+        {
+          "value": "Replica visiva pixel-by-pixel del gioco esistente",
+          "label": "Replica pixel-by-pixel"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "F5",
+      "kit": "frontend",
+      "field": "compliance.accessibility",
+      "title": "Accessibilità",
+      "question": "Quale standard di accessibilità vuoi adottare per menu, HUD, dialoghi e controlli?",
+      "importance": "recommended",
+      "impact": 3,
+      "recommended": "WCAG 2.2 AA",
+      "default": "WCAG 2.1 AA",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "WCAG 2.2 AA",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "WCAG 2.1 AA",
+          "label": "WCAG 2.1 AA"
+        },
+        {
+          "value": "WCAG 2.2 AA",
+          "label": "WCAG 2.2 AA"
+        },
+        {
+          "value": "Nessun requisito formale",
+          "label": "Nessun requisito formale"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "F6",
+      "kit": "frontend",
+      "field": "compatibility.browsers",
+      "title": "Browser supportati",
+      "question": "Quali browser e dispositivi devono supportare il gioco 3D?",
+      "importance": "recommended",
+      "impact": 3,
+      "recommended": "Browser evergreen: Chrome, Firefox, Safari ed Edge nelle ultime 2 versioni",
+      "default": "modern evergreen (Chrome, Firefox, Safari, Edge — latest 2 major versions)",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "Includere anche browser e GPU mobili",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "Browser evergreen: Chrome, Firefox, Safari ed Edge nelle ultime 2 versioni",
+          "label": "Browser moderni (ultime 2 versioni)"
+        },
+        {
+          "value": "Chrome ed Edge desktop recenti",
+          "label": "Chrome/Edge desktop"
+        },
+        {
+          "value": "Includere anche browser e GPU mobili",
+          "label": "Anche dispositivi mobili"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "F7",
+      "kit": "frontend",
+      "field": "responsive.breakpoints",
+      "title": "Desktop e mobile",
+      "question": "Quale strategia di layout e controllo vuoi? Il movimento FPS WASD/mouse è principalmente desktop; su mobile servirebbero controlli touch dedicati.",
+      "importance": "recommended",
+      "impact": 3,
+      "recommended": "Desktop-first con controlli WASD/mouse; menu adattivi su mobile",
+      "default": "mobile-first using existing breakpoints detected from codebase",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "Esperienza completa desktop e mobile con controlli touch",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "Desktop-first con controlli WASD/mouse; menu adattivi su mobile",
+          "label": "Desktop-first, menu su mobile"
+        },
+        {
+          "value": "Esperienza completa desktop e mobile con controlli touch",
+          "label": "Desktop e mobile completi"
+        },
+        {
+          "value": "Solo desktop",
+          "label": "Solo desktop"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "F8",
+      "kit": "frontend",
+      "field": "i18n.locales",
+      "title": "Lingue",
+      "question": "Quali lingue devono essere disponibili nel gioco e nell'interfaccia?",
+      "importance": "optional",
+      "impact": 2,
+      "recommended": null,
+      "default": "preserve current locales; keep existing i18n library if present",
+      "prefilled": true,
+      "prefilled_value": "Italiano e inglese (lingue già presenti nel gioco originale)",
+      "answer": {
+        "value": "Italiano e inglese (lingue già presenti nel gioco originale)",
+        "source": "user"
+      },
+      "depends_on": null,
+      "type": "text"
+    },
+    {
+      "id": "F9",
+      "kit": "frontend",
+      "field": "state_mgmt.preference",
+      "title": "Stato del client",
+      "question": "Preferisci una libreria per lo stato del client, o mantenere uno stato TypeScript leggero con lo stato missione persistito via API?",
+      "importance": "optional",
+      "impact": 2,
+      "recommended": "Stato TypeScript/PlayCanvas minimale + stato missione via API",
+      "default": "preserve existing pattern if identifiable; otherwise recommend minimal (component state + server-state library)",
+      "prefilled": true,
+      "prefilled_value": "Stato TypeScript/PlayCanvas minimale + stato missione via API",
+      "answer": {
+        "value": "Stato TypeScript/PlayCanvas minimale + stato missione via API",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "Stato TypeScript/PlayCanvas minimale + stato missione via API",
+          "label": "Minimale, senza state manager aggiuntivo"
+        },
+        {
+          "value": "Zustand",
+          "label": "Zustand"
+        },
+        {
+          "value": "Redux Toolkit",
+          "label": "Redux Toolkit"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "F10",
+      "kit": "frontend",
+      "field": "routing.preference",
+      "title": "Navigazione frontend",
+      "question": "Il gioco deve restare una singola applicazione a pagina unica o vuoi rotte dedicate per sezioni/account?",
+      "importance": "optional",
+      "impact": 2,
+      "recommended": "Pagina unica con menu/stati interni (attuale)",
+      "default": "use the de-facto router for the chosen target framework",
+      "prefilled": true,
+      "prefilled_value": "Pagina unica con menu/stati interni (attuale)",
+      "answer": {
+        "value": "Rotte dedicate per menu, profilo e missioni",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "Pagina unica con menu/stati interni (attuale)",
+          "label": "Pagina unica (attuale)"
+        },
+        {
+          "value": "Rotte dedicate per menu, profilo e missioni",
+          "label": "Rotte dedicate"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "B1",
+      "kit": "backend",
+      "field": "target.framework",
+      "title": "Framework dei microservizi",
+      "question": "Confermi Node.js/TypeScript con Express 5 per i microservizi, o vuoi adottare un framework backend diverso?",
+      "importance": "required",
+      "impact": 5,
+      "recommended": "Node.js + TypeScript + Express 5 (servizio attuale)",
+      "default": null,
+      "prefilled": true,
+      "prefilled_value": "Node.js + TypeScript + Express 5 (servizio attuale)",
+      "answer": {
+        "value": "Node.js + TypeScript + Express 5 (servizio attuale)",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "Node.js + TypeScript + Express 5 (servizio attuale)",
+          "label": "Node.js/TypeScript + Express 5 (attuale)"
+        },
+        {
+          "value": "Node.js + TypeScript + NestJS",
+          "label": "Node.js/TypeScript + NestJS"
+        },
+        {
+          "value": "Java + Spring Boot",
+          "label": "Java + Spring Boot"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "B2",
+      "kit": "backend",
+      "field": "api.contract_preservation",
+      "title": "Contratti API",
+      "question": "Come trattiamo l'API esistente e i nuovi endpoint dei microservizi? Al momento il backend espone solo /api/health.",
+      "importance": "required",
+      "impact": 4,
+      "recommended": "partial: preservare /api/health e versionare le nuove API sotto /api/v1",
+      "default": "must preserve",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "can break",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "partial: preservare /api/health e versionare le nuove API sotto /api/v1",
+          "label": "Preservare health check e versionare le nuove API"
+        },
+        {
+          "value": "must preserve",
+          "label": "Preservare ogni contratto esistente invariato"
+        },
+        {
+          "value": "can break with versioning",
+          "label": "Consentire breaking change solo con versionamento"
+        },
+        {
+          "value": "can break",
+          "label": "Ridisegnare liberamente i contratti"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "B3",
+      "kit": "backend",
+      "field": "data.migration_strategy",
+      "title": "Salvataggi e migrazione MySQL",
+      "question": "Come vuoi gestire i salvataggi gng32.save già presenti nel browser quando il gioco passa alla persistenza online MySQL?",
+      "importance": "required",
+      "impact": 5,
+      "recommended": "new schema: nuovo schema MySQL e importazione una tantum del salvataggio browser, solo con consenso",
+      "default": "TBD / assess in research phase",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "new schema: nuovo schema MySQL e importazione una tantum del salvataggio browser, solo con consenso",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "new schema: nuovo schema MySQL e importazione una tantum del salvataggio browser, solo con consenso",
+          "label": "Nuovo schema MySQL + import facoltativo del salvataggio"
+        },
+        {
+          "value": "new schema: MySQL nuovo senza importare i vecchi salvataggi",
+          "label": "Nuovo schema, ripartire senza import"
+        },
+        {
+          "value": "dual-write: mantenere temporaneamente browser e MySQL sincronizzati",
+          "label": "Dual-write temporaneo"
+        },
+        {
+          "value": "TBD / assess in research phase",
+          "label": "Definirlo dopo l'analisi tecnica"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "B4",
+      "kit": "backend",
+      "field": "auth.framework",
+      "title": "Account e autenticazione",
+      "question": "Per salvare le missioni online e ritrovarle tra dispositivi, quale identità deve usare il giocatore?",
+      "importance": "recommended",
+      "impact": 4,
+      "recommended": null,
+      "default": "preserve existing auth mechanism; detect from codebase",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "Email e password con gestione sicura delle credenziali",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "Accesso ospite anonimo, senza account",
+          "label": "Ospite anonimo"
+        },
+        {
+          "value": "Email e password con gestione sicura delle credenziali",
+          "label": "Email e password"
+        },
+        {
+          "value": "OIDC/OAuth con un identity provider esistente",
+          "label": "OIDC/OAuth"
+        },
+        {
+          "value": "Preservare il meccanismo esistente (nessuna autenticazione rilevata)",
+          "label": "Nessuna autenticazione per ora"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "B5",
+      "kit": "backend",
+      "field": "nfr.sla",
+      "title": "Obiettivi di servizio",
+      "question": "Hai obiettivi per latenza, disponibilità e numero di giocatori simultanei? Se non sono definiti, si può partire da un baseline misurabile e adeguarlo dopo il deploy.",
+      "importance": "recommended",
+      "impact": 3,
+      "recommended": null,
+      "default": "match current production baseline; no regression",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "match current production baseline; no regression",
+        "source": "default"
+      },
+      "depends_on": null,
+      "type": "text"
+    },
+    {
+      "id": "G1",
+      "kit": "generic",
+      "field": "success.definition",
+      "title": "Criteri di completamento",
+      "question": "Confermi questa definizione di successo o vuoi aggiungere criteri verificabili?",
+      "importance": "required",
+      "impact": 5,
+      "recommended": null,
+      "default": "feature parity with the current system; all existing user-facing behaviors preserved",
+      "prefilled": true,
+      "prefilled_value": "Ricostruire in 3D tutte le attività e i flussi Go-No-Go esistenti, con astronauta controllabile in prima persona, HCI professionale, menu iniziale e caricamento/salvataggio MySQL online; verificare i flussi con test end-to-end.",
+      "answer": {
+        "value": "Ricostruire in 3D tutte le attività e i flussi Go-No-Go esistenti, con astronauta controllabile in prima persona, HCI professionale, menu iniziale e caricamento/salvataggio MySQL online; verificare i flussi con test end-to-end.",
+        "source": "user"
+      },
+      "depends_on": null,
+      "type": "text"
+    },
+    {
+      "id": "G2",
+      "kit": "generic",
+      "field": "out_of_scope",
+      "title": "Esclusioni esplicite",
+      "question": "Ci sono funzioni del gioco, moduli, sistemi o comportamenti che non devono essere toccati?",
+      "importance": "recommended",
+      "impact": 3,
+      "recommended": null,
+      "default": "no explicit exclusions; agent will infer from project structure",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "no explicit exclusions; agent will infer from project structure",
+        "source": "default"
+      },
+      "depends_on": null,
+      "type": "text"
+    },
+    {
+      "id": "G3",
+      "kit": "generic",
+      "field": "existing_tests.posture",
+      "title": "Politica sui test esistenti",
+      "question": "Quale politica vuoi per i test e i comportamenti già presenti?",
+      "importance": "recommended",
+      "impact": 3,
+      "recommended": "must pass",
+      "default": "must pass",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "must pass",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "must pass",
+          "label": "I test esistenti devono passare; aggiungere test per le nuove feature"
+        },
+        {
+          "value": "can rewrite",
+          "label": "I test possono essere riscritti con copertura equivalente"
+        },
+        {
+          "value": "ignore",
+          "label": "Ignorare la suite attuale e ripartire da zero"
+        },
+        {
+          "value": "partial: preservare i test di regressione del gioco, riscrivere gli altri",
+          "label": "Preservare solo i test di regressione indicati"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "G4",
+      "kit": "generic",
+      "field": "target.output_location",
+      "title": "Posizione del nuovo codice",
+      "question": "Confermi che il refactoring va fatto in-place nel repository attuale, mantenendo il frontend e il backend sotto app/?",
+      "importance": "required",
+      "impact": 4,
+      "recommended": "in-place: repository attuale, frontend e backend sotto app/",
+      "default": "new sibling directory: Space-Mission-Design-Game-new",
+      "prefilled": true,
+      "prefilled_value": "in-place: repository attuale, frontend e backend sotto app/",
+      "answer": {
+        "value": "in-place: repository attuale, frontend e backend sotto app/",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "in-place: repository attuale, frontend e backend sotto app/",
+          "label": "Nel repository attuale, sotto app/"
+        },
+        {
+          "value": "new sibling directory: Space-Mission-Design-Game-new",
+          "label": "Nuova cartella sorella Space-Mission-Design-Game-new"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "G5",
+      "kit": "generic",
+      "field": "constraints.additional",
+      "title": "Altri vincoli e preferenze",
+      "question": "Aggiungi eventuali vincoli non coperti sopra: suddivisione desiderata dei microservizi, hosting/cloud provider o regione, requisiti operativi e ogni dettaglio che vuoi preservare.",
+      "importance": "optional",
+      "impact": 3,
+      "recommended": null,
+      "default": "None beyond the decisions listed in this specification.",
+      "prefilled": true,
+      "prefilled_value": "None beyond the decisions listed in this specification.",
+      "answer": {
+        "value": "None beyond the decisions listed in this specification.",
+        "source": "user"
+      },
+      "depends_on": null,
+      "type": "text"
+    }
+  ]
+}

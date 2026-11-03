@@ -1,25 +1,93 @@
 import * as pc from "playcanvas";
 import "./style.css";
 
-type MissionProfile = {
-  id: string;
-  title: string;
-  objective: string;
-  budgetMUsd: number;
-  maxMassKg: number;
-  maxPowerKw: number;
+type Settings = {
+  sensitivity: number;
+  walkSpeed: number;
 };
 
-type TelemetryResponse = {
-  missionId: string;
-  accepted: boolean;
-  reason: string;
+const SAVE_KEY = "gng32.save";
+const SETTINGS_KEY = "space-mission-settings";
+const DEFAULT_SETTINGS: Settings = { sensitivity: 0.15, walkSpeed: 6 };
+const PLAYER_SPAWN = new pc.Vec3(0, 0, 9);
+
+const canvasElement = document.getElementById("scene");
+const byId = <T extends HTMLElement>(id: string, type: { new (): T }): T => {
+  const element = document.getElementById(id);
+  if (!(element instanceof type)) {
+    throw new Error(`Required game element #${id} is missing.`);
+  }
+  return element;
 };
 
-const canvas = document.getElementById("scene");
+const canvas = canvasElement;
 if (!(canvas instanceof HTMLCanvasElement)) {
-  throw new Error("Scene canvas not found.");
+  throw new Error("The PlayCanvas scene canvas is missing.");
 }
+
+const mainMenu = byId("mainMenu", HTMLElement);
+const optionsMenu = byId("optionsMenu", HTMLElement);
+const pauseMenu = byId("pauseMenu", HTMLElement);
+const gameHud = byId("gameHud", HTMLElement);
+const missionConsole = byId("missionConsole", HTMLElement);
+const legacyGame = byId("legacyGame", HTMLIFrameElement);
+const interactionPrompt = byId("interactionPrompt", HTMLElement);
+const worldMessage = byId("worldMessage", HTMLElement);
+const pointerHint = byId("pointerHint", HTMLElement);
+const saveHint = byId("saveHint", HTMLElement);
+const loadingScreen = byId("loadingScreen", HTMLElement);
+const loadGameButton = byId("loadGame", HTMLButtonElement);
+const mouseSensitivity = byId("mouseSensitivity", HTMLInputElement);
+const walkSpeed = byId("walkSpeed", HTMLInputElement);
+const sensitivityValue = byId("sensitivityValue", HTMLOutputElement);
+const speedValue = byId("speedValue", HTMLOutputElement);
+
+let settings: Settings = { ...DEFAULT_SETTINGS };
+try {
+  const storedSettings = localStorage.getItem(SETTINGS_KEY);
+  if (storedSettings) {
+    const parsed: unknown = JSON.parse(storedSettings);
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "sensitivity" in parsed &&
+      "walkSpeed" in parsed &&
+      typeof parsed.sensitivity === "number" &&
+      Number.isFinite(parsed.sensitivity) &&
+      typeof parsed.walkSpeed === "number" &&
+      Number.isFinite(parsed.walkSpeed)
+    ) {
+      settings = {
+        sensitivity: Math.max(0.05, Math.min(0.4, parsed.sensitivity)),
+        walkSpeed: Math.max(2, Math.min(10, parsed.walkSpeed))
+      };
+    }
+  }
+} catch {
+  saveHint.textContent = "Le impostazioni non sono disponibili in questo browser.";
+}
+
+mouseSensitivity.value = String(settings.sensitivity);
+walkSpeed.value = String(settings.walkSpeed);
+
+const saveExists = (): boolean => {
+  try {
+    return localStorage.getItem(SAVE_KEY) !== null;
+  } catch {
+    saveHint.textContent = "Impossibile leggere i salvataggi del browser.";
+    return false;
+  }
+};
+
+const updateLoadButton = (): void => {
+  const hasSave = saveExists();
+  loadGameButton.disabled = !hasSave;
+  if (!saveHint.textContent) {
+    saveHint.textContent = hasSave
+      ? "Partita salvata trovata su questo dispositivo."
+      : "Nessuna partita salvata: inizia una nuova missione.";
+  }
+};
 
 const app = new pc.Application(canvas, {
   graphicsDeviceOptions: {
@@ -39,326 +107,566 @@ pc.WasmModule.setConfig("DracoDecoderModule", {
 app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
 app.setCanvasResolution(pc.RESOLUTION_AUTO);
 window.addEventListener("resize", () => app.resizeCanvas());
+app.scene.ambientLight = new pc.Color(0.24, 0.29, 0.38);
 
-app.scene.skyboxMip = 1;
-app.start();
+const material = (
+  color: pc.Color,
+  options: { emissive?: pc.Color; metalness?: number; gloss?: number } = {}
+): pc.StandardMaterial => {
+  const result = new pc.StandardMaterial();
+  result.diffuse = color;
+  result.emissive = options.emissive ?? new pc.Color(0, 0, 0);
+  result.metalness = options.metalness ?? 0;
+  result.gloss = options.gloss ?? 0.2;
+  result.update();
+  return result;
+};
 
-const camera = new pc.Entity("camera");
+const mats = {
+  regolith: material(new pc.Color(0.26, 0.28, 0.31), { gloss: 0.05 }),
+  shadow: material(new pc.Color(0.07, 0.11, 0.17), { metalness: 0.25, gloss: 0.35 }),
+  hull: material(new pc.Color(0.63, 0.68, 0.72), { metalness: 0.45, gloss: 0.52 }),
+  white: material(new pc.Color(0.81, 0.85, 0.87), { metalness: 0.18, gloss: 0.38 }),
+  orange: material(new pc.Color(0.91, 0.36, 0.17), { emissive: new pc.Color(0.09, 0.025, 0.008) }),
+  blue: material(new pc.Color(0.11, 0.39, 0.55), { emissive: new pc.Color(0.015, 0.08, 0.14), metalness: 0.15 }),
+  glass: material(new pc.Color(0.035, 0.21, 0.28), { emissive: new pc.Color(0.04, 0.42, 0.55), metalness: 0.2, gloss: 0.75 }),
+  gold: material(new pc.Color(0.83, 0.6, 0.23), { emissive: new pc.Color(0.13, 0.07, 0.015), metalness: 0.5 })
+};
+
+const addBox = (
+  name: string,
+  position: pc.Vec3,
+  scale: pc.Vec3,
+  surface: pc.StandardMaterial,
+  parent: pc.Entity = app.root
+): pc.Entity => {
+  const entity = new pc.Entity(name);
+  entity.addComponent("render", { type: "box" });
+  entity.setPosition(position);
+  entity.setLocalScale(scale);
+  entity.render!.material = surface;
+  parent.addChild(entity);
+  return entity;
+};
+
+const addSphere = (
+  name: string,
+  position: pc.Vec3,
+  scale: pc.Vec3,
+  surface: pc.StandardMaterial,
+  parent: pc.Entity = app.root
+): pc.Entity => {
+  const entity = new pc.Entity(name);
+  entity.addComponent("render", { type: "sphere" });
+  entity.setPosition(position);
+  entity.setLocalScale(scale);
+  entity.render!.material = surface;
+  parent.addChild(entity);
+  return entity;
+};
+
+const surface = new pc.Entity("lunar-surface");
+surface.addComponent("render", { type: "plane" });
+surface.setLocalScale(180, 1, 180);
+surface.setPosition(0, -0.5, 0);
+surface.render!.material = mats.regolith;
+app.root.addChild(surface);
+
+const floorGrid = new pc.Entity("landing-pad");
+floorGrid.addComponent("render", { type: "plane" });
+floorGrid.setLocalScale(76, 1, 64);
+floorGrid.setPosition(0, -0.42, -4);
+floorGrid.render!.material = mats.shadow;
+app.root.addChild(floorGrid);
+
+const keyLight = new pc.Entity("sunlight");
+keyLight.addComponent("light", {
+  type: "directional",
+  intensity: 1.8,
+  castShadows: true,
+  color: new pc.Color(0.82, 0.88, 1)
+});
+keyLight.setEulerAngles(48, 36, 0);
+app.root.addChild(keyLight);
+
+const fillLight = new pc.Entity("base-light");
+fillLight.addComponent("light", {
+  type: "omni",
+  intensity: 1.05,
+  range: 48,
+  color: new pc.Color(0.25, 0.56, 0.78)
+});
+fillLight.setPosition(0, 12, 1);
+app.root.addChild(fillLight);
+
+const distantMoon = addSphere(
+  "distant-moon",
+  new pc.Vec3(-40, 37, -96),
+  new pc.Vec3(24, 24, 24),
+  material(new pc.Color(0.33, 0.38, 0.45), { emissive: new pc.Color(0.045, 0.06, 0.09), gloss: 0.1 })
+);
+distantMoon.rotate(2, 0, 0);
+
+const craterMaterial = material(new pc.Color(0.2, 0.22, 0.25), { gloss: 0.01 });
+let randomSeed = 41;
+const random = (): number => {
+  randomSeed = (randomSeed * 16807) % 2147483647;
+  return (randomSeed - 1) / 2147483646;
+};
+
+for (let index = 0; index < 70; index += 1) {
+  const x = (random() - 0.5) * 145;
+  const z = (random() - 0.5) * 130;
+  if (Math.abs(x) < 14 && z > -26 && z < 22) {
+    continue;
+  }
+  const radius = 0.4 + random() * 1.5;
+  const rock = addSphere(
+    `lunar-rock-${index}`,
+    new pc.Vec3(x, -0.18 + radius * 0.16, z),
+    new pc.Vec3(radius * 1.5, radius * 0.48, radius),
+    craterMaterial
+  );
+  rock.setEulerAngles(random() * 20, random() * 360, random() * 15);
+}
+
+const habitat = new pc.Entity("habitat-complex");
+app.root.addChild(habitat);
+addBox("operations-hull", new pc.Vec3(0, 2.2, -10), new pc.Vec3(15, 4.4, 8), mats.hull, habitat);
+addBox("operations-roof", new pc.Vec3(0, 4.55, -10), new pc.Vec3(15.7, 0.35, 8.7), mats.white, habitat);
+addBox("operations-mark", new pc.Vec3(0, 4.83, -10), new pc.Vec3(4.4, 0.13, 0.18), mats.orange, habitat);
+addBox("left-habitat", new pc.Vec3(-12, 1.75, -5), new pc.Vec3(7, 3.5, 7), mats.white, habitat);
+addBox("left-habitat-roof", new pc.Vec3(-12, 3.64, -5), new pc.Vec3(7.5, 0.3, 7.5), mats.blue, habitat);
+addBox("right-lab", new pc.Vec3(12, 1.75, -5), new pc.Vec3(7, 3.5, 7), mats.hull, habitat);
+addBox("right-lab-roof", new pc.Vec3(12, 3.64, -5), new pc.Vec3(7.5, 0.3, 7.5), mats.white, habitat);
+
+for (const x of [-5, -2.5, 2.5, 5]) {
+  addBox(`ops-window-${x}`, new pc.Vec3(x, 2.55, -5.94), new pc.Vec3(1.65, 1.15, 0.08), mats.glass, habitat);
+}
+for (const x of [-13.7, -11.8, -9.9]) {
+  addBox(`hab-window-${x}`, new pc.Vec3(x, 2.1, -1.43), new pc.Vec3(0.9, 0.9, 0.06), mats.glass, habitat);
+}
+for (const x of [10.1, 12, 13.9]) {
+  addBox(`lab-window-${x}`, new pc.Vec3(x, 2.1, -1.43), new pc.Vec3(0.9, 0.9, 0.06), mats.glass, habitat);
+}
+
+const consolePosition = new pc.Vec3(0, 0, -2.5);
+addBox("mission-console-plinth", new pc.Vec3(0, 0.62, -2.4), new pc.Vec3(3.2, 1.24, 1.1), mats.shadow);
+addBox("mission-console-screen-frame", new pc.Vec3(0, 1.95, -2.91), new pc.Vec3(3.35, 1.45, 0.2), mats.orange);
+addBox("mission-console-screen", new pc.Vec3(0, 1.98, -2.78), new pc.Vec3(3.03, 1.14, 0.07), mats.glass);
+addBox("mission-console-foot", new pc.Vec3(0, 1.24, -2.6), new pc.Vec3(0.18, 0.5, 0.18), mats.gold);
+
+const dish = new pc.Entity("deep-space-antenna");
+dish.addComponent("render", { type: "cylinder" });
+dish.setPosition(20, 2, -15);
+dish.setLocalScale(4.4, 0.3, 4.4);
+dish.setEulerAngles(90, 0, 0);
+dish.render!.material = mats.white;
+app.root.addChild(dish);
+addBox("antenna-mast", new pc.Vec3(20, 1, -15), new pc.Vec3(0.28, 2, 0.28), mats.hull);
+
+const lander = new pc.Entity("lunar-lander");
+app.root.addChild(lander);
+addBox("lander-body", new pc.Vec3(-19, 2.5, 4), new pc.Vec3(3.7, 3.4, 3.7), mats.gold, lander);
+addBox("lander-top", new pc.Vec3(-19, 4.35, 4), new pc.Vec3(2.4, 0.35, 2.4), mats.white, lander);
+for (const [x, z] of [[-21, 2], [-17, 2], [-21, 6], [-17, 6]]) {
+  addBox(`lander-leg-${x}-${z}`, new pc.Vec3(x, 0.9, z), new pc.Vec3(0.16, 2.5, 0.16), mats.hull, lander);
+  addBox(`lander-foot-${x}-${z}`, new pc.Vec3(x, 0.18, z), new pc.Vec3(0.9, 0.16, 0.55), mats.white, lander);
+}
+
+const satellite = new pc.Entity("satellite-display");
+app.root.addChild(satellite);
+addBox("satellite-body", new pc.Vec3(18, 2, 8), new pc.Vec3(1.2, 1.4, 1.2), mats.white, satellite);
+addBox("satellite-panel-left", new pc.Vec3(15.8, 2, 8), new pc.Vec3(3.2, 0.08, 1.15), mats.blue, satellite);
+addBox("satellite-panel-right", new pc.Vec3(20.2, 2, 8), new pc.Vec3(3.2, 0.08, 1.15), mats.blue, satellite);
+addSphere("satellite-orbit-marker", new pc.Vec3(18, 5.2, 8), new pc.Vec3(0.25, 0.25, 0.25), mats.orange, satellite);
+
+const menuCamera = new pc.Entity("menu-camera");
+menuCamera.addComponent("camera", {
+  clearColor: new pc.Color(0.015, 0.025, 0.05),
+  farClip: 220,
+  fov: 52,
+  toneMapping: pc.TONEMAP_ACES
+});
+menuCamera.camera?.requestSceneColorMap(true);
+menuCamera.setPosition(0, 10, 25);
+menuCamera.lookAt(0, 2, -8);
+app.root.addChild(menuCamera);
+
+const camera = new pc.Entity("first-person-camera");
 camera.addComponent("camera", {
-  clearColor: new pc.Color(0.02, 0.03, 0.08),
-  farClip: 2500,
+  clearColor: new pc.Color(0.015, 0.025, 0.05),
+  farClip: 220,
+  fov: 76,
   toneMapping: pc.TONEMAP_ACES
 });
 camera.camera?.requestSceneColorMap(true);
-camera.setLocalPosition(0, 28, 64);
-camera.lookAt(0, 6, 0);
-app.root.addChild(camera);
+camera.enabled = false;
 
-const keyLight = new pc.Entity("key-light");
-keyLight.addComponent("light", {
-  type: "directional",
-  intensity: 2.1,
-  castShadows: true,
-  color: new pc.Color(0.86, 0.91, 1)
-});
-keyLight.setEulerAngles(45, 28, 0);
-app.root.addChild(keyLight);
+const player = new pc.Entity("astronaut-player");
+player.setPosition(PLAYER_SPAWN);
+camera.setLocalPosition(0, 1.66, 0);
+player.addChild(camera);
+app.root.addChild(player);
 
-const fillLight = new pc.Entity("fill-light");
-fillLight.addComponent("light", {
-  type: "omni",
-  intensity: 0.8,
-  range: 240,
-  color: new pc.Color(0.28, 0.42, 0.74)
-});
-fillLight.setPosition(-35, 35, 10);
-app.root.addChild(fillLight);
-
-const terrain = new pc.Entity("terrain");
-terrain.addComponent("render", {
-  type: "plane"
-});
-terrain.setLocalScale(240, 1, 240);
-terrain.setEulerAngles(-90, 0, 0);
-terrain.setLocalPosition(0, -0.1, 0);
-const terrainMaterial = new pc.StandardMaterial();
-terrainMaterial.diffuse = new pc.Color(0.06, 0.09, 0.13);
-terrainMaterial.metalness = 0.2;
-terrainMaterial.gloss = 0.1;
-terrainMaterial.update();
-terrain.render!.material = terrainMaterial;
-app.root.addChild(terrain);
-
-const earth = new pc.Entity("earth");
-earth.addComponent("render", { type: "sphere" });
-earth.setLocalPosition(-18, 9, 0);
-earth.setLocalScale(12, 12, 12);
-const earthMaterial = new pc.StandardMaterial();
-earthMaterial.diffuse = new pc.Color(0.09, 0.35, 0.72);
-earthMaterial.emissive = new pc.Color(0.02, 0.09, 0.24);
-earthMaterial.metalness = 0.05;
-earthMaterial.gloss = 0.2;
-earthMaterial.update();
-earth.render!.material = earthMaterial;
-app.root.addChild(earth);
-
-const orbit = new pc.Entity("orbit-ring");
-orbit.addComponent("render", { type: "torus" });
-orbit.setLocalPosition(-18, 9, 0);
-orbit.setLocalScale(23, 23, 0.14);
-orbit.setEulerAngles(90, 0, 0);
-const orbitMaterial = new pc.StandardMaterial();
-orbitMaterial.diffuse = new pc.Color(0.93, 0.65, 0.26);
-orbitMaterial.emissive = new pc.Color(0.15, 0.08, 0.02);
-orbitMaterial.metalness = 0.4;
-orbitMaterial.gloss = 0.4;
-orbitMaterial.update();
-orbit.render!.material = orbitMaterial;
-app.root.addChild(orbit);
-
-const missionMarker = new pc.Entity("mission-marker");
-missionMarker.addComponent("render", { type: "cone" });
-missionMarker.setLocalScale(1.2, 2.8, 1.2);
-missionMarker.setLocalPosition(10, 2, -8);
-const markerMaterial = new pc.StandardMaterial();
-markerMaterial.diffuse = new pc.Color(0.25, 0.82, 0.63);
-markerMaterial.emissive = new pc.Color(0.1, 0.38, 0.33);
-markerMaterial.update();
-missionMarker.render!.material = markerMaterial;
-app.root.addChild(missionMarker);
-
+const assetErrors = new Map<string, string>();
 const addNasaAsset = (
   name: string,
   url: string,
   position: pc.Vec3,
-  scale: pc.Vec3,
-  yawDeg: number
+  targetHeight: number,
+  modelYaw: number,
+  parent: pc.Entity = app.root,
+  onLoaded?: (model: pc.Entity) => void
 ): void => {
   const asset = new pc.Asset(name, "container", { url });
   app.assets.add(asset);
+  asset.on("error", (error: Error) => {
+    assetErrors.set(name, error.message);
+    console.error(`NASA 3D asset "${name}" failed to load.`, error);
+  });
   asset.ready(() => {
     if (!asset.resource) {
-      throw new Error(`Unable to load NASA asset: ${name}`);
+      assetErrors.set(name, "Asset was loaded without a renderable resource.");
+      return;
     }
     const model = asset.resource.instantiateRenderEntity();
-    model.setPosition(position);
-    model.setLocalScale(scale);
-    model.setEulerAngles(0, yawDeg, 0);
-    app.root.addChild(model);
+    const renderComponents = model.findComponents("render");
+    let minY = Number.POSITIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    for (const component of renderComponents) {
+      for (const instance of component.meshInstances) {
+        minY = Math.min(minY, instance.aabb.getMin().y);
+        maxY = Math.max(maxY, instance.aabb.getMax().y);
+      }
+    }
+    const measuredHeight = maxY - minY;
+    const scale = Number.isFinite(measuredHeight) && measuredHeight > 0
+      ? targetHeight / measuredHeight
+      : 1;
+    model.setLocalScale(scale, scale, scale);
+    model.setEulerAngles(0, modelYaw, 0);
+    if (parent === player) {
+      model.setLocalPosition(0, -minY * scale, 0);
+    } else {
+      model.setPosition(position.x, position.y - minY * scale, position.z);
+    }
+    parent.addChild(model);
+    onLoaded?.(model);
   });
   app.assets.load(asset);
 };
 
 addNasaAsset(
-  "astronaut",
+  "NASA astronaut display",
   "/assets/nasa/Astronaut.glb",
-  new pc.Vec3(8, 0.2, 6),
-  new pc.Vec3(1.5, 1.5, 1.5),
-  160
+  new pc.Vec3(-7.8, 0, 2.5),
+  1.8,
+  155
 );
 
+let astronautBody: pc.Entity | null = null;
+let firstPerson = true;
 addNasaAsset(
-  "crab-nebula",
+  "NASA astronaut player",
+  "/assets/nasa/Astronaut.glb",
+  new pc.Vec3(0, 0, 0),
+  1.8,
+  0,
+  player,
+  (model) => {
+    astronautBody = model;
+    for (const component of astronautBody.findComponents("render")) {
+      component.enabled = !firstPerson;
+    }
+  }
+);
+addNasaAsset(
+  "NASA Crab Nebula",
   "/assets/nasa/Crab-Nebula.glb",
-  new pc.Vec3(-48, 30, -90),
-  new pc.Vec3(9, 9, 9),
-  10
+  new pc.Vec3(26, 22, -56),
+  10,
+  24
 );
 
-const station = new pc.Entity("station");
-station.addComponent("render", { type: "box" });
-station.setLocalScale(5, 2, 5);
-station.setLocalPosition(10, 1, -8);
-const stationMaterial = new pc.StandardMaterial();
-stationMaterial.diffuse = new pc.Color(0.21, 0.29, 0.4);
-stationMaterial.emissive = new pc.Color(0.04, 0.08, 0.13);
-stationMaterial.update();
-station.render!.material = stationMaterial;
-app.root.addChild(station);
+const mainMenuButton = byId("newGame", HTMLButtonElement);
+const optionsButton = byId("openOptions", HTMLButtonElement);
+const closeOptionsButton = byId("closeOptions", HTMLButtonElement);
+const pauseButton = byId("pauseGame", HTMLButtonElement);
+const resumeButton = byId("resumeGame", HTMLButtonElement);
+const pauseOptionsButton = byId("pauseOptions", HTMLButtonElement);
+const backToMenuButton = byId("backToMenu", HTMLButtonElement);
+const openConsoleButton = byId("openConsole", HTMLButtonElement);
+const closeConsoleButton = byId("closeConsole", HTMLButtonElement);
 
-const satellite = new pc.Entity("satellite");
-satellite.addComponent("render", { type: "capsule" });
-satellite.setLocalScale(0.8, 1.8, 0.8);
-satellite.setLocalPosition(-6, 16, 0);
-const satelliteMaterial = new pc.StandardMaterial();
-satelliteMaterial.diffuse = new pc.Color(0.84, 0.86, 0.9);
-satelliteMaterial.emissive = new pc.Color(0.2, 0.2, 0.26);
-satelliteMaterial.update();
-satellite.render!.material = satelliteMaterial;
-app.root.addChild(satellite);
-
-const goButton = document.getElementById("goButton");
-const noGoButton = document.getElementById("noGoButton");
-const power = document.getElementById("power");
-const budget = document.getElementById("budget");
-const mass = document.getElementById("mass");
-const objective = document.getElementById("objective");
-const missionSelectElement = document.getElementById("missionSelect");
-const statusText = document.getElementById("statusText");
-
-if (
-  !goButton ||
-  !noGoButton ||
-  !power ||
-  !budget ||
-  !mass ||
-  !objective ||
-  !(missionSelectElement instanceof HTMLSelectElement) ||
-  !statusText
-) {
-  throw new Error("HUD controls not found.");
-}
-
-const missionSelect = missionSelectElement;
-
-const setStatus = (message: string, kind: "idle" | "ok" | "err"): void => {
-  statusText.textContent = message;
-  statusText.className = `status ${kind}`;
-};
-
-const missions = new Map<string, MissionProfile>();
-let activeMissionId = "";
-let currentBudgetMUsd = 1200;
-let currentPowerKw = 4.8;
-
-const renderMissionStats = (mission: MissionProfile): void => {
-  budget.textContent = `$${currentBudgetMUsd.toFixed(0)}M / $${mission.budgetMUsd.toFixed(0)}M`;
-  mass.textContent = `5.4 t / ${(mission.maxMassKg / 1000).toFixed(1)} t`;
-  power.textContent = `${currentPowerKw.toFixed(1)} kW / ${mission.maxPowerKw.toFixed(1)} kW`;
-  objective.textContent = `${mission.title}: ${mission.objective}`;
-};
-
-const loadMissions = async (): Promise<void> => {
-  setStatus("Loading mission profiles...", "idle");
-
-  const response = await fetch("/api/missions");
-  if (!response.ok) {
-    throw new Error(`Mission profiles request failed (${response.status})`);
-  }
-
-  const payload = (await response.json()) as MissionProfile[];
-  if (!Array.isArray(payload) || payload.length === 0) {
-    throw new Error("No mission profiles available from backend.");
-  }
-
-  missionSelect.innerHTML = "";
-  missions.clear();
-
-  for (const mission of payload) {
-    missions.set(mission.id, mission);
-    const option = document.createElement("option");
-    option.value = mission.id;
-    option.textContent = mission.title;
-    missionSelect.append(option);
-  }
-
-  activeMissionId = payload[0].id;
-  currentBudgetMUsd = payload[0].budgetMUsd;
-  currentPowerKw = payload[0].maxPowerKw * 0.8;
-  renderMissionStats(payload[0]);
-  setStatus("Mission profiles loaded.", "ok");
-};
-
-const submitTelemetry = async (status: "go" | "no-go"): Promise<void> => {
-  const mission = missions.get(activeMissionId);
-  if (!mission) {
-    throw new Error("No active mission selected.");
-  }
-
-  const response = await fetch("/api/telemetry", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      missionId: mission.id,
-      status,
-      powerKw: currentPowerKw,
-      budgetMUsd: currentBudgetMUsd
-    })
-  });
-
-  const payload = (await response.json()) as TelemetryResponse | { error: string };
-  if (!response.ok && !("accepted" in payload)) {
-    const message = "error" in payload ? payload.error : "Telemetry request failed.";
-    throw new Error(message);
-  }
-
-  const result = payload as TelemetryResponse;
-  setStatus(
-    `${status.toUpperCase()} for ${mission.title}: ${result.reason}`,
-    result.accepted ? "ok" : "err"
-  );
-};
-
-missionSelect.addEventListener("change", () => {
-  const selectedId = missionSelect.value;
-  const mission = missions.get(selectedId);
-  if (!mission) {
-    setStatus("Selected mission is not available.", "err");
-    return;
-  }
-
-  activeMissionId = mission.id;
-  currentBudgetMUsd = mission.budgetMUsd;
-  currentPowerKw = mission.maxPowerKw * 0.8;
-  missionMarker.setLocalPosition(10, 2.2, -8);
-  renderMissionStats(mission);
-  setStatus(`Mission selected: ${mission.title}`, "idle");
-});
-
-goButton.addEventListener("click", async () => {
-  const mission = missions.get(activeMissionId);
-  if (!mission) {
-    setStatus("Cannot run GO without an active mission.", "err");
-    return;
-  }
-
-  currentPowerKw = mission.maxPowerKw * 0.9;
-  renderMissionStats(mission);
-  missionMarker.setLocalPosition(10, 2.6, -8);
-
-  try {
-    await submitTelemetry("go");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Telemetry submission failed.";
-    setStatus(message, "err");
-  }
-});
-
-noGoButton.addEventListener("click", async () => {
-  const mission = missions.get(activeMissionId);
-  if (!mission) {
-    setStatus("Cannot run NO-GO without an active mission.", "err");
-    return;
-  }
-
-  currentPowerKw = mission.maxPowerKw * 1.1;
-  renderMissionStats(mission);
-  missionMarker.setLocalPosition(10, 1.5, -8);
-
-  try {
-    await submitTelemetry("no-go");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Telemetry submission failed.";
-    setStatus(message, "err");
-  }
-});
-
+let inWorld = false;
+let paused = false;
+let consoleOpen = false;
+let optionsReturn: "menu" | "pause" = "menu";
+let canUseConsole = false;
+let yaw = 0;
+let pitch = 0;
 let elapsed = 0;
+
+const saveSettings = (): void => {
+  settings = {
+    sensitivity: Number(mouseSensitivity.value),
+    walkSpeed: Number(walkSpeed.value)
+  };
+  sensitivityValue.value = settings.sensitivity.toFixed(2);
+  speedValue.value = settings.walkSpeed.toFixed(1);
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    saveHint.textContent = "Impossibile salvare le opzioni in questo browser.";
+  }
+};
+
+mouseSensitivity.addEventListener("input", saveSettings);
+walkSpeed.addEventListener("input", saveSettings);
+
+const requestPointerLock = (): void => {
+  if (inWorld && !paused && !consoleOpen && document.pointerLockElement !== canvas) {
+    void canvas.requestPointerLock();
+  }
+};
+
+const enterWorld = (loadSavedGame: boolean): void => {
+  if (!loadSavedGame && saveExists()) {
+    const confirmed = window.confirm(
+      "Iniziando una nuova partita, il salvataggio Go-No-Go esistente verrà sostituito. Continuare?"
+    );
+    if (!confirmed) {
+      return;
+    }
+  }
+
+  inWorld = true;
+  paused = false;
+  consoleOpen = false;
+  mainMenu.hidden = true;
+  optionsMenu.hidden = true;
+  pauseMenu.hidden = true;
+  missionConsole.hidden = true;
+  gameHud.hidden = false;
+  menuCamera.enabled = false;
+  camera.enabled = true;
+  legacyGame.src = "about:blank";
+  if (!loadSavedGame) {
+    legacyGame.dataset.startMode = "new";
+    worldMessage.textContent = "La missione inizia qui. Avvicinati alla console operativa.";
+  } else {
+    legacyGame.dataset.startMode = "load";
+    worldMessage.textContent = "Partita caricata. Interagisci con la console per riprendere la missione.";
+  }
+  player.setPosition(PLAYER_SPAWN);
+  yaw = 0;
+  pitch = 0;
+  requestPointerLock();
+};
+
+const openMissionConsole = (): void => {
+  if (!inWorld || !canUseConsole) {
+    worldMessage.textContent = "Avvicinati alla console di missione per interagire.";
+    return;
+  }
+  consoleOpen = true;
+  interactionPrompt.hidden = true;
+  missionConsole.hidden = false;
+  if (legacyGame.src === "about:blank" || legacyGame.src === "") {
+    const mode = legacyGame.dataset.startMode === "new" ? "?new=1" : "";
+    legacyGame.src = `/legacy-game.html${mode}`;
+  }
+  if (document.pointerLockElement) {
+    document.exitPointerLock();
+  }
+};
+
+const closeMissionConsole = (): void => {
+  consoleOpen = false;
+  missionConsole.hidden = true;
+  updateLoadButton();
+};
+
+const showOptions = (returnTo: "menu" | "pause"): void => {
+  optionsReturn = returnTo;
+  optionsMenu.hidden = false;
+  if (returnTo === "pause") {
+    pauseMenu.hidden = true;
+  } else {
+    mainMenu.hidden = true;
+  }
+};
+
+const closeOptions = (): void => {
+  optionsMenu.hidden = true;
+  if (optionsReturn === "pause") {
+    pauseMenu.hidden = false;
+  } else {
+    mainMenu.hidden = false;
+  }
+};
+
+const pause = (): void => {
+  if (!inWorld || consoleOpen) {
+    return;
+  }
+  paused = true;
+  pauseMenu.hidden = false;
+  if (document.pointerLockElement) {
+    document.exitPointerLock();
+  }
+};
+
+const resume = (): void => {
+  paused = false;
+  pauseMenu.hidden = true;
+  requestPointerLock();
+};
+
+const returnToMenu = (): void => {
+  inWorld = false;
+  paused = false;
+  consoleOpen = false;
+  pauseMenu.hidden = true;
+  gameHud.hidden = true;
+  missionConsole.hidden = true;
+  mainMenu.hidden = false;
+  camera.enabled = false;
+  menuCamera.enabled = true;
+  firstPerson = true;
+  camera.setLocalPosition(0, 1.66, 0);
+  if (astronautBody) {
+    for (const component of astronautBody.findComponents("render")) {
+      component.enabled = false;
+    }
+  }
+  legacyGame.src = "about:blank";
+  updateLoadButton();
+  if (document.pointerLockElement) {
+    document.exitPointerLock();
+  }
+};
+
+mainMenuButton.addEventListener("click", () => enterWorld(false));
+loadGameButton.addEventListener("click", () => {
+  if (saveExists()) {
+    enterWorld(true);
+  }
+});
+optionsButton.addEventListener("click", () => showOptions("menu"));
+closeOptionsButton.addEventListener("click", closeOptions);
+pauseButton.addEventListener("click", pause);
+resumeButton.addEventListener("click", resume);
+pauseOptionsButton.addEventListener("click", () => showOptions("pause"));
+backToMenuButton.addEventListener("click", returnToMenu);
+openConsoleButton.addEventListener("click", openMissionConsole);
+closeConsoleButton.addEventListener("click", closeMissionConsole);
+canvas.addEventListener("click", requestPointerLock);
+document.addEventListener("pointerlockchange", () => {
+  pointerHint.textContent = document.pointerLockElement === canvas
+    ? "WASD · mouse · E interagisci · Esc libera il mouse"
+    : "Clicca nel mondo per catturare il mouse";
+});
+
+window.addEventListener("mousemove", (event) => {
+  if (!inWorld || paused || consoleOpen || document.pointerLockElement !== canvas) {
+    return;
+  }
+  yaw -= event.movementX * settings.sensitivity * 0.01;
+  pitch = Math.max(-1.35, Math.min(1.35, pitch - event.movementY * settings.sensitivity * 0.01));
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.code === "Escape") {
+    if (consoleOpen) {
+      closeMissionConsole();
+    }
+    return;
+  }
+  if (!inWorld || paused || consoleOpen || event.repeat) {
+    return;
+  }
+  if (event.code === "KeyE" && canUseConsole) {
+    openMissionConsole();
+  } else if (event.code === "KeyP") {
+    pause();
+  } else if (event.code === "KeyV") {
+    firstPerson = !firstPerson;
+    camera.setLocalPosition(0, firstPerson ? 1.66 : 3.2, firstPerson ? 0 : 5.2);
+    if (astronautBody) {
+      for (const component of astronautBody.findComponents("render")) {
+        component.enabled = !firstPerson;
+      }
+    }
+    worldMessage.textContent = firstPerson
+      ? "Vista in prima persona attiva. Premi V per vedere l’astronauta."
+      : "Vista esterna attiva. Premi V per tornare in prima persona.";
+  }
+});
+
+const movementKeys = new pc.Keyboard(window);
 app.on("update", (dt: number) => {
   elapsed += dt;
-  earth.rotate(0, 8 * dt, 0);
-  orbit.rotate(0, 0, 4 * dt);
-  missionMarker.setLocalEulerAngles(0, 0, Math.sin(elapsed * 3) * 6);
-  satellite.setLocalPosition(
-    -18 + Math.cos(elapsed * 0.7) * 16,
-    9 + Math.sin(elapsed * 0.7) * 3,
-    Math.sin(elapsed * 0.7) * 16
+  satellite.rotate(0, 8 * dt, 0);
+  distantMoon.rotate(0, 0.2 * dt, 0);
+
+  if (!inWorld || paused || consoleOpen) {
+    return;
+  }
+
+  const forwardInput =
+    Number(movementKeys.isPressed(pc.KEY_W) || movementKeys.isPressed(pc.KEY_UP)) -
+    Number(movementKeys.isPressed(pc.KEY_S) || movementKeys.isPressed(pc.KEY_DOWN));
+  const sideInput =
+    Number(movementKeys.isPressed(pc.KEY_D) || movementKeys.isPressed(pc.KEY_RIGHT)) -
+    Number(movementKeys.isPressed(pc.KEY_A) || movementKeys.isPressed(pc.KEY_LEFT));
+  const inputLength = Math.hypot(forwardInput, sideInput);
+
+  if (inputLength > 0) {
+    const forwardX = Math.sin(yaw);
+    const forwardZ = -Math.cos(yaw);
+    const rightX = Math.cos(yaw);
+    const rightZ = Math.sin(yaw);
+    const distance = settings.walkSpeed * dt / inputLength;
+    const nextX = player.getPosition().x + (forwardX * forwardInput + rightX * sideInput) * distance;
+    const nextZ = player.getPosition().z + (forwardZ * forwardInput + rightZ * sideInput) * distance;
+    player.setPosition(Math.max(-40, Math.min(40, nextX)), 0, Math.max(-40, Math.min(35, nextZ)));
+  }
+
+  camera.setLocalEulerAngles(pitch * pc.math.RAD_TO_DEG, yaw * pc.math.RAD_TO_DEG, 0);
+  const playerPosition = player.getPosition();
+  const distanceToConsole = Math.hypot(
+    playerPosition.x - consolePosition.x,
+    playerPosition.z - consolePosition.z
   );
-  camera.setLocalPosition(Math.sin(elapsed * 0.12) * 8, 28, 64);
-  camera.lookAt(0, 6, 0);
+  canUseConsole = distanceToConsole < 5.3;
+  interactionPrompt.hidden = !canUseConsole;
+  if (canUseConsole) {
+    worldMessage.textContent = "Console operativa disponibile: premi E per aprire il gioco Go-No-Go.";
+  }
 });
 
-loadMissions().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : "Mission loading failed.";
-  setStatus(message, "err");
-});
+const healthStatus = document.createElement("span");
+healthStatus.id = "backendStatus";
+healthStatus.textContent = "BACKEND · verifica…";
+document.querySelector(".menu-footer")?.prepend(healthStatus);
+
+fetch("/api/health")
+  .then((response) => {
+    if (!response.ok) {
+      throw new Error(`Backend returned ${response.status}.`);
+    }
+    return response.json() as Promise<{ status?: string }>;
+  })
+  .then((health) => {
+    healthStatus.textContent = health.status === "ok" ? "BACKEND · online" : "BACKEND · risposta inattesa";
+  })
+  .catch((error: unknown) => {
+    healthStatus.textContent = "BACKEND · non raggiungibile";
+    console.error("Game backend health check failed.", error);
+  });
+
+app.start();
+updateLoadButton();
+window.setTimeout(() => loadingScreen.classList.add("ready"), 550);

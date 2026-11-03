@@ -158,24 +158,30 @@ For datasets, materials, and official challenge updates, refer to the **Resource
 
 ```text
 app/
-  frontend/   # PlayCanvas + Vite + TypeScript
+  frontend/   # PlayCanvas + Vite + TypeScript; first-person web game
   backend/    # Express + TypeScript
 documentation/
 ```
 
 ## ▶️ Run locally
 
-From repository root:
+Install once from the repository root:
 
 ```bash
 npm install
-npm run dev:backend
 ```
 
-In a second terminal:
+Run the backend and frontend in separate terminals:
+
+```bash
+npm run dev:backend
+```
 
 ```bash
 npm run dev:frontend
 ```
 
-Frontend calls `/api/*` and Vite proxies those requests to `http://localhost:8080`.
+Open the frontend URL printed by Vite. Start a new game, explore the lunar base with
+WASD and the mouse, then press **E** near the mission console to open the original
+Go-No-Go simulation. **Carica partita** resumes the browser save created by that game.
+The **V** key toggles a third-person view; **Esc** releases the mouse and **P** opens pause.
