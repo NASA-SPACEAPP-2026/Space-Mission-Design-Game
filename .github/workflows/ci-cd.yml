@@ -16,7 +16,7 @@ permissions:
 jobs:
   build-test:
     name: Build and test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v5
 
@@ -46,7 +46,7 @@ jobs:
     name: Deploy (${{ github.ref_name == 'main' && 'production' || 'staging' }})
     needs: build-test
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # main -> production, dev -> staging. Each GitHub Environment holds its own
     # AZURE_WEBAPP_NAME variable (and can require manual approval).
     environment:
