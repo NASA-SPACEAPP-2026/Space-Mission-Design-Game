@@ -1,0 +1,88 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+      # Only pushes (dev, main) get deployed, so only they need the package.
+      - name: Package for Azure App Service
+        if: github.event_name == 'push'
+        run: ./scripts/package-azure.sh release.zip
+
+      - name: Upload package
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-package
+          path: release.zip
+          retention-days: 7
+
+  deploy:
+    name: Deploy (${{ github.ref_name == 'main' && 'production' || 'staging' }})
+    needs: build-test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # main -> production, dev -> staging. Each GitHub Environment holds its own
+    # AZURE_WEBAPP_NAME variable (and can require manual approval).
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      url: https://${{ vars.AZURE_WEBAPP_NAME }}.azurewebsites.net
+    permissions:
+      id-token: write # OIDC login to Azure, no stored password
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-package
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          package: release.zip
+
+      - name: Smoke test
+        run: |
+          url="https://${{ vars.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+          # Free-tier apps cold start slowly, so retry for up to ~3 minutes.
+          for attempt in $(seq 1 18); do
+            if curl -fsS --max-time 20 "$url/api/health" | grep -q '"status":"ok"'; then
+              echo "API healthy at $url"
+              curl -fsS --max-time 20 -o /dev/null "$url/" && echo "Frontend reachable"
+              exit 0
+            fi
+            echo "Attempt $attempt failed, retrying in 10s..."
+            sleep 10
+          done
+          echo "Smoke test failed for $url" >&2
+          exit 1
