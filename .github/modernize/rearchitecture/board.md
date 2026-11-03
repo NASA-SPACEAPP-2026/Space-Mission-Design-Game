@@ -15,18 +15,20 @@
 
 **Project started**: 2026-11-03T15:11:34Z
 
+**Execution note**: Per the user's explicit direction, the HIGH baseline gaps are mandatory implementation gates, not blockers or waived scope. Preserve the PlayCanvas 2.12.x target.
+
 ## Tasks
 
 ### Phase: Analysis
 - ✅ t1 [pm] Inventory legacy gameplay features and acceptance criteria (2026-11-03T15:15:19Z→2026-11-03T15:20:09Z, 4m 50s)
-- ❌ t2 [architect] Analyze current architecture, dependencies, and migration risks (2026-11-03T15:15:09Z→2026-11-03T15:23:21Z) [findings: 5 HIGH]
-- ⏳ t2.1 [architect] Triage HIGH baseline gaps into explicit migration-risk dispositions [deps: t2]
+- ✅ t2 [architect] Analyze current architecture, dependencies, and migration risks (2026-11-03T15:32:34Z→2026-11-03T15:35:43Z, 3m 09s; baseline gaps tracked as mandatory implementation gates per user direction)
+- ✅ t2.1 [architect] Triage HIGH baseline gaps into explicit migration-risk dispositions [deps: t2] (2026-11-03T15:26:02Z→2026-11-03T15:29:35Z, 3m 33s; requirements not waived)
 
 ### Phase: Design
-- ⏳ t3 [architect] Design the target architecture and API contracts [deps: t1, t2, t2.1]
+- ⏳ t3 [architect] Design the target architecture and API contracts [deps: t1, t2, t2.1, t5]
 - ⏳ t4 [dba] Design MySQL schema and consent-based legacy-save import [deps: t1, t2, t2.1]
-- ⏳ t5 [ux] Specify accessible desktop/mobile 3D interaction and navigation [deps: t1]
-- ⏳ t6 [teamlead] Define runtime and end-to-end test strategy [deps: t2, t2.1]
+- ✅ t5 [ux] Specify accessible desktop/mobile 3D interaction and navigation [deps: t1] (2026-11-03T15:26:30Z→2026-11-03T15:28:35Z, 2m 05s)
+- ⏳ t6 [teamlead] Define runtime and end-to-end test strategy [deps: t1, t2, t2.1, t5]
 
 ### Phase: Planning
 - ⏳ t7 [teamlead] Create traceable implementation plan and task breakdown [deps: t3, t4, t5, t6]

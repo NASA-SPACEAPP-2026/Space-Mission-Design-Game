@@ -9,3 +9,7 @@
 ## architect t2.1 — 2026-11-03
 **Decision**: Treat the five HIGH baseline gaps as migration work that must be closed by explicit acceptance gates; do not waive feature parity, consent-gated save import, or touch support.
 **Rationale**: These are in-scope target capabilities, not acceptable shortcuts, and their evidence gates must be carried into planning and validation.
+
+## architect t2 — 2026-11-03
+**Decision**: Keep PlayCanvas 2.12.x as the required target and remove the legacy iframe runtime, retaining the original HTML only as a behavior reference.
+**Rationale**: The currently resolved 2.23.3 dependency does not satisfy the approved target; the backend currently lacks the requested persistence, auth, and readiness capabilities, which remain explicit migration gates.
