@@ -18,3 +18,10 @@
 - Debugging dead-ends and what actually worked: `Get-Date -AsUTC` is unsupported in this shell; `[DateTime]::UtcNow` works. Parsing both checkpoints and cross-checking plan/task references with `js-yaml` gave deterministic coverage evidence.
 - Techniques/patterns worth reusing for future tasks: preserve producer checkpoints and write task-specific gate evidence; evaluate task-level explicitness separately from cross-artifact traceability.
 - Learnings consumed: [teamlead/independent-mysql-playwright-gates, teamlead/vertical-slice-traceability]
+
+## [t8.1] Added design-system and visual acceptance to T003
+- Codebase/domain discoveries: t5 defines the approved visual direction and design checklist; t6 already requires desktop/mobile screenshots of the first visit for human review, so T003 can use that evidence without changing the validation stack.
+- Wrong assumptions and corrections: the initial index patch did not match the existing evidence-map wording; querying the exact line and applying a narrower patch preserved surrounding content. The expected `context.md` is absent, but the approved decision and design artifacts were available.
+- Debugging dead-ends and what actually worked: `js-yaml` successfully parsed both existing traceability checkpoints after the task edit; focused assertions verified the new acceptance text and unchanged traceability.
+- Techniques/patterns worth reusing for future tasks: carry approved visual language into the exact implementation task with measurable viewport, contrast, locale, and visible-ground checks; keep the traceability index aligned with the detailed plan.
+- Learnings consumed: [teamlead/independent-mysql-playwright-gates, teamlead/vertical-slice-traceability, ux/accessible-first-person-navigation]
