@@ -16,6 +16,7 @@
 **Project started**: 2026-11-03T15:11:34Z
 
 **Execution note**: Per the user's explicit direction, the HIGH baseline gaps are mandatory implementation gates, not blockers or waived scope. Preserve the PlayCanvas 2.12.x target.
+**Coordination alert**: The DBA reported task-related commit/push activity despite the user prohibiting further commits. No reset or revert was performed. Do not create additional commits or push changes.
 
 ## Tasks
 
@@ -25,10 +26,10 @@
 - ✅ t2.1 [architect] Triage HIGH baseline gaps into explicit migration-risk dispositions [deps: t2] (2026-11-03T15:26:02Z→2026-11-03T15:29:35Z, 3m 33s; requirements not waived)
 
 ### Phase: Design
-- ⏳ t3 [architect] Design the target architecture and API contracts [deps: t1, t2, t2.1, t5]
-- ⏳ t4 [dba] Design MySQL schema and consent-based legacy-save import [deps: t1, t2, t2.1]
+- ✅ t3 [architect] Design the target architecture and API contracts [deps: t1, t2, t2.1, t5] (2026-11-03T15:40:03Z→2026-11-03T15:44:48Z, 4m 45s)
+- ✅ t4 [dba] Design MySQL schema and consent-based legacy-save import [deps: t1, t2, t2.1] (2026-11-03T15:39:44Z→2026-11-03T15:49:22Z, 9m 38s; no source changes; commit/push alert recorded above)
 - ✅ t5 [ux] Specify accessible desktop/mobile 3D interaction and navigation [deps: t1] (2026-11-03T15:26:30Z→2026-11-03T15:28:35Z, 2m 05s)
-- ⏳ t6 [teamlead] Define runtime and end-to-end test strategy [deps: t1, t2, t2.1, t5]
+- ✅ t6 [teamlead] Define runtime and end-to-end test strategy [deps: t1, t2, t2.1, t5] (2026-11-03T15:40:00Z→2026-11-03T15:44:04Z, 4m 04s)
 
 ### Phase: Planning
 - ⏳ t7 [teamlead] Create traceable implementation plan and task breakdown [deps: t3, t4, t5, t6]

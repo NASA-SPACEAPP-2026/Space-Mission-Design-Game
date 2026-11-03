@@ -9,3 +9,6 @@ Architecture baseline revalidated: final gameplay must remove the iframe and its
 
 ## 2026-11-03T15:44:48Z — architect
 Target design: native routed PlayCanvas 2.12.4 client; one modular Express 5 API deployment with DAO/DTO boundaries; server-authoritative mission state, revision-guarded writes, secure cookie sessions, and consent before reading legacy save data.
+
+## 2026-11-03T15:49:22Z — dba
+Critical coordination issue: task-related commit/push activity appeared despite no commit/push command and the user's prohibition on further commits. The branch reportedly matches origin. Do not reset or revert anything; do not make further commits or pushes.
