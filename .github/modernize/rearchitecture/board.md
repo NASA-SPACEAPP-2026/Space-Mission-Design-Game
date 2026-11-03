@@ -33,6 +33,8 @@
 
 ### Phase: Planning
 - ✅ t7 [teamlead] Create traceable implementation plan and task breakdown [deps: t3, t4, t5, t6] (2026-11-03T15:52:18Z→2026-11-03T16:02:03Z, 9m 45s)
-- ⏳ t8 [teamlead] Quality-gate the implementation plan [deps: t7]
+- ✅ t8 [teamlead] Quality-gate the implementation plan [deps: t7] (2026-11-03T16:04:00Z→2026-11-03T16:07:14Z, 3m 14s; PASS, one MEDIUM follow-up)
+- ⏳ t8.1 [teamlead] Add NASA-like design system and visual acceptance to T003 [deps: t8]
+- ⏳ t8.2 [teamlead] Recheck amended plan traceability and quality [deps: t8.1]
 
 ⏳ [Execute + Validate phases — pending deep planning completion]

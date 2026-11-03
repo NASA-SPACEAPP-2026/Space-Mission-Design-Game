@@ -11,3 +11,10 @@
 - Debugging dead-ends and what actually worked: the markdown viewer truncated long upstream documents; read smaller ranges and validate the resulting checkpoint YAML with the installed `js-yaml` parser plus deterministic coverage counts.
 - Techniques/patterns worth reusing for future tasks: organize code work by independently executable feature slice, keep shared setup separate, preserve source anchors, map every `REQ-XXX` to plan items and tasks, and carry MySQL/browser/mobile capability gaps as separate evidence gates.
 - Learnings consumed: [teamlead/independent-mysql-playwright-gates]
+
+## [t8] Quality-gated the implementation plan
+- Codebase/domain discoveries: the t7 plan has 13 plan items and 13 sequential task mappings; all 24 requirement rows connect to tasks through the two traceability checkpoints. The user-approved NASA-like visual direction is detailed in t5 but not stated as a T003 acceptance criterion.
+- Wrong assumptions and corrections: the formal plan-to-tasks gate passes; the design-system omission is a MEDIUM handoff clarification, not a blocking traceability failure.
+- Debugging dead-ends and what actually worked: `Get-Date -AsUTC` is unsupported in this shell; `[DateTime]::UtcNow` works. Parsing both checkpoints and cross-checking plan/task references with `js-yaml` gave deterministic coverage evidence.
+- Techniques/patterns worth reusing for future tasks: preserve producer checkpoints and write task-specific gate evidence; evaluate task-level explicitness separately from cross-artifact traceability.
+- Learnings consumed: [teamlead/independent-mysql-playwright-gates, teamlead/vertical-slice-traceability]

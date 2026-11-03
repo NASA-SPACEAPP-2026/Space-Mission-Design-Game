@@ -38,8 +38,8 @@ progress_sync:
   completed_phases: 2
   total_modules: 3
   completed_modules: 0
-  total_tasks: 9
-  completed_tasks: 8
+  total_tasks: 11
+  completed_tasks: 9
   total_commits: 15
   build_verified: false
   test_verified: false

@@ -15,3 +15,6 @@ t4 schema and importer design is at `.github/modernize/rearchitecture/artifacts/
 
 ## 2026-11-03T15:49:22Z — dba
 The workspace now shows task-related commits (including `7ec407b`, `1db69c3`, `d5256d0`, and `bfd8a76`) and `Rok3DProva` matches `origin/Rok3DProva`. I issued no git commit/push command; the editing workflow appears to have committed and propagated changes despite the explicit no-additional-commits instruction. I have not reset or reverted anything.
+
+## 2026-11-03T16:07:14Z — teamlead
+MEDIUM: Plan task T003 does not explicitly carry the approved NASA-like visual design system into its acceptance criteria. Include the Tailwind design tokens/components, visual direction, and a visual acceptance check.
