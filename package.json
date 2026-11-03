@@ -8,13 +8,14 @@
   ],
   "scripts": {
     "build": "npm run build -w app/frontend && npm run build -w app/backend",
-    "dev": "npm run dev --workspace app/frontend --workspace app/backend --parallel",
+    "dev": "concurrently -n frontend,backend -c cyan,magenta \"npm run dev -w app/frontend\" \"npm run dev -w app/backend\"",
     "dev:frontend": "npm run dev -w app/frontend",
     "dev:backend": "npm run dev -w app/backend",
     "start:backend": "npm run start -w app/backend",
     "test": "npm run test --workspaces --if-present && vitest run test/backend-health.test.ts"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "vitest": "5.1.0"
   }
 }
