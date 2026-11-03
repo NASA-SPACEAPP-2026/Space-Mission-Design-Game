@@ -17,6 +17,9 @@ This is a design artifact, not an implementation. The existing backend has no da
 | `auth_sessions` | `id BINARY(16) PK`, `user_id FK`, `token_hash BINARY(32)`, `expires_at`, `revoked_at`, timestamps | Unique token hash; index `(user_id, expires_at)` for revocation/expiry cleanup. Store only a digest of a high-entropy opaque session token. |
 | `agencies` | `id BINARY(16) PK`, `owner_user_id FK`, `name`, `credits DECIMAL(14,2)`, `xp`, `science_total`, `staff_count`, `difficulty`, `sandbox`, `tutorial_state`, `state_schema_version`, `state_json JSON`, `current_mission_id NULL`, `revision BIGINT UNSIGNED`, timestamps | `UNIQUE(owner_user_id)` for the legacy one-agency-per-save model; resource checks after legacy-range validation. Composite unique `(id, current_mission_id)` is not needed; ownership and selection are verified in the service transaction. |
 | `missions` | `id BINARY(16) PK`, `agency_id FK`, `legacy_order NULL`, `name`, `phase_code`, `stage_code`, `status`, `state_schema_version`, `state_json JSON`, `revision BIGINT UNSIGNED`, `created_at`, `updated_at`, `closed_at NULL` | Index `(agency_id, status, updated_at)` for profile lists; `UNIQUE(agency_id, legacy_order)` where non-null to retain imported order; composite `UNIQUE(agency_id, id)` supports ownership-scoped reads. Mission delete/update is always agency-scoped. |
+| `mission_events` | `id BINARY(16) PK`, `mission_id FK`, `sequence BIGINT UNSIGNED`, `actor_user_id FK`, `event_type`, `event_schema_version`, `payload_json JSON`, `idempotency_key NULL`, `created_at` | `UNIQUE(mission_id, sequence)`; unique `(mission_id, idempotency_key)` for non-null command keys; index `(mission_id, created_at)`. Append-only decisions/reviews, phase changes, assembly actions, launches, and operations events. |
+| `mission_test_runs` | `id BINARY(16) PK`, `mission_id FK`, `test_type`, `attempt_number`, `design_revision`, `outcome`, `result_json JSON`, `completed_at` | `UNIQUE(mission_id, test_type, attempt_number)`; index `(mission_id, design_revision, test_type)`. Retains the six legacy test classes and ties each result to the tested design revision. |
+| `mission_reports` | `id BINARY(16) PK`, `mission_id FK`, `outcome`, `report_schema_version`, `report_json JSON`, `created_at` | `UNIQUE(mission_id)` for one finalized report per mission. Server-generated and immutable; facts are traceable to mission/test/event records. |
 | `legacy_imports` | `user_id BINARY(16) PK/FK`, `idempotency_key BINARY(16)`, `source_version`, `source_sha256 BINARY(32)`, `consent_copy_version`, `consented_at`, `imported_at`, `agency_id FK`, `mission_count` | Unique idempotency key; one row per user enforces one successful import per account. Store no password, localStorage key, or duplicate raw payload here. |
 | `schema_migrations` | `version VARCHAR(64) PK`, `checksum BINARY(32)`, `applied_at` | Migration runner metadata; refuse to run if an applied migration's checksum changes. |
 
@@ -26,8 +29,10 @@ Use InnoDB, `utf8mb4`, UTC `DATETIME(3)`, and parameterized DAO queries. Generat
 
 - One `user_account` owns one `player_profile`, one `agency`, and zero or more `auth_sessions`.
 - One `agency` owns zero or more `missions`; every read/write query scopes the mission by both `mission_id` and its owning `agency_id` derived from the authenticated user.
+- One `mission` owns ordered append-only `mission_events` and `mission_test_runs`, and zero or one final `mission_report`. The application service updates the mission snapshot and appends the corresponding decision/event/test record in the same database transaction.
 - `agencies.state_json` contains versioned non-mission game state that has not yet earned stable relational columns, including campus/facility placements, recruitment/unlock collections, simulation settings, and forward-compatible extension data.
-- `missions.state_json` contains the validated mission aggregate: stakeholder/support state, requirements and review decisions, satellite configuration/placements, flight/orbit plan and burns, test results/defects, operations events/choices, and report facts. `phase_code`, `stage_code`, and `status` are queryable projections and must be updated atomically with the JSON aggregate.
+- `missions.state_json` contains the validated current mission snapshot: stakeholder/support state, requirements, satellite configuration/placements, flight/orbit plan and burns, current defect/test status, and active operations context. `phase_code`, `stage_code`, `status`, and `revision` are queryable projections and must be updated atomically with the JSON aggregate and matching append-only event/test rows.
+- `mission_test_runs` is the authoritative test-attempt history; each run records the spacecraft/design revision actually tested. A design change invalidates prior qualification for readiness decisions without deleting its historical test record. `mission_reports` is generated from committed mission history and test rows, never trusted from a client.
 - JSON is a compatibility boundary, not a way to skip validation: `state_schema_version` selects a strict backend DTO/schema; reject invalid or oversized state, and never trust client-provided ownership, financial projections, or report outcomes. Compute protected projections server-side.
 - Use `revision` as an optimistic concurrency token. Update an aggregate with `WHERE id = ? AND owner/agency = ? AND revision = ?`; increment on success and return a conflict on stale writes.
 - Keep reference catalogs (parts, stakeholders, test classes, launch providers) in code/config unless they become independently administered data. Persist stable catalog keys in the validated JSON; do not make user-save imports depend on a particular catalog row set.
@@ -39,6 +44,9 @@ erDiagram
     USER_ACCOUNT ||--o{ AUTH_SESSION : "opens"
     USER_ACCOUNT ||--o| AGENCY : "owns"
     AGENCY ||--o{ MISSION : "contains"
+    MISSION ||--o{ MISSION_EVENT : "records"
+    MISSION ||--o{ MISSION_TEST_RUN : "qualifies"
+    MISSION ||--o| MISSION_REPORT : "closes as"
     USER_ACCOUNT ||--o| LEGACY_IMPORT : "imports once"
     AGENCY ||--o| LEGACY_IMPORT : "created by import"
     USER_ACCOUNT {
@@ -77,6 +85,31 @@ erDiagram
         json state
         bigint revision
     }
+    MISSION_EVENT {
+        string id PK
+        string missionId FK
+        bigint sequence
+        string actorUserId FK
+        string eventType
+        json payload
+        datetime createdAt
+    }
+    MISSION_TEST_RUN {
+        string id PK
+        string missionId FK
+        string testType
+        int attemptNumber
+        bigint designRevision
+        string outcome
+        datetime completedAt
+    }
+    MISSION_REPORT {
+        string id PK
+        string missionId FK
+        string outcome
+        json report
+        datetime createdAt
+    }
     LEGACY_IMPORT {
         string userId PK "also FK to USER_ACCOUNT"
         string agencyId FK
@@ -96,7 +129,7 @@ Source is the browser value at `localStorage['gng32.save']`; the legacy reader a
 | `v` | `legacy_imports.source_version` | Require exactly `32`; do not infer support from other versions. |
 | `co` | `agencies.name` | Validate non-empty name and the target length before any write. |
 | `money`, `xp`, `sciTotal`, `staff` | `agencies.credits`, `xp`, `science_total`, `staff_count` | Validate numeric type, finiteness, and supported bounds; never silently clamp or round. Preserve the original value or reject with an actionable validation error. |
-| `missions[]` | `missions` rows, in array order | Generate target UUIDs, store `legacy_order`, map every mission, and preserve the complete validated mission-specific state in versioned `state_json`. Do not skip a malformed mission. |
+| `missions[]` | `missions` rows, in array order | Generate target UUIDs, store `legacy_order`, map every mission, and preserve the complete validated mission-specific current state in versioned `state_json`. Do not skip a malformed mission. Create event/test history only where the source supports an unambiguous record; never fabricate historical attempts or decisions. |
 | `cur` | `agencies.current_mission_id` | Resolve from the original mission index to the newly generated mission UUID. Validate the index; an invalid non-empty selection is a recoverable import error, not a silent fallback. |
 | Other root-level fields (`world`, `rooms`, `labPos`, `plots`, `pad`, `lab`, `recruited`, `myBoard`, tutorial/difficulty/clock fields, and future keys) | `agencies.state_json` | Preserve all non-mission members, including currently unknown keys, in a validated versioned extension object. |
 | Remaining mission members (including mission-specific unknown keys) | `missions.state_json` | Preserve every source member not projected into identity/lifecycle columns; do not drop unsupported optional fields without an explicit error/report. |
@@ -113,8 +146,8 @@ The mapper must use a pinned v32 DTO/schema grounded in the source, not a generi
 3. Only after consent, read and parse the key. If absent, corrupt, unsupported, or invalid, show a clear recovery choice; do not remove, overwrite, rewrite, or auto-reset the source key.
 4. Submit the validated save over HTTPS to an authenticated import operation with `consent: true`, a stable consent-copy version, and an `Idempotency-Key`. The exact route/path belongs to the API-contract task; this design specifies its payload and transaction behavior.
 5. Backend revalidates the full v32 DTO and recomputes the canonical SHA-256 digest. It does not trust a client digest, account ID, agency ID, resource total, or derived report.
-6. In one InnoDB transaction, lock the authenticated account row; return the prior result for a completed identical import; reject a changed source after a completed import; reject importing over any existing non-empty account game; otherwise create the agency, all missions and their state, resolve `cur`, and insert the one-time `legacy_imports` consent/success record. Commit all or none.
-7. A retry after rollback is safe. Concurrent submissions serialize on the user row/unique keys. Same successful digest is idempotent; another save after success returns a conflict requiring an explicit user decision rather than replacing cloud data. Reject import if the account already has an agency/game state; do not overwrite even an apparently empty cloud agency.
+6. In one InnoDB transaction, lock the authenticated account row; return the prior result for a completed identical import; reject a changed source after a completed import; reject importing over any existing agency/game state; otherwise create the agency, all missions and their current state, resolve `cur`, and insert the one-time `legacy_imports` consent/success record. Commit all or none.
+7. A retry after rollback is safe. Concurrent submissions serialize on the user row/unique keys. Same successful digest is idempotent; another save after success returns a conflict requiring an explicit user decision rather than replacing cloud data.
 8. On success, report counts and the resulting agency/mission IDs. Leave the local key byte-for-byte unchanged. Offer deletion only as a separate, explicit local action after successful import; never delete automatically.
 
 ### Request/response DTO intent
