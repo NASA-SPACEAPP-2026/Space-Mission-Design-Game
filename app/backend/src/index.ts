@@ -1,14 +1,6 @@
-import express from "express";
+import { createApp } from "./app.js";
 
-const app = express();
-
-app.get("/api/health", (_request, response) => {
-  response.json({
-    status: "ok",
-    service: "space-mission-design-game",
-    game: "Go-No-Go"
-  });
-});
+const app = createApp();
 
 const port = Number(process.env.PORT ?? 8080);
 if (!Number.isInteger(port) || port < 1 || port > 65535) {

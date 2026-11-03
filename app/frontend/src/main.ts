@@ -1,4 +1,5 @@
 import * as pc from "playcanvas";
+import { missionPath, resolveRoute, type AppRoute } from "./router";
 import "./style.css";
 
 type Settings = {
@@ -6,41 +7,27 @@ type Settings = {
   walkSpeed: number;
 };
 
-const SAVE_KEY = "gng32.save";
+type Locale = "it" | "en";
+type Direction = "forward" | "backward" | "left" | "right";
+
+type WorldController = {
+  activate: () => void;
+  deactivate: () => void;
+  setMovement: (direction: Direction, active: boolean) => void;
+  look: (deltaX: number, deltaY: number) => void;
+};
+
 const SETTINGS_KEY = "space-mission-settings";
 const DEFAULT_SETTINGS: Settings = { sensitivity: 0.15, walkSpeed: 6 };
 const PLAYER_SPAWN = new pc.Vec3(0, 0, 9);
 
-const canvasElement = document.getElementById("scene");
-const byId = <T extends HTMLElement>(id: string, type: { new (): T }): T => {
-  const element = document.getElementById(id);
-  if (!(element instanceof type)) {
-    throw new Error(`Required game element #${id} is missing.`);
-  }
-  return element;
-};
-
-const canvas = canvasElement;
-if (!(canvas instanceof HTMLCanvasElement)) {
+const appElement = document.getElementById("app");
+const canvas = document.getElementById("scene");
+const sceneFallback = document.getElementById("scene-fallback");
+if (!(appElement instanceof HTMLElement) || !(canvas instanceof HTMLCanvasElement) ||
+    !(sceneFallback instanceof HTMLElement)) {
   throw new Error("The PlayCanvas scene canvas is missing.");
 }
-
-const mainMenu = byId("mainMenu", HTMLElement);
-const optionsMenu = byId("optionsMenu", HTMLElement);
-const pauseMenu = byId("pauseMenu", HTMLElement);
-const gameHud = byId("gameHud", HTMLElement);
-const missionConsole = byId("missionConsole", HTMLElement);
-const legacyGame = byId("legacyGame", HTMLIFrameElement);
-const interactionPrompt = byId("interactionPrompt", HTMLElement);
-const worldMessage = byId("worldMessage", HTMLElement);
-const pointerHint = byId("pointerHint", HTMLElement);
-const saveHint = byId("saveHint", HTMLElement);
-const loadingScreen = byId("loadingScreen", HTMLElement);
-const loadGameButton = byId("loadGame", HTMLButtonElement);
-const mouseSensitivity = byId("mouseSensitivity", HTMLInputElement);
-const walkSpeed = byId("walkSpeed", HTMLInputElement);
-const sensitivityValue = byId("sensitivityValue", HTMLOutputElement);
-const speedValue = byId("speedValue", HTMLOutputElement);
 
 let settings: Settings = { ...DEFAULT_SETTINGS };
 try {
@@ -64,30 +51,10 @@ try {
     }
   }
 } catch {
-  saveHint.textContent = "Le impostazioni non sono disponibili in questo browser.";
+  // Settings are optional; the default controls remain available if storage is blocked.
 }
 
-mouseSensitivity.value = String(settings.sensitivity);
-walkSpeed.value = String(settings.walkSpeed);
-
-const saveExists = (): boolean => {
-  try {
-    return localStorage.getItem(SAVE_KEY) !== null;
-  } catch {
-    saveHint.textContent = "Impossibile leggere i salvataggi del browser.";
-    return false;
-  }
-};
-
-const updateLoadButton = (): void => {
-  const hasSave = saveExists();
-  loadGameButton.disabled = !hasSave;
-  if (!saveHint.textContent) {
-    saveHint.textContent = hasSave
-      ? "Partita salvata trovata su questo dispositivo."
-      : "Nessuna partita salvata: inizia una nuova missione.";
-  }
-};
+function initializeWorld(): WorldController {
 
 const app = new pc.Application(canvas, {
   graphicsDeviceOptions: {
@@ -123,7 +90,10 @@ const material = (
 };
 
 const mats = {
-  regolith: material(new pc.Color(0.26, 0.28, 0.31), { gloss: 0.05 }),
+  regolith: material(
+    new pc.Color(0.4, 0.4, 0.38),
+    { emissive: new pc.Color(0.055, 0.05, 0.04), gloss: 0.04 }
+  ),
   shadow: material(new pc.Color(0.07, 0.11, 0.17), { metalness: 0.25, gloss: 0.35 }),
   hull: material(new pc.Color(0.63, 0.68, 0.72), { metalness: 0.45, gloss: 0.52 }),
   white: material(new pc.Color(0.81, 0.85, 0.87), { metalness: 0.18, gloss: 0.38 }),
@@ -330,8 +300,8 @@ const addNasaAsset = (
       assetErrors.set(name, "Asset was loaded without a renderable resource.");
       return;
     }
-    const model = asset.resource.instantiateRenderEntity();
-    const renderComponents = model.findComponents("render");
+    const model = (asset.resource as pc.ContainerResource).instantiateRenderEntity();
+    const renderComponents = model.findComponents("render") as pc.RenderComponent[];
     let minY = Number.POSITIVE_INFINITY;
     let maxY = Number.NEGATIVE_INFINITY;
     for (const component of renderComponents) {
