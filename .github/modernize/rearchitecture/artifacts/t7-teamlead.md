@@ -22,7 +22,7 @@ This index links the implementation blueprint and its two traceability checkpoin
 - `.github/modernize/rearchitecture/artifacts/t1-pm.md` — authoritative 14-group legacy behavior inventory, 24 functional requirements, user stories, source anchors.
 - `.github/modernize/rearchitecture/artifacts/t3-architect.md` — runtime boundaries, API/DTO/DAO contracts, transaction/security rules, exact PlayCanvas pin, architecture risks.
 - `.github/modernize/rearchitecture/artifacts/t4-dba.md` — MySQL schema, migrations, ownership/revision constraints, v32 field mapping and consent/import invariants.
-- `.github/modernize/rearchitecture/artifacts/t5-ux.md` — routes, activity-map parity, desktop/touch input, WCAG 2.2 AA and bilingual interaction contracts.
+- `.github/modernize/rearchitecture/artifacts/t5-ux.md` — routes, activity-map parity, desktop/touch input, WCAG 2.2 AA, bilingual interaction contracts, NASA-like visual direction and design acceptance.
 - `.github/modernize/rearchitecture/artifacts/t6-teamlead.md` — binding integration, browser, MySQL, accessibility, localization, and mobile validation strategy.
 - `.github/modernize/rearchitecture/clarification-answers.md` — submitted user answers for target technologies, scope, platforms, accessibility, persistence, languages, and deployment limits.
 - `.github/modernize/rearchitecture/clarification.md` — canonical approved scope and unresolved SLA assumption.
@@ -34,7 +34,7 @@ This index links the implementation blueprint and its two traceability checkpoin
 - `t1-pm.md#Functional requirements` (`REQ-001`…`REQ-024`) → [Requirement Mapping](./t7-teamlead-plan.md#requirement-mapping) and `t7-spec-to-plan.yaml`.
 - `t3-architect.md#Runtime and module boundaries`, `#API conventions`, `#HTTP API contract`, `#Operational and migration decisions` → plan technical context, DAO/DTO/authority rules, package pin and plan items 1.1–9.2.
 - `t4-dba.md#Data Model`, `#Legacy v32 Field Mapping`, `#Consent-Gated Import Contract`, `#Migration and Operational Notes` → plan items 1.2, 3.1, 8.1, 9.1; isolated MySQL/consent tests.
-- `t5-ux.md#Information architecture and routes`, `#Campus activity map`, `#First-person movement and interaction contract`, `#Accessibility and inclusive interaction requirements` → plan item 2.1 and browser/mobile acceptance criteria.
+- `t5-ux.md#Information architecture and routes`, `#Campus activity map`, `#First-person movement and interaction contract`, `#Accessibility and inclusive interaction requirements`, `#Visual and content direction`, `#Design acceptance checklist` → plan item 2.1 and T003's browser/mobile/WCAG and visual-system acceptance criteria.
 - `t6-teamlead.md#Critical user journeys and acceptance`, `#Fallback matrix`, `#Infrastructure scaffold and module test skeletons`, `#PASS criteria and evidence contract` → plan Testing Strategy and plan item 9.1.
 - `.github/modernize/rearchitecture/clarification-answers.md#Frontend`, `#Backend`, `#Generic` → immutable implementation constraints repeated in plan items and Constitution Check.
 - `project-structure.md#Entry points and routing` and `tech-stack.md#Packages` → exact existing file seams referenced in the task breakdown.
