@@ -1,5 +1,4 @@
 import * as pc from "playcanvas";
-import { missionPath, resolveRoute, type AppRoute } from "./router";
 import "./style.css";
 
 type Settings = {
@@ -7,27 +6,41 @@ type Settings = {
   walkSpeed: number;
 };
 
-type Locale = "it" | "en";
-type Direction = "forward" | "backward" | "left" | "right";
-
-type WorldController = {
-  activate: () => void;
-  deactivate: () => void;
-  setMovement: (direction: Direction, active: boolean) => void;
-  look: (deltaX: number, deltaY: number) => void;
-};
-
+const SAVE_KEY = "gng32.save";
 const SETTINGS_KEY = "space-mission-settings";
 const DEFAULT_SETTINGS: Settings = { sensitivity: 0.15, walkSpeed: 6 };
 const PLAYER_SPAWN = new pc.Vec3(0, 0, 9);
 
-const appElement = document.getElementById("app");
-const canvas = document.getElementById("scene");
-const sceneFallback = document.getElementById("scene-fallback");
-if (!(appElement instanceof HTMLElement) || !(canvas instanceof HTMLCanvasElement) ||
-    !(sceneFallback instanceof HTMLElement)) {
+const canvasElement = document.getElementById("scene");
+const byId = <T extends HTMLElement>(id: string, type: { new (): T }): T => {
+  const element = document.getElementById(id);
+  if (!(element instanceof type)) {
+    throw new Error(`Required game element #${id} is missing.`);
+  }
+  return element;
+};
+
+const canvas = canvasElement;
+if (!(canvas instanceof HTMLCanvasElement)) {
   throw new Error("The PlayCanvas scene canvas is missing.");
 }
+
+const mainMenu = byId("mainMenu", HTMLElement);
+const optionsMenu = byId("optionsMenu", HTMLElement);
+const pauseMenu = byId("pauseMenu", HTMLElement);
+const gameHud = byId("gameHud", HTMLElement);
+const missionConsole = byId("missionConsole", HTMLElement);
+const legacyGame = byId("legacyGame", HTMLIFrameElement);
+const interactionPrompt = byId("interactionPrompt", HTMLElement);
+const worldMessage = byId("worldMessage", HTMLElement);
+const pointerHint = byId("pointerHint", HTMLElement);
+const saveHint = byId("saveHint", HTMLElement);
+const loadingScreen = byId("loadingScreen", HTMLElement);
+const loadGameButton = byId("loadGame", HTMLButtonElement);
+const mouseSensitivity = byId("mouseSensitivity", HTMLInputElement);
+const walkSpeed = byId("walkSpeed", HTMLInputElement);
+const sensitivityValue = byId("sensitivityValue", HTMLOutputElement);
+const speedValue = byId("speedValue", HTMLOutputElement);
 
 let settings: Settings = { ...DEFAULT_SETTINGS };
 try {
@@ -51,10 +64,30 @@ try {
     }
   }
 } catch {
-  // Settings are optional; the default controls remain available if storage is blocked.
+  saveHint.textContent = "Le impostazioni non sono disponibili in questo browser.";
 }
 
-function initializeWorld(): WorldController {
+mouseSensitivity.value = String(settings.sensitivity);
+walkSpeed.value = String(settings.walkSpeed);
+
+const saveExists = (): boolean => {
+  try {
+    return localStorage.getItem(SAVE_KEY) !== null;
+  } catch {
+    saveHint.textContent = "Impossibile leggere i salvataggi del browser.";
+    return false;
+  }
+};
+
+const updateLoadButton = (): void => {
+  const hasSave = saveExists();
+  loadGameButton.disabled = !hasSave;
+  if (!saveHint.textContent) {
+    saveHint.textContent = hasSave
+      ? "Partita salvata trovata su questo dispositivo."
+      : "Nessuna partita salvata: inizia una nuova missione.";
+  }
+};
 
 const app = new pc.Application(canvas, {
   graphicsDeviceOptions: {

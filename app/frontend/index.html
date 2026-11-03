@@ -3,18 +3,100 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#101b2c" />
-    <meta name="description" content="A bilingual, accessible lunar mission-design game shell." />
-    <title>Go / No-Go — Lunar Mission Campus</title>
+    <meta name="theme-color" content="#060b14" />
+    <title>Go-No-Go — Space Mission Design Game</title>
   </head>
   <body>
-    <div id="game">
-      <div class="lunar-underlay" aria-hidden="true"></div>
-      <canvas id="scene" tabindex="0" aria-label="Lunar surface, optional first-person view"></canvas>
-      <div id="scene-overlay" class="scene-overlay" aria-hidden="true"></div>
-      <div id="scene-fallback" class="scene-fallback" role="status" hidden></div>
-      <div id="app"></div>
-    </div>
+    <main id="game">
+      <canvas id="scene" aria-label="Mondo 3D lunare"></canvas>
+
+      <section id="mainMenu" class="menu-screen">
+        <div class="menu-brand">
+          <span class="eyebrow">NASA Space Apps Challenge · Mission Control</span>
+          <h1>GO<span>/</span>NO-GO</h1>
+          <p>Una missione spaziale. Ogni scelta conta.</p>
+        </div>
+        <nav class="menu-actions" aria-label="Menu principale">
+          <button id="newGame" class="menu-button primary">Nuova partita</button>
+          <button id="loadGame" class="menu-button">Carica partita</button>
+          <button id="openOptions" class="menu-button">Opzioni</button>
+        </nav>
+        <p id="saveHint" class="menu-hint"></p>
+        <div class="menu-footer">
+          <span>WASD per muoverti · mouse per guardarti intorno · E per interagire</span>
+          <a href="https://science.nasa.gov/3d-resources/" target="_blank" rel="noreferrer">NASA 3D Resources</a>
+        </div>
+      </section>
+
+      <section id="optionsMenu" class="dialog-screen" hidden>
+        <div class="dialog-card">
+          <span class="eyebrow">Impostazioni</span>
+          <h2>Opzioni</h2>
+          <label class="setting-row" for="mouseSensitivity">
+            <span>Sensibilità mouse</span>
+            <output id="sensitivityValue">0.15</output>
+            <input id="mouseSensitivity" type="range" min="0.05" max="0.4" step="0.01" value="0.15" />
+          </label>
+          <label class="setting-row" for="walkSpeed">
+            <span>Velocità movimento</span>
+            <output id="speedValue">6.0</output>
+            <input id="walkSpeed" type="range" min="2" max="10" step="0.5" value="6" />
+          </label>
+          <p class="dialog-note">Nel mondo: WASD per muoverti, mouse per guardarti intorno, E per usare la console. Premi Esc per liberare il mouse.</p>
+          <button id="closeOptions" class="menu-button primary">Indietro</button>
+        </div>
+      </section>
+
+      <section id="gameHud" class="game-hud" hidden>
+        <div class="hud-top">
+          <div class="hud-title">
+            <span class="live-dot"></span>
+            <span>BASE LUNARE · SETTORE A</span>
+          </div>
+          <button id="pauseGame" class="hud-button" aria-label="Apri pausa">Ⅱ</button>
+        </div>
+        <div class="crosshair" aria-hidden="true"><i></i><b></b></div>
+        <div id="interactionPrompt" class="interaction-prompt" hidden>
+          <span class="keycap">E</span>
+          <span>Apri console missione</span>
+          <button id="openConsole" class="prompt-button">INTERAGISCI</button>
+        </div>
+        <div class="hud-bottom">
+          <span id="worldMessage">Benvenuto alla base. Raggiungi la console di missione.</span>
+          <span id="pointerHint">Clicca nel mondo per catturare il mouse</span>
+        </div>
+      </section>
+
+      <section id="pauseMenu" class="dialog-screen" hidden>
+        <div class="dialog-card">
+          <span class="eyebrow">Missione in pausa</span>
+          <h2>In pausa</h2>
+          <button id="resumeGame" class="menu-button primary">Riprendi</button>
+          <button id="pauseOptions" class="menu-button">Opzioni</button>
+          <button id="backToMenu" class="menu-button">Menu principale</button>
+        </div>
+      </section>
+
+      <section id="missionConsole" class="console-screen" hidden aria-label="Console missione">
+        <div class="console-header">
+          <div>
+            <span class="eyebrow">Mission Control · Sistema Go-No-Go originale</span>
+            <h2>Centro operativo</h2>
+          </div>
+          <button id="closeConsole" class="hud-button" aria-label="Chiudi console">×</button>
+        </div>
+        <iframe
+          id="legacyGame"
+          title="Gioco Go-No-Go — simulazione completa di progettazione missione"
+          allow="fullscreen; gamepad"
+        ></iframe>
+      </section>
+
+      <section id="loadingScreen" class="loading-screen" aria-live="polite">
+        <span class="loading-mark">G/N</span>
+        <p>Preparazione del mondo lunare…</p>
+      </section>
+    </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
