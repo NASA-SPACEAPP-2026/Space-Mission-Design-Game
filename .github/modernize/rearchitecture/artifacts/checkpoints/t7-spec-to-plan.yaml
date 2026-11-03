@@ -1,0 +1,291 @@
+metadata:
+  generated: "2026-11-03"
+  source_spec: ".github/modernize/rearchitecture/artifacts/t1-pm.md"
+  target_plan: ".github/modernize/rearchitecture/artifacts/t7-teamlead-plan.md"
+
+summary:
+  total_requirements: 24
+  covered_requirements: 24
+  missing_requirements: 0
+  coverage_percentage: 100.0
+
+requirements:
+  - req_id: "REQ-001"
+    req_description: "Navigable start/menu with visible lunar ground, not black void"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "User Story 1 — Enter the lunar mission environment"
+      items:
+        - item_id: "2.1"
+          description: "Accessible lunar entry, campus, tutorial and navigation shell"
+        - item_id: "9.1"
+          description: "Full-stack journey tests and evidence"
+    notes: "Menu scene must be visibly checked in desktop/mobile captures."
+  - req_id: "REQ-002"
+    req_description: "Native first-person astronaut gameplay with no final iframe"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "User Story 1 — Enter the lunar mission environment"
+      items:
+        - item_id: "2.1"
+          description: "Accessible lunar entry, campus, tutorial and navigation shell"
+        - item_id: "9.1"
+          description: "Full-stack journey tests and evidence"
+    notes: "Legacy HTML is read-only behavior reference."
+  - req_id: "REQ-003"
+    req_description: "Create agency/game and missions; show state and limit explanations"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3"
+      phase_name: "Identity and mission definition"
+      items:
+        - item_id: "3.1"
+          description: "Secure account, profile, agency continuity and settings"
+        - item_id: "3.2"
+          description: "Mission creation, stakeholder decisions, phase gates and rework"
+    notes: ""
+  - req_id: "REQ-004"
+    req_description: "Communicate resource, funding, cost, staff, progression and unlock changes"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3/7"
+      phase_name: "Identity/mission definition and results"
+      items:
+        - item_id: "3.1"
+          description: "Account, profile and agency continuity"
+        - item_id: "3.2"
+          description: "Mission decisions and consequences"
+        - item_id: "7.1"
+          description: "Reports, analysis and remaining campaign activities"
+    notes: ""
+  - req_id: "REQ-005"
+    req_description: "Reachable campus activities and return path"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2/3"
+      phase_name: "Entry and mission definition"
+      items:
+        - item_id: "2.1"
+          description: "Campus scene and equivalent activity map"
+        - item_id: "3.2"
+          description: "Phase-aware activity availability"
+    notes: ""
+  - req_id: "REQ-006"
+    req_description: "Select participants and make explicit requirement decisions"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3"
+      phase_name: "Mission definition"
+      items:
+        - item_id: "3.2"
+          description: "Stakeholder selection and requirement decisions"
+    notes: "Includes NASA and observable downstream effects."
+  - req_id: "REQ-007"
+    req_description: "Progress through full mission lifecycle using explicit gates"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3/5"
+      phase_name: "Mission definition and readiness"
+      items:
+        - item_id: "3.2"
+          description: "Lifecycle, review gates and rework"
+        - item_id: "5.1"
+          description: "Assembly, tests and readiness"
+    notes: "Unimplemented activities must not be represented as complete."
+  - req_id: "REQ-008"
+    req_description: "Preview rework cost, schedule, approvals, tests and stakeholder effects"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3/5"
+      phase_name: "Mission gates and readiness"
+      items:
+        - item_id: "3.2"
+          description: "Rework consequence preview"
+        - item_id: "5.1"
+          description: "Affected qualification/readiness invalidation"
+    notes: ""
+  - req_id: "REQ-009"
+    req_description: "Select spacecraft/payload and expose engineering constraints"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "Spacecraft and flight planning"
+      items:
+        - item_id: "4.1"
+          description: "Spacecraft-class and payload design"
+    notes: ""
+  - req_id: "REQ-010"
+    req_description: "Design operations recalculate constraints and explain invalid choices"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "Spacecraft and flight planning"
+      items:
+        - item_id: "4.1"
+          description: "Component operations and server-validated design checks"
+    notes: ""
+  - req_id: "REQ-011"
+    req_description: "Evaluate destinations/orbits and compatible launch options/trade-offs"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "Spacecraft and flight planning"
+      items:
+        - item_id: "4.2"
+          description: "Destination, orbit, launch selection and flight planning"
+    notes: ""
+  - req_id: "REQ-012"
+    req_description: "Modify flight plan and see feasibility/maneuver consequences"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "Spacecraft and flight planning"
+      items:
+        - item_id: "4.2"
+          description: "Server-validated orbit, trajectory and delta-v"
+    notes: ""
+  - req_id: "REQ-013"
+    req_description: "Observable assembly/integration and readiness transition"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-5"
+      phase_name: "Build, qualification and readiness"
+      items:
+        - item_id: "5.1"
+          description: "Assembly and clean-room workflow"
+    notes: ""
+  - req_id: "REQ-014"
+    req_description: "Six qualification classes, failure recovery and current readiness"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-5"
+      phase_name: "Build, qualification and readiness"
+      items:
+        - item_id: "5.1"
+          description: "Six tests, repair/rerun and readiness rules"
+    notes: "Functional, vibration, thermal-vacuum, shock, EMC and mass."
+  - req_id: "REQ-015"
+    req_description: "Explicit launch, operations decisions, resource effects and honest outcome"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-6"
+      phase_name: "Launch and mission operations"
+      items:
+        - item_id: "6.1"
+          description: "Launch, flight operations and mission outcomes"
+    notes: ""
+  - req_id: "REQ-016"
+    req_description: "Reports explain outcomes and preserve active analysis actions"
+    priority: "P2"
+    plan_mapping:
+      phase: "Phase-7"
+      phase_name: "Results and campaign continuation"
+      items:
+        - item_id: "7.1"
+          description: "Reports, comparison/what-if and campaign actions"
+    notes: ""
+  - req_id: "REQ-017"
+    req_description: "Italian and English for all in-scope player-facing text"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2/3"
+      phase_name: "Entry, navigation and player profile"
+      items:
+        - item_id: "2.1"
+          description: "Bilingual shell/tutorial/activity navigation"
+        - item_id: "3.1"
+          description: "Bilingual profile/settings"
+    notes: "All journeys also localized and verified under item 9.1."
+  - req_id: "REQ-018"
+    req_description: "No silent legacy save discard/overwrite; explicit reset and recovery"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3/8"
+      phase_name: "Continuity and legacy import"
+      items:
+        - item_id: "3.1"
+          description: "Explicit reset/recovery"
+        - item_id: "8.1"
+          description: "Consent-only import preserving source key"
+    notes: ""
+  - req_id: "REQ-019"
+    req_description: "Safe email/password accounts and dedicated profile"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3"
+      phase_name: "Identity and mission definition"
+      items:
+        - item_id: "3.1"
+          description: "Secure account/profile and online continuity"
+    notes: "Argon2id; opaque hashed session tokens; cookie/CSRF/origin controls."
+  - req_id: "REQ-020"
+    req_description: "Cross-session/device mission retrieval and optional consented import"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3/8"
+      phase_name: "Identity continuity and legacy import"
+      items:
+        - item_id: "3.1"
+          description: "Owner-scoped account persistence"
+        - item_id: "8.1"
+          description: "One-time consent-based import"
+    notes: ""
+  - req_id: "REQ-021"
+    req_description: "Desktop/mobile browser and equivalent keyboard/mouse/touch actions"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2/9"
+      phase_name: "Entry and validation"
+      items:
+        - item_id: "2.1"
+          description: "Cross-device input and recovery implementation"
+        - item_id: "9.1"
+          description: "Desktop/mobile browser evidence"
+    notes: "Physical GPU claims require actual device evidence."
+  - req_id: "REQ-022"
+    req_description: "WCAG 2.2 AA across menus, HUD, dialogs, controls and status"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2/9"
+      phase_name: "Accessible UI and validation"
+      items:
+        - item_id: "2.1"
+          description: "Semantic DOM, keyboard and focus behavior"
+        - item_id: "9.1"
+          description: "Automated and manual accessibility checks"
+    notes: ""
+  - req_id: "REQ-023"
+    req_description: "Dedicated menu/profile/mission routes and clear safe return"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2/3"
+      phase_name: "Navigation and mission activity"
+      items:
+        - item_id: "2.1"
+          description: "Route shell and safe return behavior"
+        - item_id: "3.2"
+          description: "Mission route/activity integration"
+    notes: ""
+  - req_id: "REQ-024"
+    req_description: "Polished npm run dev and truthful actionable health/config feedback"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-1/9"
+      phase_name: "Developer setup and operations"
+      items:
+        - item_id: "1.1"
+          description: "Root developer/test command baseline"
+        - item_id: "9.2"
+          description: "Local operations and deployment-ready configuration"
+    notes: "No credentials in source; readiness requires DB/schema."
+
+missing_requirements: []
+orphan_plan_items: []
+
+validation:
+  passed: true
+  errors: []
+  warnings:
+    - "No numeric production SLA baseline was supplied; quantitative no-regression remains unverified."

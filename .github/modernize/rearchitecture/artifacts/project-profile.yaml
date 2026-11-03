@@ -34,12 +34,12 @@ progress_sync:
   execution_completed_time: null
   validation_start_time: null
   validation_completed_time: null
-  total_phases: 4
+  total_phases: 3
   completed_phases: 2
   total_modules: 3
   completed_modules: 0
   total_tasks: 9
-  completed_tasks: 7
+  completed_tasks: 8
   total_commits: 15
   build_verified: false
   test_verified: false
