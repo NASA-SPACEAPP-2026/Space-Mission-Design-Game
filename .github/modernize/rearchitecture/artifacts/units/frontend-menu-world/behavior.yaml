@@ -1,0 +1,57 @@
+unit: frontend-menu-world
+side_effects:
+  - source_loc: "app/frontend/src/main.ts:419"
+    effect: "Persists shell options to localStorage under space-mission-settings."
+    must_preserve: true
+  - source_loc: "app/frontend/src/main.ts:75"
+    effect: "Reads only the presence of gng32.save to enable the shell Load Game button; it does not parse game state."
+    must_preserve: false
+  - source_loc: "app/frontend/src/main.ts:655"
+    effect: "Fetches backend liveness and updates the menu footer status indicator."
+    must_preserve: true
+branches:
+  - source_loc: "app/frontend/src/main.ts:435"
+    condition: "Starting a new game while a save key exists."
+    behavior: "Shows a destructive-overwrite confirmation; cancellation leaves the shell in its current state."
+    must_preserve: true
+  - source_loc: "app/frontend/src/main.ts:469"
+    condition: "Player interacts with mission console while outside interaction range."
+    behavior: "Does not open console and displays a proximity message."
+    must_preserve: true
+  - source_loc: "app/frontend/src/main.ts:580"
+    condition: "P, V, E, or Escape key is pressed in the corresponding game state."
+    behavior: "Pauses/resumes interaction, toggles camera perspective, opens nearby console, or exits console according to the active state."
+    must_preserve: true
+  - source_loc: "app/frontend/src/main.ts:655"
+    condition: "Health fetch fails or returns a non-success status."
+    behavior: "Shows backend unavailable and logs the error; the browser application still starts."
+    must_preserve: true
+error_paths:
+  - source_loc: "app/frontend/src/main.ts:18"
+    trigger: "Required DOM element or the scene canvas is missing."
+    outcome: "Throws during module initialization before starting the PlayCanvas application."
+    contract: "No explicit user-facing recovery; console/module error."
+    must_preserve: true
+  - source_loc: "app/frontend/src/main.ts:25"
+    trigger: "The PlayCanvas canvas element is missing or is not a canvas."
+    outcome: "Throws during module initialization before starting the application."
+    contract: "No explicit user-facing recovery; console/module error."
+    must_preserve: true
+  - source_loc: "app/frontend/src/main.ts:75"
+    trigger: "Browser storage is unavailable or throws."
+    outcome: "Disables load availability and shows a storage warning."
+    contract: "No explicit HTTP contract."
+    must_preserve: true
+  - source_loc: "app/frontend/src/main.ts:655"
+    trigger: "Backend request cannot be completed or is non-2xx."
+    outcome: "Menu footer reports backend unreachable; frontend remains interactive."
+    contract: "Health status is advisory only."
+    must_preserve: true
+concurrency:
+  model: event-loop
+  tx_boundary: null
+# ## Upstream Artifacts Consumed
+# - .github/modernize/rearchitecture/clarification.md — desktop/mobile and online persistence acceptance.
+#
+# ## Evidence Mapping
+# - clarification.md#Frontend -> current pointer-lock-only interaction is recorded against touch-control acceptance.

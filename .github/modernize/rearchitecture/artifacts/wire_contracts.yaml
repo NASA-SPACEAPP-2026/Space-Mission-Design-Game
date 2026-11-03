@@ -1,0 +1,22 @@
+contracts:
+  - name: "Backend liveness endpoint"
+    unit: backend-health
+    type: rest
+    stability: may_change
+    source_loc: "app/backend/src/index.ts:5"
+    contract:
+      method: "GET"
+      path: "/api/health"
+      request: "No request body or query parameters."
+      response: "HTTP 200 JSON: {status:'ok', service:'space-mission-design-game', game:'Go-No-Go'}."
+      error: "No explicit error contract; Express default handling applies. Invalid PORT aborts process startup."
+      auth: "None."
+    target_contract:
+      method: "GET /api/health"
+      notes: "The current liveness path is observable but payload changes are permitted by the approved breaking-change policy; database readiness is a separate required target behavior."
+    semantic_divergence: []
+# ## Upstream Artifacts Consumed
+# - .github/modernize/rearchitecture/clarification.md — Express 5 target and approved API-breaking policy.
+#
+# ## Evidence Mapping
+# - clarification.md#Backend -> existing liveness contract is identified separately from future readiness.

@@ -1,0 +1,29 @@
+unit: backend-health
+side_effects: []
+branches:
+  - source_loc: "app/backend/src/index.ts:13"
+    condition: "PORT is absent."
+    behavior: "Uses 8080 as the listener port."
+    must_preserve: true
+  - source_loc: "app/backend/src/index.ts:14"
+    condition: "PORT is not an integer or is outside 1-65535."
+    behavior: "Throws and aborts process startup."
+    must_preserve: true
+  - source_loc: "app/backend/src/index.ts:5"
+    condition: "GET /api/health is requested."
+    behavior: "Returns HTTP 200 JSON with status=ok, service=space-mission-design-game, game=Go-No-Go."
+    must_preserve: true
+error_paths:
+  - source_loc: "app/backend/src/index.ts:14"
+    trigger: "Invalid PORT configuration."
+    outcome: "Startup throws before listening."
+    contract: "Process failure; no structured startup error response."
+    must_preserve: true
+concurrency:
+  model: event-loop
+  tx_boundary: null
+# ## Upstream Artifacts Consumed
+# - .github/modernize/rearchitecture/clarification.md — Express API and readiness acceptance.
+#
+# ## Evidence Mapping
+# - clarification.md#Backend -> current liveness-only response is distinguished from target health/readiness.

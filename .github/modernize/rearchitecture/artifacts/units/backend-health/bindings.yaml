@@ -1,0 +1,20 @@
+unit: backend-health
+bindings:
+  - type: route-declaration
+    name: "Express health endpoint"
+    source_loc: "app/backend/src/index.ts:5"
+    target: "GET /api/health"
+    must_appear_in_target: true
+    notes: "Only HTTP route currently registered."
+runtime_config:
+  - key: "PORT"
+    source_loc: "app/backend/src/index.ts:13"
+    source: env
+    default_value: "8080"
+    must_appear_in_target: true
+    notes: "Validated to an integer in the inclusive 1-65535 range before listen."
+# ## Upstream Artifacts Consumed
+# - .github/modernize/rearchitecture/clarification.md — backend target stack and local operation expectations.
+#
+# ## Evidence Mapping
+# - clarification.md#Backend -> current Express route/listener wiring is identified.

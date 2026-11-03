@@ -18,14 +18,15 @@
 ## Tasks
 
 ### Phase: Analysis
-- ⏳ t1 [pm] Inventory legacy gameplay features and acceptance criteria
-- ⏳ t2 [architect] Analyze current architecture, dependencies, and migration risks
+- ✅ t1 [pm] Inventory legacy gameplay features and acceptance criteria (2026-11-03T15:15:19Z→2026-11-03T15:20:09Z, 4m 50s)
+- ❌ t2 [architect] Analyze current architecture, dependencies, and migration risks (2026-11-03T15:15:09Z→2026-11-03T15:23:21Z) [findings: 5 HIGH]
+- ⏳ t2.1 [architect] Triage HIGH baseline gaps into explicit migration-risk dispositions [deps: t2]
 
 ### Phase: Design
-- ⏳ t3 [architect] Design the target architecture and API contracts [deps: t1, t2]
-- ⏳ t4 [dba] Design MySQL schema and consent-based legacy-save import [deps: t1, t2]
+- ⏳ t3 [architect] Design the target architecture and API contracts [deps: t1, t2, t2.1]
+- ⏳ t4 [dba] Design MySQL schema and consent-based legacy-save import [deps: t1, t2, t2.1]
 - ⏳ t5 [ux] Specify accessible desktop/mobile 3D interaction and navigation [deps: t1]
-- ⏳ t6 [teamlead] Define runtime and end-to-end test strategy [deps: t2]
+- ⏳ t6 [teamlead] Define runtime and end-to-end test strategy [deps: t2, t2.1]
 
 ### Phase: Planning
 - ⏳ t7 [teamlead] Create traceable implementation plan and task breakdown [deps: t3, t4, t5, t6]

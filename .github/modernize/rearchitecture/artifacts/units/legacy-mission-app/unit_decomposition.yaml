@@ -1,0 +1,30 @@
+unit: legacy-mission-app
+commit: false
+candidate_splits:
+  - id: "Go-No-Go.html:800-1800"
+    drivers:
+      - concern_split
+    rationale: "The legacy technology catalog and mission/satellite rule logic are distinct from the surrounding presentation and input code."
+    source_slice:
+      file: "Go-No-Go.html"
+      lines: [800, 1800]
+  - id: "Go-No-Go.html:1803-2310"
+    drivers:
+      - concern_split
+    rationale: "The SAT3D renderer and its grid/mesh helpers form a visualization concern embedded in the same standalone document."
+    source_slice:
+      file: "Go-No-Go.html"
+      lines: [1803, 2310]
+  - id: "Go-No-Go.html:3349-5731"
+    drivers:
+      - concern_split
+      - lifecycle_split
+    rationale: "Global mutable state, persistence, translation, navigation, delegated actions, HUD, and render dispatch are concentrated in one inline runtime."
+    source_slice:
+      file: "Go-No-Go.html"
+      lines: [3349, 5731]
+# ## Upstream Artifacts Consumed
+# - .github/modernize/rearchitecture/artifacts/project-profile.yaml — authoritative legacy source anchor.
+#
+# ## Evidence Mapping
+# - project-profile.yaml#project.structure -> legacy game is kept as a behavior reference, not a target runtime.

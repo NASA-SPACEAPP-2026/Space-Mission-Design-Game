@@ -1,0 +1,38 @@
+seams:
+  - id: "app/frontend/src/main.ts:478"
+    description: "The current shell loads the legacy game in a same-origin iframe; the final game must replace that runtime with native 3D gameplay and account-backed APIs."
+    source: declared
+    cut_between:
+      migrated_side: frontend-menu-world
+      frozen_side: legacy-mission-app
+    protocol_shift:
+      from: "same-origin iframe navigation plus localStorage gng32.save"
+      to: "native PlayCanvas routes plus authenticated JSON API and MySQL persistence"
+    frozen_side_rule: "Go-No-Go.html MUST remain unmodified as the legacy behavior/data reference during the rewrite; do not keep it as the final gameplay implementation."
+    bridge_points:
+      - at: "Frontend import flow to the new authenticated save/import API"
+        from_form: "localStorage['gng32.save'] containing JSON with root version field v=32"
+        to_form: "Consent-gated, authenticated one-time import request using a validated import DTO"
+        mapping_rule: >
+          Require an affirmative user action before reading/submitting the legacy value. Parse the
+          existing JSON and require v === 32. Map the agency/profile fields (co, money, xp,
+          sciTotal, staff, recruited, lab, plots, rooms, world, pad) and each missions[] entry,
+          including current selection cur and nested mission/satellite state, into the importer DTO.
+          The importer must reject unknown/incompatible shapes rather than silently dropping state.
+          Do not auto-import on account creation or game startup, and do not delete or overwrite the
+          browser key as part of import.
+        edge_cases:
+          - "No gng32.save key: offer normal new-game setup; make no import request."
+          - "Malformed JSON or missing/unsupported v: show a recoverable error; retain the source value."
+          - "User declines consent: do not read/import the legacy state and do not change the source value."
+          - "Repeated submission of the same accepted save must not create duplicate missions."
+        idempotency_retry: "Use a stable per-account import identity (for example a canonical payload digest); same-save retries return the prior outcome without duplicating state. Do not automatically retry an ambiguous write without a deduplication/read-after-write guarantee."
+        fallback: "On import rejection/failure, preserve the original localStorage value and allow the player to retry or start a separate new game; never silently replace the legacy save."
+        must_preserve: true
+# ## Upstream Artifacts Consumed
+# - .github/modernize/rearchitecture/clarification.md — explicit no-iframe target and consented legacy import.
+# - .github/modernize/rearchitecture/clarification-answers.md — import source and backend choices.
+#
+# ## Evidence Mapping
+# - clarification.md#Generic -> shell/iframe seam is cut in the target runtime.
+# - clarification-answers.md#B3 -> only an affirmative user action may import v32 localStorage.
