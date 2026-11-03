@@ -4,7 +4,7 @@
 
 `.github/workflows/ci-cd.yml` runs on every pull request and push to `main` / `dev`:
 
-1. **Build and test**: `npm ci`, `npm run build`, `npm test` (Node 22).
+1. **Build and test**: `npm ci`, `npm run build`, `npm test` (Node 24).
 2. **Deploy** (push only): `scripts/package-azure.sh` builds `release.zip`, then the job logs in to
    Azure with OIDC (no stored password), deploys it, and smoke-tests `/api/health`.
 

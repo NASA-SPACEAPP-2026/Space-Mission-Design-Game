@@ -2,7 +2,7 @@
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#060b14" />
     <title>Go-No-Go — Space Mission Design Game</title>
   </head>
@@ -23,7 +23,8 @@
         </nav>
         <p id="saveHint" class="menu-hint"></p>
         <div class="menu-footer">
-          <span>WASD per muoverti · mouse per guardarti intorno · E per interagire</span>
+          <span class="hint-desktop">WASD per muoverti · mouse per guardarti intorno · E per interagire</span>
+          <span class="hint-touch">Joystick per muoverti · trascina per guardarti intorno · tocca INTERAGISCI</span>
           <a href="https://science.nasa.gov/3d-resources/" target="_blank" rel="noreferrer">NASA 3D Resources</a>
         </div>
       </section>
@@ -33,7 +34,7 @@
           <span class="eyebrow">Impostazioni</span>
           <h2>Opzioni</h2>
           <label class="setting-row" for="mouseSensitivity">
-            <span>Sensibilità mouse</span>
+            <span>Sensibilità (mouse e touch)</span>
             <output id="sensitivityValue">0.15</output>
             <input id="mouseSensitivity" type="range" min="0.05" max="0.4" step="0.01" value="0.15" />
           </label>
@@ -42,7 +43,8 @@
             <output id="speedValue">6.0</output>
             <input id="walkSpeed" type="range" min="2" max="10" step="0.5" value="6" />
           </label>
-          <p class="dialog-note">Nel mondo: WASD per muoverti, mouse per guardarti intorno, E per usare la console. Premi Esc per liberare il mouse.</p>
+          <p class="dialog-note hint-desktop">Nel mondo: WASD per muoverti, mouse per guardarti intorno, E per usare la console. Premi Esc per liberare il mouse.</p>
+          <p class="dialog-note hint-touch">Nel mondo: usa il joystick a sinistra per muoverti, trascina sullo schermo per guardarti intorno e tocca INTERAGISCI per usare la console. Il pulsante VISTA cambia la visuale.</p>
           <button id="closeOptions" class="menu-button primary">Indietro</button>
         </div>
       </section>
@@ -60,6 +62,14 @@
           <span class="keycap">E</span>
           <span>Apri console missione</span>
           <button id="openConsole" class="prompt-button">INTERAGISCI</button>
+        </div>
+        <div id="touchControls" class="touch-controls">
+          <div id="moveStick" class="touch-stick" aria-label="Joystick di movimento">
+            <div id="moveKnob" class="touch-knob"></div>
+          </div>
+          <div class="touch-actions">
+            <button id="toggleView" class="touch-action" type="button" aria-label="Cambia visuale">Vista</button>
+          </div>
         </div>
         <div class="hud-bottom">
           <span id="worldMessage">Benvenuto alla base. Raggiungi la console di missione.</span>

@@ -1,5 +1,6 @@
 import * as pc from "playcanvas";
 import "./style.css";
+import { createTouchControls, watchTouchUi } from "./touch-controls";
 
 type Settings = {
   sensitivity: number;
@@ -401,6 +402,7 @@ const pauseOptionsButton = byId("pauseOptions", HTMLButtonElement);
 const backToMenuButton = byId("backToMenu", HTMLButtonElement);
 const openConsoleButton = byId("openConsole", HTMLButtonElement);
 const closeConsoleButton = byId("closeConsole", HTMLButtonElement);
+const toggleViewButton = byId("toggleView", HTMLButtonElement);
 
 let inWorld = false;
 let paused = false;
@@ -410,6 +412,43 @@ let canUseConsole = false;
 let yaw = 0;
 let pitch = 0;
 let elapsed = 0;
+
+const MAX_PITCH = 1.35;
+// A finger drag covers fewer pixels than a mouse sweep, so it turns the view faster per pixel.
+const TOUCH_LOOK_SCALE = 2.5;
+
+const lookAround = (deltaX: number, deltaY: number, scale = 1): void => {
+  const factor = settings.sensitivity * 0.01 * scale;
+  yaw -= deltaX * factor;
+  pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch - deltaY * factor));
+};
+
+let touchUi = false;
+
+const refreshPointerHint = (): void => {
+  if (touchUi) {
+    pointerHint.textContent = "Joystick per muoverti · trascina per guardarti intorno";
+  } else {
+    pointerHint.textContent = document.pointerLockElement === canvas
+      ? "WASD · mouse · E interagisci · Esc libera il mouse"
+      : "Clicca nel mondo per catturare il mouse";
+  }
+};
+
+// Shows the on-screen controls on phones and tablets (see style.css `.touch-ui`).
+watchTouchUi((enabled) => {
+  touchUi = enabled;
+  document.body.classList.toggle("touch-ui", enabled);
+  refreshPointerHint();
+});
+
+const touchControls = createTouchControls({
+  lookSurface: canvas,
+  stick: byId("moveStick", HTMLElement),
+  knob: byId("moveKnob", HTMLElement),
+  isActive: () => inWorld && !paused && !consoleOpen,
+  onLook: (deltaX, deltaY) => lookAround(deltaX, deltaY, TOUCH_LOOK_SCALE)
+});
 
 const saveSettings = (): void => {
   settings = {
@@ -429,6 +468,10 @@ mouseSensitivity.addEventListener("input", saveSettings);
 walkSpeed.addEventListener("input", saveSettings);
 
 const requestPointerLock = (): void => {
+  // Touch screens look around by dragging; some mobile browsers (iOS Safari) have no pointer lock at all.
+  if (touchUi || typeof canvas.requestPointerLock !== "function") {
+    return;
+  }
   if (inWorld && !paused && !consoleOpen && document.pointerLockElement !== canvas) {
     void canvas.requestPointerLock();
   }
@@ -465,6 +508,7 @@ const enterWorld = (loadSavedGame: boolean): void => {
   player.setPosition(PLAYER_SPAWN);
   yaw = 0;
   pitch = 0;
+  touchControls.reset();
   requestPointerLock();
 };
 
@@ -474,6 +518,7 @@ const openMissionConsole = (): void => {
     return;
   }
   consoleOpen = true;
+  touchControls.reset();
   interactionPrompt.hidden = true;
   missionConsole.hidden = false;
   if (legacyGame.src === "about:blank" || legacyGame.src === "") {
@@ -515,6 +560,7 @@ const pause = (): void => {
     return;
   }
   paused = true;
+  touchControls.reset();
   pauseMenu.hidden = false;
   if (document.pointerLockElement) {
     document.exitPointerLock();
@@ -531,6 +577,7 @@ const returnToMenu = (): void => {
   inWorld = false;
   paused = false;
   consoleOpen = false;
+  touchControls.reset();
   pauseMenu.hidden = true;
   gameHud.hidden = true;
   missionConsole.hidden = true;
@@ -566,18 +613,33 @@ backToMenuButton.addEventListener("click", returnToMenu);
 openConsoleButton.addEventListener("click", openMissionConsole);
 closeConsoleButton.addEventListener("click", closeMissionConsole);
 canvas.addEventListener("click", requestPointerLock);
-document.addEventListener("pointerlockchange", () => {
-  pointerHint.textContent = document.pointerLockElement === canvas
-    ? "WASD · mouse · E interagisci · Esc libera il mouse"
-    : "Clicca nel mondo per catturare il mouse";
-});
+document.addEventListener("pointerlockchange", refreshPointerHint);
 
 window.addEventListener("mousemove", (event) => {
   if (!inWorld || paused || consoleOpen || document.pointerLockElement !== canvas) {
     return;
   }
-  yaw -= event.movementX * settings.sensitivity * 0.01;
-  pitch = Math.max(-1.35, Math.min(1.35, pitch - event.movementY * settings.sensitivity * 0.01));
+  lookAround(event.movementX, event.movementY);
+});
+
+const toggleView = (): void => {
+  firstPerson = !firstPerson;
+  camera.setLocalPosition(0, firstPerson ? 1.66 : 3.2, firstPerson ? 0 : 5.2);
+  if (astronautBody) {
+    for (const component of astronautBody.findComponents("render")) {
+      component.enabled = !firstPerson;
+    }
+  }
+  const toggle = touchUi ? "Tocca VISTA" : "Premi V";
+  worldMessage.textContent = firstPerson
+    ? `Vista in prima persona attiva. ${toggle} per vedere l’astronauta.`
+    : `Vista esterna attiva. ${toggle} per tornare in prima persona.`;
+};
+
+toggleViewButton.addEventListener("click", () => {
+  if (inWorld && !paused && !consoleOpen) {
+    toggleView();
+  }
 });
 
 window.addEventListener("keydown", (event) => {
@@ -595,16 +657,7 @@ window.addEventListener("keydown", (event) => {
   } else if (event.code === "KeyP") {
     pause();
   } else if (event.code === "KeyV") {
-    firstPerson = !firstPerson;
-    camera.setLocalPosition(0, firstPerson ? 1.66 : 3.2, firstPerson ? 0 : 5.2);
-    if (astronautBody) {
-      for (const component of astronautBody.findComponents("render")) {
-        component.enabled = !firstPerson;
-      }
-    }
-    worldMessage.textContent = firstPerson
-      ? "Vista in prima persona attiva. Premi V per vedere l’astronauta."
-      : "Vista esterna attiva. Premi V per tornare in prima persona.";
+    toggleView();
   }
 });
 
@@ -618,12 +671,15 @@ app.on("update", (dt: number) => {
     return;
   }
 
-  const forwardInput =
+  // Keyboard keys are all-or-nothing; the joystick adds an analog 0..1 push on top.
+  const keyboardForward =
     Number(movementKeys.isPressed(pc.KEY_W) || movementKeys.isPressed(pc.KEY_UP)) -
     Number(movementKeys.isPressed(pc.KEY_S) || movementKeys.isPressed(pc.KEY_DOWN));
-  const sideInput =
+  const keyboardSide =
     Number(movementKeys.isPressed(pc.KEY_D) || movementKeys.isPressed(pc.KEY_RIGHT)) -
     Number(movementKeys.isPressed(pc.KEY_A) || movementKeys.isPressed(pc.KEY_LEFT));
+  const forwardInput = Math.max(-1, Math.min(1, keyboardForward + touchControls.move.y));
+  const sideInput = Math.max(-1, Math.min(1, keyboardSide + touchControls.move.x));
   const inputLength = Math.hypot(forwardInput, sideInput);
 
   if (inputLength > 0) {
@@ -631,7 +687,8 @@ app.on("update", (dt: number) => {
     const forwardZ = -Math.cos(yaw);
     const rightX = Math.cos(yaw);
     const rightZ = Math.sin(yaw);
-    const distance = settings.walkSpeed * dt / inputLength;
+    // Keys give a full-speed step in any direction; a light joystick push walks slower.
+    const distance = settings.walkSpeed * dt * Math.min(1, inputLength) / inputLength;
     const nextX = player.getPosition().x + (forwardX * forwardInput + rightX * sideInput) * distance;
     const nextZ = player.getPosition().z + (forwardZ * forwardInput + rightZ * sideInput) * distance;
     player.setPosition(Math.max(-40, Math.min(40, nextX)), 0, Math.max(-40, Math.min(35, nextZ)));
@@ -646,7 +703,9 @@ app.on("update", (dt: number) => {
   canUseConsole = distanceToConsole < 5.3;
   interactionPrompt.hidden = !canUseConsole;
   if (canUseConsole) {
-    worldMessage.textContent = "Console operativa disponibile: premi E per aprire il gioco Go-No-Go.";
+    worldMessage.textContent = touchUi
+      ? "Console operativa disponibile: tocca INTERAGISCI per aprire il gioco Go-No-Go."
+      : "Console operativa disponibile: premi E per aprire il gioco Go-No-Go.";
   }
 });
 
