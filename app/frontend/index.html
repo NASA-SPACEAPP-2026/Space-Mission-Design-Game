@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Space Mission Design Game</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+      <section class="hud-panel">
+        <h1>Mission Control - Go / No-Go</h1>
+        <p>Prototype world based on NASA 3D assets and PlayCanvas.</p>
+        <div class="stats">
+          <div><span>Budget</span><strong id="budget">$1,200M</strong></div>
+          <div><span>Mass</span><strong id="mass">5.4 t / 7.0 t</strong></div>
+          <div><span>Power</span><strong id="power">4.8 kW / 6.0 kW</strong></div>
+        </div>
+        <div class="actions">
+          <button id="goButton">GO</button>
+          <button id="noGoButton">NO-GO</button>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "space-mission-design-game",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "app/frontend",
+    "app/backend"
+  ],
+  "scripts": {
+    "build": "npm run build -w app/frontend && npm run build -w app/backend",
+    "dev:frontend": "npm run dev -w app/frontend",
+    "dev:backend": "npm run dev -w app/backend",
+    "start:backend": "npm run start -w app/backend"
+  }
+}

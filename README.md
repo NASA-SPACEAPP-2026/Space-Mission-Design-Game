@@ -151,3 +151,29 @@ It is useful to highlight which resources are critical for each scenario.
 ## 📎 Resources
 
 For datasets, materials, and official challenge updates, refer to the **Resources** tab on the hackathon page.
+
+---
+
+## 🧱 Project structure (new app)
+
+```text
+app/
+  frontend/   # PlayCanvas + Vite + TypeScript
+  backend/    # Express + TypeScript
+documentation/
+```
+
+## ▶️ Run locally
+
+From repository root:
+
+```bash
+npm install
+npm run dev:frontend
+```
+
+In a second terminal:
+
+```bash
+npm run dev:backend
+```
