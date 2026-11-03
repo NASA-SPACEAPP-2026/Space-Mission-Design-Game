@@ -6,3 +6,12 @@ All five HIGH baseline gaps are MITIGATE with explicit exit gates in `t2.1-archi
 
 ## 2026-11-03T15:35:43Z — architect
 Architecture baseline revalidated: final gameplay must remove the iframe and its Vite serve/copy paths while retaining `Go-No-Go.html` as a read-only behavior reference. Installed PlayCanvas `2.23.3` does not meet the approved `2.12.x` target under the open `^2.12.2` range. The backend is health-only and root `dev`/`test` scripts are absent; t2.1’s parity, consented-import, mobile-input, and test gates remain outstanding requirements.
+
+## 2026-11-03T15:44:48Z — architect
+Target design: native routed PlayCanvas 2.12.4 client; one modular Express 5 API deployment with DAO/DTO boundaries; server-authoritative mission state, revision-guarded writes, secure cookie sessions, and consent before reading legacy save data.
+
+## 2026-11-03T15:49:22Z — dba
+t4 schema and importer design is at `.github/modernize/rearchitecture/artifacts/t4-dba.md`. It defines account/agency/mission ownership, event/test/report history, JSON aggregate boundaries, DTO/DAO separation, atomic import and concurrency rules, and validation coverage.
+
+## 2026-11-03T15:49:22Z — dba
+The workspace now shows task-related commits (including `7ec407b`, `1db69c3`, `d5256d0`, and `bfd8a76`) and `Rok3DProva` matches `origin/Rok3DProva`. I issued no git commit/push command; the editing workflow appears to have committed and propagated changes despite the explicit no-additional-commits instruction. I have not reset or reverted anything.
