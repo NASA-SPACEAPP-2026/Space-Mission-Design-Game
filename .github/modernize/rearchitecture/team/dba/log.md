@@ -3,4 +3,4 @@
 - Wrong assumptions and corrections: do not probe whether the legacy key exists before the user's consent; requirement is consent before reading, not only before sending or writing. Do not assume v32 alone proves nested mission state is valid.
 - Debugging dead-ends and what actually worked: existing DBA learnings directory was empty; `context.md` and prior `team/dba/log.md` did not exist. Use the actual dependency artifacts, decisions, clarification, and inbox as source; record missing context/log in coordinator notice.
 - Techniques/patterns worth reusing for future tasks: use relational ownership/lifecycle columns plus versioned JSON for the dynamic legacy aggregates; map mission array positions to stable IDs within one atomic import; hash imports for idempotent replay and preserve localStorage on every outcome.
-- Learnings consumed: [(none)]
+- Learnings consumed: (none)

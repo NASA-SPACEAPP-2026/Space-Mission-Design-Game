@@ -177,7 +177,7 @@ Expected outcomes: `401` unauthenticated; `400` malformed transport or absent co
 ## Migration and Operational Notes
 
 - Create a new schema/database name from environment configuration; no legacy SQL database is present. Use separate least-privilege runtime and migration credentials. No real credentials belong in source control.
-- Start with a forward-only initial migration for account/profile/session, agency/mission, and import tables. Use an application-managed versioned migration runner that serializes concurrent runners (e.g. a MySQL named lock), verifies checksums, and records completion only after postcondition checks.
+- Start with a forward-only initial migration for account/profile/session, agency/mission, event/test/report, and import tables. Use an application-managed versioned migration runner that serializes concurrent runners (e.g. a MySQL named lock), verifies checksums, and records completion only after postcondition checks.
 - MySQL DDL implicitly commits; do not claim a multi-statement DDL migration is transactionally rollbackable. Make each migration safe to resume after partial DDL (check object/column/index existence and verify definitions), then test fresh install, interrupted/re-run, and repeated invocation. Keep data migrations separate from schema DDL.
 - Future changes use expand/contract migrations; do not drop or narrow persisted fields without an explicit compatibility plan and backup/restore test. The initial schema has no destructive migration.
 - Use UTC timestamps and a single DB connection/transaction for each aggregate save/import. Configure connection limits/timeouts and readiness checks in the backend/deployment configuration; secrets are environment-provided.
@@ -187,7 +187,7 @@ Expected outcomes: `401` unauthenticated; `400` malformed transport or absent co
 
 - Route/controller validates authenticated identity and parses request DTOs; it does not issue SQL or serialize database rows directly.
 - A `LegacyV32ImportMapper` converts a fully validated v32 DTO into agency/mission domain aggregates and preserves extension fields. It performs no database I/O.
-- `AgencyDao`, `MissionDao`, `AuthSessionDao`, and `LegacyImportDao` expose typed operations and parameterized queries. `LegacyImportService` owns the transaction, ownership scoping, revision checks, idempotency, and unique-import rules.
+- `AgencyDao`, `MissionDao`, `MissionEventDao`, `MissionTestRunDao`, `MissionReportDao`, `AuthSessionDao`, and `LegacyImportDao` expose typed operations and parameterized queries. `LegacyImportService` owns the transaction, ownership scoping, revision checks, idempotency, and unique-import rules.
 - API DTOs expose only safe account/profile/mission fields, never password hashes, token digests, raw DB rows, or internal JSON not covered by the public game-state contract. Frontend cannot submit ownership IDs or authoritative resource/report totals.
 - Backend should align its entity/query model with these table names and aggregate boundaries before implementation. Auth credential policy remains in the security/backend design; this schema stores a password hash and session-token digest only.
 
