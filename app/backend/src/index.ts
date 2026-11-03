@@ -1,6 +1,11 @@
+import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 
-const app = createApp();
+// Resolves to app/frontend/dist from both src/ (tsx) and dist/ (compiled).
+const staticDir =
+  process.env.STATIC_DIR ?? fileURLToPath(new URL("../../frontend/dist", import.meta.url));
+
+const app = createApp({ staticDir });
 
 const port = Number(process.env.PORT ?? 8080);
 if (!Number.isInteger(port) || port < 1 || port > 65535) {

@@ -11,6 +11,7 @@
     "dev": "concurrently -n frontend,backend -c cyan,magenta \"npm run dev -w app/frontend\" \"npm run dev -w app/backend\"",
     "dev:frontend": "npm run dev -w app/frontend",
     "dev:backend": "npm run dev -w app/backend",
+    "start": "node app/backend/dist/index.js",
     "start:backend": "npm run start -w app/backend",
     "test": "npm run test --workspaces --if-present && vitest run test/backend-health.test.ts"
   },
