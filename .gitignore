@@ -2,6 +2,4 @@
 .DS_Store
 node_modules/
 dist/
-app/frontend/dist/
-app/backend/dist/
 release.zip
