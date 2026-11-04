@@ -1,6 +1,7 @@
 import * as pc from "playcanvas";
 import "./style.css";
 import { createTouchControls, watchTouchUi } from "./touch-controls";
+import { groundStep, thirdPersonCameraOffset } from "./movement";
 
 type Settings = {
   sensitivity: number;
@@ -309,7 +310,13 @@ camera.enabled = false;
 
 const player = new pc.Entity("astronaut-player");
 player.setPosition(PLAYER_SPAWN);
-camera.setLocalPosition(0, 1.66, 0);
+// First person: eye height. Third person: behind and above the astronaut.
+const EYE_HEIGHT = 1.66;
+const THIRD_PERSON_DISTANCE = 5.2;
+const THIRD_PERSON_HEIGHT = 3.2;
+// Astronaut.glb faces +Z, while a camera with yaw 0 looks towards -Z.
+const ASTRONAUT_FACING_OFFSET = 180;
+camera.setLocalPosition(0, EYE_HEIGHT, 0);
 player.addChild(camera);
 app.root.addChild(player);
 
@@ -321,7 +328,7 @@ const addNasaAsset = (
   targetHeight: number,
   modelYaw: number,
   parent: pc.Entity = app.root,
-  onLoaded?: (model: pc.Entity) => void
+  onLoaded?: (model: pc.Entity, pivot: pc.Entity) => void
 ): void => {
   const asset = new pc.Asset(name, "container", { url });
   app.assets.add(asset);
@@ -348,15 +355,20 @@ const addNasaAsset = (
     const scale = Number.isFinite(measuredHeight) && measuredHeight > 0
       ? targetHeight / measuredHeight
       : 1;
-    model.setLocalScale(scale, scale, scale);
-    model.setEulerAngles(0, modelYaw, 0);
+    // Scale, turn and place a wrapper instead of the model itself: the GLB root
+    // node carries its own rotation (e.g. the Z-up to Y-up fix of the astronaut),
+    // and overwriting it would lay the model on its side.
+    const pivot = new pc.Entity(`${name} pivot`);
+    pivot.addChild(model);
+    pivot.setLocalScale(scale, scale, scale);
+    pivot.setLocalEulerAngles(0, modelYaw, 0);
     if (parent === player) {
-      model.setLocalPosition(0, -minY * scale, 0);
+      pivot.setLocalPosition(0, -minY * scale, 0);
     } else {
-      model.setPosition(position.x, position.y - minY * scale, position.z);
+      pivot.setLocalPosition(position.x, position.y - minY * scale, position.z);
     }
-    parent.addChild(model);
-    onLoaded?.(model);
+    parent.addChild(pivot);
+    onLoaded?.(model, pivot);
   });
   app.assets.load(asset);
 };
@@ -366,10 +378,13 @@ addNasaAsset(
   "/assets/nasa/Astronaut.glb",
   new pc.Vec3(-7.8, 0, 2.5),
   1.8,
-  155
+  // Faces the menu camera; the model's front is +Z.
+  20
 );
 
 let astronautBody: pc.Entity | null = null;
+// Wrapper of the player's astronaut model, turned to face where the view looks.
+let astronautPivot: pc.Entity | null = null;
 let firstPerson = true;
 addNasaAsset(
   "NASA astronaut player",
@@ -378,8 +393,9 @@ addNasaAsset(
   1.8,
   0,
   player,
-  (model) => {
+  (model, pivot) => {
     astronautBody = model;
+    astronautPivot = pivot;
     for (const component of astronautBody.findComponents("render")) {
       component.enabled = !firstPerson;
     }
@@ -585,7 +601,7 @@ const returnToMenu = (): void => {
   camera.enabled = false;
   menuCamera.enabled = true;
   firstPerson = true;
-  camera.setLocalPosition(0, 1.66, 0);
+  camera.setLocalPosition(0, EYE_HEIGHT, 0);
   if (astronautBody) {
     for (const component of astronautBody.findComponents("render")) {
       component.enabled = false;
@@ -622,9 +638,22 @@ window.addEventListener("mousemove", (event) => {
   lookAround(event.movementX, event.movementY);
 });
 
+// Turns the view and the astronaut by the current yaw/pitch. In third person
+// the camera also moves around the astronaut so it stays behind it.
+const placeViewCamera = (): void => {
+  camera.setLocalEulerAngles(pitch * pc.math.RAD_TO_DEG, yaw * pc.math.RAD_TO_DEG, 0);
+  if (firstPerson) {
+    camera.setLocalPosition(0, EYE_HEIGHT, 0);
+  } else {
+    const offset = thirdPersonCameraOffset(yaw, THIRD_PERSON_DISTANCE, THIRD_PERSON_HEIGHT);
+    camera.setLocalPosition(offset.x, offset.y, offset.z);
+  }
+  astronautPivot?.setLocalEulerAngles(0, yaw * pc.math.RAD_TO_DEG + ASTRONAUT_FACING_OFFSET, 0);
+};
+
 const toggleView = (): void => {
   firstPerson = !firstPerson;
-  camera.setLocalPosition(0, firstPerson ? 1.66 : 3.2, firstPerson ? 0 : 5.2);
+  placeViewCamera();
   if (astronautBody) {
     for (const component of astronautBody.findComponents("render")) {
       component.enabled = !firstPerson;
@@ -683,18 +712,15 @@ app.on("update", (dt: number) => {
   const inputLength = Math.hypot(forwardInput, sideInput);
 
   if (inputLength > 0) {
-    const forwardX = Math.sin(yaw);
-    const forwardZ = -Math.cos(yaw);
-    const rightX = Math.cos(yaw);
-    const rightZ = Math.sin(yaw);
+    const step = groundStep(yaw, forwardInput, sideInput);
     // Keys give a full-speed step in any direction; a light joystick push walks slower.
     const distance = settings.walkSpeed * dt * Math.min(1, inputLength) / inputLength;
-    const nextX = player.getPosition().x + (forwardX * forwardInput + rightX * sideInput) * distance;
-    const nextZ = player.getPosition().z + (forwardZ * forwardInput + rightZ * sideInput) * distance;
+    const nextX = player.getPosition().x + step.x * distance;
+    const nextZ = player.getPosition().z + step.z * distance;
     player.setPosition(Math.max(-40, Math.min(40, nextX)), 0, Math.max(-40, Math.min(35, nextZ)));
   }
 
-  camera.setLocalEulerAngles(pitch * pc.math.RAD_TO_DEG, yaw * pc.math.RAD_TO_DEG, 0);
+  placeViewCamera();
   const playerPosition = player.getPosition();
   const distanceToConsole = Math.hypot(
     playerPosition.x - consolePosition.x,
