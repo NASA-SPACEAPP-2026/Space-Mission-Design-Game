@@ -1,6 +1,7 @@
 import * as pc from "playcanvas";
 import "./style.css";
 import { createTouchControls, watchTouchUi } from "./touch-controls";
+import { groundStep } from "./movement";
 
 type Settings = {
   sensitivity: number;
@@ -683,14 +684,11 @@ app.on("update", (dt: number) => {
   const inputLength = Math.hypot(forwardInput, sideInput);
 
   if (inputLength > 0) {
-    const forwardX = Math.sin(yaw);
-    const forwardZ = -Math.cos(yaw);
-    const rightX = Math.cos(yaw);
-    const rightZ = Math.sin(yaw);
+    const step = groundStep(yaw, forwardInput, sideInput);
     // Keys give a full-speed step in any direction; a light joystick push walks slower.
     const distance = settings.walkSpeed * dt * Math.min(1, inputLength) / inputLength;
-    const nextX = player.getPosition().x + (forwardX * forwardInput + rightX * sideInput) * distance;
-    const nextZ = player.getPosition().z + (forwardZ * forwardInput + rightZ * sideInput) * distance;
+    const nextX = player.getPosition().x + step.x * distance;
+    const nextZ = player.getPosition().z + step.z * distance;
     player.setPosition(Math.max(-40, Math.min(40, nextX)), 0, Math.max(-40, Math.min(35, nextZ)));
   }
 
