@@ -2,7 +2,7 @@
 # Builds release.zip for Azure App Service from an already built workspace
 # (run `npm run build` first). The zip contains only what runs in production:
 #   app/backend/dist          compiled API
-#   app/frontend/dist         built frontend (+ legacy-game.html, see below)
+#   app/frontend/dist         built frontend (includes legacy-game.html from public/)
 #   node_modules              production dependencies of the backend only
 set -euo pipefail
 
@@ -12,7 +12,7 @@ STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
 cd "$ROOT"
-for required in app/backend/dist/index.js app/frontend/dist/index.html Go-No-Go.html; do
+for required in app/backend/dist/index.js app/frontend/dist/index.html app/frontend/dist/legacy-game.html; do
   [ -e "$required" ] || { echo "Missing $required - run 'npm run build' first." >&2; exit 1; }
 done
 
@@ -30,10 +30,6 @@ rm -rf "$STAGE/node_modules/@space"
 
 cp -r app/backend/dist "$STAGE/app/backend/dist"
 cp -r app/frontend/dist "$STAGE/app/frontend/dist"
-
-# The game iframe loads /legacy-game.html, but the frontend build does not
-# emit it, so it is added here from the original Go-No-Go.html.
-cp Go-No-Go.html "$STAGE/app/frontend/dist/legacy-game.html"
 
 rm -f "$OUT"
 (cd "$STAGE" && zip -qr "$OUT" .)
