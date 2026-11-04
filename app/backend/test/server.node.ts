@@ -1,10 +1,12 @@
+import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
-import { resolve } from "node:path";
-import { expect, test } from "vitest";
+import test from "node:test";
 
-const repositoryRoot = resolve(fileURLToPath(new URL("../", import.meta.url)));
+// Starts the real entry point (src/index.ts) as a separate process, the way
+// `npm run dev` does, and checks that it answers on /api/health.
+const backendRoot = fileURLToPath(new URL("../", import.meta.url));
 
 async function findAvailablePort(): Promise<number> {
   const server = createServer();
@@ -26,13 +28,14 @@ async function findAvailablePort(): Promise<number> {
 
 test(
   "backend health endpoint reports the running service",
+  { timeout: 15_000 },
   async () => {
     const port = await findAvailablePort();
     const backend = spawn(
       process.execPath,
-      ["--import", "tsx", "app/backend/src/index.ts"],
+      ["--import", "tsx", "src/index.ts"],
       {
-        cwd: repositoryRoot,
+        cwd: backendRoot,
         env: {
           ...process.env,
           NODE_ENV: "test",
@@ -77,8 +80,8 @@ test(
         throw new Error(`Backend did not become healthy. ${String(lastError)} ${output}`);
       }
 
-      expect(response.status).toBe(200);
-      await expect(response.json()).resolves.toEqual({
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), {
         status: "ok",
         service: "space-mission-design-game",
         game: "Go-No-Go"
@@ -98,6 +101,5 @@ test(
         });
       }
     }
-  },
-  15_000
+  }
 );
