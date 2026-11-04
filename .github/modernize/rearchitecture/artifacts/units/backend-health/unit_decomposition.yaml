@@ -1,8 +1,0 @@
-unit: backend-health
-commit: false
-candidate_splits: []
-# ## Upstream Artifacts Consumed
-# - .github/modernize/rearchitecture/artifacts/project-profile.yaml — backend currently has one source file.
-#
-# ## Evidence Mapping
-# - project-profile.yaml#project.structure -> current single-file Express backend is represented without committing target decomposition.

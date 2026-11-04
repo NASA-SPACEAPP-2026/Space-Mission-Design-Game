@@ -1,7 +1,0 @@
-## [t1] Inventoried legacy gameplay and acceptance criteria
-- Codebase/domain discoveries: The legacy product is a large standalone HTML game; its active UI routes through the campus and mission activity views, its mission lifecycle spans phases 0/A/B/C/D/E/F, and its local save key is `gng32.save`. The source defines six qualification test classes and includes tutorial, stakeholder decisions, orbital planning, assembly, mission operations, and closeout/report actions.
-- Working-tree note: `git status --short` showed `artifacts/project-profile.yaml` already modified; it was read for context and left untouched.
-- Wrong assumptions and corrections: The feature-inventory skill references research/knowledge-graph and a constitution, but no such project artifacts were present. Required `context.md`, `decisions.md`, PM log, and PM inbox were also absent at task start; continued using the approved clarification files, board, project profile, READMEs, and source evidence.
-- Debugging dead-ends and what actually worked: PowerShell in this environment does not support `Get-Date -AsUTC`; `(Get-Date).ToUniversalTime().ToString('o')` produced the UTC task start time. The legacy HTML has very long source lines, so function/action extraction and targeted ranges were more useful than reading broad ranges.
-- Techniques/patterns worth reusing for future tasks: Keep implemented legacy behavior distinct from README “potential” suggestions; preserve that distinction in acceptance criteria and mark any unfinished conversion explicitly.
-- Learnings consumed: []

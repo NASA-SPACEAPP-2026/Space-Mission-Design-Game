@@ -1,4 +1,4 @@
-# Existing Persistence Model
+# Legacy save format (`gng32.save`)
 
 ## Storage locations
 
@@ -39,13 +39,4 @@ The persisted key is written by `save()` at `Go-No-Go.html:3354`; `render()` cal
 - Writes replace the whole localStorage value. No database transaction boundary exists.
 - Corrupt/unsupported JSON is caught by `load()` and treated as unavailable; unsupported-version recovery is handled in the startup path.
 
-## Upstream Artifacts Consumed
-
-- `.github/modernize/rearchitecture/clarification.md` — new MySQL schema and consent-only one-time import requirement.
-- `.github/modernize/rearchitecture/clarification-answers.md` — legacy source key and authentication decision.
-
-## Evidence Mapping
-
-- `clarification.md#Backend` and `clarification-answers.md#B3` → distinction between observed v32 localStorage and future consent-gated importer.
-- `Go-No-Go.html:3354-3355` → save serialization and strict version-32 loader behavior.
-- `Go-No-Go.html:7026` → initial root state fields.
+The game source is `app/frontend/public/legacy-game.html`.

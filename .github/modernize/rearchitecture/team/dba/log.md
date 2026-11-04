@@ -1,6 +1,0 @@
-## [t4] Designed account-owned MySQL persistence and consent-gated v32 import
-- Codebase/domain discoveries (gotchas, non-obvious behavior): legacy v32 stores the complete mutable game object as one localStorage document; missions are nested in `missions[]` and `cur` is an array index. The iframe shell's key-presence check is not sufficient import validation. No MySQL data layer exists yet.
-- Wrong assumptions and corrections: do not probe whether the legacy key exists before the user's consent; requirement is consent before reading, not only before sending or writing. Do not assume v32 alone proves nested mission state is valid.
-- Debugging dead-ends and what actually worked: existing DBA learnings directory was empty; `context.md` and prior `team/dba/log.md` did not exist. Use the actual dependency artifacts, decisions, clarification, and inbox as source; record missing context/log in coordinator notice.
-- Techniques/patterns worth reusing for future tasks: use relational ownership/lifecycle columns plus versioned JSON for the dynamic legacy aggregates; map mission array positions to stable IDs within one atomic import; hash imports for idempotent replay and preserve localStorage on every outcome.
-- Learnings consumed: (none)
