@@ -20,3 +20,19 @@ export const groundStep = (
     z: -cos * forwardInput - sin * sideInput
   };
 };
+
+/**
+ * Where the third-person camera sits relative to the player: `distance`
+ * behind the direction the camera is looking (the opposite of the forward
+ * vector above) and `height` above the ground, so it orbits the astronaut as
+ * the view turns.
+ */
+export const thirdPersonCameraOffset = (
+  yaw: number,
+  distance: number,
+  height: number
+): { x: number; y: number; z: number } => ({
+  x: Math.sin(yaw) * distance,
+  y: height,
+  z: Math.cos(yaw) * distance
+});

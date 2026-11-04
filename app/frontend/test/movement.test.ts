@@ -1,6 +1,6 @@
 import * as pc from "playcanvas";
 import { expect, test } from "vitest";
-import { groundStep } from "../src/movement";
+import { groundStep, thirdPersonCameraOffset } from "../src/movement";
 
 // The camera in main.ts is oriented with setLocalEulerAngles(pitch, yaw, 0), so
 // the expected directions come straight from the engine's own rotation.
@@ -35,4 +35,21 @@ test("a diagonal joystick push blends forward and right", () => {
   const step = groundStep(yaw, 0.6, 0.8);
   expect(step.x).toBeCloseTo(-0.6);
   expect(step.z).toBeCloseTo(-0.8);
+});
+
+test("the third-person camera stays behind the view direction", () => {
+  for (const yaw of [0, Math.PI / 3, Math.PI / 2, Math.PI, -2]) {
+    const offset = thirdPersonCameraOffset(yaw, 5.2, 3.2);
+    const forward = groundStep(yaw, 1, 0);
+    expect(offset.x).toBeCloseTo(-forward.x * 5.2);
+    expect(offset.z).toBeCloseTo(-forward.z * 5.2);
+    expect(offset.y).toBe(3.2);
+  }
+});
+
+test("at yaw 0 the third-person camera keeps its original position", () => {
+  const offset = thirdPersonCameraOffset(0, 5.2, 3.2);
+  expect(offset.x).toBeCloseTo(0);
+  expect(offset.y).toBe(3.2);
+  expect(offset.z).toBeCloseTo(5.2);
 });
