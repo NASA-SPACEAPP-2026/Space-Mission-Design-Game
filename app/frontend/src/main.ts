@@ -349,14 +349,19 @@ const addNasaAsset = (
     const scale = Number.isFinite(measuredHeight) && measuredHeight > 0
       ? targetHeight / measuredHeight
       : 1;
-    model.setLocalScale(scale, scale, scale);
-    model.setEulerAngles(0, modelYaw, 0);
+    // Scale, turn and place a wrapper instead of the model itself: the GLB root
+    // node carries its own rotation (e.g. the Z-up to Y-up fix of the astronaut),
+    // and overwriting it would lay the model on its side.
+    const pivot = new pc.Entity(`${name} pivot`);
+    pivot.addChild(model);
+    pivot.setLocalScale(scale, scale, scale);
+    pivot.setLocalEulerAngles(0, modelYaw, 0);
     if (parent === player) {
-      model.setLocalPosition(0, -minY * scale, 0);
+      pivot.setLocalPosition(0, -minY * scale, 0);
     } else {
-      model.setPosition(position.x, position.y - minY * scale, position.z);
+      pivot.setLocalPosition(position.x, position.y - minY * scale, position.z);
     }
-    parent.addChild(model);
+    parent.addChild(pivot);
     onLoaded?.(model);
   });
   app.assets.load(asset);
