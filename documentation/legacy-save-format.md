@@ -4,7 +4,7 @@
 
 No SQL database, ORM, or backend model is present in the current repository. The legacy browser application persists its complete mutable game object as JSON at `localStorage['gng32.save']`. The root object is initialized with `v: 32`; the legacy loader accepts a value only when parsed JSON has `v === 32`.
 
-The PlayCanvas shell does not deserialize the game object. It checks whether the key exists to enable/disable “Load Game”; the actual load happens inside `Go-No-Go.html`. Thus key presence is not proof that the value is parseable or loadable.
+The PlayCanvas shell does not deserialize the game object. It checks whether the key exists to enable/disable “Load Game”; the actual load happens inside `legacy-game.html`. Thus key presence is not proof that the value is parseable or loadable.
 
 Separate browser keys:
 
@@ -30,7 +30,7 @@ The initial legacy object created by `newG()` contains:
 
 Mission entries are nested objects extended as the game progresses, including mission requirements, stakeholder/support state, satellite component placements, launch/orbit configuration, phase/test/flight status, and reports. The exact nested field set is not declared as a schema; source code uses mutable objects with optional fields.
 
-The persisted key is written by `save()` at `Go-No-Go.html:3354`; `render()` calls `save()` at `Go-No-Go.html:5731`. The entire `G` object is serialized, with no server transaction, schema validation at write time, or cross-device synchronization.
+The persisted key is written by `save()` at `legacy-game.html:3354`; `render()` calls `save()` at `legacy-game.html:5731`. The entire `G` object is serialized, with no server transaction, schema validation at write time, or cross-device synchronization.
 
 ## Relationships and transaction boundaries
 

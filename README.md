@@ -2,186 +2,62 @@
 
 # Space Mission Design Game
 
-## 🚀 How to clone the project
+A web game for the Space Mission Design Game challenge: you walk through a first-person lunar base
+(PlayCanvas) and, at the mission console, open **Go-No-Go**, the full mission-design simulation.
+The challenge brief is in [documentation/challenge.md](documentation/challenge.md).
 
-### Prerequisites
-- [Git](https://git-scm.com/) installed
+## Quick start
 
-### Cloning
+Requirements: [Node.js](https://nodejs.org/) 24 (see `.nvmrc`) and Git.
+
 ```bash
 git clone https://github.com/NASA-SPACEAPP-2026/Space-Mission-Design-Game.git
 cd Space-Mission-Design-Game
+npm install
+npm run dev
 ```
 
-### (Optional) Open the project in VS Code
-```bash
-code .
-```
+`npm run dev` starts the backend (http://localhost:8080) and the frontend together; open the URL
+printed by Vite (http://localhost:5173), which proxies `/api` to the backend.
 
----
+Controls: **WASD**/arrows and mouse to move, **E** near the mission console to open Go-No-Go,
+**V** third-person view, **Esc** releases the mouse, **P** pause. On touch screens a virtual
+joystick moves and dragging looks around. **Carica partita** resumes the browser save created by
+the game.
 
-## 🌌 Challenge description
+## Scripts
 
-Designing a space mission requires balancing competing needs: scientific objectives, vehicle design, instruments, launch vehicle, budget, power, mass, communications, and orbital constraints.
+| Command | What it does |
+|---------|--------------|
+| `npm run dev` | Frontend + backend in watch mode |
+| `npm run dev:frontend` / `npm run dev:backend` | Only one of the two |
+| `npm run build` | Builds both workspaces (`app/*/dist`) |
+| `npm test` | Runs every test suite (frontend: vitest, backend: `node:test`) |
+| `npm start` | Runs the built backend, which also serves the built frontend |
 
-This challenge consists of creating an **interactive game** that allows participants to:
-- design a complete space mission;
-- manage limited resources;
-- simulate the execution of the mission;
-- evaluate how each choice affects the final outcome.
-
-The educational goal is to make engineering trade-offs tangible, since they are often only treated theoretically.
-
----
-
-## 📚 Background
-
-Space missions are complex systems in which scientific objectives, technical requirements, available resources, and operational constraints must coexist.
-
-During the design phase, decisions about:
-- the spacecraft,
-- scientific instruments,
-- launch and orbit,
-- power, mass, communications,
-- mission cost and duration,
-
-are strongly interdependent. Improving one aspect may worsen others (e.g., a more powerful instrument = more scientific value, but also more mass, power consumption, data volume, and cost).
-
-Today, many educational tools cover only individual aspects (orbits, rockets, subsystems) without showing the integration of the entire mission. This creates a gap between knowing the concepts and being able to make system-level decisions.
-
-An interactive game can bridge this gap, allowing participants to experiment, make mistakes, iterate, and learn.
-
----
-
-## 🎯 Solution goals
-
-Build a **Space Mission Design Game** in which a single player or a team (up to 4 people) can:
-
-1. Define the mission objective and requirements  
-2. Design the spacecraft and scientific payload  
-3. Select the launch vehicle and orbit  
-4. Manage constraints on budget, mass, power, communications, data, and duration  
-5. Simulate the mission and evaluate the result
-
-A solid solution should include:
-- a clear user interface;
-- a mission configuration system;
-- resource management mechanics;
-- single-player and/or multiplayer support (up to 4);
-- a simulation and evaluation/scoring system.
-
-The game should reward:
-- mission performance,
-- scientific value,
-- efficient use of resources,
-- quality of decisions,
-- team collaboration.
-
----
-
-## 🧩 Potential Considerations
-
-### 1) Game design and user experience
-- Accessibility for different skill levels.
-- Single-player and cooperative modes (up to 4 participants).
-- Distinct team roles (e.g., planning, spacecraft, science, communications, resources).
-- Clear objectives and understandable feedback on the reasons for success/failure.
-- Ability to modify the design and rerun multiple simulations.
-- Scoring system with different difficulty levels/scenarios.
-
-### 2) Mission design
-- Define the objective before making technical choices.
-- Every decision must have explicit consequences.
-- No single "perfect solution": different combinations can work.
-- Realistic constraints on budget, mass, power, communications, and lifetime.
-
-### 3) Spacecraft and payload
-- Possible components: structure, power system, batteries, communications, onboard computer, attitude control, scientific instruments.
-- Instruments with variable attributes: mass, power consumption, cost, data generated, scientific value.
-- Choice between simple/advanced components depending on difficulty.
-
-### 4) Orbit and launch
-- Multiple orbital options with characteristics explained in simple terms.
-- Impact of the orbit on coverage, observation windows, communications, and mission duration.
-- Launch vehicles with different capabilities, costs, and orbital capacities.
-- Compatibility check between total mass, chosen orbit, and launch vehicle.
-
-### 5) Resource management
-Main resources to display clearly:
-- **Mass**: total spacecraft + payload mass
-- **Power**: energy available for systems and instruments
-- **Budget**: financial resources for development/operations
-- **Data**: volume of data generated by the instruments
-- **Communications**: ability to transmit data to the ground
-- **Time**: planned duration of development and operations
-
-It is useful to highlight which resources are critical for each scenario.
-
-### 6) Collaboration
-- Up to 4 participants on the same mission.
-- Different responsibilities but shared final decisions.
-- Negotiation scenarios between competing priorities.
-- Final result dependent on team coordination.
-
-### 7) Educational value
-- Simple explanations of scientific/engineering concepts.
-- Gradual introduction of complex topics (orbital altitude, payload capacity, data rate, etc.).
-- Short tutorials, visual indicators, optional educational resources.
-- Focus on the "why" behind how a decision affects performance.
-
----
-
-## 💡 Suggested additional features
-
-- Multiple scenarios with different objectives  
-- Random events or unexpected constraints  
-- Realistic or simplified spacecraft models  
-- Interactive visualizations of the vehicle  
-- Real-time mission dashboard  
-- Leaderboard / mission ranking  
-- Final post-simulation report  
-- Saving, sharing, and comparing mission designs  
-- Cooperative mode (up to 4)  
-- Competitive mode between teams on the same objective  
-- Sandbox mode with no predefined constraints  
-- Post-mission analysis explaining the reasons for success/failure
-
----
-
-## 📎 Resources
-
-For datasets, materials, and official challenge updates, refer to the **Resources** tab on the hackathon page.
-
----
-
-## 🧱 Project structure (new app)
+## Project structure
 
 ```text
 app/
-  frontend/   # PlayCanvas + Vite + TypeScript; first-person web game
-  backend/    # Express + TypeScript
-documentation/
+  frontend/          PlayCanvas + Vite + Tailwind; public/legacy-game.html is the original Go-No-Go game
+  backend/           Express API (health endpoint; MySQL persistence prepared, not wired yet)
+  contracts/         Planned v1 HTTP API types and request validation (not used by the app yet)
+documentation/       Architecture, deployment, assets, challenge brief
+infra/               One-off Azure setup and teardown scripts
+scripts/             Packaging for Azure App Service
+.github/workflows/   CI/CD
 ```
 
-## ▶️ Run locally
+## Branches and deployment
 
-Install once from the repository root:
+Work goes into `dev` through pull requests; every push to `dev` deploys to **staging**. Merging
+`dev` into `main` deploys to **production**. Details in
+[documentation/deployment.md](documentation/deployment.md).
 
-```bash
-npm install
-```
+## Documentation
 
-Run the backend and frontend in separate terminals:
-
-```bash
-npm run dev:backend
-```
-
-```bash
-npm run dev:frontend
-```
-
-Open the frontend URL printed by Vite. Start a new game, explore the lunar base with
-WASD and the mouse, then press **E** near the mission console to open the original
-Go-No-Go simulation. **Carica partita** resumes the browser save created by that game.
-The **V** key toggles a third-person view; **Esc** releases the mouse and **P** opens pause.
+- [Architecture](documentation/architecture.md)
+- [Deployment](documentation/deployment.md)
+- [Legacy save format](documentation/legacy-save-format.md)
+- [NASA 3D assets](documentation/nasa-assets.md)
+- [Challenge brief](documentation/challenge.md)
