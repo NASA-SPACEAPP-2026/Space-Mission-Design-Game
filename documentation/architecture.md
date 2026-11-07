@@ -84,6 +84,13 @@ outside the current view (plus a margin) are culled and re-rendered after pan/zo
 SVG is now around 2,500 nodes instead of ~8,500; the old `feTurbulence` ground filter was
 replaced by a gradient and the unused blur filter removed.
 
+On coarse pointers/mobile, panning switches to a low-detail forest: the detailed `<use>` trees,
+labels, walkers and SVG filters are hidden during the gesture, and three merged `<path>`
+canopies (one per tree type) are shown instead. Camera updates are coalesced with
+`requestAnimationFrame`, the SVG has `touch-action: none`, and pointer capture starts only
+after the drag threshold. Under 4× CPU throttling this took the average frame interval from
+~115 ms to ~10 ms in the local test. Desktop keeps the detailed trees while panning.
+
 ## Server
 
 `server.mjs` is deliberately small:
