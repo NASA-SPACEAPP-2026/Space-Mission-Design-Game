@@ -101,6 +101,10 @@ const cacheControl = (relative) => {
   if (relative.startsWith("/game/")) {
     return "no-cache";
   }
+  // Versioned audio (?v=hash) and stable self-hosted font files.
+  if (relative.startsWith("/audio/") || relative.startsWith("/fonts/")) {
+    return "public, max-age=31536000, immutable";
+  }
   return "public, max-age=3600";
 };
 

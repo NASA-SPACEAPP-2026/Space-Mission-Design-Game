@@ -40,6 +40,7 @@ Open the URL printed by Vite (http://localhost:5173). The game state is saved in
 ```text
 index.html              shell: markup and CSS
 public/game/            game scripts, split by domain (data, orbit, logic, campus, rooms, main)
+public/fonts/           self-hosted latin WOFF2 fonts and OFL licenses
 public/audio/theme.mp3  soundtrack, loaded on demand (not embedded in HTML)
 server.mjs              minimal static server for Azure App Service
 tests/                  Vitest tests for the static contract and the server

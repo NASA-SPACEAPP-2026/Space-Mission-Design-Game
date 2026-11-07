@@ -46,9 +46,22 @@ describe("2D-only game shell", () => {
   it("streams the soundtrack instead of embedding it", async () => {
     const { joined } = await gameSources();
     expect(joined).not.toContain("b64:");
-    expect(joined).toContain("MUS={url:'/audio/theme.mp3'");
+    expect(joined).toMatch(/MUS=\{url:'\/audio\/theme\.mp3\?v=[a-f0-9]+'/);
     const audio = await stat(new URL("../public/audio/theme.mp3", import.meta.url));
     expect(audio.size).toBeGreaterThan(1_000_000);
+  });
+
+
+  it("self-hosts the fonts", async () => {
+    const html = await read("index.html");
+    expect(html).not.toContain("fonts.googleapis.com");
+    expect(html).not.toContain("fonts.gstatic.com");
+    expect(html).toContain("@font-face");
+    expect(html).toContain("/fonts/ibm-plex-sans.woff2");
+    const fonts = (await readdir(new URL("../public/fonts/", import.meta.url))).filter((name) =>
+      name.endsWith(".woff2")
+    );
+    expect(fonts.length).toBeGreaterThanOrEqual(6);
   });
 
   it("keeps the HTML shell small", async () => {

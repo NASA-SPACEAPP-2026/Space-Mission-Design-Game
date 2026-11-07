@@ -96,12 +96,18 @@ jobs:
               fi
               echo "Compression and HTTP validators active"
               frontend="$(curl -fsS --max-time 20 "$url/")"
-              grep -q "Go No-Go" <<<"$frontend" && echo "Frontend reachable"
+              grep -q "Go No-Go" <<<"$frontend"
+              echo "Frontend reachable"
               # Fail if the old Express shell is still being served.
-              grep -q '/game/07-main.js' <<<"$frontend" && echo "2D shell detected"
-              curl -fsS --max-time 20 "$url/game/04-stubs.js" | grep -q 'const S3={ok:false' \
-                && echo "2D game scripts reachable"
-              curl -fsS --max-time 20 -o /dev/null "$url/audio/theme.mp3" && echo "Audio asset reachable"
+              grep -q '/assets/game-' <<<"$frontend"
+              bundle="$(grep -o '/assets/game-[a-f0-9]*\.js' <<<"$frontend" | head -1)"
+              [ -n "$bundle" ]
+              curl -fsS --max-time 20 -o /dev/null "$url$bundle"
+              echo "2D bundle reachable"
+              curl -fsS --max-time 20 -o /dev/null "$url/fonts/ibm-plex-sans.woff2"
+              echo "Font asset reachable"
+              curl -fsS --max-time 20 -o /dev/null "$url/audio/theme.mp3"
+              echo "Audio asset reachable"
               exit 0
             fi
             echo "Attempt $attempt failed, retrying in 10s..."

@@ -40,6 +40,7 @@ Apri l'URL indicato da Vite (http://localhost:5173). Lo stato della partita è s
 ```text
 index.html              guscio: markup e CSS
 public/game/            script del gioco, divisi per dominio (dati, orbite, logica, campus, stanze, main)
+public/fonts/           font WOFF2 latin self-hosted e licenze OFL
 public/audio/theme.mp3  colonna sonora, caricata on demand (non incorporata nell'HTML)
 server.mjs              server statico minimale per Azure App Service
 tests/                  test Vitest sul contratto statico e sul server

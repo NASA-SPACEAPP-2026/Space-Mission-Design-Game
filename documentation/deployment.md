@@ -69,6 +69,7 @@ az webapp config set  --name <app> --resource-group rg-space-mission-game --linu
 
 - `index.html`: `no-cache`;
 - `/assets/*` (Vite content-hashed files): `public, max-age=31536000, immutable`;
+- `/audio/*` (versioned `?v=<hash>`) and `/fonts/*`: `public, max-age=31536000, immutable`;
 - other files: `public, max-age=3600`;
 - `/api/health`: `no-store`.
 

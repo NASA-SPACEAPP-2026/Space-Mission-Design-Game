@@ -23,6 +23,7 @@ public/game/            classic scripts, loaded in this order:
   05-campus.js            isometric campus renderer and world layout
   06-rooms.js             interior SVG renderers
   07-main.js              boot, screens, save, HUD, tutorial
+public/fonts/           self-hosted latin WOFF2 fonts and OFL licenses
 public/audio/theme.mp3  soundtrack, fetched when the player enables music
 server.mjs              minimal static server used by Azure App Service
 tests/                  Vitest suites: static contract + server behaviour
@@ -68,12 +69,20 @@ Current production payload (local measurement):
 
 | Asset | Raw | gzip | brotli |
 |---|---:|---:|---:|
-| `index.html` | ~93 kB | ~21 kB | ~18 kB |
+| `index.html` | ~96 kB | ~21 kB | ~18 kB |
 | game bundle | ~830 kB | ~271 kB | ~208 kB |
+| fonts (used files) | ~81 kB | — | — |
+| soundtrack | ~1,45 MB | — | — |
+
+The fonts are self-hosted in `public/fonts/` (latin WOFF2, only the weights used), with the
+body and display fonts preloaded. The soundtrack is a 96 kbps MP3, fetched on first interaction
+and versioned with `?v=<hash>`.
 
 The campus renderer also avoids thousands of repeated SVG nodes: trees are `<use>` references
-to three `<symbol>` definitions and the empty depth-sort `<g>` wrappers were removed. The
-campus SVG went from ~8,500 to ~2,900 nodes.
+to three `<symbol>` definitions and the empty depth-sort `<g>` wrappers were removed. Trees
+outside the current view (plus a margin) are culled and re-rendered after pan/zoom. The campus
+SVG is now around 2,500 nodes instead of ~8,500; the old `feTurbulence` ground filter was
+replaced by a gradient and the unused blur filter removed.
 
 ## Server
 

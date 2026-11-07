@@ -2100,7 +2100,7 @@ Dimensione del testo	Text size`, ex=new Map(); RAW.split('\n').forEach(l=>{ cons
   return {start,tr}; })();
 
 /* ---------- musica di sottofondo (due brani uniti in un unico loop, in mi) ---------- */
-const MUS={url:'/audio/theme.mp3',buf:null,src:null,gain:null,loading:false,vol:.3};
+const MUS={url:'/audio/theme.mp3?v=46e8fedc362c',buf:null,src:null,gain:null,loading:false,vol:.3};
 const musOn=()=>!G||G.music!==false;
 window.MUSDBG=()=>({buf:!!MUS.buf,dur:MUS.buf?+MUS.buf.duration.toFixed(1):0,playing:!!MUS.src,ac:AC?AC.state:'-'});
 async function musStart(){ if(!musOn()||MUS.src||MUS.loading) return; try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') await AC.resume();
@@ -2281,7 +2281,7 @@ function wkSlot(el,d){ const par=el.parentNode; if(!par) return; let arr=par._dz
 WK.raf=requestAnimationFrame(wkFrame);
 
 function cCtx(){ const M=cur(), next=nextPlace(M), labels={}; ['admin','mcc','fd','build','test','pad'].forEach(k=>{ const w=waitOf(k); labels[k]=next===k?'!':w?w.replace('⏳',''):''; });
-  const pm=padMission(); return { walkers:wkScene('campus'), labels, flag:G.flag||null, pad:{ rocket:!!pm, rocketH:pm?.85*(E.LV[pm.sat.lv]||{h:1}).h:1 } }; }
+  const pm=padMission(), cam=G.world.cam, pad=300, view={ x0:(0-cam.x)/cam.z-pad, x1:(1280-cam.x)/cam.z+pad, y0:(0-cam.y)/cam.z-pad, y1:(800-cam.y)/cam.z+pad }; return { walkers:wkScene('campus'), labels, view, flag:G.flag||null, pad:{ rocket:!!pm, rocketH:pm?.85*(E.LV[pm.sat.lv]||{h:1}).h:1 } }; }
 function vHub(v){ const W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(G.xp), M=cur(), next=nextPlace(M);
   const st={items:W.items,mode:G.cedit?'edit':'',sel:CSEL,moving:CPLACE&&CPLACE.moveId};
   const tiles=CMENU[CTAB].map(k=>{ const ki=cKind(k), lock=lv<ki.lvl, built=cBuilt(k); return '<button class="ctile'+(CPLACE&&CPLACE.k===k&&!CPLACE.moveId?' on':'')+(lock||built?' lock':'')+'" data-act="cplace" data-k="'+k+'"'+(lock||built?' disabled':'')+' title="'+esc(ki.s)+'"><svg viewBox="-48 -44 96 66" aria-hidden="true">'+CAM.DEFS+CAM.mini(k)+'</svg><b>'+esc(ki.n)+'</b><small>'+(built?'costruito':k==='dish'&&!hasB('ground')?'serve la stazione di terra':lock?'livello '+ki.lvl:keur(ki.c)+(SREQ[k]?' · 👥'+SREQ[k]:'')+(k==='parking'?' · 🚗14':''))+'</small>'+(lock?'<span class="lk">🔒</span>':'')+'</button>'; }).join('');
@@ -2321,7 +2321,7 @@ document.addEventListener('pointermove',e=>{ if(view!=='hub') return; if(CDRAG&&
     if(CDRAG.moved){ const svg=$('#camsvg'), r=svg.getBoundingClientRect(), k=Math.min(1280/r.width,800/r.height); G.world.cam.x=CDRAG.cx+dx*k; G.world.cam.y=CDRAG.cy+dy*k; G.world.cam.x=Math.max(-900,Math.min(900,G.world.cam.x)); G.world.cam.y=Math.max(-700,Math.min(600,G.world.cam.y)); cApplyCam(); return; } }
   if(CPLACE&&e.target.closest&&e.target.closest('#camsvg')){ const p=cWorldPt(e); if(p) cGhost(p[0],p[1]); } });
 document.addEventListener('pointerup',e=>{ if(!CDRAG||CDRAG.id!==e.pointerId) return; const was=CDRAG; CDRAG=null; const s=$('#camsvg'); if(s) s.classList.remove('drag');
-  if(was.moved){ CSWALLOW=true; save(); return; }
+  if(was.moved){ CSWALLOW=true; save(); if(view==='hub') render(); return; }
   if(view!=='hub') return; if(!(e.target.closest&&e.target.closest('#camsvg'))) return;
   if(CPLACE){ const p=cWorldPt(e); if(p) cGhost(p[0],p[1]); cPlaceAt(); CSWALLOW=true; return; }
   const w=e.target.closest('[data-wid]'); if(w&&G.cedit){ CSEL=w.dataset.wid; sfx.tap(); render(); CSWALLOW=true; return; }
@@ -2332,7 +2332,7 @@ document.addEventListener('pointerdown',e=>{ if(!(e.target.closest&&e.target.clo
 document.addEventListener('pointermove',e=>{ if(!PTR.has(e.pointerId)) return; PTR.set(e.pointerId,[e.clientX,e.clientY]); if(PINCH&&PTR.size===2){ const p=[...PTR.values()], d=Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]); if(PINCH.d>10&&d>10){ const svg=$('#camsvg'); if(svg){ const m=svg.getScreenCTM(), pt=svg.createSVGPoint(); pt.x=(p[0][0]+p[1][0])/2; pt.y=(p[0][1]+p[1][1])/2; const q=pt.matrixTransform(m.inverse()); cZoom(d/PINCH.d,[q.x,q.y]); } PINCH.d=d; } CDRAG=null; e.stopPropagation(); } },true);
 ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,e=>{ if(PTR.delete(e.pointerId)&&PTR.size<2){ if(PINCH){ CSWALLOW=true; save(); } PINCH=null; } },true));
 document.addEventListener('wheel',e=>{ const svg=e.target.closest&&e.target.closest('#camsvg'); if(!svg||view!=='hub') return; e.preventDefault(); cZoom(e.deltaY<0?1.12:1/1.12,cSvgPt(e)); },{passive:false});
-function cZoom(f,at){ const c=G.world.cam, z=Math.max(.3,Math.min(2.4,c.z*f)); at=at||[640,400]; const wx=(at[0]-c.x)/c.z, wy=(at[1]-c.y)/c.z; c.z=z; c.x=at[0]-wx*z; c.y=at[1]-wy*z; cApplyCam(); }
+function cZoom(f,at){ const c=G.world.cam, z=Math.max(.3,Math.min(2.4,c.z*f)); at=at||[640,400]; const wx=(at[0]-c.x)/c.z, wy=(at[1]-c.y)/c.z; c.z=z; c.x=at[0]-wx*z; c.y=at[1]-wy*z; cApplyCam(); clearTimeout(cZoom.t); cZoom.t=setTimeout(()=>{ if(view==='hub') render(); },160); }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&CPLACE&&view==='hub'){ CPLACE=null; render(); } });
 // ---------- editor della bandiera ----------
 const FLC=['#FFFFFF','#22313B','#45A9A3','#EB7D44','#CF5E4C','#3F6FB0','#F2C14E','#5E9E4A','#8E5BB0','#E98AB0','#9AA09A','#000000'];

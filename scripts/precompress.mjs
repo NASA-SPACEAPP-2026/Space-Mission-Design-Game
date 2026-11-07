@@ -18,7 +18,6 @@ const TEXT = new Set([
   ".map",
   ".mjs",
   ".svg",
-  ".txt",
   ".webmanifest",
   ".xml"
 ]);

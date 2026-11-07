@@ -53,7 +53,10 @@ if (!scriptBlock.test(index)) {
   throw new Error("dist/index.html does not contain the expected /game/ script block.");
 }
 const scriptTag = `<script src="/assets/${bundleName}"></script>`;
-await writeFile(indexPath, index.replace(scriptBlock, scriptTag));
+const preloadTag = `<link rel="preload" as="script" href="/assets/${bundleName}" fetchpriority="high">`;
+let output = index.replace(scriptBlock, scriptTag);
+if (!output.includes(preloadTag)) output = output.replace('</head>', `${preloadTag}</head>`);
+await writeFile(indexPath, output);
 
 // The source scripts are only needed by the dev server.
 await rm(resolve(root, "dist/game"), { recursive: true, force: true });

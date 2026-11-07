@@ -11,11 +11,13 @@ const matches = [...index.matchAll(/<script src="\/assets\/(game-[a-f0-9]+\.js)"
 if (matches.length !== 1) {
   throw new Error(`Expected exactly one hashed game bundle, found ${matches.length}.`);
 }
+const bundle = matches[0][1];
 if (index.includes('src="/game/')) {
   throw new Error("dist/index.html still references the dev-only /game/ scripts.");
 }
-
-const bundle = matches[0][1];
+if (!index.includes(`<link rel="preload" as="script" href="/assets/${bundle}" fetchpriority="high">`)) {
+  throw new Error("dist/index.html does not preload the game bundle.");
+}
 const check = async (path, label) => {
   const info = await stat(resolve(root, path));
   if (!info.isFile() || info.size === 0) throw new Error(`${label} is missing or empty.`);

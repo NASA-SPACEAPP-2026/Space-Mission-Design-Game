@@ -31,9 +31,11 @@ beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), "gng-static-"));
   await mkdir(join(root, "assets"), { recursive: true });
   await mkdir(join(root, "audio"), { recursive: true });
+  await mkdir(join(root, "fonts"), { recursive: true });
   await writeFile(join(root, "index.html"), "<!doctype html><title>Go No-Go</title>");
   await writeFile(join(root, "assets", "app-12345678.js"), "console.log('ok');");
   await writeFile(join(root, "audio", "theme.mp3"), "fake-mp3");
+  await writeFile(join(root, "fonts", "font.woff2"), "fake-font");
 
   largeSource = "console.log('large asset');\n".repeat(400);
   await writeFile(join(root, "large.js"), largeSource);
@@ -74,6 +76,13 @@ describe("static server", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toContain("immutable");
     expect(await response.text()).toBe("console.log('ok');");
+  });
+
+  it("caches audio and fonts as immutable", async () => {
+    const audio = await rawGet(`${baseUrl}/audio/theme.mp3?v=test`);
+    expect(audio.headers["cache-control"]).toContain("immutable");
+    const font = await rawGet(`${baseUrl}/fonts/font.woff2`);
+    expect(font.headers["cache-control"]).toContain("immutable");
   });
 
   it("serves precompressed brotli with a length and Vary", async () => {
