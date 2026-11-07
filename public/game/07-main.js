@@ -2275,7 +2275,7 @@ function wkSVG(w,p,t){ wkFace(w,p); const g=w.Pf(p.x,p.y); return '<g class="dzw
 function wkFrame(now){ WK.raf=requestAnimationFrame(wkFrame); if(now-WK.last<40) return; WK.last=now; const els=document.querySelectorAll('.dzw'); if(!els.length) return; const t=now/1000;
   els.forEach(el=>{ const w=WK.map[el.dataset.w]; if(!w) return; const p=wkPos(w,t); wkFace(w,p); const g=w.Pf(p.x,p.y); el.setAttribute('transform','translate('+g[0].toFixed(1)+' '+g[1].toFixed(1)+') scale('+(w.sc*w.mir)+' '+w.sc+')');
     el.classList.toggle('mv',!!p.mv); el.classList.toggle('bk',!!w.bk); wkSlot(el,p.x+p.y+.05); }); }
-function wkSlot(el,d){ const par=el.parentNode; if(!par) return; let arr=par._dz; if(arr&&arr.length&&arr[0][1].parentNode!==par){ arr=null; par._dzEnd=null; } if(!arr){ arr=par._dz=Array.from(par.children).filter(c=>c.classList.contains('dz')).map(c=>[+c.dataset.d,c]); }
+function wkSlot(el,d){ const par=el.parentNode; if(!par) return; let arr=par._dz; if(arr&&arr.length&&arr[0][1].parentNode!==par){ arr=null; par._dzEnd=null; } if(!arr){ arr=par._dz=Array.from(par.children).filter(c=>c.dataset&&c.dataset.d!=null).map(c=>[+c.dataset.d,c]); }
   if(!arr.length) return; let lo=0, hi=arr.length; while(lo<hi){ const m=(lo+hi)>>1; if(arr[m][0]<=d) lo=m+1; else hi=m; }
   const tgt=lo<arr.length?arr[lo][1]:(par._dzEnd||(par._dzEnd=arr[arr.length-1][1].nextElementSibling&&!arr[arr.length-1][1].nextElementSibling.classList.contains('dzw')?arr[arr.length-1][1].nextElementSibling:null)); if(el._tgt!==tgt&&(!tgt||tgt.parentNode===par)){ par.insertBefore(el,tgt); el._tgt=tgt; } }
 WK.raf=requestAnimationFrame(wkFrame);
