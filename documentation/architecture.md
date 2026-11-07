@@ -81,13 +81,16 @@ and versioned with `?v=<hash>`.
 The campus renderer also avoids thousands of repeated SVG nodes: trees are `<use>` references
 to three `<symbol>` definitions and the empty depth-sort `<g>` wrappers were removed. The symbols
 reuse embedded SVG images of the detailed tree artwork, allowing browsers to cache the drawing.
-Trees outside the current view (plus a margin) are culled and re-rendered after pan/zoom. The campus
+Trees outside the current view (plus a margin) or beyond the camera bounds (plus an artwork
+margin) are culled and re-rendered after pan/zoom. The campus
 SVG is now around 2,500 nodes instead of ~8,500; the old `feTurbulence` ground filter was
 replaced by a gradient and the unused blur filter removed.
 
 On coarse pointers/mobile, labels, walkers and SVG filters are hidden during panning; the
 detailed trees remain visible. Camera updates are coalesced with `requestAnimationFrame`,
 the SVG has `touch-action: none`, and pointer capture starts only after the drag threshold.
+The camera is clamped to the existing rectangular campus bounds before rendering or saving,
+including when a drag ends before the next animation frame.
 
 ## Server
 
