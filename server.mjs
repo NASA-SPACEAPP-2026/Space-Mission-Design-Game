@@ -5,12 +5,16 @@
  * The game is a static 2D single-page app: this process only serves `dist/`.
  * There is no API, no database and no game state on the server. `/api/health`
  * is kept as a tiny liveness probe for the existing deployment smoke test.
+ *
+ * Text assets are served from build-time `.br`/`.gz` files when available,
+ * with ETag/Last-Modified revalidation and Content-Length.
  */
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { createBrotliCompress, createGzip } from "node:zlib";
 
 export const DEFAULT_ROOT = resolve(fileURLToPath(new URL("./dist", import.meta.url)));
 
@@ -39,19 +43,37 @@ const MIME = {
   ".xml": "application/xml; charset=utf-8"
 };
 
+const COMPRESSIBLE = new Set([
+  ".css",
+  ".html",
+  ".js",
+  ".json",
+  ".map",
+  ".mjs",
+  ".svg",
+  ".txt",
+  ".webmanifest",
+  ".xml"
+]);
+
+const MIN_COMPRESS_BYTES = 1024;
+
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "X-Frame-Options": "SAMEORIGIN"
 };
 
-const isFile = async (path) => {
+const statFile = async (path) => {
   try {
-    return (await stat(path)).isFile();
+    const info = await stat(path);
+    return info.isFile() ? info : null;
   } catch {
-    return false;
+    return null;
   }
 };
+
+const isFile = async (path) => !!(await statFile(path));
 
 const safeJoin = (root, pathname) => {
   let decoded;
@@ -75,11 +97,45 @@ const cacheControl = (relative) => {
   if (relative.startsWith("/assets/")) {
     return "public, max-age=31536000, immutable";
   }
-  // The game scripts are not hashed yet: always revalidate after a deploy.
+  // The source game scripts are not hashed: always revalidate.
   if (relative.startsWith("/game/")) {
     return "no-cache";
   }
   return "public, max-age=3600";
+};
+
+const acceptsEncoding = (request, encoding) => {
+  const header = request.headers["accept-encoding"];
+  if (!header) return false;
+  return header
+    .split(",")
+    .map((part) => part.trim().toLowerCase().split(";")[0])
+    .some((coding) => coding === encoding || coding === "*");
+};
+
+const etagFor = (info, encoding) =>
+  `W/"${info.size.toString(16)}-${Math.round(info.mtimeMs).toString(16)}${encoding ? `-${encoding}` : ""}"`;
+
+const normalizeEtag = (value) => value.trim().replace(/^W\//, "");
+
+const matchesEtag = (header, etag) => {
+  if (!header) return false;
+  const wanted = normalizeEtag(etag);
+  return header
+    .split(",")
+    .map((value) => value.trim())
+    .some((value) => value === "*" || normalizeEtag(value) === wanted);
+};
+
+const notModified = (request, info, etag) => {
+  const ifNoneMatch = request.headers["if-none-match"];
+  if (ifNoneMatch) return matchesEtag(ifNoneMatch, etag);
+  const ifModifiedSince = request.headers["if-modified-since"];
+  if (ifModifiedSince) {
+    const since = Date.parse(ifModifiedSince);
+    return Number.isFinite(since) && Math.floor(info.mtimeMs / 1000) * 1000 <= since;
+  }
+  return false;
 };
 
 const sendJson = (response, status, body) => {
@@ -93,18 +149,93 @@ const sendJson = (response, status, body) => {
   response.end(payload);
 };
 
-const sendFile = (request, response, file, relative) => {
-  const type = MIME[extname(file).toLowerCase()] ?? "application/octet-stream";
-  response.writeHead(200, {
+const pipeError = (response) => () => {
+  if (!response.headersSent) response.writeHead(500, SECURITY_HEADERS);
+  response.destroy();
+};
+
+const sendFile = async (request, response, file, relative) => {
+  const info = await statFile(file);
+  if (!info) {
+    response.writeHead(404, { ...SECURITY_HEADERS, "Content-Type": "text/plain; charset=utf-8" });
+    response.end("Not Found");
+    return;
+  }
+
+  const extension = extname(file).toLowerCase();
+  const type = MIME[extension] ?? "application/octet-stream";
+  const compressible = COMPRESSIBLE.has(extension) && info.size >= MIN_COMPRESS_BYTES;
+
+  let encoding = null;
+  let bodyPath = file;
+  let bodyInfo = info;
+  if (compressible) {
+    if (acceptsEncoding(request, "br")) {
+      const br = await statFile(`${file}.br`);
+      if (br) {
+        encoding = "br";
+        bodyPath = `${file}.br`;
+        bodyInfo = br;
+      }
+    }
+    if (!encoding && acceptsEncoding(request, "gzip")) {
+      const gz = await statFile(`${file}.gz`);
+      if (gz) {
+        encoding = "gzip";
+        bodyPath = `${file}.gz`;
+        bodyInfo = gz;
+      }
+    }
+    // Fallback for a build without precompressed files (e.g. manual dist).
+    if (!encoding && acceptsEncoding(request, "br")) encoding = "br";
+    else if (!encoding && acceptsEncoding(request, "gzip")) encoding = "gzip";
+  }
+
+  const etag = etagFor(info, encoding);
+  const headers = {
     ...SECURITY_HEADERS,
     "Content-Type": type,
-    "Cache-Control": cacheControl(relative)
-  });
-  if (request.method === "HEAD") {
+    "Cache-Control": cacheControl(relative),
+    ETag: etag,
+    "Last-Modified": info.mtime.toUTCString()
+  };
+  if (compressible) headers.Vary = "Accept-Encoding";
+  if (encoding) headers["Content-Encoding"] = encoding;
+
+  if (notModified(request, info, etag)) {
+    response.writeHead(304, headers);
     response.end();
     return;
   }
-  createReadStream(file).on("error", () => response.destroy()).pipe(response);
+
+  if (request.method === "HEAD") {
+    if (bodyPath !== file || !encoding) headers["Content-Length"] = bodyInfo.size;
+    response.writeHead(200, headers);
+    response.end();
+    return;
+  }
+
+  if (bodyPath !== file) {
+    headers["Content-Length"] = bodyInfo.size;
+    response.writeHead(200, headers);
+    createReadStream(bodyPath).on("error", pipeError(response)).pipe(response);
+    return;
+  }
+
+  if (!encoding) {
+    headers["Content-Length"] = info.size;
+    response.writeHead(200, headers);
+    createReadStream(file).on("error", pipeError(response)).pipe(response);
+    return;
+  }
+
+  response.writeHead(200, headers);
+  const compressor = encoding === "br" ? createBrotliCompress() : createGzip();
+  createReadStream(file)
+    .on("error", pipeError(response))
+    .pipe(compressor)
+    .on("error", pipeError(response))
+    .pipe(response);
 };
 
 /**
@@ -148,7 +279,11 @@ export const createStaticServer = (options = {}) => {
       }
     }
 
-    sendFile(request, response, target, relative);
+    try {
+      await sendFile(request, response, target, relative);
+    } catch {
+      pipeError(response)();
+    }
   });
 };
 

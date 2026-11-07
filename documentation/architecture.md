@@ -53,12 +53,36 @@ bindings and execution order working. This is deliberate for the incremental ref
 - The soundtrack is a separate `public/audio/theme.mp3` file, fetched on demand and decoded with
   the Web Audio API. It is no longer a 2.5 MB base64 string inside the page.
 
+## Build and runtime performance
+
+`npm run build` does three steps:
+
+1. Vite builds `dist/` and copies `public/`.
+2. `scripts/build-game.mjs` concatenates the classic scripts in order, minifies them with
+   esbuild, writes a content-hashed `dist/assets/game-<hash>.js` and rewrites `dist/index.html`
+   to load only that file. `dist/game/` is removed from the production output; the dev server
+   still uses the split source files.
+3. `scripts/precompress.mjs` writes `.br` and `.gz` versions of text assets.
+
+Current production payload (local measurement):
+
+| Asset | Raw | gzip | brotli |
+|---|---:|---:|---:|
+| `index.html` | ~93 kB | ~21 kB | ~18 kB |
+| game bundle | ~830 kB | ~271 kB | ~208 kB |
+
+The campus renderer also avoids thousands of repeated SVG nodes: trees are `<use>` references
+to three `<symbol>` definitions and the empty depth-sort `<g>` wrappers were removed. The
+campus SVG went from ~8,500 to ~2,900 nodes.
+
 ## Server
 
 `server.mjs` is deliberately small:
 
 - serves `dist/`;
-- SPA fallback to `index.html` for unknown routes without a file extension;
+- prefers precompressed `.br`/`.gz` files when the client accepts them;
+- sends `ETag`, `Last-Modified`, `Content-Length` and `Vary: Accept-Encoding`, and answers
+  conditional requests with `304`;
 - long-lived cache for hashed `/assets/*`, `no-cache` for the shell and `/game/*`;
 - `GET /api/health` returns `{"status":"ok"}` only as a liveness probe for the existing Azure
   smoke test. It is not a game API.

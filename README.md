@@ -27,7 +27,7 @@ Open the URL printed by Vite (http://localhost:5173). The game state is saved in
 | Command | What it does |
 |---------|--------------|
 | `npm run dev` | Vite dev server with hot reload |
-| `npm run build` | Builds the static site into `dist/` |
+| `npm run build` | Builds, minifies, hashes and precompresses the static site into `dist/` |
 | `npm run preview` | Serves the production build locally |
 | `npm run start` | Runs `server.mjs` on `dist/` (the production server used by App Service) |
 | `npm test` | Runs the Vitest suite |

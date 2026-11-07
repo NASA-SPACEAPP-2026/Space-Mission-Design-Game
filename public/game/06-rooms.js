@@ -1077,7 +1077,7 @@ function fac(k,st){ bigCam(); MONO=0; const W=RW,D=RD,H=RH; let s=DEFS+HUDDEF; c
   return s+depth(L)+frontCut(W,D,{wallR:'#F6F5F1',cap:'#46525A'}); }
 
 let WEXTRA=[];
-function depth(list){ const l=list.concat(WEXTRA.map(w=>[w.d,w.svg,1])); WEXTRA=[]; return l.sort((a,b)=>a[0]-b[0]).map(x=>x[2]?x[1]:'<g class="dz" data-d="'+(+x[0]).toFixed(3)+'">'+x[1]+'</g>').join(''); }
+function depth(list){ const l=list.concat(WEXTRA.map(w=>[w.d,w.svg,1])); WEXTRA=[]; return l.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).join(''); }
 return { setWalkers:a=>{ WEXTRA=a||[]; }, P:(x,y,z)=>{ bigCam(); return P(x,y,z||0); }, dims:[RW,RD], inArc, fac, launchScene, meet, MSEAT, lookOf, build, clean, test, mcc, mccWallBack, valid, toGrid, FOOT, ghost:(r,g)=>{ bigCam(); return ghostOf(r,{ghost:g}); }, view:'150 60 1000 620' };
 })();
 

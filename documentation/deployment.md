@@ -17,10 +17,14 @@
 The zip contains:
 
 ```text
-dist/          static 2D game (index.html + game/ scripts + audio)
+dist/          static 2D game (index.html + hashed assets/ + audio + .br/.gz)
 server.mjs     minimal static server, Node built-ins only
 package.json   runtime manifest, no dependencies
 ```
+
+The build minifies the split game scripts into one content-hashed
+`assets/game-<hash>.js` and precompresses text assets. `server.mjs` serves the `.br`/`.gz`
+version, sets `ETag`/`Last-Modified`/`Content-Length` and answers `304` on revalidation.
 
 App Service runs `node server.mjs`. There is no API process, no database and no build step on
 the server.

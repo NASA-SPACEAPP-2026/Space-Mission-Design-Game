@@ -27,7 +27,7 @@ Apri l'URL indicato da Vite (http://localhost:5173). Lo stato della partita è s
 | Comando | Cosa fa |
 |---------|---------|
 | `npm run dev` | Server di sviluppo Vite con hot reload |
-| `npm run build` | Crea il sito statico in `dist/` |
+| `npm run build` | Crea, minifica, hasha e precomprime il sito statico in `dist/` |
 | `npm run preview` | Serve localmente la build di produzione |
 | `npm run start` | Avvia `server.mjs` su `dist/` (il server usato da App Service) |
 | `npm test` | Esegue la suite Vitest |

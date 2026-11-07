@@ -1,12 +1,31 @@
+import { get } from "node:http";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { brotliCompressSync, brotliDecompressSync, gzipSync } from "node:zlib";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createStaticServer } from "../server.mjs";
 
 let server;
 let baseUrl;
 let root;
+let largeSource;
+
+const rawGet = (url, headers = {}) =>
+  new Promise((resolve, reject) => {
+    const request = get(url, { headers }, (response) => {
+      const chunks = [];
+      response.on("data", (chunk) => chunks.push(chunk));
+      response.on("end", () =>
+        resolve({
+          status: response.statusCode,
+          headers: response.headers,
+          body: Buffer.concat(chunks)
+        })
+      );
+    });
+    request.on("error", reject);
+  });
 
 beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), "gng-static-"));
@@ -15,6 +34,15 @@ beforeAll(async () => {
   await writeFile(join(root, "index.html"), "<!doctype html><title>Go No-Go</title>");
   await writeFile(join(root, "assets", "app-12345678.js"), "console.log('ok');");
   await writeFile(join(root, "audio", "theme.mp3"), "fake-mp3");
+
+  largeSource = "console.log('large asset');\n".repeat(400);
+  await writeFile(join(root, "large.js"), largeSource);
+  await writeFile(join(root, "large.js.gz"), gzipSync(largeSource, { level: 9 }));
+  await writeFile(join(root, "large.js.br"), brotliCompressSync(largeSource));
+
+  // No .gz/.br files: exercise the on-the-fly compression fallback.
+  await writeFile(join(root, "fallback.js"), largeSource);
+
   server = createStaticServer({ root });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
@@ -46,6 +74,37 @@ describe("static server", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toContain("immutable");
     expect(await response.text()).toBe("console.log('ok');");
+  });
+
+  it("serves precompressed brotli with a length and Vary", async () => {
+    const response = await rawGet(`${baseUrl}/large.js`, { "accept-encoding": "br" });
+    expect(response.status).toBe(200);
+    expect(response.headers["content-encoding"]).toBe("br");
+    expect(response.headers.vary).toContain("Accept-Encoding");
+    expect(Number(response.headers["content-length"])).toBeLessThan(largeSource.length);
+    expect(brotliDecompressSync(response.body).toString()).toBe(largeSource);
+  });
+
+  it("falls back to on-the-fly gzip", async () => {
+    const response = await rawGet(`${baseUrl}/fallback.js`, { "accept-encoding": "gzip" });
+    expect(response.status).toBe(200);
+    expect(response.headers["content-encoding"]).toBe("gzip");
+    expect(response.headers.vary).toContain("Accept-Encoding");
+    expect(response.body.length).toBeLessThan(largeSource.length);
+  });
+
+  it("sends Content-Length for identity responses", async () => {
+    const response = await rawGet(`${baseUrl}/fallback.js`, { "accept-encoding": "identity" });
+    expect(response.status).toBe(200);
+    expect(Number(response.headers["content-length"])).toBe(Buffer.byteLength(largeSource));
+  });
+
+  it("revalidates with ETag", async () => {
+    const first = await rawGet(`${baseUrl}/`);
+    expect(first.headers.etag).toBeTruthy();
+    const second = await rawGet(`${baseUrl}/`, { "if-none-match": first.headers.etag });
+    expect(second.status).toBe(304);
+    expect(second.body.length).toBe(0);
   });
 
   it("serves the SPA fallback for unknown routes", async () => {
