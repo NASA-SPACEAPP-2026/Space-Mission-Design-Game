@@ -79,17 +79,15 @@ body and display fonts preloaded. The soundtrack is a 96 kbps MP3, fetched on fi
 and versioned with `?v=<hash>`.
 
 The campus renderer also avoids thousands of repeated SVG nodes: trees are `<use>` references
-to three `<symbol>` definitions and the empty depth-sort `<g>` wrappers were removed. Trees
-outside the current view (plus a margin) are culled and re-rendered after pan/zoom. The campus
+to three `<symbol>` definitions and the empty depth-sort `<g>` wrappers were removed. The symbols
+reuse embedded SVG images of the detailed tree artwork, allowing browsers to cache the drawing.
+Trees outside the current view (plus a margin) are culled and re-rendered after pan/zoom. The campus
 SVG is now around 2,500 nodes instead of ~8,500; the old `feTurbulence` ground filter was
 replaced by a gradient and the unused blur filter removed.
 
-On coarse pointers/mobile, panning switches to a low-detail forest: the detailed `<use>` trees,
-labels, walkers and SVG filters are hidden during the gesture, and three merged `<path>`
-canopies (one per tree type) are shown instead. Camera updates are coalesced with
-`requestAnimationFrame`, the SVG has `touch-action: none`, and pointer capture starts only
-after the drag threshold. Under 4× CPU throttling this took the average frame interval from
-~115 ms to ~10 ms in the local test. Desktop keeps the detailed trees while panning.
+On coarse pointers/mobile, labels, walkers and SVG filters are hidden during panning; the
+detailed trees remain visible. Camera updates are coalesced with `requestAnimationFrame`,
+the SVG has `touch-action: none`, and pointer capture starts only after the drag threshold.
 
 ## Server
 
