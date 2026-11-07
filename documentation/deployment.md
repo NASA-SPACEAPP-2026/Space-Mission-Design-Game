@@ -43,8 +43,9 @@ the server.
 ### Existing web apps created before the 2D refactor
 
 They may still point at the removed `app/backend/dist/index.js`. The deploy action now sets
-`startup-command: node server.mjs`, uses `clean: true` and restarts the app, so the next
-`dev`/`main` deploy fixes them automatically.
+`startup-command: node server.mjs`, uses `clean: true` and restarts the app explicitly after
+deployment, so the next `dev`/`main` deploy fixes them automatically. The smoke test also waits
+for the compressed response and `ETag` before passing.
 
 If you need to fix one immediately, replace `<app>` with the real App Service name (without
 angle brackets: the shell reads `<app>` as input redirection):

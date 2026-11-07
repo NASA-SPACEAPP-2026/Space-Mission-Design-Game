@@ -73,6 +73,14 @@ jobs:
           restart: true
           startup-command: node server.mjs
 
+      # The deploy action can leave the previous Node process serving the old
+      # files. Restart explicitly so the smoke test sees the new server code.
+      - name: Restart App Service
+        run: |
+          az webapp restart \
+            --name "${{ vars.AZURE_WEBAPP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP || 'rg-space-mission-game' }}"
+
       - name: Smoke test
         run: |
           url="https://${{ vars.AZURE_WEBAPP_NAME }}.azurewebsites.net"
@@ -80,6 +88,13 @@ jobs:
           for attempt in $(seq 1 18); do
             if curl -fsS --max-time 20 "$url/api/health" | grep -q '"status":"ok"'; then
               echo "Static server healthy at $url"
+              headers="$(curl -sSI --max-time 20 -H 'Accept-Encoding: br' "$url/")"
+              if ! grep -qi 'content-encoding: br' <<<"$headers" || ! grep -qi 'etag:' <<<"$headers"; then
+                echo "Compressed server not active yet, retrying..."
+                sleep 10
+                continue
+              fi
+              echo "Compression and HTTP validators active"
               frontend="$(curl -fsS --max-time 20 "$url/")"
               grep -q "Go No-Go" <<<"$frontend" && echo "Frontend reachable"
               # Fail if the old Express shell is still being served.
