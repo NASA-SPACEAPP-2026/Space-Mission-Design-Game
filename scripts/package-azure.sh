@@ -19,6 +19,7 @@ trap 'rm -rf "$STAGE"' EXIT
 [ -f "$ROOT/dist/audio/theme.mp3" ] || { echo "Missing dist/audio/theme.mp3 - run 'npm run build' first." >&2; exit 1; }
 ls "$ROOT"/dist/assets/game-*.js >/dev/null 2>&1 || { echo "Missing dist/assets/game-*.js - run 'npm run build' first." >&2; exit 1; }
 [ -f "$ROOT/dist/index.html.br" ] || { echo "Missing precompressed index.html - run 'npm run build' first." >&2; exit 1; }
+[ -f "$ROOT/dist/fonts/ibm-plex-sans.woff2" ] || { echo "Missing self-hosted fonts - run 'npm run build' first." >&2; exit 1; }
 
 cp -R "$ROOT/dist" "$STAGE/dist"
 cp "$ROOT/server.mjs" "$STAGE/server.mjs"
