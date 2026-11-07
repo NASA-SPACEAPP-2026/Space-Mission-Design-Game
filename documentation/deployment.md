@@ -38,11 +38,17 @@ the server.
 
 ### Existing web apps created before the 2D refactor
 
-They still point at the removed `app/backend/dist/index.js`. Update the startup command once:
+They may still point at the removed `app/backend/dist/index.js`. The deploy action now sets
+`startup-command: node server.mjs`, uses `clean: true` and restarts the app, so the next
+`dev`/`main` deploy fixes them automatically.
+
+If you need to fix one immediately, replace `<app>` with the real App Service name (without
+angle brackets: the shell reads `<app>` as input redirection):
 
 ```bash
-az webapp config set --name <app> --resource-group rg-space-mission-game \
+az webapp config set --name smg-staging-768b8a --resource-group rg-space-mission-game \
   --startup-file "node server.mjs"
+az webapp restart --name smg-staging-768b8a --resource-group rg-space-mission-game
 ```
 
 The Node runtime must be 24:

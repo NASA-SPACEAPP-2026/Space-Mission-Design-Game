@@ -65,7 +65,13 @@ jobs:
       - uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          resource-group-name: ${{ vars.AZURE_RESOURCE_GROUP || 'rg-space-mission-game' }}
           package: release.zip
+          # The old deployment used app/backend/dist/index.js. Clean it and
+          # point App Service at the static server on every deploy.
+          clean: true
+          restart: true
+          startup-command: node server.mjs
 
       - name: Smoke test
         run: |
@@ -74,7 +80,12 @@ jobs:
           for attempt in $(seq 1 18); do
             if curl -fsS --max-time 20 "$url/api/health" | grep -q '"status":"ok"'; then
               echo "Static server healthy at $url"
-              curl -fsS --max-time 20 "$url/" | grep -q "Go No-Go" && echo "Frontend reachable"
+              frontend="$(curl -fsS --max-time 20 "$url/")"
+              grep -q "Go No-Go" <<<"$frontend" && echo "Frontend reachable"
+              # Fail if the old Express shell is still being served.
+              grep -q '/game/07-main.js' <<<"$frontend" && echo "2D shell detected"
+              curl -fsS --max-time 20 "$url/game/04-stubs.js" | grep -q 'const S3={ok:false' \
+                && echo "2D game scripts reachable"
               curl -fsS --max-time 20 -o /dev/null "$url/audio/theme.mp3" && echo "Audio asset reachable"
               exit 0
             fi
