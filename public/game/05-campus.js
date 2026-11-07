@@ -140,6 +140,10 @@ const CAM = (() => {
       const keep = d < 4 ? .8 : d < 9 ? .55 : .3; if (hsh(jx * 3.1, jy * 1.7) > keep) continue;
       const q = hsh(jx * 5.3, jy * 2.9); trees.push({ x: jx, y: jy, t: q < .5 ? 'pine' : q < .85 ? 'round' : 'poplar', k: .85 + hsh(jy * 7.7, jx) * .45 }); }
     NAT = { hills, trees }; return NAT; }
+  function naturalTrees(view) { return nature().trees.flatMap((t, i) => {
+    if (!t.screen) { t.screen = P(t.x, t.y); t.svg = rtree(t.x, t.y, t.k, t.t).replace('class="tr"', 'class="tr" data-nat="' + i + '"'); }
+    const g = t.screen; return view && (g[0] < view.x0 || g[0] > view.x1 || g[1] < view.y0 || g[1] > view.y1) ? [] : [{ id: String(i), d: t.x + t.y, svg: t.svg }];
+  }); }
   function crossing() { let best = null; for (let i = 0; i < R1.length - 1; i++) { const a = R1[i], b = R1[i + 1]; for (let k = 0; k <= 400; k++) { const p = lerp(a, b, k / 400), d = distPL(p, STREAM); if (!best || d < best.d) best = { d, p, u: [b[0] - a[0], b[1] - a[1]] }; } } const L = Math.hypot(best.u[0], best.u[1]); best.u = [best.u[0] / L, best.u[1] / L]; return best; }
   let BR = null;
   function bridge() { BR = BR || crossing(); const c = BR.p, u = BR.u, n = [-u[1], u[0]], hw = .36, sp = 1.05, at = (t, o, z) => P(c[0] + u[0] * t + n[0] * o, c[1] + u[1] * t + n[1] * o, z || 0);
@@ -173,7 +177,7 @@ const CAM = (() => {
     const list = items.map(it => ({ d: it.x + it.y + (K[it.k].w + K[it.k].h) / 2, it }));
     const people = [[5.4, 15.8, 0, 1], [4.4, 9.6, 5, -1], [11.4, 10.4, 1, 1], [12.8, 7.9, 0, 1], [16.2, 9.6, 3, -1], [8.6, 7.9, 4, 1], [20.4, 9.9, 2, 1], [2.6, 8.4, 1, -1]];
     if (!(ctx && ctx.walkers)) people.forEach(p => list.push({ d: p[0] + p[1], svg: rperson(p[0], p[1], p[2], p[3], 1) }));
-    const V = ctx && ctx.view; NATR.trees.forEach(t => { if (V) { const g = P(t.x, t.y); if (g[0] < V.x0 || g[0] > V.x1 || g[1] < V.y0 || g[1] > V.y1) return; } list.push({ d: t.x + t.y, svg: rtree(t.x, t.y, t.k, t.t) }); });
+    naturalTrees(ctx && ctx.view).forEach(t => list.push({ d: t.d, svg: t.svg }));
 
     if (ctx && ctx.walkers) ctx.walkers.forEach(w => list.push({ d: w.d, svg: w.svg, wk: 1 }));
     list.sort((a, b) => a.d - b.d).forEach(o => { if (o.wk) { s += o.svg; return; } if (o.svg) { s += o.svg; return; } const it = o.it, d = K[it.k], sel = st.sel === it.id;
@@ -194,6 +198,6 @@ const CAM = (() => {
   function ghost(k, x, y, ok, ctx) { const d = K[k], r = rectOf(k, x, y); return '<g opacity=".72">' + d.draw(x, y, ctx || {}) + '</g>' + poly(gp([[r[0], r[1]], [r[2], r[1]], [r[2], r[3]], [r[0], r[3]]]), 'fill="' + (ok ? 'rgba(69,169,163,.22)' : 'rgba(207,94,76,.28)') + '" stroke="' + (ok ? TEAL : '#CF5E4C') + '" stroke-width="2.5" stroke-dasharray="8 5"'); }
   function toGrid(sx, sy) { const a = (sx - C.ox) / (C.tw / 2), b = (sy - C.oy) / (C.th / 2); return [(a + b) / 2, (b - a) / 2]; }
   function mini(k) { const keep = C; const d = K[k]; const sc = Math.min(1, 3.2 / Math.max(d.w, d.h, (d.top || 1) * .55)); C = { ox: 0, oy: 0, tw: 22 * sc, th: 11 * sc, tz: 11 * sc }; const g = P(d.w / 2, d.h / 2); const s = '<g transform="translate(' + f1(-g[0]) + ' ' + f1(-g[1] + 10) + ')">' + d.draw(0, 0, { rocket: 1, ang: -28 }) + '</g>'; C = keep; return s; }
-  return { site: () => SITE, setScale, K, DEFS, world, ghost, valid, toGrid, defaultWorld, rectOf, mini, crawler, P: (x, y, z) => P(x, y, z), C: () => C };
+  return { site: () => SITE, setScale, K, DEFS, world, naturalTrees, ghost, valid, toGrid, defaultWorld, rectOf, mini, crawler, P: (x, y, z) => P(x, y, z), C: () => C };
 })();
 

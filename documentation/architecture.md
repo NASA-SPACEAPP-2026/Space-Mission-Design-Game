@@ -82,7 +82,8 @@ The campus renderer also avoids thousands of repeated SVG nodes: trees are `<use
 to three `<symbol>` definitions and the empty depth-sort `<g>` wrappers were removed. The symbols
 reuse embedded SVG images of the detailed tree artwork, allowing browsers to cache the drawing.
 Trees outside the current view (plus a margin) or beyond the camera bounds (plus an artwork
-margin) are culled and re-rendered after pan/zoom. The campus
+margin) are culled. After a pan or zoom, existing tree elements are reused and only trees entering
+or leaving that area are updated; cached elements are discarded when the campus is rebuilt. The campus
 SVG is now around 2,500 nodes instead of ~8,500; the old `feTurbulence` ground filter was
 replaced by a gradient and the unused blur filter removed.
 

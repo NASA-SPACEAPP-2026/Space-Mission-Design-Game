@@ -2280,8 +2280,9 @@ function wkSlot(el,d){ const par=el.parentNode; if(!par) return; let arr=par._dz
   const tgt=lo<arr.length?arr[lo][1]:(par._dzEnd||(par._dzEnd=arr[arr.length-1][1].nextElementSibling&&!arr[arr.length-1][1].nextElementSibling.classList.contains('dzw')?arr[arr.length-1][1].nextElementSibling:null)); if(el._tgt!==tgt&&(!tgt||tgt.parentNode===par)){ par.insertBefore(el,tgt); el._tgt=tgt; } }
 WK.raf=requestAnimationFrame(wkFrame);
 
+function cTreeView(){ const cam=G.world.cam, pad=300, treeMargin=80; return { x0:Math.max(CBOX[0]-treeMargin,(0-cam.x)/cam.z-pad), x1:Math.min(CBOX[2]+treeMargin,(1280-cam.x)/cam.z+pad), y0:Math.max(CBOX[1]-treeMargin,(0-cam.y)/cam.z-pad), y1:Math.min(CBOX[3]+treeMargin,(800-cam.y)/cam.z+pad) }; }
 function cCtx(){ const M=cur(), next=nextPlace(M), labels={}; ['admin','mcc','fd','build','test','pad'].forEach(k=>{ const w=waitOf(k); labels[k]=next===k?'!':w?w.replace('⏳',''):''; });
-  const pm=padMission(), cam=G.world.cam, pad=300, treeMargin=80, view={ x0:Math.max(CBOX[0]-treeMargin,(0-cam.x)/cam.z-pad), x1:Math.min(CBOX[2]+treeMargin,(1280-cam.x)/cam.z+pad), y0:Math.max(CBOX[1]-treeMargin,(0-cam.y)/cam.z-pad), y1:Math.min(CBOX[3]+treeMargin,(800-cam.y)/cam.z+pad) }; return { walkers:wkScene('campus'), labels, view, flag:G.flag||null, pad:{ rocket:!!pm, rocketH:pm?.85*(E.LV[pm.sat.lv]||{h:1}).h:1 } }; }
+  const pm=padMission(); return { walkers:wkScene('campus'), labels, view:cTreeView(), flag:G.flag||null, pad:{ rocket:!!pm, rocketH:pm?.85*(E.LV[pm.sat.lv]||{h:1}).h:1 } }; }
 function vHub(v){ const W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(G.xp), M=cur(), next=nextPlace(M);
   const st={items:W.items,mode:G.cedit?'edit':'',sel:CSEL,moving:CPLACE&&CPLACE.moveId};
   const tiles=CMENU[CTAB].map(k=>{ const ki=cKind(k), lock=lv<ki.lvl, built=cBuilt(k); return '<button class="ctile'+(CPLACE&&CPLACE.k===k&&!CPLACE.moveId?' on':'')+(lock||built?' lock':'')+'" data-act="cplace" data-k="'+k+'"'+(lock||built?' disabled':'')+' title="'+esc(ki.s)+'"><svg viewBox="-48 -44 96 66" aria-hidden="true">'+CAM.DEFS+CAM.mini(k)+'</svg><b>'+esc(ki.n)+'</b><small>'+(built?'costruito':k==='dish'&&!hasB('ground')?'serve la stazione di terra':lock?'livello '+ki.lvl:keur(ki.c)+(SREQ[k]?' · 👥'+SREQ[k]:'')+(k==='parking'?' · 🚗14':''))+'</small>'+(lock?'<span class="lk">🔒</span>':'')+'</button>'; }).join('');
@@ -2306,6 +2307,17 @@ function cClamp(){ const c=G.world.cam, svg=$('#camsvg')||$('#view'); let vw=128
   c.x=Math.min(x0-CBOX[0]*c.z,Math.max(x1-CBOX[2]*c.z,c.x)); c.y=Math.min(y0-CBOX[1]*c.z,Math.max(y1-CBOX[3]*c.z,c.y)); }
 function cApplyCam(){ const g=$('#camg'), c=G.world.cam; cClamp(); if(g) g.setAttribute('transform','translate('+c.x.toFixed(1)+' '+c.y.toFixed(1)+') scale('+c.z.toFixed(3)+')'); }
 let CAMRAF=0; function cApplyCamSoon(){ if(CAMRAF) return; CAMRAF=requestAnimationFrame(()=>{ CAMRAF=0; cApplyCam(); }); }
+let CTREEGROUP=null, CTREECACHE=new Map();
+function cRefreshTrees(){ const g=$('#camg'); if(!g) return; if(CTREEGROUP!==g){ CTREEGROUP=g; CTREECACHE=new Map(); }
+  const wanted=CAM.naturalTrees(cTreeView()), ids=new Set(wanted.map(t=>t.id));
+  Array.from(g.children).filter(el=>el.hasAttribute('data-nat')).forEach(el=>{ CTREECACHE.set(el.dataset.nat,el); if(!ids.has(el.dataset.nat)) el.remove(); });
+  const sorted=Array.from(g.children).filter(el=>el.hasAttribute('data-d'));
+  wanted.forEach(t=>{ let el=CTREECACHE.get(t.id); if(el&&el.parentNode===g) return;
+    if(!el){ const holder=document.createElementNS('http://www.w3.org/2000/svg','g'); holder.innerHTML=t.svg; el=holder.firstElementChild; CTREECACHE.set(t.id,el); }
+    const depth=+el.dataset.d; let lo=0,hi=sorted.length; while(lo<hi){ const mid=(lo+hi)>>1; if(+sorted[mid].dataset.d<=depth) lo=mid+1; else hi=mid; }
+    const before=lo<sorted.length?sorted[lo]:(sorted.length?sorted[sorted.length-1].nextSibling:$('#cghost')); g.insertBefore(el,before); sorted.splice(lo,0,el);
+  }); g._dz=null; g._dzEnd=null;
+}
 function cGhost(sx,sy){ if(!CPLACE) return; const d=CAM.K[CPLACE.k], gpt=CAM.toGrid(sx,sy); let x=Math.round((gpt[0]-d.w/2)*4)/4, y=Math.round((gpt[1]-d.h/2)*4)/4; const why=CAM.valid(CPLACE.k,x,y,G.world.items,CPLACE.moveId);
   CPLACE.x=x; CPLACE.y=y; CPLACE.ok=!why; CPLACE.why=why; CPLACE.last=[sx,sy]; const g=$('#cghost'); if(g) g.innerHTML=CAM.ghost(CPLACE.k,x,y,!why,Object.assign({rocket:0},cCtx()[CPLACE.k]||{},CPLACE.k==='build'?{flag:G.flag}:{}));
   const h=$('.chint'); if(h) h.textContent=(CPLACE.moveId?'Scegli il nuovo posto. ':'Tocca un punto libero del campus. ')+(why?'Qui no: '+why+'.':'Qui va bene.')+' Esc per annullare.'; }
@@ -2322,19 +2334,19 @@ document.addEventListener('pointermove',e=>{ if(view!=='hub') return; if(CDRAG&&
     if(CDRAG.moved){ const svg=$('#camsvg'), r=svg.getBoundingClientRect(), k=Math.min(1280/r.width,800/r.height); G.world.cam.x=CDRAG.cx+dx*k; G.world.cam.y=CDRAG.cy+dy*k; cClamp(); CDRAG.x=e.clientX; CDRAG.y=e.clientY; CDRAG.cx=G.world.cam.x; CDRAG.cy=G.world.cam.y; cApplyCamSoon(); return; } }
   if(CPLACE&&e.target.closest&&e.target.closest('#camsvg')){ const p=cWorldPt(e); if(p) cGhost(p[0],p[1]); } });
 document.addEventListener('pointerup',e=>{ if(!CDRAG||CDRAG.id!==e.pointerId) return; const was=CDRAG; CDRAG=null; const s=$('#camsvg'); if(s){ s.classList.remove('drag','panning'); try{ s.releasePointerCapture(e.pointerId); }catch(_){} } if(CAMRAF){ cancelAnimationFrame(CAMRAF); CAMRAF=0; }
-  if(was.moved){ CSWALLOW=true; save(); if(view==='hub') render(); setTimeout(()=>{ CSWALLOW=false; },250); return; }
+  if(was.moved){ CSWALLOW=true; if(view==='hub'){ cApplyCam(); cRefreshTrees(); } save(); setTimeout(()=>{ CSWALLOW=false; },250); return; }
   if(view!=='hub') return; if(!(e.target.closest&&e.target.closest('#camsvg'))) return;
   if(CPLACE){ const p=cWorldPt(e); if(p) cGhost(p[0],p[1]); cPlaceAt(); CSWALLOW=true; return; }
   const w=e.target.closest('[data-wid]'); if(w&&G.cedit){ CSEL=w.dataset.wid; sfx.tap(); render(); CSWALLOW=true; return; }
   if(G.cedit&&CSEL){ CSEL=null; render(); } });
-document.addEventListener('pointercancel',e=>{ if(!CDRAG||CDRAG.id!==e.pointerId) return; const moved=CDRAG.moved; CDRAG=null; const s=$('#camsvg'); if(s){ s.classList.remove('drag','panning'); try{ s.releasePointerCapture(e.pointerId); }catch(_){} } if(CAMRAF){ cancelAnimationFrame(CAMRAF); CAMRAF=0; } if(moved&&view==='hub') render(); });
+document.addEventListener('pointercancel',e=>{ if(!CDRAG||CDRAG.id!==e.pointerId) return; const moved=CDRAG.moved; CDRAG=null; const s=$('#camsvg'); if(s){ s.classList.remove('drag','panning'); try{ s.releasePointerCapture(e.pointerId); }catch(_){} } if(CAMRAF){ cancelAnimationFrame(CAMRAF); CAMRAF=0; } if(moved&&view==='hub'){ cApplyCam(); cRefreshTrees(); save(); } });
 document.addEventListener('click',e=>{ if(CSWALLOW){ CSWALLOW=false; if(e.target.closest&&e.target.closest('#camsvg')){ e.stopPropagation(); e.preventDefault(); } } },true);
 const PTR=new Map(); let PINCH=null;
 document.addEventListener('pointerdown',e=>{ if(!(e.target.closest&&e.target.closest('#camsvg'))||view!=='hub') return; PTR.set(e.pointerId,[e.clientX,e.clientY]); if(PTR.size===2){ const p=[...PTR.values()]; PINCH={d:Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1])}; const s=$('#camsvg'); if(s) s.classList.add('panning'); CDRAG=null; } },true);
 document.addEventListener('pointermove',e=>{ if(!PTR.has(e.pointerId)) return; PTR.set(e.pointerId,[e.clientX,e.clientY]); if(PINCH&&PTR.size===2){ const p=[...PTR.values()], d=Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]); if(PINCH.d>10&&d>10){ const svg=$('#camsvg'); if(svg){ const m=svg.getScreenCTM(), pt=svg.createSVGPoint(); pt.x=(p[0][0]+p[1][0])/2; pt.y=(p[0][1]+p[1][1])/2; const q=pt.matrixTransform(m.inverse()); cZoom(d/PINCH.d,[q.x,q.y]); } PINCH.d=d; } CDRAG=null; e.stopPropagation(); } },true);
 ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,e=>{ if(PTR.delete(e.pointerId)&&PTR.size<2){ if(PINCH){ CSWALLOW=true; save(); const s=$('#camsvg'); if(s) s.classList.remove('panning'); setTimeout(()=>{ CSWALLOW=false; },250); } PINCH=null; } },true));
 document.addEventListener('wheel',e=>{ const svg=e.target.closest&&e.target.closest('#camsvg'); if(!svg||view!=='hub') return; e.preventDefault(); cZoom(e.deltaY<0?1.12:1/1.12,cSvgPt(e)); },{passive:false});
-function cZoom(f,at){ const c=G.world.cam, z=Math.max(.3,Math.min(2.4,c.z*f)); at=at||[640,400]; const wx=(at[0]-c.x)/c.z, wy=(at[1]-c.y)/c.z; c.z=z; c.x=at[0]-wx*z; c.y=at[1]-wy*z; cClamp(); cApplyCamSoon(); clearTimeout(cZoom.t); cZoom.t=setTimeout(()=>{ if(view==='hub') render(); },160); }
+function cZoom(f,at){ const c=G.world.cam, z=Math.max(.3,Math.min(2.4,c.z*f)); at=at||[640,400]; const wx=(at[0]-c.x)/c.z, wy=(at[1]-c.y)/c.z; c.z=z; c.x=at[0]-wx*z; c.y=at[1]-wy*z; cClamp(); cApplyCamSoon(); clearTimeout(cZoom.t); cZoom.t=setTimeout(()=>{ if(view==='hub'){ if(CAMRAF){ cancelAnimationFrame(CAMRAF); CAMRAF=0; } cApplyCam(); cRefreshTrees(); save(); } },160); }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&CPLACE&&view==='hub'){ CPLACE=null; render(); } });
 // ---------- editor della bandiera ----------
 const FLC=['#FFFFFF','#22313B','#45A9A3','#EB7D44','#CF5E4C','#3F6FB0','#F2C14E','#5E9E4A','#8E5BB0','#E98AB0','#9AA09A','#000000'];
@@ -2400,7 +2412,7 @@ function setHudH(){ const h=$('#hud'); if(h){ const b=h.getBoundingClientRect().
 function placeBub(){ const b=$('#mbub'), svg=$('#meetsvg'); if(!b||!svg) return; const m=svg.getScreenCTM(); if(!m) return; const pt=svg.createSVGPoint(); pt.x=+b.dataset.x; pt.y=+b.dataset.y; const q=pt.matrixTransform(m), sb=svg.getBoundingClientRect(), w=b.offsetWidth||260;
   b.style.left=Math.max(sb.left+w/2+8,Math.min(sb.right-w/2-8,q.x))+'px'; b.style.top=Math.max(($('#hud').getBoundingClientRect().bottom||60)+b.offsetHeight+8,q.y)+'px'; }
 addEventListener('resize',()=>{ setHudH(); placeBub(); });
-function render(){ cancelAnimationFrame(raf); if(CAMRAF){ cancelAnimationFrame(CAMRAF); CAMRAF=0; } const lvN=L.level(G.xp); G.missions.forEach(m=>{ m.lvlNow=lvN; m.padOwned=!!G.pad; }); hud(); const v=$('#view'); syncAgencies(); syncSite(); const v0=$('#view'); v0.className=''; v0.removeAttribute('style'); document.body.classList.add('fs'); if(cur()&&cur().phase==='done'&&view==='hub'&&$('#ov').hidden){ const ia=G.missions.findIndex(m=>m.phase!=='done'); if(ia>=0) G.cur=ia; } setHudH(); ({launch:vLaunchView,hub:vHub,admin:vAdmin,build:vBuild,test:vTest,mcc:vMcc,pad:vPad,fac:vFac,fd:vFD})[view](v); if(!v.classList.contains('scn')) v.classList.add('page'); addBack(v); setHudH(); setHeadH(); placeBub(); $('#dock').innerHTML=dockHTML(); if(G.tut) setTimeout(coach,0); save(); }
+function render(){ CTREEGROUP=null; CTREECACHE.clear(); cancelAnimationFrame(raf); if(CAMRAF){ cancelAnimationFrame(CAMRAF); CAMRAF=0; } const lvN=L.level(G.xp); G.missions.forEach(m=>{ m.lvlNow=lvN; m.padOwned=!!G.pad; }); hud(); const v=$('#view'); syncAgencies(); syncSite(); const v0=$('#view'); v0.className=''; v0.removeAttribute('style'); document.body.classList.add('fs'); if(cur()&&cur().phase==='done'&&view==='hub'&&$('#ov').hidden){ const ia=G.missions.findIndex(m=>m.phase!=='done'); if(ia>=0) G.cur=ia; } setHudH(); ({launch:vLaunchView,hub:vHub,admin:vAdmin,build:vBuild,test:vTest,mcc:vMcc,pad:vPad,fac:vFac,fd:vFD})[view](v); if(!v.classList.contains('scn')) v.classList.add('page'); addBack(v); setHudH(); setHeadH(); placeBub(); $('#dock').innerHTML=dockHTML(); if(G.tut) setTimeout(coach,0); save(); }
 function addMoney(x,why){ G.money+=x; if(x>0) sfx.cash(); hud(); if(x){ const m=$('#hud .money'); if(m){ const r=m.getBoundingClientRect(), f=document.createElement('div'); f.className='mfloat '+(x>0?'p':'m'); f.textContent=(x>0?'+':'−')+keur(Math.abs(x)); f.style.right=(innerWidth-r.right+4)+'px'; f.style.top=(r.bottom+4+18*document.querySelectorAll('.mfloat').length)+'px'; document.body.appendChild(f); setTimeout(()=>f.remove(),1300); m.classList.remove('pulse'); void m.offsetWidth; m.classList.add('pulse'); } } if(why) toast(why); }
 
 /* ---------- edificio amministrativo ---------- */
