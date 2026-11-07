@@ -1,61 +1,99 @@
 # App architecture and game flow
 
-## Folder layout
+## Direction
+
+The project is **2D only** and **static**:
+
+- no PlayCanvas scene, no NASA `.glb` models, no first-person lunar base;
+- no Express API, no MySQL, no server-side mission state;
+- no three.js: the satellite designer and the orbit planner use the 2D views
+  (`satSVG`, the orbit canvas `obcv` and the DRM SVG).
+
+The player's whole game state lives in `localStorage`. The server only serves files.
+
+## Current layout
 
 ```text
-app/
-  frontend/    PlayCanvas + Vite + TypeScript first-person game
-    public/legacy-game.html   the original, complete Go-No-Go mission-design game
-    public/assets/nasa/       NASA GLB models
-  backend/     Express API; also serves the built frontend in production
-  contracts/   planned v1 HTTP API types and request validation (not used by the app yet)
+index.html              shell: markup and CSS
+public/game/            classic scripts, loaded in this order:
+  01-data.js              technology database
+  02-orbit.js             two-body orbit mechanics
+  03-logic.js             mission logic, stakeholders, economy
+  04-stubs.js             no-op S3/FD3 guards after the 3D removal
+  05-campus.js            isometric campus renderer and world layout
+  06-rooms.js             interior SVG renderers
+  07-main.js              boot, screens, save, HUD, tutorial
+public/audio/theme.mp3  soundtrack, fetched when the player enables music
+server.mjs              minimal static server used by Azure App Service
+tests/                  Vitest suites: static contract + server behaviour
+scripts/                Azure packaging and optional browser smoke test
+infra/                  Azure setup / teardown
 documentation/
-infra/         Azure setup / teardown
-scripts/       Azure packaging (release.zip)
 ```
 
-`app/frontend` and `app/backend` are npm workspaces of the root `package.json`.
+`index.html` is the promoted, newer version of the original `Go-No-Go_beta.html`. The old
+`legacy-game.html` copy was removed to avoid two sources of truth.
 
-## Frontend
+The scripts are still classic scripts, not ES modules: the split keeps the existing global
+bindings and execution order working. This is deliberate for the incremental refactor.
 
-- Uses [PlayCanvas](https://playcanvas.com/) for the navigable first-person lunar-base scene.
-- Starts with a classic New Game / Load Game / Options menu.
-- Uses WASD/arrow keys and mouse look; **E** opens the nearby mission console, **V** toggles third
-  person, and **P** pauses. On touch screens a virtual joystick moves and dragging on the canvas
-  looks around (`src/touch-controls.ts`).
-- The mission console shows the original game in an iframe at `/legacy-game.html`. The file lives
-  in `public/`, so Vite serves it unchanged in development and copies it into the build; mission
-  rules and screens are not reimplemented in a second frontend. Tailwind is told to skip it
-  (`@source not` in `src/style.css`) so the game's markup does not add classes to the app CSS.
-- The original game keeps its tutorial, mission phases, spacecraft design, testing, flight,
-  reports, and the `gng32.save` browser save (see [legacy-save-format.md](./legacy-save-format.md)).
-- History API routes (`/profile`, `/missions`, `/missions/:id`) are resolved in `src/router.ts`.
-- Loads NASA GLB assets from `app/frontend/public/assets/nasa/` (see [nasa-assets.md](./nasa-assets.md)).
+## Runtime flow
 
-## Backend
+- On boot the game loads `gng32.save` (or creates a new agency) and renders the 2D isometric
+  campus.
+- Buildings open 2D rooms: administration and meetings, construction yard, clean room, test
+  laboratory, flight dynamics, mission control, launch pad.
+- The mission phases follow the challenge: objectives and requirements, spacecraft design,
+  orbit and launch, assembly, testing, flight, reviews (MDR, PDR, CDR, FRR, MCR) and reports.
+- The satellite designer is the 2D grid (`satSVG`, drag and drop). The 3D `SAT3D` module was
+  removed; the 2D fallback is now the only path.
+- The flight-dynamics screen uses the 2D orbit canvas and the DRM schematic. The 3D `FD3`
+  module was removed; legacy saves that still use the old DRM format get the 2D schematic and
+  numeric controls.
+- The soundtrack is a separate `public/audio/theme.mp3` file, fetched on demand and decoded with
+  the Web Audio API. It is no longer a 2.5 MB base64 string inside the page.
 
-- Exposes `GET /api/health`, used by the frontend menu to show backend connectivity and by the
-  deployment smoke test.
-- When `app/frontend/dist` exists, the same Express process serves the built frontend and falls
-  back to `index.html` for non-API routes.
-- The existing Go-No-Go game owns mission state and local browser saves; this API does not replace
-  those game rules.
+## Server
 
-### Prepared but not wired yet
+`server.mjs` is deliberately small:
 
-A MySQL persistence layer is in place for a possible database, but the running app does not use
-it (the server prints `DATABASE Not configured yet`):
+- serves `dist/`;
+- SPA fallback to `index.html` for unknown routes without a file extension;
+- long-lived cache for hashed `/assets/*`, `no-cache` for the shell and `/game/*`;
+- `GET /api/health` returns `{"status":"ok"}` only as a liveness probe for the existing Azure
+  smoke test. It is not a game API.
 
-- `src/migrations/` — migration runner and `sql/001_initial_schema.sql`
-- `src/persistence/dao/` — DAO interfaces and MySQL adapters
-- `app/contracts/` — v1 request/response types and validation
+## Next refactor step
 
-No MySQL driver is installed yet. The code is covered by the backend tests, which use fake SQL
-connections instead of a real database, so it keeps compiling and working while unused. Wiring them up requires the steps listed under "Known gaps" in
-[deployment.md](./deployment.md).
+The scripts are split by domain but still use the classic global scope. The next step is the
+conversion to ES modules and TypeScript under `src/`, one domain per pull request:
+
+```text
+src/
+  app/        boot, state, save/migrations, i18n
+  sim/        technology DB, orbit math, mission logic, economy
+  render/     campus SVG, rooms, satellite 2D, orbit 2D
+  screens/    hub, meeting, design, tests, launch, reports
+  ui/         HUD, modals, tutorial, components
+  styles/
+```
+
+Rules for that step:
+
+- keep `gng32.save` compatible and add a save-version migration;
+- move code with `git mv` to preserve history;
+- add characterization tests before moving logic;
+- keep one working commit per module;
+- do not reintroduce a bundler-only runtime requirement: the build must stay a static site.
 
 ## Tests
 
-`npm test` runs every workspace's tests: vitest in the frontend (`app/frontend/test`) and
-`node:test` through `tsx` in the backend (`app/backend/test`, including `server.node.ts`, which
-starts the real entry point and calls `/api/health`).
+`npm test` runs Vitest:
+
+- `tests/content.test.mjs` guards the 2D/static contract (script order, no three.js, no embedded
+  audio, no backend references, shell size);
+- `tests/server.test.mjs` starts `server.mjs` on an ephemeral port and checks the shell, health
+  probe, asset caching, SPA fallback, 404s, path traversal and HEAD.
+
+`npm run smoke` is optional and needs a running build plus a Chromium executable. It checks the
+welcome dialog, starts a normal game and fails on page or console errors.

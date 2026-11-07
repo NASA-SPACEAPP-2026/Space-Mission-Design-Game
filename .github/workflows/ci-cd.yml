@@ -26,14 +26,10 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build
-      - run: npm test
+      - run: npm run check
+      - run: npm run package:azure
 
       # Only pushes (dev, main) get deployed, so only they need the package.
-      - name: Package for Azure App Service
-        if: github.event_name == 'push'
-        run: ./scripts/package-azure.sh release.zip
-
       - name: Upload package
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v6
@@ -77,8 +73,9 @@ jobs:
           # Free-tier apps cold start slowly, so retry for up to ~3 minutes.
           for attempt in $(seq 1 18); do
             if curl -fsS --max-time 20 "$url/api/health" | grep -q '"status":"ok"'; then
-              echo "API healthy at $url"
-              curl -fsS --max-time 20 -o /dev/null "$url/" && echo "Frontend reachable"
+              echo "Static server healthy at $url"
+              curl -fsS --max-time 20 "$url/" | grep -q "Go No-Go" && echo "Frontend reachable"
+              curl -fsS --max-time 20 -o /dev/null "$url/audio/theme.mp3" && echo "Audio asset reachable"
               exit 0
             fi
             echo "Attempt $attempt failed, retrying in 10s..."

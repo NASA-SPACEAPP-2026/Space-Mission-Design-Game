@@ -2,8 +2,10 @@
 
 # Space Mission Design Game
 
-A web game for the Space Mission Design Game challenge: you walk through a first-person lunar base
-(PlayCanvas) and, at the mission console, open **Go-No-Go**, the full mission-design simulation.
+A **2D, static** web game for the Space Mission Design Game challenge: design a CubeSat
+mission, negotiate requirements, build and test the spacecraft, launch it and fly it. The game
+is a single-page app built with Vite; there is no backend, no database and no 3D scene.
+
 The challenge brief is in [documentation/challenge.md](documentation/challenge.md).
 
 ## Quick start
@@ -17,36 +19,39 @@ npm install
 npm run dev
 ```
 
-`npm run dev` starts the backend (http://localhost:8080) and the frontend together; open the URL
-printed by Vite (http://localhost:5173), which proxies `/api` to the backend.
-
-Controls: **WASD**/arrows and mouse to move, **E** near the mission console to open Go-No-Go,
-**V** third-person view, **Esc** releases the mouse, **P** pause. On touch screens a virtual
-joystick moves and dragging looks around. **Carica partita** resumes the browser save created by
-the game.
+Open the URL printed by Vite (http://localhost:5173). The game state is saved in the browser
+(`localStorage`, key `gng32.save`); nothing is sent to a server.
 
 ## Scripts
 
 | Command | What it does |
 |---------|--------------|
-| `npm run dev` | Frontend + backend in watch mode |
-| `npm run dev:frontend` / `npm run dev:backend` | Only one of the two |
-| `npm run build` | Builds both workspaces (`app/*/dist`) |
-| `npm test` | Runs every test suite (frontend: vitest, backend: `node:test`) |
-| `npm start` | Runs the built backend, which also serves the built frontend |
+| `npm run dev` | Vite dev server with hot reload |
+| `npm run build` | Builds the static site into `dist/` |
+| `npm run preview` | Serves the production build locally |
+| `npm run start` | Runs `server.mjs` on `dist/` (the production server used by App Service) |
+| `npm test` | Runs the Vitest suite |
+| `npm run smoke` | Optional browser smoke test against a running build |
+| `npm run check` | Tests + production build |
+| `npm run package:azure` | Builds `release.zip` for Azure App Service |
 
 ## Project structure
 
 ```text
-app/
-  frontend/          PlayCanvas + Vite + Tailwind; public/legacy-game.html is the original Go-No-Go game
-  backend/           Express API (health endpoint; MySQL persistence prepared, not wired yet)
-  contracts/         Planned v1 HTTP API types and request validation (not used by the app yet)
-documentation/       Architecture, deployment, assets, challenge brief
-infra/               One-off Azure setup and teardown scripts
-scripts/             Packaging for Azure App Service
-.github/workflows/   CI/CD
+index.html              shell: markup and CSS
+public/game/            game scripts, split by domain (data, orbit, logic, campus, rooms, main)
+public/audio/theme.mp3  soundtrack, loaded on demand (not embedded in HTML)
+server.mjs              minimal static server for Azure App Service
+tests/                  Vitest tests for the static contract and the server
+scripts/                Azure packaging and optional browser smoke test
+infra/                  One-off Azure setup and teardown
+documentation/          Architecture, deployment, save format, challenge brief
+.github/workflows/      CI/CD
 ```
+
+The scripts are classic scripts loaded in order, so the global bindings stay compatible while
+the code is split. The next refactor step converts them to ES modules/TypeScript under `src/`
+(see [architecture](documentation/architecture.md)).
 
 ## Branches and deployment
 
@@ -58,6 +63,5 @@ Work goes into `dev` through pull requests; every push to `dev` deploys to **sta
 
 - [Architecture](documentation/architecture.md)
 - [Deployment](documentation/deployment.md)
-- [Legacy save format](documentation/legacy-save-format.md)
-- [NASA 3D assets](documentation/nasa-assets.md)
+- [Save format](documentation/legacy-save-format.md)
 - [Challenge brief](documentation/challenge.md)

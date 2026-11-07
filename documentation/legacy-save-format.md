@@ -1,42 +1,47 @@
-# Legacy save format (`gng32.save`)
+# Save format (`gng32.save`)
 
-## Storage locations
+## Storage
 
-No SQL database, ORM, or backend model is present in the current repository. The legacy browser application persists its complete mutable game object as JSON at `localStorage['gng32.save']`. The root object is initialized with `v: 32`; the legacy loader accepts a value only when parsed JSON has `v === 32`.
-
-The PlayCanvas shell does not deserialize the game object. It checks whether the key exists to enable/disable “Load Game”; the actual load happens inside `legacy-game.html`. Thus key presence is not proof that the value is parseable or loadable.
+The game is client-side only. There is no SQL database, ORM or backend model. The complete
+mutable game object is stored as JSON at `localStorage['gng32.save']`. The root object is
+initialized with `v: 32`; the loader accepts a parsed object only when `v === 32`.
 
 Separate browser keys:
 
-- `gng32.save` — legacy game state.
-- `gngLang` — legacy language selection (`it` or `en`).
-- `space-mission-settings` — PlayCanvas shell settings (`sensitivity`, `walkSpeed`).
+- `gng32.save` — game state.
+- `gngLang` — language selection (`it` or `en`).
 
-## Root game-state fields observed
+There is no server-side save, account or cross-device synchronization. Clearing site data
+removes the game.
 
-The initial legacy object created by `newG()` contains:
+## Root fields
 
-| Field | Current meaning inferred from initialization/use |
+The initial object created by `newG()` contains:
+
+| Field | Meaning |
 |---|---|
 | `v` | Save format/version (`32`) |
 | `co` | Agency name |
 | `money`, `xp`, `sciTotal` | Credits, progression experience, cumulative science |
 | `staff`, `recruited` | Staff count and recruited organizations/sponsors |
 | `missions`, `cur` | Mission collection and selected mission index |
-| `world`, `plots`, `pad`, `lab`, `labPos`, `rooms` | Campus/building/lab/test facilities and placement state |
-| `tut`, `tutDone`, `sandbox`, `diff` | Tutorial, completion, sandbox, and difficulty state |
-| `speed`, `vt`, `lastReal` | Simulation speed and simulation-clock bookkeeping |
-| `myBoard`, `flag`, `cedit`, `fresh` | Additional board/customization/unlock state |
+| `world`, `plots`, `pad`, `lab`, `labPos`, `rooms` | Campus, buildings, lab, test facilities and placement state |
+| `tut`, `tutDone`, `sandbox`, `diff` | Tutorial, completion, sandbox and difficulty state |
+| `speed`, `vt`, `lastReal` | Simulation speed and clock bookkeeping |
+| `myBoard`, `flag`, `cedit`, `fresh` | Board, customization and unlock state |
 
-Mission entries are nested objects extended as the game progresses, including mission requirements, stakeholder/support state, satellite component placements, launch/orbit configuration, phase/test/flight status, and reports. The exact nested field set is not declared as a schema; source code uses mutable objects with optional fields.
+Mission entries are nested objects extended as the game progresses: requirements, stakeholder
+support, satellite component placements, launch/orbit configuration, phase/test/flight status
+and reports. The nested shape is not a declared schema; the source uses mutable objects with
+optional fields.
 
-The persisted key is written by `save()` at `legacy-game.html:3354`; `render()` calls `save()` at `legacy-game.html:5731`. The entire `G` object is serialized, with no server transaction, schema validation at write time, or cross-device synchronization.
+## Write and recovery
 
-## Relationships and transaction boundaries
-
-- `G.missions[]` is embedded in the single root object; `G.cur` selects an entry by array index.
-- Campus, facilities, staff, budget, unlocks, and all missions are serialized together; there are no relational foreign keys or normalized tables.
-- Writes replace the whole localStorage value. No database transaction boundary exists.
-- Corrupt/unsupported JSON is caught by `load()` and treated as unavailable; unsupported-version recovery is handled in the startup path.
-
-The game source is `app/frontend/public/legacy-game.html`.
+- The `save()` function serializes the whole `G` object into the single key.
+- Every write replaces the previous value; there is no transaction boundary.
+- Unsupported or corrupt JSON is caught by `load()` and treated as unavailable.
+- If the saved object cannot be opened, the startup screen offers to clear the `gng*` keys and
+  start again.
+- The save is compatible with the previous single-file `Go-No-Go_beta.html` game. The current
+  shell is `index.html` and the save code lives in `public/game/07-main.js`; the old
+  `app/frontend/public/legacy-game.html` copy was removed.

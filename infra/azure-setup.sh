@@ -15,7 +15,7 @@ STAGING_APP="smg-staging-$SUFFIX"
 PROD_APP="smg-prod-$SUFFIX"
 # Check the runtimes your CLI offers with: az webapp list-runtimes --os linux
 RUNTIME="${RUNTIME:-NODE:24-lts}"
-STARTUP="node app/backend/dist/index.js"
+STARTUP="node server.mjs"
 
 az group create --name "$RG" --location "$LOCATION" --output none
 

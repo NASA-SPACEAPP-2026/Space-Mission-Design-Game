@@ -1,24 +1,24 @@
 {
   "name": "space-mission-design-game",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "type": "module",
   "engines": {
     "node": ">=24"
   },
-  "workspaces": [
-    "app/frontend",
-    "app/backend"
-  ],
   "scripts": {
-    "build": "npm run build -w app/frontend && npm run build -w app/backend",
-    "dev": "concurrently -n frontend,backend -c cyan,magenta \"npm run dev -w app/frontend\" \"npm run dev -w app/backend\"",
-    "dev:frontend": "npm run dev -w app/frontend",
-    "dev:backend": "npm run dev -w app/backend",
-    "start": "node app/backend/dist/index.js",
-    "start:backend": "npm run start -w app/backend",
-    "test": "npm run test --workspaces --if-present"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server.mjs",
+    "test": "vitest run",
+    "smoke": "node scripts/smoke.mjs",
+    "check": "npm test && npm run build",
+    "package:azure": "./scripts/package-azure.sh release.zip"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "playwright-core": "^1.65.0",
+    "vite": "^7.2.2",
+    "vitest": "^5.1.0"
   }
 }
