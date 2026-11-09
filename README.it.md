@@ -2,9 +2,9 @@
 
 # Space Mission Design Game
 
-Un gioco web **2D e statico** per la challenge Space Mission Design Game: progetta una missione
+Un gioco web **statico** per la challenge Space Mission Design Game: progetta una missione
 CubeSat, negozia i requisiti, costruisci e collauda il satellite, lancialo e fallo volare. È una
-single-page app costruita con Vite; non ci sono backend, database o scene 3D.
+single-page app costruita con Vite; non ci sono backend o database.
 
 Il brief della challenge è in [documentation/challenge.it.md](documentation/challenge.it.md).
 

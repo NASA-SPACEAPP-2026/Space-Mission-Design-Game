@@ -2,96 +2,31 @@
 
 ## Direction
 
-The project is **2D only** and **static**:
+The game is a static application. The campus and rooms use 2D SVG, while the satellite
+and orbit editors use the locally bundled Three.js renderer when WebGL is available.
+There is no server-side mission state: the game saves to `localStorage`.
 
-- no PlayCanvas scene, no NASA `.glb` models, no first-person lunar base;
-- no Express API, no MySQL, no server-side mission state;
-- no three.js: the satellite designer and the orbit planner use the 2D views
-  (`satSVG`, the orbit canvas `obcv` and the DRM SVG).
+## Current layout and runtime
 
-The player's whole game state lives in `localStorage`. The server only serves files.
+- `index.html` contains the shell and styles.
+- `public/game/` contains classic scripts loaded in order: Three.js and its toon styling,
+  game data, orbit mechanics, mission logic, 3D editors, campus, rooms and main UI.
+- `public/audio/theme.mp3` contains the soundtrack and is loaded on demand.
+- `public/fonts/` contains the self-hosted fonts used by the shell; the newer interface
+  also requests the Barlow families from Google Fonts.
+- `server.mjs` serves the production build and the health endpoint.
+- `tests/` and `scripts/` contain static/server checks, build tools and a browser smoke test.
 
-## Current layout
+The source is adapted from `Go No-Go.html`. The 3D editors fall back to the available 2D
+views or controls when WebGL is unavailable. Saves use the `gng32.save` key; compatibility
+with every previous saved mission has not been independently verified.
 
-```text
-index.html              shell: markup and CSS
-public/game/            classic scripts, loaded in this order:
-  01-data.js              technology database
-  02-orbit.js             two-body orbit mechanics
-  03-logic.js             mission logic, stakeholders, economy
-  04-stubs.js             no-op S3/FD3 guards after the 3D removal
-  05-campus.js            isometric campus renderer and world layout
-  06-rooms.js             interior SVG renderers
-  07-main.js              boot, screens, save, HUD, tutorial
-public/fonts/           self-hosted latin WOFF2 fonts and OFL licenses
-public/audio/theme.mp3  soundtrack, fetched when the player enables music
-server.mjs              minimal static server used by Azure App Service
-tests/                  Vitest suites: static contract + server behaviour
-scripts/                Azure packaging and optional browser smoke test
-infra/                  Azure setup / teardown
-documentation/
-```
+## Build
 
-`index.html` is the promoted, newer version of the original `Go-No-Go_beta.html`. The old
-`legacy-game.html` copy was removed to avoid two sources of truth.
-
-The scripts are still classic scripts, not ES modules: the split keeps the existing global
-bindings and execution order working. This is deliberate for the incremental refactor.
-
-## Runtime flow
-
-- On boot the game loads `gng32.save` (or creates a new agency) and renders the 2D isometric
-  campus.
-- Buildings open 2D rooms: administration and meetings, construction yard, clean room, test
-  laboratory, flight dynamics, mission control, launch pad.
-- The mission phases follow the challenge: objectives and requirements, spacecraft design,
-  orbit and launch, assembly, testing, flight, reviews (MDR, PDR, CDR, FRR, MCR) and reports.
-- The satellite designer is the 2D grid (`satSVG`, drag and drop). The 3D `SAT3D` module was
-  removed; the 2D fallback is now the only path.
-- The flight-dynamics screen uses the 2D orbit canvas and the DRM schematic. The 3D `FD3`
-  module was removed; legacy saves that still use the old DRM format get the 2D schematic and
-  numeric controls.
-- The soundtrack is a separate `public/audio/theme.mp3` file, fetched on demand and decoded with
-  the Web Audio API. It is no longer a 2.5 MB base64 string inside the page.
-
-## Build and runtime performance
-
-`npm run build` does three steps:
-
-1. Vite builds `dist/` and copies `public/`.
-2. `scripts/build-game.mjs` concatenates the classic scripts in order, minifies them with
-   esbuild, writes a content-hashed `dist/assets/game-<hash>.js` and rewrites `dist/index.html`
-   to load only that file. `dist/game/` is removed from the production output; the dev server
-   still uses the split source files.
-3. `scripts/precompress.mjs` writes `.br` and `.gz` versions of text assets.
-
-Current production payload (local measurement):
-
-| Asset | Raw | gzip | brotli |
-|---|---:|---:|---:|
-| `index.html` | ~96 kB | ~21 kB | ~18 kB |
-| game bundle | ~830 kB | ~271 kB | ~208 kB |
-| fonts (used files) | ~81 kB | — | — |
-| soundtrack | ~1,45 MB | — | — |
-
-The fonts are self-hosted in `public/fonts/` (latin WOFF2, only the weights used), with the
-body and display fonts preloaded. The soundtrack is a 96 kbps MP3, fetched on first interaction
-and versioned with `?v=<hash>`.
-
-The campus renderer also avoids thousands of repeated SVG nodes: trees are `<use>` references
-to three `<symbol>` definitions and the empty depth-sort `<g>` wrappers were removed. The symbols
-reuse embedded SVG images of the detailed tree artwork, allowing browsers to cache the drawing.
-Trees outside the current view (plus a margin) or beyond the camera bounds (plus an artwork
-margin) are culled. After a pan or zoom, existing tree elements are reused and only trees entering
-or leaving that area are updated; cached elements are discarded when the campus is rebuilt. The campus
-SVG is now around 2,500 nodes instead of ~8,500; the old `feTurbulence` ground filter was
-replaced by a gradient and the unused blur filter removed.
-
-On coarse pointers/mobile, labels, walkers and SVG filters are hidden during panning; the
-detailed trees remain visible. Camera updates are coalesced with `requestAnimationFrame`,
-the SVG has `touch-action: none`, and pointer capture starts only after the drag threshold.
-The camera is clamped to the existing rectangular campus bounds before rendering or saving,
-including when a drag ends before the next animation frame.
+`npm run build` uses Vite, concatenates and minifies the classic scripts into a hashed game
+bundle, then precompresses text assets. `npm run check` also runs the test suite and verifies
+the resulting bundle. The newer game includes Three.js and additional artwork, so the bundle
+is larger than the earlier 2D-only version.
 
 ## Server
 
@@ -114,7 +49,7 @@ conversion to ES modules and TypeScript under `src/`, one domain per pull reques
 src/
   app/        boot, state, save/migrations, i18n
   sim/        technology DB, orbit math, mission logic, economy
-  render/     campus SVG, rooms, satellite 2D, orbit 2D
+  render/     campus SVG, rooms, satellite and orbit editors
   screens/    hub, meeting, design, tests, launch, reports
   ui/         HUD, modals, tutorial, components
   styles/
@@ -132,7 +67,7 @@ Rules for that step:
 
 `npm test` runs Vitest:
 
-- `tests/content.test.mjs` guards the 2D/static contract (script order, no three.js, no embedded
+- `tests/content.test.mjs` guards the static contract (script order, 3D editors, external
   audio, no backend references, shell size);
 - `tests/server.test.mjs` starts `server.mjs` on an ephemeral port and checks the shell, health
   probe, asset caching, SPA fallback, 404s, path traversal and HEAD.

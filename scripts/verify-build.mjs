@@ -30,9 +30,9 @@ const brotli = await check(`assets/${bundle}.br`, "brotli game bundle");
 await check("index.html.gz", "gzip index");
 await check("index.html.br", "brotli index");
 
-if (raw > 1_200_000) throw new Error(`Game bundle is too large: ${raw} bytes.`);
-if (gzip > 300_000) throw new Error(`Gzip game bundle is too large: ${gzip} bytes.`);
-if (brotli > 300_000) throw new Error(`Brotli game bundle is too large: ${brotli} bytes.`);
+if (raw > 2_600_000) throw new Error(`Game bundle is too large: ${raw} bytes.`);
+if (gzip > 1_100_000) throw new Error(`Gzip game bundle is too large: ${gzip} bytes.`);
+if (brotli > 1_100_000) throw new Error(`Brotli game bundle is too large: ${brotli} bytes.`);
 
 const kb = (bytes) => `${(bytes / 1024).toFixed(1)} kB`;
 console.log(

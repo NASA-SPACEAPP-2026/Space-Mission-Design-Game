@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds release.zip for Azure App Service from an already built frontend
 # (run `npm run build` first). The zip contains only what runs in production:
-#   dist/         static 2D game (Vite output)
+#   dist/         static game (Vite output)
 #   server.mjs    minimal static file server, no API and no dependencies
 #   package.json  runtime manifest for App Service
 set -euo pipefail

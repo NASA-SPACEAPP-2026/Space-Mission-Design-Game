@@ -2,9 +2,9 @@
 
 # Space Mission Design Game
 
-A **2D, static** web game for the Space Mission Design Game challenge: design a CubeSat
+A **static** web game for the Space Mission Design Game challenge: design a CubeSat
 mission, negotiate requirements, build and test the spacecraft, launch it and fly it. The game
-is a single-page app built with Vite; there is no backend, no database and no 3D scene.
+is a single-page app built with Vite; there is no backend or database.
 
 The challenge brief is in [documentation/challenge.md](documentation/challenge.md).
 

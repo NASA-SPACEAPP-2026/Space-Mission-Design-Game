@@ -1,6 +1,6 @@
 /* ===== LOGICA v11 (CubeSat e crediti): campus, riunioni con gli stakeholder, missioni parallele in tempo reale. Usa E (engine2). Nessun DOM. ===== */
 const L = (function () {
-  const TIME = { month: 10000, build: 40000, test: 25000, fix: 15000, countdown: 6000 };
+  const TIME = { month: 10000, build: 40000, test: 25000, fix: 15000, countdown: 6000, win: 30000 };
   const START_MONEY = 400, RUN = 3, FIXC = 10, STIFFC = 15;
   // Macchinari del laboratorio: si installano in una baia vuota. Alcuni si sbloccano con il livello.
   const MACH = {
@@ -12,23 +12,28 @@ const L = (function () {
       bug: 'Un riscaldatore non si accende a freddo.', fly: 'un pezzo resta al freddo in eclisse' },
     shock: { n: 'Banco shock', c: 40, lvl: 7, test: 'shock', s: 'Lo strappo della separazione dal razzo', tn: 'di shock', short: 'SHOCK',
       bug: 'Il connettore di separazione si apre in ritardo.', fly: 'esce dal razzo ruotando: −40% gas e −20 m/s' },
-    emc: { n: 'Camera anecoica', c: 60, lvl: 9, test: 'emc', s: 'Interferenze elettromagnetiche tra i sottosistemi', tn: 'EMC', short: 'EMC',
+    emc: { n: 'Camera anecoica', c: 60, lvl: 12, test: 'emc', s: 'Interferenze elettromagnetiche tra i sottosistemi', tn: 'EMC', short: 'EMC',
       bug: 'Il convertitore della batteria disturba la radio.', fly: 'la radio di riserva va persa, o scienza −20%' },
-    mass: { n: 'Bilancia di massa', c: 30, lvl: 11, test: 'mass', s: 'Massa e baricentro reali, al millimetro', tn: 'di massa', short: 'MASSA',
+    mass: { n: 'Bilancia di massa', c: 30, lvl: 17, test: 'mass', s: 'Massa e baricentro reali, al millimetro', tn: 'di massa', short: 'MASSA',
       bug: 'Il baricentro reale è 4 mm fuori dal calcolo.', fly: 'spinta fuori asse: −6% di ΔV' }
   };
   const TESTS = ['func', 'vib', 'tvac', 'shock', 'emc', 'mass'];
   // Livelli: si sale chiudendo revisioni e missioni
-  const LEVELS = [0, 250, 600, 1100, 1800];
+  const LEVELS = [0, 260, 550, 880, 1240, 1640, 2070, 2530, 3030, 3560, 4130, 4730, 5360, 6030, 6730, 7460, 8230, 9030, 9870, 10740];
   const XP = { MDR: 20, SRR: 20, PRR: 20, PDR: 30, CDR: 30, FRR: 30, launch: 20, win: 120, lose: 40 };
   const level = xp => LEVELS.reduce((a, t, i) => xp >= t ? i + 1 : a, 1);
+  /* Progressione (v34): Tier logici, slot sponsor che crescono fino a esaurire il catalogo al livello massimo, missioni aperte in parallelo per fascia. Il livello massimo e' LEVELS.length: coincide con l'ultimo livello che sblocca qualcosa. */
+  const TIERS = [{"from":1,"n":"Garage Lab"},{"from":5,"n":"Lunar Pioneer"},{"from":10,"n":"Red Planet"},{"from":15,"n":"Deep Space"},{"from":20,"n":"Sovereign Agency"}];
+  const tierOf = lv => { let t = 0; TIERS.forEach((x, i) => { if (lv >= x.from) t = i; }); return t; };
+  const sponsorSlots = lv => Math.max(1, Math.min(SPONSORS.length, Math.ceil((lv - 2) * SPONSORS.length / (LEVELS.length - 2))));
+  const maxActiveAt = lv => lv <= 3 ? 2 : lv <= 9 ? 3 : 4;
   // Edifici da costruire nei lotti liberi del campus
   const BUILD = {
-    factory: { n: 'Fabbrica', c: 250, lvl: 8, s: 'Integrazione in fase C due volte più veloce.' },
+    factory: { n: 'Fabbrica', c: 250, lvl: 11, s: 'Integrazione in fase C due volte più veloce.' },
     ground: { n: 'Stazione di terra', c: 200, lvl: 3, s: 'Più contatti con il satellite: +20% di dati in volo, +3% per ogni antenna nel campus.' },
-    rnd: { n: 'Centro R&D', c: 350, lvl: 10, s: 'Processi migliori: metà dei difetti di fabbricazione.' },
-    office: { n: 'Ufficio partnership', c: 300, lvl: 5, s: 'Recluti sponsor: portano fondi e sbloccano prima le loro tecnologie.' },
-    visit: { n: 'Centro visitatori', c: 400, lvl: 6, s: 'Pubblico e sponsor: premio di fine missione +15%.' }
+    rnd: { n: 'Centro R&D', c: 350, lvl: 14, s: 'Processi migliori: metà dei difetti di fabbricazione.' },
+    office: { n: 'Ufficio partnership', c: 300, lvl: 6, s: 'Recluti sponsor: portano fondi e sbloccano prima le loro tecnologie.' },
+    visit: { n: 'Centro visitatori', c: 400, lvl: 8, s: 'Pubblico e sponsor: premio di fine missione +15%.' }
   };
 
   // Personaggi: gli stakeholder sono gli sponsor; gli altri sono il tuo staff
@@ -70,7 +75,7 @@ const L = (function () {
   const lv_ = M => M.lvlNow || M.lvl || 1, needsProp = M => (M.sat.dest || 'leo') !== 'leo' || M.type === 'deb';
   const spare = (d, c) => !!d.placed[c] && !!E.PARTS[d.placed[c].id].spare;
   const needDv = (d, M, x) => transferNeed(d) + 27 + E.skOf(d) * minMonths(M) + (x || 0);
-  const payN = M => { const T = typeof O !== 'undefined' ? O.TYPES[M.type || 'sci'] : null; return T ? E.PARTS[T.pay].n.split(' · ')[0].toLowerCase() : 'payload'; };
+  const payN = M => { const T = typeof O !== 'undefined' ? O.TYPES[M.type || 'sci'] : null; const P = T && E.PARTS[T.pay]; return P ? P.n.split(' · ')[0].toLowerCase() : 'payload'; };
   // mk(M, s): s = versione ammorbidita, quella che il giocatore ottiene con una controproposta. sf: true se esiste.
   const mo = (n, s) => s ? Math.max(6, n - (n >= 18 ? 6 : 3)) : n;
   const capC = M => M.capC || 1400, capM = M => M.capM || 26;
@@ -192,14 +197,33 @@ const L = (function () {
     Object.assign(d, keep); return out; }
   function rideOpts(M) { const out = []; Object.keys(E.LV).filter(k => lvOK(M, k) && (!M.lvFixed || k === M.sat.lv)).forEach(lv => E.LV[lv].fits.filter(k => rideOK(M, k) && (!M.rideFixed || k === M.sat.ride)).forEach(ride => out.push(Object.assign({ ride, lv }, estDv(M, ride, lv))))); return out; }
   // come cheapest, ma si ferma al primo satellite valido: serve solo a sapere se esiste
-  function anySat(M, ids, ms, salt) { if (typeof O === 'undefined') return null; const t0 = Date.now(), r = E.rng(((M.seed || 1) ^ (salt || 0x2b2b)) >>> 0);
+  function anySatRaw(M, ids, ms, salt) { if (typeof O === 'undefined') return null; const t0 = Date.now(), r = E.rng(((M.seed || 1) ^ (salt || 0x2b2b)) >>> 0);
     const reqs = ids.map(R).filter(Boolean), Mx = Object.assign({}, M, { reqs: ids.map(id => ({ id })), waived: [] }), mm = minMonths(Mx), design = reqs.filter(q => q.kind === 'design');
     const rides = rideOpts(M); if (!rides.length) return false;
     while (Date.now() - t0 < (ms || 250)) { const o = rides[Math.floor(r() * rides.length)], d = sampleSat(M, o, r); if (!d) continue; const b = E.budget(d);
       if (!baseOK(d, b, o)) continue; if (d.placed.prop && b.fuel < o.dv * 1.05 + 27 + E.skOf(d) * mm) continue; if (!d.placed.prop && mm > E.M.minMonths && false) continue;
       if (design.every(q => q.chk(d, b, Mx))) return d; }
     return null; }
-  function cheapest(M, ids, ms, salt) { if (typeof O === 'undefined') return null; const t0 = Date.now(), r = E.rng(((M.seed || 1) ^ (salt || 0x3141)) >>> 0);
+  // ---------- memoizzazione ----------
+  // Le ricerche di fattibilità sono campionamenti casuali a tempo (da 0,3 s fino a diversi secondi nei casi peggiori).
+  // Stessa domanda sullo stesso stato di missione = stessa risposta, e subito: la prima risposta resta in cache.
+  // La chiave contiene tutta la missione tranne i campi che startMeeting stesso scrive o che non influenzano la ricerca.
+  const MEMO = new Map(), MEMO_MAX = 96;
+  const MEMO_VOLATILE = { wit: 1, gen: 1, table: 1, queue: 1, log: 1, joy: 1, capC: 1, capM: 1, feasible: 1, meetPh: 1, stage: 1, choices: 1, created: 1, left: 1, tr: 1, result: 1, reqs: 1, waived: 1 };
+  const dup = v => { if (v == null || typeof v !== 'object') return v; try { return structuredClone(v); } catch (e) { return JSON.parse(JSON.stringify(v)); } };
+  function memoKey(tag, M, ids, ms, salt) { try { return tag + '|' + ms + '|' + salt + '|' + ids.join(',') + '|' + JSON.stringify(M, function (k, v) { return this === M && MEMO_VOLATILE[k] ? undefined : v; }); } catch (e) { return null; } }
+  function memoized(tag, raw, M, ids, ms, salt) { const key = memoKey(tag, M, ids, ms, salt); if (key == null) return raw(M, ids, ms, salt);
+    if (MEMO.has(key)) return dup(MEMO.get(key));
+    const out = raw(M, ids, ms, salt); MEMO.set(key, dup(out)); if (MEMO.size > MEMO_MAX) MEMO.delete(MEMO.keys().next().value); return out; }
+  /** Esiste un satellite valido per queste richieste? Risultato in cache per (stato missione, richieste, budget, salt). */
+  function anySat(M, ids, ms, salt) { return memoized('a', anySatRaw, M, ids, ms, salt); }
+  /** Il satellite valido più economico (cfr. cheapestRaw). Risultato in cache per (stato missione, richieste, budget, salt). */
+  function cheapest(M, ids, ms, salt) { return memoized('c', cheapestRaw, M, ids, ms, salt); }
+  /** Svuota la cache delle ricerche (test, o dopo un cambio dei dati di gioco). */
+  function memoClear() { MEMO.clear(); }
+  /** Pre-calcola a vuoto, su una copia della missione, il lavoro di startMeeting: quando il giocatore si siede le ricerche sono già in cache. */
+  function prewarm(M, ph) { if (!M || M.tut) return false; try { startMeeting(dup(M), ph || '0'); return true; } catch (e) { return false; } }
+  function cheapestRaw(M, ids, ms, salt) { if (typeof O === 'undefined') return null; const t0 = Date.now(), r = E.rng(((M.seed || 1) ^ (salt || 0x3141)) >>> 0);
     const reqs = ids.map(R).filter(Boolean), Mx = Object.assign({}, M, { reqs: ids.map(id => ({ id })), waived: [] }), mm = minMonths(Mx), design = reqs.filter(q => q.kind === 'design');
     const rides = rideOpts(M); if (!rides.length) return null; let best = null, n = 0;
     while (Date.now() - t0 < (ms || 250)) { n++; const o = rides[Math.floor(r() * rides.length)], d = sampleSat(M, o, r); if (!d) continue; const b = E.budget(d);
@@ -325,7 +349,7 @@ const L = (function () {
   function defects(M) { const r = E.rng((M.seed ^ 0x5bd1e995) >>> 0), out = {}; TESTS.forEach(t => { out[t] = r() < defectP(M, t); }); return out; }
 
   // ---------- assistente di integrazione (solo nella prima missione): dispone i pezzi, o li sceglie ----------
-  function autoDesign(M, mode, cash, ms) { const d0 = M.sat, r = E.rng((Date.now() ^ (M.seed || 1)) >>> 0), t0 = Date.now();
+  function autoDesign(M, mode, cash, ms) { const d0 = M.sat, r = E.rng((((M.seed || 1) ^ Math.imul((M.adN = (M.adN || 0) + 1), 2654435761)) >>> 0) || 1), t0 = Date.now();
     const reqs = M.reqs.filter(x => M.waived.indexOf(x.id) < 0).map(x => R(x.id)).filter(q => q && q.kind === 'design');
     const o = { ride: d0.ride, lv: d0.lv, dv: d0.planDv || 0, landKg: d0.landKg, skK: d0.skK, eclH: d0.eclH, alt: d0.alt };
     const score = d => { const b = E.budget(d), base = E.checks(d).list.filter(x => ['parts', 'place', 'mass', 'pow', 'bat', 'point'].indexOf(x.k) >= 0 && !x.ok).length, rq = reqs.filter(q => !q.chk(d, b, M)).length;
@@ -431,16 +455,19 @@ const L = (function () {
     if (M.pauseAt) { M.pausedMs = (M.pausedMs || 0) + (now - M.pauseAt); M.pauseAt = 0; } return p; }
 
   // ---------- soldi: rate degli stakeholder alle revisioni, costi di esercizio, penali ----------
-  const PAY = { MDR: 0.2, PDR: 0.5, FRR: 0.2, MCR: 0.1 }, OPS = 3, MISSED = 8, MISSCAP = 60;
+  const PAY = { MDR: 0.15, PDR: 0.30, FRR: 0.15, MCR: 0.40 }, OPS = 2, MISSED = 20, MISSCAP = 400;
   const joyK = j => j >= 50 ? 1 : j >= 25 ? 0.8 : 0.5;
   const fund = (id, M) => E.fundOf(id, M);
-  function installment(M, gate, joy) { joy = joy || M.joy; return Math.round(M.stake.reduce((a, id) => a + fund(id, M) * PAY[gate] * joyK(joy[id] == null ? 60 : joy[id]), 0)); }
+  // Moltiplicatore delle rate (difficoltà e crew): lo imposta l'interfaccia. Vive qui, alla fonte, così vale per tutte e quattro le rate,
+  // compresa l'ultima (MCR) che closeOut calcola direttamente.
+  const SCALE = { inst: () => 1 };
+  function installment(M, gate, joy) { joy = joy || M.joy; return Math.round(M.stake.reduce((a, id) => a + fund(id, M) * PAY[gate] * joyK(joy[id] == null ? 60 : joy[id]), 0) * SCALE.inst()); }
   const pledged = M => M.stake.reduce((a, id) => a + fund(id, M), 0);
   // Chiusura della missione: tutti i conti in un posto solo (li usa anche il "e se...")
   function closeOut(M, fl, visit) { const f = fl.f, months = f.month, mm = minMonths(M), ok = f.alive && f.impact === 'far' && months >= E.M.minMonths, joy = Object.assign({}, M.joy), quests = [];
-    const missed = Math.max(0, M.duration - months), penalty = Math.min(MISSCAP, missed * MISSED);
-    M.stake.forEach(id => { const happy = ok && months >= mm; joy[id] = Math.max(0, Math.min(100, (joy[id] == null ? 60 : joy[id]) + (happy ? 15 : -30) - (missed ? 20 : 0))); const b = happy && joy[id] >= 50 ? Math.round(id === 'nasa' ? fund(id, M) * 0.25 : E.stk(id).bonus) : 0; quests.push({ id, ok: happy, bonus: b }); });
-    const bonus = quests.reduce((a, q) => a + q.bonus, 0), sciPay = Math.round(f.sci * 1.2), reward = Math.round((sciPay + bonus + (f.extra || 0)) * (visit ? 1.15 : 1)), inst = ok ? installment(M, 'MCR', joy) : 0, ops = OPS * months;
+    const missed = Math.max(0, M.duration - months), penalty = Math.min(MISSCAP, Math.round(pledged(M) * 0.25), missed * MISSED) + (ok ? 0 : Math.round(pledged(M) * 0.10));
+    M.stake.forEach(id => { const happy = ok && months >= mm; joy[id] = Math.max(0, Math.min(100, (joy[id] == null ? 60 : joy[id]) + (happy ? 15 : -30) - (missed ? 20 : 0) - (M.drm && M.drm.win === 'relaxed' ? 12 : 0))); const b = happy && joy[id] >= 50 ? Math.round(id === 'nasa' ? fund(id, M) * 0.35 : E.stk(id).bonus * 1.5) : 0; quests.push({ id, ok: happy, bonus: b }); });
+    const bonus = quests.reduce((a, q) => a + q.bonus, 0), sciPay = Math.round(f.sci * 2.2), reward = Math.round((sciPay + bonus + (f.extra || 0)) * (visit ? 1.15 : 1)), inst = ok ? installment(M, 'MCR', joy) : 0, ops = OPS * months;
     return { ok, sci: Math.round(f.sci), months, missed, penalty, ops, inst, reward, sciPay, bonus, quests, joy, net: reward + inst - penalty - ops, impact: f.impact, cause: f.cause, alive: f.alive }; }
   // E se...? Rigioca il volo cambiando una sola cosa
   function whatIf(M, ch) { const C = JSON.parse(JSON.stringify(M)); C.interactive = false;
@@ -464,7 +491,6 @@ const L = (function () {
     if (k === 5) { out.push('sci.total     = ' + Math.round(f.sci) + cm('+' + Math.round(10 * f.mult * f.bonus * (f.sciK || 1)) + ' al mese circa')); out.push(left < 2 ? 'if (prop.dv_left < 27) disposal.arm();   // si prepara la chiusura' : 'sched.downlink(next=' + Math.floor(1 + r() * 5) + 'h, dur=35min);'); }
     return out; }
 
-  return { satOK, anySat, typeOK, ensureFeasible, TUTG, needsProp, fund, techOK, availCat, availSol, rideOK, lvOK, LOCN, effLvl, SPEC, sampleSat, JOY, softOf, cheapest, priceOf, decide, PAY, joyK, installment, pledged, closeOut, whatIf, OPS, MISSED, MISSCAP, mad, OWN, evLabel, kitPay, landing, autoDesign, INT, INTN, ONLY, fits4, interests, generate, register, feasible, TPL, SPONSORS, addSponsor, TESTS, LEVELS, XP, level, BUILD, defects, defectP, risks, TIME, START_MONEY, MACH, RUN, FIXC, STIFFC, PEOPLE, REQ, R, cast, newMission, minMonths, startMeeting, answer, leave, waive, status, flight, monthsNow, tele, transferNeed };
+  return { TIERS, tierOf, sponsorSlots, maxActiveAt, SCALE, prewarm, memoClear, satOK, anySat, typeOK, ensureFeasible, TUTG, needsProp, fund, techOK, availCat, availSol, rideOK, lvOK, LOCN, effLvl, SPEC, sampleSat, JOY, softOf, cheapest, priceOf, decide, PAY, joyK, installment, pledged, closeOut, whatIf, OPS, MISSED, MISSCAP, mad, OWN, evLabel, kitPay, landing, autoDesign, INT, INTN, ONLY, fits4, interests, generate, register, feasible, TPL, SPONSORS, addSponsor, TESTS, LEVELS, XP, level, BUILD, defects, defectP, risks, TIME, START_MONEY, MACH, RUN, FIXC, STIFFC, PEOPLE, REQ, R, cast, newMission, minMonths, startMeeting, answer, leave, waive, status, flight, monthsNow, tele, transferNeed };
 })();
 if (typeof module !== 'undefined') module.exports = L;
-

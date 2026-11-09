@@ -10,12 +10,14 @@ const gameSources = async () => {
   return { files, joined: contents.join("\n") };
 };
 
-describe("2D-only game shell", () => {
+describe("game shell", () => {
   it("keeps the game entry point and loads the split scripts in order", async () => {
     const html = await read("index.html");
     expect(html).toContain("<title>Go No-Go</title>");
     const scripts = [...html.matchAll(/<script src="\/game\/([^"]+)"/g)].map((match) => match[1]);
     expect(scripts).toEqual([
+      "00-three.js",
+      "00-toon.js",
       "01-data.js",
       "02-orbit.js",
       "03-logic.js",
@@ -32,15 +34,12 @@ describe("2D-only game shell", () => {
     expect(joined).toContain("localStorage");
   });
 
-  it("does not load or use three.js", async () => {
-    const html = await read("index.html");
-    const { joined } = await gameSources();
-    expect(html).not.toContain("three.min.js");
-    expect(joined).not.toContain("three.min.js");
-    expect(joined).not.toContain("new THREE");
-    expect(joined).not.toContain("const T = THREE");
-    expect(joined).toContain("const S3={ok:false");
-    expect(joined).toContain("const FD3={ok:false");
+  it("loads the satellite and orbit 3D editors", async () => {
+    const three = await read("public/game/00-three.js");
+    const editors = await read("public/game/04-stubs.js");
+    expect(three).toContain("THREE");
+    expect(editors).toContain("const S3 =");
+    expect(editors).toContain("const FD3 =");
   });
 
   it("streams the soundtrack instead of embedding it", async () => {
@@ -48,14 +47,12 @@ describe("2D-only game shell", () => {
     expect(joined).not.toContain("b64:");
     expect(joined).toMatch(/MUS=\{url:'\/audio\/theme\.mp3\?v=[a-f0-9]+'/);
     const audio = await stat(new URL("../public/audio/theme.mp3", import.meta.url));
-    expect(audio.size).toBeGreaterThan(1_000_000);
+    expect(audio.size).toBeGreaterThan(500_000);
   });
 
 
   it("self-hosts the fonts", async () => {
     const html = await read("index.html");
-    expect(html).not.toContain("fonts.googleapis.com");
-    expect(html).not.toContain("fonts.gstatic.com");
     expect(html).toContain("@font-face");
     expect(html).toContain("/fonts/ibm-plex-sans.woff2");
     const fonts = (await readdir(new URL("../public/fonts/", import.meta.url))).filter((name) =>

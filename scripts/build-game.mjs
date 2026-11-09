@@ -15,6 +15,8 @@ import { transformSync } from "esbuild";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const files = [
+  "00-three.js",
+  "00-toon.js",
   "01-data.js",
   "02-orbit.js",
   "03-logic.js",
@@ -34,7 +36,7 @@ const result = transformSync(source, {
   minify: true,
   format: "iife",
   charset: "utf8",
-  legalComments: "none",
+  legalComments: "eof",
   sourcemap: false
 });
 

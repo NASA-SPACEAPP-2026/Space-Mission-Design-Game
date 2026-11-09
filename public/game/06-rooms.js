@@ -652,7 +652,7 @@ function iMcc(){ C={ox:560,oy:215,tw:84,th:42,tz:40}; RID=0; const W=12,D=9,H=3.
   s+=sfTop().replace('FASE A','FASE E')+roomTitle('Mission Control Center','SALA DI CONTROLLO · FASE E');
   s+=sidePanel(944,96,320,'AURASAT · mese 7 di 12',[['Scienza raccolta','128',.58],['Batteria','72%',.72,'#3FA86B'],['ΔV residuo','nessuna manovra',1,'#9A9A90'],['Contatti','+20% stazione',.8]]);
   s+=sfAlert(168,'Tempesta solare tra 2 mesi',SF.orange);
-  s+=actionBar([['TELEMETRIA',160],['DECISIONI',150],['PASSA IN SAFE MODE',220,1]]);
+  s+=actionBar([['TELEMETRIA',160],['DECISIONI',150],['SAFE MODE AUTOMATICO',220,1]]);
   return s; }
 // ===================== INTERNI GRANDI, tutti della stessa dimensione (18 × 14 × 3,6) =====================
 const RW=18, RD=14, RH=3.6, FS=1.32, SS=1.38;
@@ -781,7 +781,7 @@ function jMcc(){ MONO=1; bigCam(); const W=RW,D=RD,H=RH; let s=BG+HUDDEF;
   s+=sfTop().replace('FASE A','FASE E')+roomTitle('Mission Control Center','SALA DI CONTROLLO · FASE E');
   s+=sfAlert(168,'Tempesta solare tra 2 mesi',SF.orange);
   s+='<g filter="url(#ds)">'+chamf(1044,96,220,44,12)+'</g><text x="1154" y="123" text-anchor="middle" font-family="'+FD+'" font-weight="800" font-size="13" letter-spacing=".06em" fill="'+SF.dark+'">⤢ VISTA SCHERMI</text>';
-  s+=actionBar([['TELEMETRIA',160],['DECISIONI',150],['PASSA IN SAFE MODE',220,1]]);
+  s+=actionBar([['TELEMETRIA',160],['DECISIONI',150],['SAFE MODE AUTOMATICO',220,1]]);
   return s; }
 // vista ravvicinata della parete video (si apre toccando gli schermi)
 function jMccWall(){ MONO=1; let s='<rect width="1280" height="800" fill="#2B333B"/>'+HUDDEF;
@@ -944,7 +944,7 @@ function wallScreen(side,lines){ const L=side<0; const q0=L?[[38,150],[200,176],
   let s=poly(q,'fill="#1F262D"')+poly(qi,'fill="#0F161C"'); const k=L?.16:-.16, x0=L?94:1068;
   const esc2=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;'), W=19, rows=[]; const wrapT=t=>{ const w=String(t).split(' '), o=['']; w.forEach(x=>{ const c=o[o.length-1]; if((c+' '+x).trim().length>W&&c){ if(o.length===2){ o[1]=(o[1]+' '+x).trim(); return; } o.push(x); } else o[o.length-1]=(c+' '+x).trim(); }); if(o[1]&&o[1].length>W) o[1]=o[1].slice(0,W-1)+'…'; return o; };
   lines.forEach((ln,i)=>{ if(!i){ rows.push({t:String(ln.t||ln),h:1,y:0}); return; } wrapT(ln.t||ln).forEach((t,j)=>rows.push({t,ok:ln.ok,c:j>0})); });
-  let y=188, out=[], more=0; rows.forEach((r,i)=>{ const dy=i===0?0:r.c?14:(i===1?20:18); if(y+dy>(L?322:322)){ more++; return; } y+=dy; out.push('<text x="'+x0+'" y="'+y+'" font-family="'+FT+'" font-weight="'+(r.h?700:r.c?500:600)+'" font-size="'+(r.h?12:12.5)+'" letter-spacing="'+(r.h?'.12em':0)+'" fill="'+(r.h?'#7FD3EA':r.ok?'#FFFFFF':'#BFE6F2')+'">'+(r.c?'  ':'')+esc2(r.t)+'</text>'); });
+  let y=L?188:200, out=[], more=0; rows.forEach((r,i)=>{ const dy=i===0?0:r.c?14:(i===1?20:18); if(y+dy>(L?322:322)){ more++; return; } y+=dy; out.push('<text x="'+x0+'" y="'+y+'" font-family="'+FT+'" font-weight="'+(r.h?700:r.c?500:600)+'" font-size="'+(r.h?12:12.5)+'" letter-spacing="'+(r.h?'.12em':0)+'" fill="'+(r.h?'#7FD3EA':r.ok?'#FFFFFF':'#BFE6F2')+'">'+(r.c?'  ':'')+esc2(r.t)+'</text>'); });
   if(L) out.push('<text x="'+x0+'" y="'+(Math.min(y,316)+18)+'" font-family="'+FT+'" font-weight="600" font-size="12" fill="#F2A36F">'+(more?'+ altri · ':'')+'tocca per la lista</text>');
   s+='<g transform="matrix(1 '+k+' 0 1 0 '+(-x0*k)+')">'+out.join('')+'</g>';
   return s; }
@@ -962,9 +962,9 @@ function meet(st){ let s=meetWindow(); const ext='<rect x="-1600" y="0" width="1
   // persone: dal fondo verso chi guarda
   const seats=st.seats||[]; const order=MSEAT.map((p,i)=>i).sort((a,b)=>MSEAT[a][1]-MSEAT[b][1]);
   const at=i=>MSEAT[i];
-  order.forEach(i=>{ const p=at(i), o=seats[i]; if(!o) return; if(i===0) return; s+=meetChair(p[0]+(p[0]<640?-14:14)*p[2],p[1]+2,p[2]*1.02,o.gone); if(!o.gone){ if(o.speak) s+='<ellipse cx="'+p[0]+'" cy="'+(p[1]-80*p[2])+'" rx="'+(58*p[2])+'" ry="'+(62*p[2])+'" fill="url(#mholo)"/>'; s+=sfPerson(p[0],p[1],p[2],o.look,1); } });
+  order.forEach(i=>{ const p=at(i), o=seats[i]; if(!o) return; if(i===0) return; s+=meetChair(p[0]+(p[0]<640?-14:14)*p[2],p[1]+2,p[2]*1.02,o.gone); if(!o.gone){ if(o.speak) s+='<ellipse cx="'+p[0]+'" cy="'+(p[1]-80*p[2])+'" rx="'+(58*p[2])+'" ry="'+(62*p[2])+'" fill="url(#mholo)"/>'; s+='<g class="idl'+(o.speak?' sp':'')+'" style="animation-delay:-'+((i*.83)%3).toFixed(2)+'s">'+sfPerson(p[0],p[1],p[2],o.look,1)+'</g>'; } });
   // capotavola
-  if(seats[0]){ const p=at(0), o=seats[0]; s=s.replace('<!--HEAD-->',''); const head=meetChair(p[0],p[1],p[2],o.gone)+(o.gone?'':(o.speak?'<ellipse cx="'+p[0]+'" cy="'+(p[1]-80*p[2])+'" rx="'+(58*p[2])+'" ry="'+(62*p[2])+'" fill="url(#mholo)"/>':'')+sfPerson(p[0],p[1],p[2],o.look,1)); s+=head; }
+  if(seats[0]){ const p=at(0), o=seats[0]; s=s.replace('<!--HEAD-->',''); const head=meetChair(p[0],p[1],p[2],o.gone)+(o.gone?'':(o.speak?'<ellipse cx="'+p[0]+'" cy="'+(p[1]-80*p[2])+'" rx="'+(58*p[2])+'" ry="'+(62*p[2])+'" fill="url(#mholo)"/>':'')+'<g class="idl'+(o.speak?' sp':'')+'">'+sfPerson(p[0],p[1],p[2],o.look,1)+'</g>'); s+=head; }
   // tavolo
   s+='<path d="M286 720L536 398H744L994 720Z" fill="#B9BDB9"/><path d="M296 720L540 392H740L984 720Z" fill="url(#mtable)"/><path d="M540 392H740" stroke="#FFFFFF" stroke-width="2"/><path d="M540 392L296 720M740 392L984 720" stroke="#D3D6D2" stroke-width="2"/>'+
     '<path d="M596 452H684L716 560H564Z" fill="#E9ECE8" opacity=".7"/>';
@@ -1077,7 +1077,6 @@ function fac(k,st){ bigCam(); MONO=0; const W=RW,D=RD,H=RH; let s=DEFS+HUDDEF; c
   return s+depth(L)+frontCut(W,D,{wallR:'#F6F5F1',cap:'#46525A'}); }
 
 let WEXTRA=[];
-function depth(list){ const l=list.concat(WEXTRA.map(w=>[w.d,w.svg,1])); WEXTRA=[]; return l.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).join(''); }
+function depth(list){ const l=list.concat(WEXTRA.map(w=>[w.d,w.svg,1])); WEXTRA=[]; return l.sort((a,b)=>a[0]-b[0]).map(x=>x[2]?x[1]:'<g class="dz" data-d="'+(+x[0]).toFixed(3)+'">'+x[1]+'</g>').join(''); }
 return { setWalkers:a=>{ WEXTRA=a||[]; }, P:(x,y,z)=>{ bigCam(); return P(x,y,z||0); }, dims:[RW,RD], inArc, fac, launchScene, meet, MSEAT, lookOf, build, clean, test, mcc, mccWallBack, valid, toGrid, FOOT, ghost:(r,g)=>{ bigCam(); return ghostOf(r,{ghost:g}); }, view:'150 60 1000 620' };
 })();
-

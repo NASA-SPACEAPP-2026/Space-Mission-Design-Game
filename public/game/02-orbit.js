@@ -27,17 +27,17 @@ const O = (function () {
     leo: [{ k: 'low', n: 'Orbita bassa', band: [300, 1200], lvl: 1, s: 'Tra 300 e 1.200 km: osservazione, costellazioni, prove.' },
       { k: 'med', n: 'Orbita media', band: [8000, 20000], lvl: 2, s: 'La fascia della navigazione satellitare. Ci si arriva da un rilascio in orbita di trasferimento.' },
       { k: 'high', n: 'Orbita alta (geostazionaria)', band: [35000, 36500], iFix: [0, 5], lvl: 2, s: 'A 36.000 km il satellite sembra fermo nel cielo. Lunga strada da un rilascio in GTO.' }],
-    moon: [{ k: 'low', n: 'Orbita bassa', band: [30, 300], lvl: 4, s: 'Sfiorando la superficie: mappe e misure di dettaglio.' },
-      { k: 'med', n: 'Orbita media', band: [300, 3000], lvl: 3, s: 'Il compromesso di AURASAT: vicino e lontano dalla superficie.' },
-      { k: 'high', n: 'Orbita alta', band: [3000, 10000], lvl: 3, s: 'Lontano dalla Luna: ottima per ponti radio e telescopi.' },
-      { k: 'surf', n: 'Superficie · su un lander', surf: 1, lvl: 5, s: 'Compri un posto su un lander commerciale: il tuo CubeSat diventa uno strumento sul suolo lunare.' }],
-    mars: [{ k: 'low', n: 'Orbita bassa', band: [200, 800], lvl: 7, s: 'Per guardare la superficie da vicino.' },
-      { k: 'med', n: 'Orbita media', band: [800, 6000], lvl: 6, s: 'Vista ampia del pianeta e della sua atmosfera.' },
-      { k: 'high', n: 'Orbita alta', band: [6000, 20000], lvl: 6, s: 'Ponte radio per le missioni in superficie.' },
-      { k: 'surf', n: 'Superficie · su un lander', surf: 1, lvl: 8, s: 'Un lander commerciale ti porta giù: ingresso, paracadute, retrorazzi.' }],
-    venus: [{ k: 'low', n: 'Orbita bassa', band: [200, 800], lvl: 9, s: 'Sotto le nubi non si vede: servono radar e infrarossi.' },
-      { k: 'med', n: 'Orbita media', band: [800, 6000], lvl: 9, s: 'Per studiare la circolazione dell’atmosfera.' },
-      { k: 'high', n: 'Orbita alta', band: [6000, 30000], lvl: 9, s: 'Vista d’insieme del pianeta e del vento solare.' }]
+    moon: [{ k: 'low', n: 'Orbita bassa', band: [30, 300], lvl: 6, s: 'Sfiorando la superficie: mappe e misure di dettaglio.' },
+      { k: 'med', n: 'Orbita media', band: [300, 3000], lvl: 5, s: 'Il compromesso di AURASAT: vicino e lontano dalla superficie.' },
+      { k: 'high', n: 'Orbita alta', band: [3000, 10000], lvl: 5, s: 'Lontano dalla Luna: ottima per ponti radio e telescopi.' },
+      { k: 'surf', n: 'Superficie · su un lander', surf: 1, lvl: 7, s: 'Compri un posto su un lander commerciale: il tuo CubeSat diventa uno strumento sul suolo lunare.' }],
+    mars: [{ k: 'low', n: 'Orbita bassa', band: [200, 800], lvl: 11, s: 'Per guardare la superficie da vicino.' },
+      { k: 'med', n: 'Orbita media', band: [800, 6000], lvl: 10, s: 'Vista ampia del pianeta e della sua atmosfera.' },
+      { k: 'high', n: 'Orbita alta', band: [6000, 20000], lvl: 10, s: 'Ponte radio per le missioni in superficie.' },
+      { k: 'surf', n: 'Superficie · su un lander', surf: 1, lvl: 12, s: 'Un lander commerciale ti porta giù: ingresso, paracadute, retrorazzi.' }],
+    venus: [{ k: 'low', n: 'Orbita bassa', band: [200, 800], lvl: 15, s: 'Sotto le nubi non si vede: servono radar e infrarossi.' },
+      { k: 'med', n: 'Orbita media', band: [800, 6000], lvl: 15, s: 'Per studiare la circolazione dell’atmosfera.' },
+      { k: 'high', n: 'Orbita alta', band: [6000, 30000], lvl: 15, s: 'Vista d’insieme del pianeta e del vento solare.' }]
   };
   // atterraggi: lo stadio di discesa è comprato a parte (costo) e porta un rischio; sulle lune piccole basta il motore del satellite
   // atterraggi: si compra un posto su un lander commerciale, a peso. Il lander può fallire.
@@ -224,4 +224,3 @@ const O = (function () {
   return { hook: HOOK, ECL, ATMH, atmRisk, transfer, legEl, eMax, tle, kep, pqK, work, workEl, frac, ZONES, LAND, zoneOf, landOf, goal, autoBurns, strategies, stmt, BODY, TYPES, state, elements, burn, plan, target, initial, fmt, D2R };
 })();
 if (typeof module !== 'undefined') module.exports = O;
-

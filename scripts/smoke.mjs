@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * Optional browser smoke test for the static 2D game.
+ * Optional browser smoke test for the static game.
  *
  * Usage:
  *   npm run build && npm start
@@ -62,20 +62,16 @@ try {
   });
 
   await page.goto(baseUrl, { waitUntil: "load" });
-  await page.waitForSelector("#ov:not([hidden])", { timeout: 10_000 });
-  const welcome = await page.locator("#ov").innerText();
-  if (!/Fonda la tua agenzia|Found your space agency/i.test(welcome)) {
-    problems.push("welcome dialog not found");
-  }
-
-  await page.click('[data-act="startskip"]');
-  await page.waitForFunction(() => document.querySelector("#ov")?.hidden === true, null, {
-    timeout: 10_000
-  });
+  await page.waitForSelector('#title [data-act="ttl"][data-s="modes"]', { timeout: 10_000 });
+  await page.click('#title [data-act="ttl"][data-s="modes"]');
+  await page.click('#title [data-act="tmode"][data-k="career"]');
+  await page.click('#title [data-act="tnext"]');
+  await page.click('#title [data-act="tstart"]');
+  await page.waitForSelector('#title', { state: 'detached', timeout: 10_000 });
   await page.waitForSelector("#view:not(:empty)", { timeout: 10_000 });
 
   const hud = await page.locator("#hud").innerText();
-  if (!/crediti|Crediti|Missione|Campus/i.test(hud)) {
+  if (!/crediti|credits|Missione|Mission|Campus/i.test(hud)) {
     problems.push("HUD did not render after starting a game");
   }
 
