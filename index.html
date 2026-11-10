@@ -1281,6 +1281,206 @@ body.tutmode .ov{padding-top:12px}
 @media (prefers-reduced-motion:reduce){.sdlg{transition:opacity .18s;transform:none}}
 
 </style>
+<style id="mfix">
+/* ==========================================================================
+   v39 · interfaccia compatta per telefono (stile CoD Mobile): niente box
+   ridondanti, pannelli laterali stretti, avvisi brevi, tutto dentro lo schermo.
+   ========================================================================== */
+
+/* --- 1. riquadro delle fasi (DRM / Satellite / Orbite / PDR): via --- */
+.bsteps{display:none!important}
+
+/* --- 2. intestazione delle stanze: solo un'etichetta piccola --- */
+body.fs #view.scn>.head{padding:4px 9px!important;border-radius:6px!important;max-width:min(300px,calc(100vw - 150px))!important}
+body.fs #view.scn>.head h1{font-size:12.5px!important;line-height:1.15;letter-spacing:.06em}
+body.fs #view.scn>.head .rtabs{display:inline-flex!important;gap:0!important;margin-top:4px!important;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,.18)}
+body.fs #view.scn>.head .rtabs .btn{border:0!important;border-radius:0!important;min-height:28px!important;padding:4px 10px!important;font-size:11px!important;letter-spacing:.06em;background:transparent;color:#fff;box-shadow:none}
+body.fs #view.scn>.head .rtabs .btn.primary,body.fs #view.scn>.head .rtabs .btn.on,body.fs #view.scn>.head .rtabs .btn.sel{background:#23706B}
+body.fs #view.scn>.head .btn.small{min-height:30px!important;padding:4px 10px!important;font-size:11px!important}
+body.fs #view.scn>.head .hback{font-size:11px!important}
+
+/* --- 3. bottoni esagonali dei pannelli: icona vera, niente «hamburger» --- */
+.rb .hbg,.hbg{display:none!important}
+.rb i svg{width:21px;height:21px;display:block}
+.rb i{color:#2A2125}
+.rb.on i{color:#fff}
+
+/* --- 4. strumenti della stanza (piante, squadra): non più tagliati in alto --- */
+body.fs .room3 .ctools,body.fs .ctools{position:fixed!important;top:auto!important;left:auto!important;right:calc(64px + env(safe-area-inset-right,0px))!important;bottom:calc(14px + env(safe-area-inset-bottom,0px))!important;z-index:7;display:flex;gap:6px}
+body.fs .ctools button{min-height:34px;min-width:40px;border-radius:8px}
+
+/* --- 5. avvisi (toast): pillola piccola sotto la barra, tocchi e sparisce --- */
+#toast.toast{top:calc(var(--hudh,52px) + 6px)!important;max-width:min(440px,calc(100vw - 180px))!important;padding:7px 14px!important;font:600 12.5px/1.3 var(--f-b)!important;border-radius:8px!important;pointer-events:auto;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+body.decon #toast{display:none!important}
+
+/* --- 6. pannelli laterali: stretti, scuri, compatti --- */
+body.fs .dockL,body.fs .dockR{width:calc(min(46vw,300px) + var(--sai-l,0px))!important;padding-top:calc(6px + var(--sai-t,0px))!important;gap:6px!important;font-size:12.5px;scrollbar-width:thin}
+body.fs .dockR{width:calc(min(46vw,300px) + var(--sai-r,0px))!important}
+body.fs .dockL>.panel,body.fs .dockR>.panel,body.fs .dockL .panel,body.fs .dockR .panel{padding:8px 10px!important;border-radius:6px!important;gap:6px}
+body.fs .dockL h2,body.fs .dockR h2,body.fs .dockL h3,body.fs .dockR h3{font-size:12px!important;letter-spacing:.12em;margin:0 0 4px!important}
+body.fs .dclose{width:32px!important;height:32px!important;font-size:18px!important;border-radius:6px!important;margin:0 0 -2px!important;background:rgba(255,255,255,.1)!important;box-shadow:none!important}
+body.fs .dockL .btn,body.fs .dockR .btn{min-height:36px;padding:6px 10px;font-size:12px}
+body.fs .dockL .fine,body.fs .dockR .fine{font-size:11.5px}
+/* testo chiaro su fondo chiaro nella sequenza DRM */
+body.fs .dockL .sel,body.fs .dockL .on{color:inherit}
+
+/* --- 7. testi che toccano i bordi --- */
+.pt{padding-left:8px!important;padding-right:10px!important}
+.pt>span{min-width:0;overflow:hidden}
+.pt b,.pt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+/* agenzie da sbloccare: grigie, con lucchetto */
+.pt.lock{filter:grayscale(1);opacity:.5;border-style:dashed!important;position:relative}
+.pt.lock::after{content:"";position:absolute;top:6px;right:8px;width:12px;height:14px;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E")}
+
+/* --- 8. lancio: box piccolo, scritta non coperta, sparisce al decollo --- */
+.lcon{gap:14px!important}
+.ldisp{padding:6px 12px!important;min-width:0!important;width:auto!important}
+.ldisp .lname{font-size:10px!important}
+#lcnt{font-size:24px!important;line-height:1.1!important}
+.lsub{top:calc(var(--hudh,52px) + 34px)!important;bottom:auto!important;z-index:1}
+body.lfly .lbtn,body.lfly .ldur,body.lfly .lsub,body.lfly #view>.head{opacity:0!important;pointer-events:none!important;transition:opacity .3s}
+body.lfly .ldisp{background:transparent!important;box-shadow:none!important;border:0!important}
+body.lgone .lcon{opacity:0!important;transition:opacity .4s}
+
+/* --- 9. chiusura missione: «Livello 2!» non copre più il timbro --- */
+.lvup{top:auto!important;bottom:calc(14px + env(safe-area-inset-bottom,0px))!important;padding:6px 14px!important;z-index:96}
+.lvup b{font-size:18px!important}
+.lvup span{font-size:12px!important}
+
+/* --- 10. sala controllo: monitor sulla scrivania, schermi a muro, zoom --- */
+.mccw.fsc .scr,.mccw.fsc .fmon{cursor:zoom-in}
+.mccw.fsc .scr{box-shadow:0 0 0 3px #1B2230,0 0 0 5px #3A4456,0 6px 18px rgba(0,0,0,.35)}
+.mccw.fsc .fmon{border-radius:6px!important;box-shadow:0 0 0 4px #15181F,0 0 0 6px #444C5C,0 10px 18px rgba(0,0,0,.4)!important}
+.mccw.fsc .fmon::after{content:"";position:absolute;left:50%;bottom:-12px;width:26%;height:10px;transform:translateX(-50%);background:linear-gradient(#3A404C,#23272F);border-radius:0 0 4px 4px;pointer-events:none}
+.mccw.fsc .mdesk{position:absolute;left:-4%;right:-4%;bottom:-2px;height:14%;min-height:22px;background:linear-gradient(#8A6B4E,#6E523A);border-top:3px solid #A88563;border-radius:4px 4px 0 0;z-index:0;pointer-events:none;box-shadow:0 -2px 8px rgba(0,0,0,.25)}
+.mccw.fsc .mdesk svg{position:absolute;bottom:4px;height:62%}
+.mccw.fsc .mdesk .kb{left:38%}
+.mccw.fsc .mdesk .ms{left:60%}
+.mccw.fsc .fmon{z-index:1}
+#mzoomBg{position:fixed;inset:0;z-index:120;background:rgba(10,12,16,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+#mzoomBox{position:fixed;z-index:121;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,860px);height:min(84vh,560px);display:flex;flex-direction:column;background:#0F1420;border-radius:8px;box-shadow:0 0 0 4px #1B2230,0 0 0 6px #3A4456,0 20px 50px rgba(0,0,0,.6);overflow:hidden}
+#mzoomBox .mzx{position:absolute;top:6px;right:6px;z-index:3;width:36px;height:36px;border:0;border-radius:6px;background:rgba(255,255,255,.12);color:#fff;font:700 20px/1 var(--f-b);cursor:pointer}
+#mzoomBox .mzin{flex:1;min-height:0;overflow:auto;display:flex;flex-wrap:wrap;gap:10px;padding:10px}
+#mzoomBox .mzin>.scr,#mzoomBox .mzin>.fmon{position:relative!important;inset:auto!important;left:auto!important;top:auto!important;width:auto!important;height:auto!important;flex:1 1 300px;min-height:100%;transform:none!important;cursor:default;box-shadow:none!important;border-radius:6px}
+#mzoomBox .mzin>.scr canvas{position:relative;top:0;height:calc(100% - 34px)!important;min-height:200px}
+#mzoomBox .mzin>.scr h4,#mzoomBox .mzin>.fmon h4{font-size:15px!important;padding:10px 12px!important}
+#mzoomBox .mzin>.scr .code,#mzoomBox .mzin>.scr .vit{font-size:14px!important;height:auto!important;max-height:none!important}
+#mzoomBox .mzin>.fmon .log{max-height:none!important;font-size:13px}
+#mzoomBox .mzin>#dashw{flex:1 1 280px;min-width:0}
+#mzoomBox .mzin>#dashw .panel{background:transparent!important;box-shadow:none!important;padding:4px!important}
+
+/* --- 11. safe mode: scheda centrata, scelte sempre visibili --- */
+body.decon #dec.dec{background:#17191F!important;border:2px solid #F07B3F!important;position:fixed!important;left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;width:min(560px,calc(100vw - 24px))!important;max-height:calc(100vh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;z-index:110;padding:12px 14px!important;box-shadow:0 0 0 9999px rgba(10,12,16,.55),0 18px 40px rgba(0,0,0,.5)!important}
+body.decon #dec .dh .pause{font-size:11px!important;padding:4px 10px!important}
+body.decon #dec .dh b{font-size:16px!important}
+body.decon #dec>p{margin:6px 0!important;font-size:13px!important;line-height:1.35}
+body.decon #dec>p.fine:first-of-type{display:none}
+body.decon #dec .dops{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px!important}
+body.decon #dec .dops .btn{min-height:52px;padding:8px 10px!important;text-align:left}
+body.decon #dec .dops .btn small{font-size:11px!important;line-height:1.25}
+body.decon #dec>p.fine:last-of-type{font-size:11.5px!important}
+
+/* --- 12. orbite in dettaglio: misuratore e legenda non sotto i bottoni --- */
+@media (max-height:520px){
+  .obmeter{left:calc(70px + env(safe-area-inset-left,0px))!important;bottom:10px!important}
+  .obleg,.oblegend,.oblg{display:none!important}
+}
+
+/* --- 13. telefono in orizzontale: tutto dentro lo schermo --- */
+@media (max-height:520px){
+  /* nuova missione */
+  #nmMain h3{font-size:10px!important;margin:0!important}
+  #nmMain h2{font-size:15px!important;margin:0 0 6px!important}
+  #nmMain .nm{gap:12px!important}
+  #nmMain label{font-size:10px!important;margin:6px 0 3px!important;display:block}
+  #nmMain label:first-child{margin-top:0!important}
+  #nmMain input,#nmMain select{height:34px!important;min-height:34px!important;padding:4px 10px!important;font-size:14px!important}
+  #nmMain textarea{height:52px!important;min-height:52px!important;padding:6px 10px!important;font-size:13px!important;resize:none}
+  #nmMain .nmsum{padding:6px 10px!important;min-height:0!important}
+  #nmMain .nmsum svg{width:32px!important;height:32px!important}
+  #nmMain .nmsum .btn{min-height:32px!important;padding:4px 10px!important}
+  #nmMain .dests{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+  #nmMain .dcard{padding:6px 2px!important;min-height:0!important;height:auto!important;gap:2px}
+  #nmMain .dcard svg{width:34px!important;height:34px!important}
+  #nmMain .dcard b{font-size:13px!important}
+  #nmMain .dcard small{font-size:10px!important}
+  #nmMain>.row{margin-top:8px!important}
+  #nmMain>.row .btn{min-height:38px!important}
+  #ov>.rv.wide{padding:12px 16px!important}
+
+  /* scelta del satellite: tre schede affiancate, senza scorrere */
+  .tcards{padding:2px 4px!important;gap:8px!important;justify-content:center}
+  .tcard{width:calc((100vw - 140px)/3)!important;max-width:240px;padding:6px!important}
+  .tcard .tart{width:100%!important;height:min(26vh,110px)!important}
+  .tcard b{font-size:14px!important}
+  .tcard small{font-size:11px!important}
+  .pickt,.tcards+.row,.stype{margin-top:4px!important}
+
+  /* sala riunioni: la richiesta si legge in una striscia sopra i bottoni */
+  body #mbub.mbub,body #mbub.bubble{display:block!important;position:fixed!important;left:50%!important;top:auto!important;right:auto!important;bottom:calc(76px + env(safe-area-inset-bottom,0px))!important;transform:translateX(-50%)!important;width:auto!important;height:auto!important;max-width:min(560px,calc(100vw - 150px))!important;padding:6px 14px!important;background:rgba(250,248,240,.97)!important;color:#2A2125!important;border-radius:8px!important;font:600 13px/1.3 var(--f-b)!important;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.3)!important;z-index:6}
+  body #mbub.mbub::before,body #mbub.mbub::after,body #mbub.bubble::before,body #mbub.bubble::after{display:none!important}
+  body #mbub:empty{display:none!important}
+  .acts .btn{min-height:40px!important}
+
+  /* edificio amministrativo: schede più basse */
+  .pgrid{gap:6px!important}
+  .pt{min-height:44px}
+}
+
+/* --- 14. telefono in verticale: invito a ruotare --- */
+#rotHint{display:none}
+@media (orientation:portrait) and (max-width:600px) and (pointer:coarse){
+  body:not(.ttl-on) #rotHint{display:flex;position:fixed;inset:0;z-index:300;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#1C1A1F;color:#F1ECE6;text-align:center;padding:24px;font:600 16px/1.4 var(--f-b)}
+  #rotHint svg{width:72px;height:72px;animation:rotph 2.2s ease-in-out infinite}
+  #rotHint b{font:800 20px/1.1 var(--f-d);letter-spacing:.08em;text-transform:uppercase}
+}
+@keyframes rotph{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
+
+/* --- 15. minigiochi delle prove --- */
+#mg{position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;background:rgba(10,12,16,.8);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);touch-action:none;user-select:none;-webkit-user-select:none}
+#mg .mgb{width:min(620px,calc(100vw - 20px));max-height:calc(100vh - 16px);display:flex;flex-direction:column;gap:6px;background:#15171D;border-radius:8px;box-shadow:0 0 0 2px #2E3442,0 20px 50px rgba(0,0,0,.6);padding:10px 14px 12px;color:#F1ECE6}
+#mg .mgh{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+#mg .mgh b{font:800 17px/1 var(--f-d);letter-spacing:.08em;text-transform:uppercase}
+#mg .mgh span{font:700 13px/1 var(--f-b);color:#7FD8CC;font-variant-numeric:tabular-nums}
+#mg .mgt{font:500 13px/1.3 var(--f-b);color:#C9C1B8;margin:0}
+#mg canvas{width:100%;height:min(46vh,220px);display:block;background:#0E1118;border-radius:6px;touch-action:none}
+#mg .mgr{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+#mg .mgr .lnk{margin-right:auto;background:none;border:0;color:#ADA49C;font:600 12px/1 var(--f-b);text-decoration:underline;cursor:pointer;padding:8px 0}
+#mg .mgbig{min-height:44px;padding:0 22px;border:0;border-radius:6px;background:#F07B3F;color:#fff;font:800 15px/1 var(--f-d);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+#mg .mgres{font:800 22px/1.1 var(--f-d);letter-spacing:.06em;text-transform:uppercase;text-align:center;margin:4px 0}
+#mg .mgres.ok{color:#3FC77E}#mg .mgres.mid{color:#F2C14E}#mg .mgres.bad{color:#FF7A6B}
+/* --- 16. ritocchi dopo la prova su telefono --- */
+html body .pt.lock{filter:grayscale(1)!important;opacity:.55!important}
+.pt>span{line-height:1.15!important;padding:3px 0}
+.dq.hl .dt b,.dq.hl .dt span{color:#2A2125!important}
+.btn.small[data-act="suggest"]{background:#2A2125!important;color:#fff!important;opacity:1!important}
+body.fs .dockL #ptiles.tiles{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}
+body.fs .dockL #ptiles .tile{padding:5px 3px!important;min-height:0!important;gap:2px}
+body.fs .dockL #ptiles .tile .gly{width:30px!important;height:30px!important}
+body.fs .dockL #ptiles .tile .gly svg{width:20px!important;height:20px!important}
+body.fs .dockL #ptiles .tile span{font-size:10.5px!important;line-height:1.15!important}
+body.fs .dockL #ptiles .tile span{overflow-wrap:normal!important;word-break:normal!important;hyphens:auto}
+.pt.pstk{min-height:56px!important;align-items:center}
+body.fs .dockL #ptiles .tile small{font-size:9.5px!important}
+body.fs .dockL .stab{width:30px!important;height:30px!important}
+body.fs .dockL .stab svg{width:18px!important;height:18px!important}
+body.fs .dockL #pq{height:32px!important;font-size:13px!important}
+body.fs .dockR .lvc{padding:8px!important;gap:8px!important}
+body.fs .dockR .lvc svg{width:26px!important;height:44px!important}
+body.fs .dockR .lvc b{font-size:13px!important;line-height:1.15}
+body.fs .dockR .lvc .fine,body.fs .dockR .lvc .kv li{font-size:11px!important;line-height:1.25}
+body.fs .dockR .lvc .kv li{padding:1px 0!important}
+@media (max-height:520px){
+  .fdleg{display:none!important}
+  .sts{gap:8px!important}
+  .sts .stc{padding:8px 10px!important;gap:2px!important}
+  .sts .stc svg{height:32px!important}
+  .sts .stc>b{font-size:15px!important}
+  .sts .stc .fine{font-size:11px!important}
+  .sts .stc .kv li{font-size:11.5px!important;padding:1px 0!important;min-height:0!important}
+  .sts .stc .kv{margin-top:4px!important}
+}
+</style>
 
 <div class="hud" id="hud"></div>
 <div class="app"><main id="view"></main></div>
@@ -1290,8 +1490,9 @@ body.tutmode .ov{padding-top:12px}
 <div class="pop" id="pop" hidden></div>
 <div class="toast" id="toast" role="status" hidden></div><div class="coach" id="coach" role="status" aria-live="polite" hidden></div><div class="chand" id="chand" hidden aria-hidden="true"><svg viewBox="0 0 34 40"><path d="M12 4.5c0-1.9 1.4-3 3-3s3 1.1 3 3v12.2l1.1-.5c1.6-.7 3.3.1 3.8 1.6l.3 1 1.2-.4c1.6-.5 3.2.4 3.6 2l.2.8.9-.2c1.7-.3 3.1.9 3.1 2.6v6.6c0 5.4-4.2 9.3-9.6 9.3h-3.2c-3.1 0-5.8-1.4-7.6-3.9L3.6 26.7c-1-1.4-.7-3.3.7-4.2 1.3-.9 3-.6 4 .6L12 27.4z" fill="#fff" stroke="#221B1F" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
 <div class="lvup" id="lvup" role="status" hidden></div>
+<div id="rotHint" aria-live="polite"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="20" y="6" width="24" height="44" rx="4"/><path d="M29 44h6"/><path d="M48 54a20 20 0 0 1-30 4"/><path d="M18 52v6h6"/></svg><b>Ruota il telefono</b><span>Go No-Go si gioca in orizzontale.<br>Rotate your phone to landscape.</span></div>
 
 
-<script src="/game/00-three.js"></script><script src="/game/00-toon.js"></script><script src="/game/01-data.js"></script><script src="/game/02-orbit.js"></script><script src="/game/03-logic.js"></script><script src="/game/04-stubs.js"></script><script src="/game/05-campus.js"></script><script src="/game/06-rooms.js"></script><script src="/game/07-main.js"></script>
+<script src="/game/00-three.js"></script><script src="/game/00-toon.js"></script><script src="/game/01-data.js"></script><script src="/game/02-orbit.js"></script><script src="/game/03-logic.js"></script><script src="/game/04-stubs.js"></script><script src="/game/05-campus.js"></script><script src="/game/06-rooms.js"></script><script src="/game/08-minigames.js"></script><script src="/game/07-main.js"></script>
 
 </body></html>
