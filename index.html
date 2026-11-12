@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="format-detection" content="telephone=no"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><div id=nojs style="position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:24px;background:#2A2125;color:#fff;font:16px/1.5 system-ui,sans-serif;text-align:center"><div style="max-width:420px"><h1 style="font:800 34px/1.1 system-ui,sans-serif;margin:0 0 14px">GO NO-GO</h1><p style="margin:0 0 10px">The game is not starting. This usually means the file was opened inside a mail or file preview, which blocks scripts.</p><p style="margin:0 0 10px"><b>Save the file to your phone, then open it with Safari or Chrome</b> (Share &rarr; Open in Safari/Chrome, or Files &rarr; tap the file &rarr; Open with browser).</p><p style="margin:0;opacity:.7;font-size:14px">If it still stays here, your browser is too old: update it.</p></div></div>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="format-detection" content="telephone=no"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><div id=nojs style="position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:24px;background:#2A2125;color:#fff;font:16px/1.5 system-ui,sans-serif;text-align:center"><div style="max-width:420px"><h1 style="font:800 34px/1.1 system-ui,sans-serif;margin:0 0 14px">GO NO-GO</h1><p style="margin:0 0 10px">The game is not starting. This usually means the file was opened inside a mail or file preview, which blocks scripts.</p><p style="margin:0 0 10px"><b>Save the file to your phone, then open it with Safari or Chrome</b> (Share &rarr; Open in Safari/Chrome, or Files &rarr; tap the file &rarr; Open with browser).</p><p style="margin:0;opacity:.7;font-size:14px">If it still stays here, your browser is too old: update it.</p></div></div>
 <title>Go No-Go</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="alternate icon" href="/favicon.ico" sizes="32x32">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Go No-Go"><meta name="theme-color" content="#2A2125">
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Go%20No-Go%22%2C%22short_name%22%3A%22Go%20No-Go%22%2C%22display%22%3A%22fullscreen%22%2C%22orientation%22%3A%22landscape%22%2C%22background_color%22%3A%22%23DCE6EE%22%2C%22theme_color%22%3A%22%23DCE6EE%22%2C%22start_url%22%3A%22.%22%7D">
@@ -1281,6 +1281,338 @@ body.tutmode .ov{padding-top:12px}
 @media (prefers-reduced-motion:reduce){.sdlg{transition:opacity .18s;transform:none}}
 
 </style>
+<style id="mfix">
+.mreq{display:none}
+/* ==========================================================================
+   v39 · interfaccia compatta per telefono (stile CoD Mobile): niente box
+   ridondanti, pannelli laterali stretti, avvisi brevi, tutto dentro lo schermo.
+   ========================================================================== */
+
+/* --- 1. riquadro delle fasi (DRM / Satellite / Orbite / PDR): via --- */
+.bsteps{display:none!important}
+
+/* --- 2. intestazione delle stanze: solo un'etichetta piccola --- */
+body.fs #view.scn>.head{padding:4px 9px!important;border-radius:6px!important;max-width:min(300px,calc(100vw - 150px))!important}
+body.fs #view.scn>.head h1{font-size:12.5px!important;line-height:1.15;letter-spacing:.06em}
+body.fs #view.scn>.head .rtabs{display:inline-flex!important;gap:0!important;margin-top:4px!important;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,.18)}
+body.fs #view.scn>.head .rtabs .btn{border:0!important;border-radius:0!important;min-height:28px!important;padding:4px 10px!important;font-size:11px!important;letter-spacing:.06em;background:transparent;color:#fff;box-shadow:none}
+body.fs #view.scn>.head .rtabs .btn.primary,body.fs #view.scn>.head .rtabs .btn.on,body.fs #view.scn>.head .rtabs .btn.sel{background:#23706B}
+body.fs #view.scn>.head .btn.small{min-height:30px!important;padding:4px 10px!important;font-size:11px!important}
+body.fs #view.scn>.head .hback{font-size:11px!important}
+
+/* --- 3. bottoni esagonali dei pannelli: icona vera, niente «hamburger» --- */
+.rb .hbg,.hbg{display:none!important}
+.rb i svg{width:21px;height:21px;display:block}
+.rb i{color:#2A2125}
+.rb.on i{color:#fff}
+
+/* --- 4. strumenti della stanza (piante, squadra): non più tagliati in alto --- */
+body.fs .room3 .ctools,body.fs .ctools{position:fixed!important;top:auto!important;left:auto!important;right:calc(64px + env(safe-area-inset-right,0px))!important;bottom:calc(14px + env(safe-area-inset-bottom,0px))!important;z-index:7;display:flex;gap:6px}
+body.fs .ctools button{min-height:34px;min-width:40px;border-radius:8px}
+
+/* --- 5. avvisi (toast): pillola piccola sotto la barra, tocchi e sparisce --- */
+#toast.toast{top:calc(var(--hudh,52px) + 6px)!important;max-width:min(440px,calc(100vw - 180px))!important;padding:7px 14px!important;font:600 12.5px/1.3 var(--f-b)!important;border-radius:8px!important;pointer-events:auto;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+body.decon #toast{display:none!important}
+
+/* --- 6. pannelli laterali: stretti, scuri, compatti --- */
+body.fs .dockL,body.fs .dockR{width:calc(min(46vw,300px) + var(--sai-l,0px))!important;padding-top:calc(6px + var(--sai-t,0px))!important;gap:6px!important;font-size:12.5px;scrollbar-width:thin}
+body.fs .dockR{width:calc(min(46vw,300px) + var(--sai-r,0px))!important}
+body.fs .dockL>.panel,body.fs .dockR>.panel,body.fs .dockL .panel,body.fs .dockR .panel{padding:8px 10px!important;border-radius:6px!important;gap:6px}
+body.fs .dockL h2,body.fs .dockR h2,body.fs .dockL h3,body.fs .dockR h3{font-size:12px!important;letter-spacing:.12em;margin:0 0 4px!important}
+body.fs .dclose{width:32px!important;height:32px!important;font-size:18px!important;border-radius:6px!important;margin:0 0 -2px!important;background:rgba(255,255,255,.1)!important;box-shadow:none!important}
+body.fs .dockL .btn,body.fs .dockR .btn{min-height:36px;padding:6px 10px;font-size:12px}
+body.fs .dockL .fine,body.fs .dockR .fine{font-size:11.5px}
+/* testo chiaro su fondo chiaro nella sequenza DRM */
+body.fs .dockL .sel,body.fs .dockL .on{color:inherit}
+
+/* --- 7. testi che toccano i bordi --- */
+.pt{padding-left:8px!important;padding-right:10px!important}
+.pt>span{min-width:0;overflow:hidden}
+.pt b,.pt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+/* agenzie da sbloccare: grigie, con lucchetto */
+.pt.lock{filter:grayscale(1);opacity:.5;border-style:dashed!important;position:relative}
+.pt.lock::after{content:"";position:absolute;top:6px;right:8px;width:12px;height:14px;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E")}
+
+/* --- 8. lancio: box piccolo, scritta non coperta, sparisce al decollo --- */
+.lcon{gap:14px!important}
+.ldisp{padding:6px 12px!important;min-width:0!important;width:auto!important}
+.ldisp .lname{font-size:10px!important}
+#lcnt{font-size:24px!important;line-height:1.1!important}
+.lsub{top:calc(var(--hudh,52px) + 34px)!important;bottom:auto!important;z-index:1}
+body.lfly .lbtn,body.lfly .ldur,body.lfly .lsub,body.lfly #view>.head{opacity:0!important;pointer-events:none!important;transition:opacity .3s}
+body.lfly .ldisp{background:transparent!important;box-shadow:none!important;border:0!important}
+body.lgone .lcon{opacity:0!important;transition:opacity .4s}
+
+/* --- 9. chiusura missione: «Livello 2!» non copre più il timbro --- */
+.lvup{top:auto!important;bottom:calc(14px + env(safe-area-inset-bottom,0px))!important;padding:6px 14px!important;z-index:96}
+.lvup b{font-size:18px!important}
+.lvup span{font-size:12px!important}
+
+/* --- 10. sala controllo: monitor sulla scrivania, schermi a muro, zoom --- */
+.mccw.fsc .scr,.mccw.fsc .fmon{cursor:zoom-in}
+.mccw.fsc .scr{box-shadow:0 0 0 3px #1B2230,0 0 0 5px #3A4456,0 6px 18px rgba(0,0,0,.35)}
+.mccw.fsc .fmon{border-radius:6px!important;box-shadow:0 0 0 4px #15181F,0 0 0 6px #444C5C,0 10px 18px rgba(0,0,0,.4)!important}
+.mccw.fsc .fmon::after{content:"";position:absolute;left:50%;bottom:-12px;width:26%;height:10px;transform:translateX(-50%);background:linear-gradient(#3A404C,#23272F);border-radius:0 0 4px 4px;pointer-events:none}
+.mccw.fsc .mdesk{position:absolute;left:-4%;right:-4%;bottom:-2px;height:14%;min-height:22px;background:linear-gradient(#8A6B4E,#6E523A);border-top:3px solid #A88563;border-radius:4px 4px 0 0;z-index:0;pointer-events:none;box-shadow:0 -2px 8px rgba(0,0,0,.25)}
+.mccw.fsc .mdesk svg{position:absolute;bottom:4px;height:62%}
+.mccw.fsc .mdesk .kb{left:38%}
+.mccw.fsc .mdesk .ms{left:60%}
+.mccw.fsc .fmon{z-index:1}
+#mzoomBg{position:fixed;inset:0;z-index:120;background:rgba(10,12,16,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+#mzoomBox{position:fixed;z-index:121;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,860px);height:min(84vh,560px);display:flex;flex-direction:column;background:#0F1420;border-radius:8px;box-shadow:0 0 0 4px #1B2230,0 0 0 6px #3A4456,0 20px 50px rgba(0,0,0,.6);overflow:hidden}
+#mzoomBox .mzx{position:absolute;top:6px;right:6px;z-index:3;width:36px;height:36px;border:0;border-radius:6px;background:rgba(255,255,255,.12);color:#fff;font:700 20px/1 var(--f-b);cursor:pointer}
+#mzoomBox .mzin{flex:1;min-height:0;overflow:auto;display:flex;flex-wrap:wrap;gap:10px;padding:10px}
+#mzoomBox .mzin>.scr,#mzoomBox .mzin>.fmon{position:relative!important;inset:auto!important;left:auto!important;top:auto!important;width:auto!important;height:auto!important;flex:1 1 300px;min-height:100%;transform:none!important;cursor:default;box-shadow:none!important;border-radius:6px}
+#mzoomBox .mzin>.scr canvas{position:relative;top:0;height:calc(100% - 34px)!important;min-height:200px}
+#mzoomBox .mzin>.scr h4,#mzoomBox .mzin>.fmon h4{font-size:15px!important;padding:10px 12px!important}
+#mzoomBox .mzin>.scr .code,#mzoomBox .mzin>.scr .vit{font-size:14px!important;height:auto!important;max-height:none!important}
+#mzoomBox .mzin>.fmon .log{max-height:none!important;font-size:13px}
+#mzoomBox .mzin>#dashw{flex:1 1 280px;min-width:0}
+#mzoomBox .mzin>#dashw .panel{background:transparent!important;box-shadow:none!important;padding:4px!important}
+
+/* --- 11. safe mode: scheda centrata, scelte sempre visibili --- */
+body.decon #dec.dec{background:#17191F!important;border:2px solid #F07B3F!important;position:fixed!important;left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;width:min(560px,calc(100vw - 24px))!important;max-height:calc(100vh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;z-index:110;padding:12px 14px!important;box-shadow:0 0 0 9999px rgba(10,12,16,.55),0 18px 40px rgba(0,0,0,.5)!important}
+body.decon #dec .dh .pause{font-size:11px!important;padding:4px 10px!important}
+body.decon #dec .dh b{font-size:16px!important}
+body.decon #dec>p{margin:6px 0!important;font-size:13px!important;line-height:1.35}
+body.decon #dec>p.fine:first-of-type{display:none}
+body.decon #dec .dops{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px!important}
+body.decon #dec .dops .btn{min-height:52px;padding:8px 10px!important;text-align:left}
+body.decon #dec .dops .btn small{font-size:11px!important;line-height:1.25}
+body.decon #dec>p.fine:last-of-type{font-size:11.5px!important}
+
+/* --- 12. orbite in dettaglio: misuratore e legenda non sotto i bottoni --- */
+@media (max-height:520px){
+  .obmeter{left:calc(70px + env(safe-area-inset-left,0px))!important;bottom:10px!important}
+  .obleg,.oblegend,.oblg{display:none!important}
+}
+
+/* --- 13. telefono in orizzontale: tutto dentro lo schermo --- */
+@media (max-height:520px){
+  /* nuova missione */
+  #nmMain h3{font-size:10px!important;margin:0!important}
+  #nmMain h2{font-size:15px!important;margin:0 0 6px!important}
+  #nmMain .nm{gap:12px!important}
+  #nmMain label{font-size:10px!important;margin:6px 0 3px!important;display:block}
+  #nmMain label:first-child{margin-top:0!important}
+  #nmMain input,#nmMain select{height:34px!important;min-height:34px!important;padding:4px 10px!important;font-size:14px!important}
+  #nmMain textarea{height:52px!important;min-height:52px!important;padding:6px 10px!important;font-size:13px!important;resize:none}
+  #nmMain .nmsum{padding:6px 10px!important;min-height:0!important}
+  #nmMain .nmsum svg{width:32px!important;height:32px!important}
+  #nmMain .nmsum .btn{min-height:32px!important;padding:4px 10px!important}
+  #nmMain .dests{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+  #nmMain .dcard{padding:6px 2px!important;min-height:0!important;height:auto!important;gap:2px}
+  #nmMain .dcard svg{width:34px!important;height:34px!important}
+  #nmMain .dcard b{font-size:13px!important}
+  #nmMain .dcard small{font-size:10px!important}
+  #nmMain>.row{margin-top:8px!important}
+  #nmMain>.row .btn{min-height:38px!important}
+  #ov>.rv.wide{padding:12px 16px!important}
+
+  /* scelta del satellite: tre schede affiancate, senza scorrere */
+  .tcards{padding:2px 4px!important;gap:8px!important;justify-content:center}
+  .tcard{width:calc((100vw - 140px)/3)!important;max-width:240px;padding:6px!important}
+  .tcard .tart{width:100%!important;height:min(26vh,110px)!important}
+  .tcard b{font-size:14px!important}
+  .tcard small{font-size:11px!important}
+  .pickt,.tcards+.row,.stype{margin-top:4px!important}
+
+  /* sala riunioni: la richiesta si legge in una striscia sopra i bottoni */
+  /* sala riunioni: la richiesta sta nel pannello in basso, il fumetto non copre gli Zorties */
+  body #mbub{display:none!important}
+  .acts .panel{display:flex!important;flex-direction:column!important;gap:6px!important;padding:6px 10px!important}
+  .acts .mreq{display:block!important;font:600 12.5px/1.3 var(--f-b);color:#F1EDE4;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acts .mreq b{color:var(--orange,#F08A3C);margin-right:4px}
+  .acts .ansb{flex-wrap:nowrap!important;justify-content:center!important;gap:6px!important}
+  .acts .ansb .btn{white-space:nowrap;padding-left:10px!important;padding-right:10px!important}
+  .acts .ansb .btn[data-act="soft"]{max-width:230px;overflow:hidden;text-overflow:ellipsis}
+  .acts .btn{min-height:40px!important}
+
+  /* edificio amministrativo: schede più basse */
+  .pgrid{gap:6px!important}
+  .pt{min-height:44px}
+}
+
+/* --- 14. telefono in verticale: invito a ruotare --- */
+#rotHint{display:none}
+@media (orientation:portrait) and (max-width:600px) and (pointer:coarse){
+  body:not(.ttl-on) #rotHint{display:flex;position:fixed;inset:0;z-index:300;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#1C1A1F;color:#F1ECE6;text-align:center;padding:24px;font:600 16px/1.4 var(--f-b)}
+  #rotHint svg{width:72px;height:72px;animation:rotph 2.2s ease-in-out infinite}
+  #rotHint b{font:800 20px/1.1 var(--f-d);letter-spacing:.08em;text-transform:uppercase}
+}
+@keyframes rotph{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
+
+/* --- 15. minigiochi delle prove --- */
+#mg{position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;background:rgba(10,12,16,.8);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);touch-action:none;user-select:none;-webkit-user-select:none}
+#mg .mgb{width:min(620px,calc(100vw - 20px));max-height:calc(100vh - 16px);display:flex;flex-direction:column;gap:6px;background:#15171D;border-radius:8px;box-shadow:0 0 0 2px #2E3442,0 20px 50px rgba(0,0,0,.6);padding:10px 14px 12px;color:#F1ECE6}
+#mg .mgh{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+#mg .mgh b{font:800 17px/1 var(--f-d);letter-spacing:.08em;text-transform:uppercase}
+#mg .mgh span{font:700 13px/1 var(--f-b);color:#7FD8CC;font-variant-numeric:tabular-nums}
+#mg .mgt{font:500 13px/1.3 var(--f-b);color:#C9C1B8;margin:0}
+#mg canvas{width:100%;height:min(46vh,220px);display:block;background:#0E1118;border-radius:6px;touch-action:none}
+#mg .mgr{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+#mg .mgr .lnk{margin-right:auto;background:none;border:0;color:#ADA49C;font:600 12px/1 var(--f-b);text-decoration:underline;cursor:pointer;padding:8px 0}
+#mg .mgbig{min-height:44px;padding:0 22px;border:0;border-radius:6px;background:#F07B3F;color:#fff;font:800 15px/1 var(--f-d);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+#mg .mgres{font:800 22px/1.1 var(--f-d);letter-spacing:.06em;text-transform:uppercase;text-align:center;margin:4px 0}
+#mg .mgres.ok{color:#3FC77E}#mg .mgres.mid{color:#F2C14E}#mg .mgres.bad{color:#FF7A6B}
+/* --- 16. ritocchi dopo la prova su telefono --- */
+html body .pt.lock{filter:grayscale(1)!important;opacity:.55!important}
+.pt>span{line-height:1.15!important;padding:3px 0}
+.dq.hl .dt b,.dq.hl .dt span{color:#2A2125!important}
+.btn.small[data-act="suggest"]{background:#2A2125!important;color:#fff!important;opacity:1!important}
+body.fs .dockL #ptiles.tiles{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}
+body.fs .dockL #ptiles .tile{padding:5px 3px!important;min-height:0!important;gap:2px}
+body.fs .dockL #ptiles .tile .gly{width:30px!important;height:30px!important}
+body.fs .dockL #ptiles .tile .gly svg{width:20px!important;height:20px!important}
+body.fs .dockL #ptiles .tile span{font-size:10.5px!important;line-height:1.15!important}
+body.fs .dockL #ptiles .tile span{overflow-wrap:normal!important;word-break:normal!important;hyphens:auto}
+.pt.pstk{min-height:56px!important;align-items:center}
+body.fs .dockL #ptiles .tile small{font-size:9.5px!important}
+body.fs .dockL .stab{width:30px!important;height:30px!important}
+body.fs .dockL .stab svg{width:18px!important;height:18px!important}
+body.fs .dockL #pq{height:32px!important;font-size:13px!important}
+body.fs .dockR .lvc{padding:8px!important;gap:8px!important}
+body.fs .dockR .lvc svg{width:26px!important;height:44px!important}
+body.fs .dockR .lvc b{font-size:13px!important;line-height:1.15}
+body.fs .dockR .lvc .fine,body.fs .dockR .lvc .kv li{font-size:11px!important;line-height:1.25}
+body.fs .dockR .lvc .kv li{padding:1px 0!important}
+@media (max-height:520px){
+  .fdleg{display:none!important}
+  .sts{gap:8px!important}
+  .sts .stc{padding:8px 10px!important;gap:2px!important}
+  .sts .stc svg{height:32px!important}
+  .sts .stc>b{font-size:15px!important}
+  .sts .stc .fine{font-size:11px!important}
+  .sts .stc .kv li{font-size:11.5px!important;padding:1px 0!important;min-height:0!important}
+  .sts .stc .kv{margin-top:4px!important}
+}
+</style>
+<style id="mfix2">
+/* ===== Correzioni di Andrea, giro 2 ===== */
+/* sottotitolo sotto il nome della missione: via */
+.hud .mcard em{display:none!important}
+/* satellite da trascinare in basso: via, ora si tocca la postazione o il macchinario */
+.dsat{display:none!important}
+/* finestra aperta: i tasti agli angoli non coprono i bottoni */
+body.ovon #zbtn,body.ovon #dock{visibility:hidden!important}
+/* aiuto di Zorty: sfondo sfocato */
+body.zon::before{content:"";position:fixed;inset:0;z-index:155;background:rgba(18,22,28,.35);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);pointer-events:none}
+/* popup di stanza (sposta / chiudi / scegli satellite): in basso al centro, tra i tasti agli angoli */
+#view .cpop{position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;transform:translateX(-50%);z-index:40;flex-direction:row!important;align-items:center;gap:10px!important;min-width:0!important;max-width:calc(100vw - 150px);padding:8px 10px!important;border:1.5px solid rgba(255,255,255,.18)}
+#view .cpop>b{white-space:nowrap;font-size:13px;color:#fff}
+#view .cpop .row{flex-wrap:nowrap;gap:6px}
+#view .cpop .fine{display:none}
+#view .cpop .btn{min-height:36px;white-space:nowrap}
+/* negozio dei pezzi: la barra verde resta ferma, scorrono solo i pezzi */
+.dockL:has(.shelf){overflow:hidden!important;display:flex!important;flex-direction:column}
+.dockL:has(.shelf)>.dclose{position:relative!important;top:auto!important;align-self:flex-end;flex:0 0 auto!important;margin:4px 6px 2px!important}
+.dockL .shelf #ptiles{grid-auto-rows:max-content!important}
+.dockL .shelf #ptiles>.tile{min-height:max-content}
+.dockL .panel.shelf{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;display:flex!important;flex-direction:column;overflow:hidden!important}
+.dockL .shelf .sbody{flex:1 1 auto!important;min-height:0!important;display:flex!important;overflow:hidden!important}
+.dockL .shelf .stabs{flex:0 0 auto!important;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.dockL .shelf .smain{flex:1 1 auto!important;min-height:0!important;display:flex!important;flex-direction:column;overflow:hidden}
+.dockL .shelf #ptiles{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;align-content:start;padding-bottom:8px}
+/* menu missioni: ha la sua X e la X del pannello sotto non si vede */
+#pop .popx{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:8px;border:1.5px solid rgba(255,255,255,.25);background:#17191F;color:#fff;font:700 15px/1 var(--f-b);display:grid;place-items:center;cursor:pointer;z-index:2}
+#pop>h3{padding-right:40px}
+body:has(#pop:not([hidden])) .dclose{visibility:hidden!important}
+/* orbite dettagliate: i riquadri stanno nel pannello, il contatore ΔV non è più tagliato in basso */
+.obph .obc,.obph .oblink{min-width:0!important;max-width:100%!important;width:auto!important}
+.obph .obh{flex-wrap:wrap;row-gap:2px}
+.obph .obh .sum{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:auto}
+.obph .obc p.fine{overflow-wrap:anywhere}
+.obph .obc.fin .sum{white-space:normal;flex-basis:100%;margin-left:19px}
+@media (max-height:520px){
+  #view .obmeter{display:block!important;top:calc(var(--hudh,56px) + 34px)!important;bottom:auto!important;left:calc(12px + env(safe-area-inset-left,0px))!important;background:rgba(10,14,22,.72);border-radius:10px;padding:5px 9px}
+  #view .obmeter .big{font-size:18px!important;line-height:1.1}
+  #view .obmeter .bar,#view .obmeter .lbl+.big+.bar+.lbl{display:none!important}
+}
+/* lancio: ABORT dentro il suo tasto (la classe .lab del laboratorio lo spostava), via la scritta bianca in alto */
+.lcon .lbtn{display:grid!important;place-items:center!important;grid-template-columns:none!important;padding:0!important;gap:0!important;align-items:center!important;text-align:center}
+.lsub{display:none!important}
+/* campus: sulla rampa con il razzo resta una sola etichetta */
+.b3h.b3notag .b3t{display:none!important}
+/* sala controllo: gli schermi aperti in grande stanno in una pagina sola, senza scorrere */
+body:has(#mzoomBox) #zbtn,body:has(#mzoomBox) #dock{visibility:hidden!important}
+#mzoomBox .mzin{overflow:hidden!important;flex-wrap:nowrap!important}
+#mzoomBox .mzin>.scr,#mzoomBox .mzin>.fmon{min-height:0!important;height:100%!important;max-height:100%!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
+#mzoomBox .mzin>.scr canvas{flex:1 1 auto;min-height:0!important;height:auto!important;max-height:100%;width:100%!important;object-fit:contain}
+#mzoomBox .mzin>.scr .code{flex:1 1 auto;min-height:0;overflow:hidden!important;display:flex!important;flex-direction:column;justify-content:flex-end;font-size:12.5px!important;line-height:1.35}
+#mzoomBox .mzin>.scr .vit{flex:1 1 auto;min-height:0;overflow:hidden!important;font-size:13px!important}
+#mzoomBox .mzin>.fmon .log{flex:1 1 auto;min-height:0;overflow:hidden!important;-webkit-mask-image:linear-gradient(#000 80%,transparent);mask-image:linear-gradient(#000 80%,transparent)}
+#mzoomBox .mzin>#dashw{height:100%;overflow:hidden!important}
+#mzoomBox .mzin>.scr .code{-webkit-mask-image:linear-gradient(transparent,#000 14%);mask-image:linear-gradient(transparent,#000 14%)}
+#mzoomBox .mzin>#dashw{-webkit-mask-image:linear-gradient(#000 85%,transparent);mask-image:linear-gradient(#000 85%,transparent)}
+@media (max-height:520px){#mzoomBox{height:calc(100vh - 20px)!important;width:calc(100vw - 20px)!important}#mzoomBox .mzin>.scr h4,#mzoomBox .mzin>.fmon h4{font-size:13px!important;padding:6px 10px!important}#mzoomBox .mzin>#dashw .panel{font-size:12px}}
+/* safe mode: la scelta sta sotto il tasto «‹ Sala controllo», non sotto di lui */
+@media (max-height:520px){
+  body.decon #dec.dec{top:calc(var(--hudh,56px) + 50px)!important;transform:translateX(-50%)!important;max-height:calc(100vh - var(--hudh,56px) - 58px)!important;width:min(560px,calc(100vw - 140px))!important}
+}
+/* finestre con elenco lungo (rischi, roadmap, classifica): scorre solo l'elenco, CHIUDI fisso in basso a sinistra */
+#ov .rv.rvfix{display:flex!important;flex-direction:column;max-height:calc(100vh - 16px);overflow:hidden!important}
+#ov .rv.rvfix>.row:last-child,#ov .rv.rvfix>.rvfoot{flex:0 0 auto;margin-top:8px!important;justify-content:flex-start}
+#ov .rvrisk>#riskp{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin:0}
+#ov .rvrisk .risk{flex:1 1 auto;min-height:0;overflow:hidden}
+#ov .rvrisk .risk>div:last-child{min-height:0;max-height:100%;overflow-y:auto;padding-right:4px}
+#ov .rvroad .road{flex:1 1 auto;min-height:0;max-height:none!important;overflow-y:auto}
+#ov .rvroad>p.fine{display:none}
+#ov .rvroad .rlv li{font-size:13.5px;padding:4px 9px}
+#ov .rvroad .rlv .n{font-size:24px}
+#ov .rvroad .rtier{margin:8px 0 2px}
+/* classifica stile Clash of Clans: le leghe scorrono in orizzontale, la tua è evidenziata */
+#ov .rvrank .rkhead{display:flex;gap:12px;align-items:center;flex:0 0 auto}
+#ov .rvrank .rkhead h3{margin:0 0 2px}
+#ov .rvrank .rkpts{font:800 20px/1.1 var(--f-d)}
+#ov .rvrank .rkhead .mbar{width:220px;margin-top:5px}
+#ov .rvrank .rkworld{margin-left:auto;max-width:42%;min-width:0}
+#ov .rvrank .rkworld .ladder{max-height:72px;overflow:auto}
+#ov .rvrank .lgrail{flex:1 1 auto;min-height:0;display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:10px 4px 6px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+#ov .rvrank .lgc{flex:0 0 132px;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:16px;padding:10px 8px;background:linear-gradient(#2A2618,#1C1A12);border:2px solid #3A3524;text-align:center}
+#ov .rvrank .lgc svg{width:64px;height:64px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.45))}
+#ov .rvrank .lgc b{font:800 14px/1.1 var(--f-d);text-transform:uppercase}
+#ov .rvrank .lgc .num{font-size:11.5px;color:var(--muted)}
+#ov .rvrank .lgc em{font-style:normal;font:700 11px/1 var(--f-b);color:var(--muted)}
+#ov .rvrank .lgc.on{border-color:#E8AA30;background:linear-gradient(#3A2E14,#241D10);box-shadow:0 0 18px rgba(232,170,48,.35);transform:scale(1.04)}
+#ov .rvrank .lgc.on em{color:#E8AA30}
+#ov .rvrank .lgc.lock{opacity:.5}
+#ov .rvrank .lgc.done em{color:#3FA86B}
+@media (max-height:520px){#ov .rvrank .lgc svg{width:52px;height:52px}#ov .rvrank .lgc{flex-basis:118px;padding:6px}#ov .rv.rvfix{padding:10px 14px!important}}
+/* nuovo livello: un nastro elegante in alto al centro che scende e sparisce, non un riquadro a caso in basso */
+#lvup.lvup{top:6px!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;z-index:130!important;clip-path:none!important;border-radius:999px!important;padding:6px 18px 6px 14px!important;display:flex!important;align-items:center;gap:10px;max-width:min(70vw,620px);background:linear-gradient(90deg,#1E3B3A,#24504D 50%,#1E3B3A)!important;border:1.5px solid #6FD3C4!important;box-shadow:0 6px 20px rgba(0,0,0,.45),0 0 22px rgba(111,211,196,.35)!important;animation:lvdrop .45s cubic-bezier(.2,1.3,.4,1) both!important;white-space:nowrap}
+#lvup.lvup[hidden]{display:none!important}
+#lvup.lvup::before{content:"★";color:#F5C842;font-size:18px;line-height:1}
+#lvup.lvup b{font:800 16px/1 var(--f-d)!important;color:#fff!important;letter-spacing:.06em}
+#lvup.lvup span{font-size:12px!important;color:#CFEDE8;overflow:hidden;text-overflow:ellipsis;min-width:0}
+@keyframes lvdrop{from{transform:translate(-50%,-140%);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+#ov .rvrisk .risk>.mx{zoom:.82}
+#view .cpop{background:#17191F!important;border-color:var(--orange,#F08A3C)!important;opacity:1!important}
+#view:has(.cpop) .acts{display:none!important}
+body:has(#mg:not([hidden])) #zbtn,body:has(#mg:not([hidden])) #dock{visibility:hidden!important}
+@media (max-height:520px){
+  /* scelta dell'orbita: tutto in una schermata */
+  #nmZone>.row:first-child{gap:10px!important;margin:0 0 6px!important}
+  #nmZone>.row:first-child>svg{width:40px!important;height:40px!important}
+  #nmZone h2{font-size:17px!important;margin:0!important}
+  #nmZone .zones{gap:8px!important}
+  #nmZone .zcard{padding:7px 8px!important;gap:2px!important}
+  #nmZone .zcard svg{height:52px!important}
+  #nmZone .zcard b{font-size:14px!important}
+  #nmZone .zcard span{font-size:11.5px!important;line-height:1.25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  #nmZone>.row:last-child{margin-top:6px!important}
+  #ov .rv.wide:has(#nmZone:not([hidden])){padding:10px 14px!important}
+  /* scelta del CubeSat: tre carte senza scorrere, niente sotto */
+  #view:has([data-act="pickType"])>h3,#view:has([data-act="pickType"])>.sts~h3,#view:has([data-act="pickType"])>.sts~.sts{display:none!important}
+  #view:has([data-act="pickType"])>.sts{margin-top:8px!important}
+  #view:has([data-act="pickType"]) .stc{max-height:calc(100vh - 140px);overflow:hidden}
+  #view:has([data-act="pickType"]) .stc .kv li{padding:1px 0!important;font-size:11.5px!important}
+  #view:has([data-act="pickType"]) .stc>svg{display:none!important}
+  /* stakeholder: "Convoca la riunione" sempre visibile in basso al centro */
+  #view .row:has(#p0go){position:fixed!important;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));margin:0!important;z-index:20}
+  #view:has(#p0go){padding-bottom:70px!important}
+  #p0go{box-shadow:0 6px 18px rgba(0,0,0,.35)}
+}
+</style>
 
 <div class="hud" id="hud"></div>
 <div class="app"><main id="view"></main></div>
@@ -1290,8 +1622,9 @@ body.tutmode .ov{padding-top:12px}
 <div class="pop" id="pop" hidden></div>
 <div class="toast" id="toast" role="status" hidden></div><div class="coach" id="coach" role="status" aria-live="polite" hidden></div><div class="chand" id="chand" hidden aria-hidden="true"><svg viewBox="0 0 34 40"><path d="M12 4.5c0-1.9 1.4-3 3-3s3 1.1 3 3v12.2l1.1-.5c1.6-.7 3.3.1 3.8 1.6l.3 1 1.2-.4c1.6-.5 3.2.4 3.6 2l.2.8.9-.2c1.7-.3 3.1.9 3.1 2.6v6.6c0 5.4-4.2 9.3-9.6 9.3h-3.2c-3.1 0-5.8-1.4-7.6-3.9L3.6 26.7c-1-1.4-.7-3.3.7-4.2 1.3-.9 3-.6 4 .6L12 27.4z" fill="#fff" stroke="#221B1F" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
 <div class="lvup" id="lvup" role="status" hidden></div>
+<div id="rotHint" aria-live="polite"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="20" y="6" width="24" height="44" rx="4"/><path d="M29 44h6"/><path d="M48 54a20 20 0 0 1-30 4"/><path d="M18 52v6h6"/></svg><b>Ruota il telefono</b><span>Go No-Go si gioca in orizzontale.<br>Rotate your phone to landscape.</span></div>
 
 
-<script src="/game/00-three.js"></script><script src="/game/00-toon.js"></script><script src="/game/01-data.js"></script><script src="/game/02-orbit.js"></script><script src="/game/03-logic.js"></script><script src="/game/04-stubs.js"></script><script src="/game/05-campus.js"></script><script src="/game/06-rooms.js"></script><script src="/game/07-main.js"></script>
+<script src="/game/00-three.js"></script><script src="/game/00-toon.js"></script><script src="/game/01-data.js"></script><script src="/game/02-orbit.js"></script><script src="/game/03-logic.js"></script><script src="/game/04-stubs.js"></script><script src="/game/05-campus.js"></script><script src="/game/06-rooms.js"></script><script src="/game/08-minigames.js"></script><script src="/game/07-main.js"></script>
 
 </body></html>
