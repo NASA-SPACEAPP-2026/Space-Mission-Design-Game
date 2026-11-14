@@ -176,7 +176,7 @@ Lo schema è in [`db/001-auth.sql`](db/001-auth.sql), applicato esplicitamente c
 | `npm run smoke` | Controllo browser del gioco; richiede server attivo e Chromium |
 | `node scripts/smoke-account.mjs` | Controllo browser account con PGlite temporaneo e build esistente |
 | `npm run package:azure` | Crea `release.zip` da build esistente; richiede Bash, zip e npm |
-| `npm run package:single` | Compila e rigenera `Go No-Go.html` |
+| `npm run package:single` | Compila e rigenera `dist/Go No-Go.html` |
 
 ## Struttura del repository
 
@@ -201,7 +201,7 @@ tests/                        Test automatici
 infra/                        Provisioning e rimozione risorse Azure
 .github/workflows/            CI/CD e pubblicazione immagine base GMAT
 documentation/                Guide tecniche in italiano
-Go No-Go.html                 Esportazione generata, da rigenerare dai sorgenti
+dist/Go No-Go.html            Esportazione generata, da rigenerare dai sorgenti
 ```
 
 I file in `public/game/` sono script classici con dipendenze nell'ordine di caricamento: non sono ancora moduli ES indipendenti. La [guida architetturale](documentation/architecture.it.md) dettaglia l'ordine effettivo.
