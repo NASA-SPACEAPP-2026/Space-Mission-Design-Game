@@ -324,6 +324,7 @@ Fase A	Phase A
 Fase B	Phase B
 Fase B, passo {n}: nel Centro di dinamica del volo disegna la missione (DRM).	Phase B, step {n}: in the flight dynamics centre draw the mission (DRM).
 Fase B: esci e vai al Centro di dinamica del volo per disegnare la missione (DRM).	Phase B: go out to the flight dynamics centre to draw the mission (DRM).
+Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM).	Phase B: go to the flight dynamics centre to draw the mission (DRM).
 Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM). Tocca l’edificio sulla mappa.	Phase B: go to the flight dynamics centre to draw the mission (DRM). Tap the building on the map.
 Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM): prima torna al campus con la casetta in basso a destra.	Phase B: go to the flight dynamics centre to draw the mission (DRM): first go back to the campus with the house button at the bottom right.
 Fase C	Phase C
@@ -4323,7 +4324,7 @@ const ACT={
     else { M.stage='done'; review({eb:'Fine fase A',name:'System Requirements Review',code:'PRR',nasa:'System Requirements Review',stamp:'GO',short:LANG==='en'?'System requirements set. Now you draw the orbit.':'Requisiti di sistema fissati. Ora si disegna l’orbita.',body:'<p>'+esc(E.RIDES[M.sat.ride].n)+' · '+M.reqs.filter(x=>x.kind==='SYS').length+' requisiti di sistema. In fase B si fa l’analisi orbitale nel Centro di dinamica del volo.</p>',actions:'<button class="btn primary" data-act="toB">Avanti</button>'}); } },
   toA(){ const M=cur(); closeOv(); const first=once(M,'MDR'), inst=first?L.installment(M,'MDR'):0; M.got=(M.got||0)+inst; if(inst) addMoney(inst); if(first) gainXP(L.XP.MDR); M.phase='A'; M.stage='type'; render(); toast((inst?'Prima rata: '+keur(inst)+'. ':'')+'Fase A: rientra nell’edificio amministrativo per scegliere il satellite e sentire lo staff tecnico.'); },
   pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.stake=M.stake; d.acc=d.acc||{}; E.prune(d); d.sol=L.availSol(M,d.ride)[0]||d.sol; L.startMeeting(M,'A'); sfx.ok(); render(); },
-  toB(){ const M=cur(); closeOv(); if(once(M,'SRR')) gainXP(L.XP.PRR); M.phase='B'; M.stage='drm'; if(!M.sat.lv){ const ks=Object.keys(E.LV).filter(k=>lvShown(k,M)&&!lvLock(k,M)&&E.LV[k].fits.indexOf(M.sat.ride)>=0); if(ks.length) M.sat.lv=ks[0]; } render(); toast('Fase B: esci e vai al Centro di dinamica del volo per disegnare la missione (DRM).'); },
+  toB(){ const M=cur(); closeOv(); if(once(M,'SRR')) gainXP(L.XP.PRR); M.phase='B'; M.stage='drm'; if(!M.sat.lv){ const ks=Object.keys(E.LV).filter(k=>lvShown(k,M)&&!lvLock(k,M)&&E.LV[k].fits.indexOf(M.sat.ride)>=0); if(ks.length) M.sat.lv=ks[0]; } go('hub'); toast('Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM).'); },
   ride(t){ const d=cur().sat, k=t.dataset.k; d.ride=k; E.prune(d); sel=null; sfx.tap(); bRefresh(); },
   stab(t){ shelfTab=t.dataset.k; sfx.tap(); renderShelf(); },
   ssort(t){ shelfSort=t.dataset.k; sfx.tap(); renderShelf(); },
