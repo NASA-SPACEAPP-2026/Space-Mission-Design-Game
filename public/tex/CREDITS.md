@@ -1,6 +1,10 @@
+**English** | [Italiano](CREDITS.it.md)
+
 # Planet textures — credits
 
 Equirectangular maps used for the planet in the Flight Dynamics Centre (orbit view and 3D sphere).
+These textures are served locally from public/tex and copied into the build. The attributions below preserve the stated sources in the original document.
+
 NASA material is not protected by copyright unless noted (NASA media usage guidelines).
 
 | File | Body | Source | Credit | Size |
