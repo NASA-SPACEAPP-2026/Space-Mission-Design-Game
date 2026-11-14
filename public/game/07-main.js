@@ -5799,9 +5799,9 @@ const C3=(()=>{
   const SKIN=['#F2CBA8','#D9A37E','#B97F55','#8A5A3C','#F0D2B8'], HAIR=['#2A1D18','#5B3A26','#C9342E','#E7C15A','#1B1414','#8D8A86'];
   function colonist(i,N){ const OL=ALN.LIST.filter(q=>!q.hood), c=ALN.make(Object.assign({lo:(MOB||N>14)?2:1,ol:2.6},OL[i%OL.length])); c.scale.setScalar(ALN.SC.campus); c.userData.play('walk'); return c; }
   /* ---------- natura: alberi a chioma multipla, pini, cipressi, cespugli ---------- */
-  function trees(list){ const kinds={round:[],pine:[],poplar:[]}; list.forEach(t=>kinds[t.k==='tree'||t.k==='round'?'round':t.k==='pine'?'pine':'poplar'].push(t));
+  function trees(all0,isFar){ const FAR=[], list=[]; all0.forEach(t=>(isFar&&isFar(t)?FAR:list).push(t)); const kinds={round:[],pine:[],poplar:[]}; list.forEach(t=>kinds[t.k==='tree'||t.k==='round'?'round':t.k==='pine'?'pine':'poplar'].push(t));
     const dummy=new THREE.Object3D(), C=new THREE.Color();
-    const mk=(geo,m,arr,f,colf)=>{ if(!arr.length) return; const im=new THREE.InstancedMesh(geo,m,arr.length); im.userData.ids=arr.map(t=>t.id||null); TREEIM.push(im); im.castShadow=true; im.receiveShadow=false; /* le chiome non ricevono ombra: l'auto-ombra delle sfere istanziate sfarfalla ("calore") */ arr.forEach((t,i)=>{ dummy.rotation.set(0,0,0); dummy.scale.set(1,1,1); f(t,dummy,i); dummy.updateMatrix(); im.setMatrixAt(i,dummy.matrix); C.set(colf?colf(t,i):'#ffffff').convertSRGBToLinear(); im.setColorAt(i,C); }); if(im.instanceColor) im.instanceColor.needsUpdate=true; built.add(im); };
+    const mk=(geo,m,arr,f,colf,noOL)=>{ if(!arr.length) return; const im=new THREE.InstancedMesh(geo,m,arr.length); if(noOL) im.userData.noOL=1; im.userData.ids=arr.map(t=>t.id||null); TREEIM.push(im); im.castShadow=true; im.receiveShadow=false; /* le chiome non ricevono ombra: l'auto-ombra delle sfere istanziate sfarfalla ("calore") */ arr.forEach((t,i)=>{ dummy.rotation.set(0,0,0); dummy.scale.set(1,1,1); f(t,dummy,i); dummy.updateMatrix(); im.setMatrixAt(i,dummy.matrix); C.set(colf?colf(t,i):'#ffffff').convertSRGBToLinear(); im.setColorAt(i,C); }); if(im.instanceColor) im.instanceColor.needsUpdate=true; built.add(im); };
     const hs=(a,b)=>{ const v=Math.sin(a*127.1+b*311.7)*43758.5453; return v-Math.floor(v); };
     const leaf=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.92}), bark=M('#6B4A32',{roughness:1});
     const all=kinds.round.concat(kinds.pine,kinds.poplar);
@@ -5813,6 +5813,12 @@ const C3=(()=>{
     [[.95,.62,1.1],[1.55,.5,.95],[2.1,.36,.8]].forEach((c,j)=>mk(new THREE.ConeGeometry(1,1,10),leaf,kinds.pine,(t,o)=>{ const s=t.s||1; o.position.set(t.x,c[0]*s,t.y); o.scale.set(c[1]*s,c[2]*s,c[1]*s); o.rotation.y=hs(t.x,t.y)*6; },(t)=>PP[Math.floor(hs(t.x,t.y)*3)]));
     const cp=[]; for(let i=0;i<=12;i++){ const f=i/12; cp.push(new THREE.Vector2(Math.max(.001,Math.sin(Math.pow(f,.85)*Math.PI)*(1-f*.35)*.36),f*2.4)); }
     mk(new THREE.LatheGeometry(cp,10),leaf,kinds.poplar,(t,o)=>{ const s=t.s||1; o.position.set(t.x,.08*s,t.y); o.scale.set(s,s,s); },(t)=>['#2E5E2A','#386B30','#2A5526'][Math.floor(hs(t.x,t.y)*3)]);
+    /* bosco lontano (solo telefono, vedi isFar): stesse sagome ma poche facce e niente contorno toon - da lontano il contorno e' solo puntinato */
+    if(FAR.length){ const fk={round:[],pine:[],poplar:[]}; FAR.forEach(t=>fk[t.k==='tree'||t.k==='round'?'round':t.k==='pine'?'pine':'poplar'].push(t));
+      mk(new THREE.CylinderGeometry(.06,.1,1,5),bark,FAR,(t,o)=>{ const s=t.s||1; o.position.set(t.x,(t.k==='pine'?.235:t.k==='poplar'?.21:.41)*s,t.y); o.scale.set(s,(t.k==='pine'?.55:t.k==='poplar'?.5:1)*s,s); },()=>'#ffffff',1);
+      mk(new THREE.IcosahedronGeometry(1,0),leaf,fk.round,(t,o)=>{ const s=t.s||1, r=hs(t.x,t.y); o.position.set(t.x,1.18*s,t.y); o.scale.set(.74*s,.66*s,.74*s); o.rotation.set(r*3,r*5,0); },(t)=>RP[Math.floor(hs(t.y,t.x)*6)],1);
+      [[1.05,.62,1.25],[1.85,.44,1.0]].forEach(c=>mk(new THREE.ConeGeometry(1,1,6),leaf,fk.pine,(t,o)=>{ const s=t.s||1; o.position.set(t.x,c[0]*s,t.y); o.scale.set(c[1]*s,c[2]*s,c[1]*s); o.rotation.y=hs(t.x,t.y)*6; },(t)=>PP[Math.floor(hs(t.x,t.y)*3)],1));
+      mk(new THREE.LatheGeometry(cp,6),leaf,fk.poplar,(t,o)=>{ const s=t.s||1; o.position.set(t.x,.08*s,t.y); o.scale.set(s,s,s); },(t)=>['#2E5E2A','#386B30','#2A5526'][Math.floor(hs(t.x,t.y)*3)],1); }
   }
   function bushes(list){ if(!list.length) return; const im=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.95}),list.length); im.castShadow=false; im.receiveShadow=true; const o=new THREE.Object3D(), C=new THREE.Color();
     list.forEach((b,i)=>{ o.position.set(b[0],b[2]*.55,b[1]); o.scale.set(b[2],b[2]*.8,b[2]); o.rotation.set(i,i*2,0); o.updateMatrix(); im.setMatrixAt(i,o.matrix); C.set(['#3F8A2E','#4E9A35','#5DA83C'][i%3]).convertSRGBToLinear(); im.setColorAt(i,C); }); built.add(im); }
@@ -6049,7 +6055,7 @@ const C3=(()=>{
 
     const tr=[]; const tops={};
     Object.keys(GLOW).forEach(k=>delete GLOW[k]); OBJ={}; items.forEach(it=>{ if(it.k==='tree'||it.k==='pine'||it.k==='poplar'){ tr.push({id:it.id,x:it.x+.45,y:it.y+.45,k:it.k==='tree'?'round':it.k,s:it.k==='poplar'?.95:1.05}); return; } const keep=built, g=new THREE.Group(); g.userData.id=it.id; built=g; tops[it.id]=building(it,ctx); built=keep; mergeGroup(g); keep.add(g); OBJ[it.id]=g; });
-    nat.trees.forEach(t=>{ if(MTN.some(m=>hyp(t.x-m.x,t.y-m.z)<m.br*1.02)) return; if(dPL([t.x,t.y],SP)<3.3) return; if(cwP&&pdist(t.x,t.y,cwP)<1.7) return; if(RDS.some(r=>pdist(t.x,t.y,r.p)<r.hw+1.1)) return; tr.push({x:t.x,y:t.y,k:t.t,s:t.k*1.05}); }); trees(tr);
+    nat.trees.forEach(t=>{ if(MTN.some(m=>hyp(t.x-m.x,t.y-m.z)<m.br*1.02)) return; if(dPL([t.x,t.y],SP)<3.3) return; if(cwP&&pdist(t.x,t.y,cwP)<1.7) return; if(RDS.some(r=>pdist(t.x,t.y,r.p)<r.hw+1.1)) return; tr.push({x:t.x,y:t.y,k:t.t,s:t.k*1.05}); }); { const ring=site.concat([site[0]]); trees(tr,MOB?(t=>!t.id&&!inPolyS([t.x,t.y],site)&&dPL([t.x,t.y],ring)>4):null); } /* sul telefono il bosco oltre 4 unita' dal bordo del campus e' leggero */
     // siepe lungo il confine, lampioni lungo i viali, aiuole davanti agli edifici
     const rects=items.filter(i=>CAM.K[i.k]&&!/tree|pine|poplar/.test(i.k)).map(i=>[i.x-.15,i.y-.15,i.x+CAM.K[i.k].w+.15,i.y+CAM.K[i.k].h+.15]);
     const inR=(x,z)=>rects.some(r=>x>r[0]&&x<r[2]&&z>r[1]&&z<r[3]), nearRd=(x,z,m)=>RDS.some(r=>dPL([x,z],r.p)<r.hw+m);
@@ -6083,7 +6089,7 @@ const C3=(()=>{
   /* Governatore di qualità: 4 livelli (3 = massimo). Scende se i frame non reggono il ritmo dello schermo, risale con calma; ?q=0..3 lo fissa, ?perf=1 mostra i numeri. */
   const LVL=[{pr:.75,cap:30},{pr:.7,cap:60},{pr:.85,cap:0},{pr:1,cap:0}];
   const PF={ lvl:(()=>{ if(QS.has('q')){ const q=+QS.get('q'); if(q>=0&&q<=3) return q; } try{ const s=localStorage.getItem('gngQ'); if(s!=null&&+s>=0&&+s<=3) return Math.min(+s,MOB?2:3); }catch(e){} return MOB?2:3; })(), forced:QS.has('q'), work:0, gap:16.7, base:16.7, gaps:[], gn:0, slow:0, fast:0, warm:0, lock:0, lockLen:60000, rn:0, rt:0, fps:0, ov:null, prev:0 };
-  const PR=()=>document.body.classList.contains('ttl-on')?.45:Math.max(MOB?1:.75,Math.min(devicePixelRatio||1,MOB?1.3:1.75)*LVL[PF.lvl].pr);
+  const PR=()=>document.body.classList.contains('ttl-on')?(MOB?.8:.45):Math.max(MOB?1:.75,Math.min(devicePixelRatio||1,MOB?2:1.75)*LVL[PF.lvl].pr); /* telefono: densita' fino a 2 (era 1.3: a densita' 3 si disegnava a 1.1 e l'immagine veniva stirata ~3x, tutto sgranato). Il bosco lontano e' leggero sul telefono per pagarlo */
   function perfSet(l){ PF.lvl=l; PF.slow=PF.fast=0; PF.warm=0; SHDIR=null; roverShadows(); R.setPixelRatio(PR()); size(); try{ localStorage.setItem('gngQ',String(l)); }catch(e){} }
   function perfShow(){ if(!PF.ov){ const d=document.createElement('div'); d.style.cssText='position:fixed;left:8px;top:8px;z-index:99999;font:11px/1.35 monospace;background:rgba(0,0,0,.62);color:#9fff9f;padding:4px 7px;border-radius:6px;pointer-events:none;white-space:pre'; document.body.appendChild(d); PF.ov=d; }
     const i=R.info.render; PF.ov.textContent='fps '+PF.fps.toFixed(0)+'   frame '+PF.gap.toFixed(1)+' ms   work '+PF.work.toFixed(1)+' ms\nquality '+PF.lvl+(PF.forced?' (forced)':'')+'   pixel ratio '+R.getPixelRatio().toFixed(2)+'   shadows '+(PF.shr||0).toFixed(1)+'/s'+'\ncalls '+i.calls+'   triangles '+i.triangles; }
