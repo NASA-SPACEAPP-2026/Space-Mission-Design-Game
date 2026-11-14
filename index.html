@@ -423,7 +423,7 @@ table.pay{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}table.
 .room3 .r3host{position:absolute;inset:0;background:#E9EDE6;touch-action:none;overflow:hidden;cursor:grab}.r3host:active{cursor:grabbing}
 body.fs .sbox>.fsc.r3full{width:100cqw;height:100cqh;aspect-ratio:auto;flex:none}
 .fsc.r3full{min-height:420px}.r3cv{display:block;position:absolute;left:0;top:0}.r3hs,.r3ts{position:absolute;inset:0;pointer-events:none}
-.r3h{position:absolute;pointer-events:auto;background:transparent;border:0;border-radius:10px;cursor:pointer;padding:0}.r3h:hover{outline:0;background:none;box-shadow:0 0 26px 5px rgba(127,205,245,.42);border-radius:26px}.r3h[data-na]{cursor:grab}.r3h.dtgt,.dtgt{outline:3px dashed #45A9A3;background:rgba(69,169,163,.15)}
+.r3h{position:absolute;pointer-events:auto;background:transparent;border:0;border-radius:10px;cursor:pointer;padding:0}.r3h:hover{outline:0;background:none;box-shadow:0 0 26px 5px rgba(127,205,245,.42);border-radius:26px}.r3host[data-room="meet"] .r3h:hover{box-shadow:none}.r3h[data-na]{cursor:grab}.r3h.dtgt,.dtgt{outline:3px dashed #45A9A3;background:rgba(69,169,163,.15)}
 .r3host.placing{cursor:crosshair}.r3host.placing .r3h{pointer-events:none}
 .idl{transform-box:fill-box;transform-origin:50% 100%;animation:idl 3.4s ease-in-out infinite}.idl.sp{animation:idlsp 1.1s ease-in-out infinite}@keyframes idl{50%{transform:translateY(-1.6px) scaleY(1.01)}}@keyframes idlsp{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-2.5px) rotate(.8deg)}70%{transform:translateY(-1px) rotate(-.8deg)}}
 .r3host.full{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;background:#BFDDEB;touch-action:none;cursor:default}.r3host.r3bg{pointer-events:none}
@@ -660,7 +660,7 @@ body.fs .dockR{bottom:84px}
   body.fs #view.scn>.head .btn.small{padding:4px 8px;font-size:12px}
   .hback{font-size:12px}
   .rail.L{left:calc(var(--sl,0px) + 8px);top:calc(var(--hudh) + var(--headh,40px) + 8px);gap:6px}
-  .rail.R{right:calc(var(--sr,0px) + 8px);top:calc(var(--hudh) + 4px);gap:6px}
+  .rail.R{right:calc(var(--sr,0px) + 8px);top:calc(var(--hudh) + var(--headh,40px) + 8px);gap:6px}
   .rb{width:46px;min-height:42px;padding:4px 2px}
   body.fs .dockL,body.fs .dockR{top:calc(var(--hudh) + 2px);bottom:8px}
   body.fs .dockR{bottom:62px}
@@ -760,7 +760,7 @@ body.fs:has(.acts .ask) .toast{top:calc(var(--hudh) + 8px)!important;bottom:auto
 @media (max-width:560px){.hud-r{gap:5px}.hud-l{min-width:0;flex:1 1 auto}.hud .mcard{min-width:0;max-width:150px}.hud .mcard b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px}.hud .rmx span{display:none}.hud .mcard{min-width:74px}.hud .mcard .pill,.hud .mcard small{display:none}.hico.lang,.hico[data-act="music"]{position:fixed;left:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));pointer-events:auto;z-index:31}.hico[data-act="music"]{left:62px}}
 .rail{position:absolute;z-index:5;display:flex;flex-direction:column;gap:8px}
 .rail.L{left:calc(var(--sl,0px) + 12px);top:calc(var(--hudh) + var(--headh,64px) + 12px)}
-.rail.R{right:calc(var(--sr,0px) + 12px);top:calc(var(--hudh) + 6px)}
+.rail.R{right:calc(var(--sr,0px) + 12px);top:calc(var(--hudh) + var(--headh,64px) + 12px)}
 .rb{width:60px;min-height:56px;border:0;border-radius:16px;background:rgba(29,29,14,0.85);box-shadow:0 4px 14px rgba(30,42,58,.16);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:6px 3px;color:var(--ink);position:relative}
 .rb i{font-style:normal;font-size:21px;line-height:1}.rb small{font:700 9.5px/1.1 var(--f-b);text-align:center;letter-spacing:.01em}
 .rb.on{background:#23706B;color:#fff}.rb .bd{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font:700 11px/18px var(--f-b);padding:0 4px}
@@ -789,7 +789,7 @@ body.tutmode .coach.nudge{animation:nudge .4s}
   #view.openL,#view.openR{--sl:0px;--sr:0px;--sb:50vh}
   #view.hasL:not(.openL):not(.openR),#view.hasR:not(.openL):not(.openR){--sb:0px}
   body.fs #view:not(.openL):not(.openR) .docks{display:none}
-  .rail.L{top:calc(var(--hudh) + var(--headh,64px) + 8px)}
+  .rail.L,.rail.R{top:calc(var(--hudh) + var(--headh,64px) + 8px)}
   .acts .ask{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-height:520px){ .rb{width:50px;min-height:46px;border-radius:13px}.rb i{font-size:18px}.rb small{font-size:8.5px} .acts{bottom:8px} .acts>.panel{padding:8px 10px;gap:6px} .acts .ask q{font-size:13px} .acts .ask .to{display:none} }
@@ -1267,7 +1267,7 @@ body.ttl-on #zbtn,body.ttl-on #zpanel{display:none}
 @keyframes tutPulse{0%,100%{box-shadow:0 0 6px 1px rgba(var(--tg),.35),0 0 14px 3px rgba(var(--tg),.15)}50%{box-shadow:0 0 14px 4px rgba(var(--tg),.85),0 0 30px 10px rgba(var(--tg),.35)}}
 @keyframes tutPulseSvg{0%,100%{filter:drop-shadow(0 0 3px rgba(var(--tg),.45))}50%{filter:drop-shadow(0 0 9px rgba(var(--tg),.95)) drop-shadow(0 0 16px rgba(var(--tg),.45))}}
 .coach-hl{outline:none!important;animation:tutPulse 1.6s ease-in-out infinite!important}
-.b3h.coach-hl{outline:none!important;border-radius:60px;background:none}
+.b3h.coach-hl{outline:none!important;border-radius:60px;background:none;animation:none!important;box-shadow:none!important}
 g.coach-hl{animation:tutPulseSvg 1.6s ease-in-out infinite!important;box-shadow:none}
 @media (prefers-reduced-motion:reduce){.coach-hl{animation:none!important;box-shadow:0 0 12px 3px rgba(var(--tg),.7),0 0 24px 8px rgba(var(--tg),.3)}g.coach-hl{animation:none!important;filter:drop-shadow(0 0 7px rgba(var(--tg),.9))}}
 body.tutmode .ov{padding-top:12px}
@@ -1304,6 +1304,9 @@ body.fs #view.scn>.head .hback{font-size:11px!important}
 .rb .hbg,.hbg{display:none!important}
 .rb i svg{width:21px;height:21px;display:block}
 .rb i{color:#2A2125}
+/* laboratorio prove: il tasto Macchinario e' piu' grande degli altri tasti laterali */
+.rail .rb[data-act="labadd"]{width:84px!important}.rail .rb[data-act="labadd"] i{width:66px!important;height:74px!important}.rail .rb[data-act="labadd"] i svg{width:32px!important;height:32px!important}.rail .rb[data-act="labadd"] small{font-size:12px!important}
+@media (max-height:520px){.rail .rb[data-act="labadd"]{width:70px!important}.rail .rb[data-act="labadd"] i{width:54px!important;height:61px!important}.rail .rb[data-act="labadd"] i svg{width:27px!important;height:27px!important}.rail .rb[data-act="labadd"] small{font-size:11px!important}}
 .rb.on i{color:#fff}
 
 /* --- 4. strumenti della stanza (piante, squadra): non più tagliati in alto --- */
@@ -1504,7 +1507,7 @@ body.zon::before{content:"";position:fixed;inset:0;z-index:155;background:rgba(1
 #view .cpop .fine{display:none}
 #view .cpop .btn{min-height:36px;white-space:nowrap}
 /* negozio dei pezzi: la barra verde resta ferma, scorrono solo i pezzi */
-.dockL:has(.shelf){overflow:hidden!important;display:flex!important;flex-direction:column}
+.dockL:has(.shelf){overflow:hidden!important;flex-direction:column}#view.openL .dockL:has(.shelf){display:flex!important}
 .dockL:has(.shelf)>.dclose{position:relative!important;top:auto!important;align-self:flex-end;flex:0 0 auto!important;margin:4px 6px 2px!important}
 .dockL .shelf #ptiles{grid-auto-rows:max-content!important}
 .dockL .shelf #ptiles>.tile{min-height:max-content}
