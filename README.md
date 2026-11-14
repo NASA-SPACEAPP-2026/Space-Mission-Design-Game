@@ -69,6 +69,15 @@ quietly falls back to its own numbers, and every value says which source it came
 - The base image is published by `.github/workflows/gmat-base-image.yml` (manual run, or when `docker/gmat/Dockerfile.base` changes).
 - After editing `scripts/gmat-*.mjs` or `public/game/02-orbit.js`: `docker compose restart gmat`.
 
+## Smoothness and quality
+
+The 3D campus renders at the screen's refresh rate, with the sun and moon crossing the sky (shadows follow them and anything that moves).
+A small quality governor lowers the pixel ratio and the shadow refresh rate if a device cannot keep up, and raises them again when it can.
+
+- `?perf=1` shows a small overlay (fps, frame time, draw calls, quality level).
+- `?q=0..3` forces a quality level (3 = best) for testing. The last level used is remembered in `localStorage` (`gngQ`).
+- `prefers-reduced-motion` keeps the old low frame rate.
+
 ## Branches and deployment
 
 Work goes into `dev` through pull requests; every push to `dev` deploys to **staging**. Merging

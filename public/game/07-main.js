@@ -5231,7 +5231,7 @@ return {make:creature,cat:createAlienCat,look,LIST,SC,Crowd,ANIMS};
 const C3=(()=>{
   let R=null, scene=null, cam=null, host=null, hot=null, raf=0, sig='', built=null, okGL=null, last=0, running=false, HEMC=null, SUNC=null, FILC=null, STARS=null, LAMPM=[], GLOWM=null, TODS=null;
   const YAW0=.38, T={x:12.5,z:10.5,d:30,yaw:YAW0,pitch:.6}; let lastIn=0, ttlWas=false;
-  const anims=[], walkers=[], flags=[]; let OBJ={}, TREEIM=[];
+  const anims=[], walkers=[], flags=[], RVL=[]; let OBJ={}, TREEIM=[];
   const col=h=>new THREE.Color(h).convertSRGBToLinear();
   const MC={}; function mat(h,o){ const k=h+'|'+JSON.stringify(o||{}); if(MC[k]) return MC[k]; return MC[k]=new THREE.MeshStandardMaterial(Object.assign({color:col(h),roughness:.85,metalness:0,envMapIntensity:.5},o||{})); }
   function can(){ if(okGL!=null) return okGL; try{ const c=document.createElement('canvas'); okGL=!!(window.THREE&&(c.getContext('webgl2')||c.getContext('webgl'))); }catch(e){ okGL=false; } return okGL; }
@@ -5479,7 +5479,21 @@ const C3=(()=>{
         if(p){ w.cool=30+Math.random()*30; if(w.sure||Math.random()<.7){ w.st='wait'; w.wt=0; w.partner=p; p.hs='greet'; p.gt=0; p.car=w; p.cool=25; p.yaw=p.g.rotation.y; p.g.userData.play('walk'); u.play('idle'); } } }
       const vis=FRU.intersectsSphere(FRS.set(c.position,.8)); c.visible=vis; if(vis) u.update(dt); }); }
   function people(paths,N){ if(!paths||!paths.length||!N) return; for(let i=0;i<N;i++){ const pl=paths[i%paths.length], g=colonist(i,N); built.add(g); let L=0; const seg=[]; for(let k=1;k<pl.length;k++){ const d=Math.hypot(pl[k][0]-pl[k-1][0],pl[k][1]-pl[k-1][1]); seg.push(d); L+=d; } walkers.push({g,pl,seg,L,u:((i*.618034)%1)*L,sp:.5+(i%3)*.12,dir:i%2?1:-1,kind:'p',pause:0,id:i,off:0,ox:0,oz:0,tx:0,tz:0,cool:6+Math.random()*10}); } }
-  function rovers(paths){ paths.forEach((pl,i)=>{ const g=rover(); g.userData.dyn=true; built.add(g); let L=0; const seg=[]; for(let k=1;k<pl.length;k++){ const d=Math.hypot(pl[k][0]-pl[k-1][0],pl[k][1]-pl[k-1][1]); seg.push(d); L+=d; } walkers.push({g,pl,seg,L,u:(.3+i*.4)%1*L,sp:1.1,dir:1,kind:'r'}); }); }
+  /* Rover: la strada è una spezzata; il rover la percorre su una curva di Catmull-Rom (angoli arrotondati), sterza verso un punto poco più avanti con una rotazione smorzata,
+     e ha una velocità con inerza: rallenta ai capolinea e in curva, frena e riparte dolcemente. Il dietrofront ai capolinea è una vera curva, non uno scatto. */
+  const RA=[0,0,0,0], RB=[0,0,0,0];
+  function crPt(P,k,f,o){ const n=P.length, p0=P[k>0?k-1:0], p1=P[k], p2=P[k+1<n?k+1:n-1], p3=P[k+2<n?k+2:n-1], f2=f*f, f3=f2*f;
+    for(let c=0;c<2;c++){ const a=-p0[c]+p2[c], b=2*p0[c]-5*p1[c]+4*p2[c]-p3[c], d=-p0[c]+3*p1[c]-3*p2[c]+p3[c]; o[c]=.5*(2*p1[c]+a*f+b*f2+d*f3); o[2+c]=.5*(a+2*b*f+3*d*f2); } }
+  function rvAt(w,u,o){ u=u<0?0:u>w.L?w.L:u; let k=w.k||0; while(k>0&&u<w.cum[k]) k--; while(k<w.seg.length-1&&u>w.cum[k+1]) k++; w.k=k; const f=w.seg[k]?(u-w.cum[k])/w.seg[k]:0; crPt(w.pl,k,f<0?0:f>1?1:f,o); }
+  function roverStep(w,dt,t){
+    if(w.yaw==null){ w.cum=[0]; for(let i=0;i<w.seg.length;i++) w.cum.push(w.cum[i]+w.seg[i]); w.v=0; w.k=0; rvAt(w,w.u,RA); w.yaw=Math.atan2(RA[2]*w.dir,RA[3]*w.dir); }
+    rvAt(w,w.u,RA); const x0=RA[0], z0=RA[1]; rvAt(w,w.u+w.dir*.45,RB); let dx=RB[0]-x0, dz=RB[1]-z0; if(Math.hypot(dx,dz)<.05){ dx=RA[2]*w.dir; dz=RA[3]*w.dir; }
+    const da=Math.atan2(Math.sin(Math.atan2(dx,dz)-w.yaw),Math.cos(Math.atan2(dx,dz)-w.yaw)), maxTurn=3.4*dt; w.yaw+=Math.max(-maxTurn,Math.min(maxTurn,da*Math.min(1,dt*7)));
+    const toEnd=w.dir>0?w.L-w.u:w.u, tv=w.sp*Math.min(1,.18+toEnd/1.4)*(Math.abs(da)>.6?.12:1)*(w.brake>0?.12:1); if(w.brake>0) w.brake-=dt;
+    w.v+=(tv-w.v)*Math.min(1,dt*(tv>w.v?1.8:4)); w.u+=w.dir*w.v*dt; if(w.u>w.L){ w.u=w.L; w.dir=-1; } else if(w.u<0){ w.u=0; w.dir=1; }
+    rvAt(w,w.u,RA); w.g.position.set(RA[0],0,RA[1]); w.g.rotation.y=w.yaw-Math.PI/2; w.hx=Math.sin(w.yaw); w.hz=Math.cos(w.yaw);
+    const wh=w.g.userData.wh, spin=dt*w.v*w.dir*-8; for(let i=0;i<wh.length;i++) wh[i].rotation.y+=spin; w.g.userData.bl.material.emissiveIntensity=Math.sin(t*6)>0?1.6:.2; }
+  function rovers(paths){ paths.forEach((pl,i)=>{ const g=rover(); g.userData.dyn=true; built.add(g); let L=0; const seg=[]; for(let k=1;k<pl.length;k++){ const d=Math.hypot(pl[k][0]-pl[k-1][0],pl[k][1]-pl[k-1][1]); seg.push(d); L+=d; } const w={g,pl,seg,L,u:(.3+i*.4)%1*L,sp:1.1,dir:1,kind:'r'}; walkers.push(w); RVL.push(w); }); }
   /* i pedoni non si attraversano: se un altro e' vicino, si spostano di lato (destra se si incrociano, alternati se vanno nello stesso verso) */
   const FRU=new THREE.Frustum(), FRM=new THREE.Matrix4(), FRS=new THREE.Sphere(new THREE.Vector3(),.9);
   function pedUpd(w,dt){ const vis=FRU.intersectsSphere(FRS.set(w.g.position,.9)); w.g.visible=vis; if(vis) w.g.userData.update(dt); }
@@ -5488,7 +5502,7 @@ const C3=(()=>{
     if(w.hs==='pet'){ w.at+=dt; const yaw=Math.atan2(car.g.position.x-w.g.position.x,car.g.position.z-w.g.position.z); let da=yaw-w.g.rotation.y; da=Math.atan2(Math.sin(da),Math.cos(da)); w.g.rotation.y+=da*Math.min(1,dt*6); if(w.at>w.petT){ w.hs=''; w.tx=0; w.tz=0; w.cool=20+Math.random()*30; w.car=null; w.yaw=w.g.rotation.y; w.yawT=1.1; w.g.userData.play('walk'); } }
     if(w.hs==='angry'){ w.at+=dt; const yaw=Math.atan2(car.g.position.x-w.g.position.x,car.g.position.z-w.g.position.z); let da=yaw-w.g.rotation.y; da=Math.atan2(Math.sin(da),Math.cos(da)); w.g.rotation.y+=da*Math.min(1,dt*6); if(w.at>3.6){ w.hs=''; w.tx=0; w.tz=0; w.cool=30+Math.random()*40; w.will=false; w.g.userData.play('walk'); } }
     w.g.userData.update(dt); w.g.visible=true; }
-  function pedCars(dt){ const rv=walkers.filter(q=>q.kind==='r'); if(!rv.length) return; walkers.forEach(w=>{ if(w.kind!=='p') return; w.cool=Math.max(0,(w.cool||0)-dt); if(w.park&&!w.hs) return; const g=w.g;
+  function pedCars(dt){ const rv=RVL; if(!rv.length) return; walkers.forEach(w=>{ if(w.kind!=='p') return; w.cool=Math.max(0,(w.cool||0)-dt); if(w.park&&!w.hs) return; const g=w.g;
       if(!w.hs){ if(w.cool>0) return; let best=null, bd=9; rv.forEach(r=>{ const d=Math.hypot(r.g.position.x-g.position.x,r.g.position.z-g.position.z); if(d<bd){ bd=d; best=r; } });
         if(best&&bd<2.4){ if(w.enc!==best){ w.enc=best; w.will=Math.random()<.6; } if(w.will){ w.hs='step'; w.car=best; w.st=0; } } else w.enc=null; }
       else if(w.hs==='step'){ const r=w.car, dx=r.g.position.x-g.position.x, dz=r.g.position.z-g.position.z, d=Math.hypot(dx,dz)||1; w.st+=dt; w.tx=dx/d*.55; w.tz=dz/d*.55;
@@ -5498,7 +5512,7 @@ const C3=(()=>{
     walkers.forEach(o=>{ if(o===w||o.kind!=='p') return; const dx=o.g.position.x-px, dz=o.g.position.z-pz; if(Math.hypot(dx,dz)>.4) return; const oa=o.g.rotation.y, opp=Math.sin(oa)*fx+Math.cos(oa)*fz<0; tg=opp?.16:((w.id%2)?.16:-.16); });
     let seen=false; walkers.forEach(o=>{ if(o.kind!=='c'||(w.hs==='greet'&&o===w.car)) return; const dx=o.g.position.x-px, dz=o.g.position.z-pz; if(Math.hypot(dx,dz)>.8||dx*fx+dz*fz<-.25) return; const lat=dx*Math.cos(ang)-dz*Math.sin(ang); if(!w.cside) w.cside=Math.abs(lat)<.14?((w.id%2)?1:-1):(lat>0?-1:1); tg=w.cside*.34; seen=true; }); if(!seen) w.cside=0;
     w.off+=(tg-w.off)*Math.min(1,dt*4); w.g.position.x+=Math.cos(ang)*w.off; w.g.position.z-=Math.sin(ang)*w.off; }
-  function walk(dt,t){ cam.updateMatrixWorld(); FRM.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse); FRU.setFromProjectionMatrix(FRM); walkers.forEach(w=>{ if(w.kind==='c') return; if(w.kind==='p'&&(w.hs==='fall'||w.hs==='angry'||w.hs==='pet')){ pedFrozen(w,dt); return; } if(w.kind==='p'&&w.park&&(!w.hs||w.hs==='greet')){ parkStep(w,dt); return; } if(w.kind==='p'&&!w.hs&&!w.park&&PARK&&w.px!=null&&w.pause<=0&&(w.pkc=(w.pkc==null?8+Math.random()*20:w.pkc)-dt)<=0){ w.pkc=25+Math.random()*40; const lg=PARK.legs(w.px,w.pz); if(lg){ w.park={legs:lg,i:0,x:w.g.position.x,z:w.g.position.z,wait:0}; w.g.userData.play('walk'); parkStep(w,dt); return; } } if(w.kind==='p'&&w.pause>0){ w.pause-=dt; if(w.pause<=0) w.g.userData.play('walk'); pedUpd(w,dt); return; }
+  function walk(dt,t){ cam.updateMatrixWorld(); FRM.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse); FRU.setFromProjectionMatrix(FRM); walkers.forEach(w=>{ if(w.kind==='c') return; if(w.kind==='r'){ roverStep(w,dt,t); return; } if(w.kind==='p'&&(w.hs==='fall'||w.hs==='angry'||w.hs==='pet')){ pedFrozen(w,dt); return; } if(w.kind==='p'&&w.park&&(!w.hs||w.hs==='greet')){ parkStep(w,dt); return; } if(w.kind==='p'&&!w.hs&&!w.park&&PARK&&w.px!=null&&w.pause<=0&&(w.pkc=(w.pkc==null?8+Math.random()*20:w.pkc)-dt)<=0){ w.pkc=25+Math.random()*40; const lg=PARK.legs(w.px,w.pz); if(lg){ w.park={legs:lg,i:0,x:w.g.position.x,z:w.g.position.z,wait:0}; w.g.userData.play('walk'); parkStep(w,dt); return; } } if(w.kind==='p'&&w.pause>0){ w.pause-=dt; if(w.pause<=0) w.g.userData.play('walk'); pedUpd(w,dt); return; }
       w.u+=w.dir*w.sp*dt*(w.brake>0?.25:1)*greetFactor(w); if(w.brake>0) w.brake-=dt; let ended=0; if(w.u>w.L){ w.u=w.L; w.dir=-1; ended=1; } if(w.u<0){ w.u=0; w.dir=1; ended=1; }
       if(ended&&w.kind==='p'){ if(w.hs==='greet') greetEnd(w,false); w.pause=1.2+Math.random()*2.8; w.g.userData.play(['calc','notes','idle','talk'][(Math.random()*4)|0]); } let u=w.u, k=0; while(k<w.seg.length-1&&u>w.seg[k]){ u-=w.seg[k]; k++; } const a=w.pl[k], b=w.pl[k+1]||a, f=w.seg[k]?u/w.seg[k]:0;
       const ang=Math.atan2(b[0]-a[0],b[1]-a[1])+(w.dir<0?Math.PI:0);
@@ -5556,7 +5570,7 @@ const C3=(()=>{
   function mergeGroup(g){ TOON.outlineStatic(g,{minDim:.045}); const B={}; g.children.slice().forEach(o=>{ if(!o.isMesh||o.isInstancedMesh||Array.isArray(o.material)||o.userData.dyn) return; (B[o.material.uuid]=B[o.material.uuid]||[]).push(o); });
     Object.values(B).forEach(list=>{ if(list.length<2) return; const pos=[], nor=[], uv=[]; list.forEach(o=>{ o.updateMatrix(); let geo=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone(); geo.applyMatrix4(o.matrix); const p=geo.attributes.position, n=geo.attributes.normal, u=geo.attributes.uv; for(let i=0;i<p.count;i++){ pos.push(p.getX(i),p.getY(i),p.getZ(i)); if(n) nor.push(n.getX(i),n.getY(i),n.getZ(i)); else nor.push(0,1,0); if(u) uv.push(u.getX(i),u.getY(i)); else uv.push(0,0); } geo.dispose(); g.remove(o); o.geometry.dispose(); });
       const mg=new THREE.BufferGeometry(); mg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); mg.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3)); mg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); const m=new THREE.Mesh(mg,list[0].material); m.userData.noOL=1; m.castShadow=true; m.receiveShadow=list.every(o=>o.receiveShadow); g.add(m); }); }
-  function buildScene(items,ctx){ if(built){ scene.remove(built); built.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } TREEIM=[]; built=new THREE.Group(); scene.add(built); anims.length=0; walkers.length=0; flags.length=0;
+  function buildScene(items,ctx){ if(built){ scene.remove(built); built.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } TREEIM=[]; built=new THREE.Group(); scene.add(built); anims.length=0; walkers.length=0; RVL.length=0; flags.length=0;
     const site=CAM.site(), nat=CAM.nat(), roads=CAM.roads();
     // prato con chiazze
     const gg=new THREE.PlaneGeometry(260,260,90,90); gg.rotateX(-Math.PI/2); const cc=[], C=new THREE.Color(); const pa=gg.attributes.position;
@@ -5630,7 +5644,21 @@ const C3=(()=>{
     const sun=new THREE.DirectionalLight(col('#FFE9C8'),1.7); SUNC=sun; sun.position.set(-18,34,-10); sun.target.position.set(13,0,8); sun.castShadow=true; const s=sun.shadow; s.mapSize.set(2048,2048); s.camera.left=-30; s.camera.right=30; s.camera.top=30; s.camera.bottom=-30; s.camera.near=1; s.camera.far=110; s.bias=-.0006; s.normalBias=.02; s.radius=4; scene.add(sun); scene.add(sun.target);
     const fill=new THREE.DirectionalLight(col('#CFE0FF'),.25); fill.position.set(30,20,30); FILC=fill; scene.add(fill);
     { const n=160, pos=new Float32Array(n*3); for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, e=.12+Math.random()*1.3, r=260; pos[i*3]=13+Math.cos(a)*Math.cos(e)*r; pos[i*3+1]=Math.sin(e)*r; pos[i*3+2]=8+Math.sin(a)*Math.cos(e)*r; } const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); STARS=new THREE.Points(g,new THREE.PointsMaterial({color:0xFFFFFF,size:2.2,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false})); STARS.frustumCulled=false; STARS.visible=false; scene.add(STARS); } }
-  const MOB=matchMedia('(pointer:coarse)').matches; const PR=()=>document.body.classList.contains('ttl-on')?.45:Math.min(devicePixelRatio||1,MOB?1.3:1.75);
+  const MOB=matchMedia('(pointer:coarse)').matches, QS=new URLSearchParams(location.search), RMOTION=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* Governatore di qualità: 4 livelli (3 = massimo). Scende se i frame non reggono il ritmo dello schermo, risale con calma; ?q=0..3 lo fissa, ?perf=1 mostra i numeri. */
+  const LVL=[{pr:.75,every:20,cap:30},{pr:.7,every:4,cap:60},{pr:.85,every:2,cap:0},{pr:1,every:1,cap:0}];
+  const PF={ lvl:(()=>{ if(QS.has('q')){ const q=+QS.get('q'); if(q>=0&&q<=3) return q; } try{ const s=localStorage.getItem('gngQ'); if(s!=null&&+s>=0&&+s<=3) return Math.min(+s,MOB?2:3); }catch(e){} return MOB?2:3; })(), forced:QS.has('q'), work:0, gap:16.7, base:16.7, gaps:[], gn:0, slow:0, fast:0, warm:0, lock:0, lockLen:60000, rn:0, rt:0, fps:0, shn:0, ov:null, prev:0 };
+  const PR=()=>document.body.classList.contains('ttl-on')?.45:Math.max(MOB?1:.75,Math.min(devicePixelRatio||1,MOB?1.3:1.75)*LVL[PF.lvl].pr);
+  function perfSet(l){ PF.lvl=l; PF.slow=PF.fast=0; PF.warm=0; PF.shn=0; R.setPixelRatio(PR()); size(); try{ localStorage.setItem('gngQ',String(l)); }catch(e){} }
+  function perfShow(){ if(!PF.ov){ const d=document.createElement('div'); d.style.cssText='position:fixed;left:8px;top:8px;z-index:99999;font:11px/1.35 monospace;background:rgba(0,0,0,.62);color:#9fff9f;padding:4px 7px;border-radius:6px;pointer-events:none;white-space:pre'; document.body.appendChild(d); PF.ov=d; }
+    const i=R.info.render; PF.ov.textContent='fps '+PF.fps.toFixed(0)+'   frame '+PF.gap.toFixed(1)+' ms   work '+PF.work.toFixed(1)+' ms\nquality '+PF.lvl+(PF.forced?' (forced)':'')+'   pixel ratio '+R.getPixelRatio().toFixed(2)+'   shadows 1/'+LVL[PF.lvl].every+'\ncalls '+i.calls+'   triangles '+i.triangles; }
+  function perfStep(gap,work,dt,ttl){ PF.work+=(work-PF.work)*.1; PF.rn++; const now=performance.now(); if(!PF.rt) PF.rt=now;
+    if(now-PF.rt>=500){ PF.fps=PF.rn*1000/(now-PF.rt); PF.rn=0; PF.rt=now; if(QS.has('perf')) perfShow(); }
+    if(PF.forced||RMOTION||ttl||gap>250) return; PF.warm+=dt; if(PF.warm<2.5) return;
+    const exp=Math.max(PF.base,LVL[PF.lvl].cap?1000/LVL[PF.lvl].cap:0);
+    if(PF.gap>exp*1.4){ PF.slow+=dt; PF.fast=0; if(PF.slow>1.5&&PF.lvl>0){ perfSet(PF.lvl-1); PF.lock=now+PF.lockLen; PF.lockLen=Math.min(600000,PF.lockLen*2); } }
+    else if(PF.gap<exp*1.12&&PF.work<exp*.5){ PF.fast+=dt; PF.slow=0; if(PF.fast>8&&PF.lvl<3&&now>PF.lock) perfSet(PF.lvl+1); }
+    else { PF.slow=0; PF.fast=0; } }
   function placeCam(){ const cp=Math.cos(T.pitch), spch=Math.sin(T.pitch); cam.position.set(T.x+Math.sin(T.yaw)*cp*T.d, spch*T.d, T.z+Math.cos(T.yaw)*cp*T.d); cam.lookAt(T.x,0,T.z); }
   function size(){ if(!host) return; const w=host.clientWidth||innerWidth, h=host.clientHeight||innerHeight; R.setSize(w,h,false); R.domElement.style.width=w+'px'; R.domElement.style.height=h+'px'; cam.aspect=w/h; cam.updateProjectionMatrix(); HSdirty=true; }
   /* hotspot DOM sopra gli edifici: servono al tocco, al tutorial e alle etichette */
@@ -5651,14 +5679,26 @@ const C3=(()=>{
   /* ciclo: giorno lungo, tramonto/alba brevissimi (stessa luce), notte breve (blu, non buia del tutto). Chiavi: [secondi, 0=giorno 1=tramonto/alba 2=notte] */
   const TODK=[[0,0],[150,0],[158,1],[165,1],[173,2],[285,2],[293,1],[299,1],[307,0]], CYC=307, SKY=[{bg:'#BFDDEB',fog:'#C7E0E6',hs:'#EAF4FF',hg:'#4F7A2E',hi:.28,sc:'#FFE9C8',si:1.7,fc:'#CFE0FF',fi:.25,lamp:.5,win:0},{bg:'#F0A872',fog:'#EDB58C',hs:'#FFD9B8',hg:'#5C5C3C',hi:.27,sc:'#FF9A55',si:1.25,fc:'#8E9ACB',fi:.22,lamp:2.5,win:.3},{bg:'#1B2A4C',fog:'#24365C',hs:'#7F90CC',hg:'#24304A',hi:.36,sc:'#9DB4FF',si:.75,fc:'#5B6FA8',fi:.3,lamp:6,win:.8}];
   const TCA=new THREE.Color(), TCB=new THREE.Color(); const mixC=(out,a,b,f)=>{ TCA.set(a).convertSRGBToLinear(); TCB.set(b).convertSRGBToLinear(); out.copy(TCA).lerp(TCB,f); };
-  function dayNight(ts){ if(!HEMC||!SUNC||!scene) return; const T=TODS!=null?TODS:((ts+30)%CYC); let i=0; while(i<TODK.length-2&&T>=TODK[i+1][0]) i++; const a=TODK[i], b=TODK[i+1], f0=Math.max(0,Math.min(1,(T-a[0])/(b[0]-a[0]))), f=f0*f0*(3-2*f0), A=SKY[a[1]], B=SKY[b[1]], L=(x,y)=>x+(y-x)*f;
-    mixC(scene.background,A.bg,B.bg,f); if(scene.fog) mixC(scene.fog.color,A.fog,B.fog,f); mixC(HEMC.color,A.hs,B.hs,f); mixC(HEMC.groundColor,A.hg,B.hg,f); HEMC.intensity=L(A.hi,B.hi); mixC(SUNC.color,A.sc,B.sc,f); SUNC.intensity=L(A.si,B.si); mixC(FILC.color,A.fc,B.fc,f); FILC.intensity=L(A.fi,B.fi);
-    const lamp=L(A.lamp,B.lamp), win=L(A.win,B.win); LAMPM.forEach(m=>{ m.emissiveIntensity=lamp; }); if(GLOWM) GLOWM.opacity=Math.max(0,(lamp-.5)/5.5)*.9; [GLASS,GLASSD].forEach(m=>{ if(m){ if(m.emissive) m.emissive.setHex(0xFFC873); m.emissiveIntensity=win; } });
-    if(STARS){ const ns=(a[1]===2?1:0)*(1-f)+(b[1]===2?1:0)*f; STARS.material.opacity=ns; STARS.visible=ns>.03; } }
+  /* Il sole attraversa il cielo dall'alba al tramonto e di notte la luna fa lo stesso: la luce direzionale si sposta e le ombre (rinfrescate dal governatore) la seguono.
+     A mezzogiorno la direzione è quella di sempre. Il sole non scende sotto 18°: oltre, le ombre diventerebbero troppo lunghe per la mappa d'ombra. */
+  const SUNT=new THREE.Vector3(13,0,8), SD=new THREE.Vector3(), MD=new THREE.Vector3(), PHI0=Math.atan2(-18,-31), D2R=Math.PI/180, T_RISE=290, T_SET=165, M_RISE=173, M_SET=285;
+  const arcDir=(out,u,e0,e1)=>{ u=u<0?0:u>1?1:u; const el=(e0+(e1-e0)*Math.sin(Math.PI*u))*D2R, ph=PHI0+(u-.5)*Math.PI; return out.set(Math.cos(ph)*Math.cos(el),Math.sin(el),Math.sin(ph)*Math.cos(el)); };
+  function sunPath(T,night){ const uS=(T>=T_RISE?T-T_RISE:T+CYC-T_RISE)/(CYC-T_RISE+T_SET), uM=(T-M_RISE)/(M_SET-M_RISE); arcDir(SD,uS,18,46); arcDir(MD,uM,24,44); SD.lerp(MD,night).normalize(); SUNC.position.copy(SUNT).addScaledVector(SD,49); }
+  let SKYL=null; const lerpN=(x,y,f)=>x+(y-x)*f, mixL=(out,x,y,f)=>out.copy(x).lerp(y,f);
+  function dayNight(ts){ if(!HEMC||!SUNC||!scene) return; if(!SKYL) SKYL=SKY.map(s=>({bg:col(s.bg),fog:col(s.fog),hs:col(s.hs),hg:col(s.hg),sc:col(s.sc),fc:col(s.fc)}));
+    const T=TODS!=null?TODS:((ts+30)%CYC); let i=0; while(i<TODK.length-2&&T>=TODK[i+1][0]) i++; const a=TODK[i], b=TODK[i+1], f0=Math.max(0,Math.min(1,(T-a[0])/(b[0]-a[0]))), f=f0*f0*(3-2*f0), A=SKY[a[1]], B=SKY[b[1]], AL=SKYL[a[1]], BL=SKYL[b[1]];
+    mixL(scene.background,AL.bg,BL.bg,f); if(scene.fog) mixL(scene.fog.color,AL.fog,BL.fog,f); mixL(HEMC.color,AL.hs,BL.hs,f); mixL(HEMC.groundColor,AL.hg,BL.hg,f); HEMC.intensity=lerpN(A.hi,B.hi,f); mixL(SUNC.color,AL.sc,BL.sc,f); SUNC.intensity=lerpN(A.si,B.si,f); mixL(FILC.color,AL.fc,BL.fc,f); FILC.intensity=lerpN(A.fi,B.fi,f);
+    const night=(a[1]===2?1:0)*(1-f)+(b[1]===2?1:0)*f; sunPath(T,night);
+    const lamp=lerpN(A.lamp,B.lamp,f), win=lerpN(A.win,B.win,f); for(let k=0;k<LAMPM.length;k++) LAMPM[k].emissiveIntensity=lamp; if(GLOWM) GLOWM.opacity=Math.max(0,(lamp-.5)/5.5)*.9;
+    if(GLASS){ if(GLASS.emissive) GLASS.emissive.setHex(0xFFC873); GLASS.emissiveIntensity=win; } if(GLASSD){ if(GLASSD.emissive) GLASSD.emissive.setHex(0xFFC873); GLASSD.emissiveIntensity=win; }
+    if(STARS){ STARS.material.opacity=night; STARS.visible=night>.03; } }
   function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); const ttl=document.body.classList.contains('ttl-on'); if(ttl!==ttlWas){ ttlWas=ttl; R.setPixelRatio(PR()); size(); }
-    const busy=ttl||PT.size>0||ts-lastIn<1200||Math.abs(T.yaw-YAW0)>.002; if(ts-last<(busy?33:80)) return; const dt=Math.min(.1,(ts-last)/1000); last=ts; const t=ts/1000;
+    const raw=ts-PF.prev; PF.prev=ts; if(raw>0&&raw<250){ PF.gaps.push(raw); if(PF.gaps.length>90) PF.gaps.shift(); if(++PF.gn%30===0){ const s=PF.gaps.slice().sort((a,b)=>a-b); const p=s[Math.floor(s.length*.2)]; if(p<PF.base){ PF.base=p; PF.hiT=0; } else if(p>PF.base*1.3){ PF.hiT=(PF.hiT||0)+30; if(PF.hiT>1800){ PF.base=p; PF.hiT=0; } } else PF.hiT=0; /* ritmo dello schermo = il più veloce osservato; si adegua solo se resta lento a lungo */ } }
+    const busy=ttl||PT.size>0||ts-lastIn<1200||Math.abs(T.yaw-YAW0)>.002, lv=LVL[PF.lvl], gapMin=RMOTION?(busy?33:80):(lv.cap?1000/lv.cap-3:0); if(ts-last<gapMin) return;
+    const gap=ts-last; last=ts; PF.gap+=(Math.min(gap,100)-PF.gap)*.2; const dt=Math.min(.05,PF.gap/1000), t=ts/1000, w0=performance.now(); /* dt mediato: i frame irregolari non diventano scatti */
     if(ttl) T.yaw+=dt*.05; else { let dy=((T.yaw-YAW0)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; T.yaw=YAW0+dy*Math.pow(.02,dt); } dayNight(t); walk(dt,t); for(let i=0;i<anims.length;i++) anims[i](t); for(let i=0;i<flags.length;i++) flags[i].rotation.y=Math.sin(t*2+i)*.25; edit3(t);
-    placeCam(); R.render(scene,cam); project(); }
+    if(++PF.shn>=lv.every){ PF.shn=0; R.shadowMap.needsUpdate=true; } /* le ombre si rinfrescano: seguono il sole e chi si muove */
+    placeCam(); R.render(scene,cam); project(); perfStep(gap,performance.now()-w0,dt,ttl); }
   /* ---------- input: trascina, pizzica, rotellina ---------- */
   const PT=new Map(); let drag=null, pinch=null, moved=false;
   function clampT(){ const s=CAM.site(); let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9; s.forEach(p=>{ x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); z0=Math.min(z0,p[1]); z1=Math.max(z1,p[1]); }); T.x=Math.max(x0,Math.min(x1,T.x)); T.z=Math.max(z0,Math.min(z1,T.z)); T.d=Math.max(11,Math.min(58,T.d)); }
@@ -5703,7 +5743,7 @@ const C3=(()=>{
     if(!el.dataset.c3){ el.dataset.c3=1; el.addEventListener('pointerdown',onDown); el.addEventListener('pointermove',onMove); el.addEventListener('pointerup',onUp); el.addEventListener('pointercancel',onUp); el.addEventListener('wheel',onWheel,{passive:false}); el.addEventListener('click',onClick,true); }
     if(!mount.cam0){ mount.cam0=1; T.d=Math.min(44,30*Math.max(1,(el.clientHeight/Math.max(1,el.clientWidth))*1.8)); }
     running=true; document.body.classList.add('c3live'); if(!raf) raf=requestAnimationFrame(frame); return true; }
-  function stop(){ running=false; document.body.classList.remove('c3live'); }
+  function stop(){ running=false; document.body.classList.remove('c3live'); if(PF.ov){ PF.ov.remove(); PF.ov=null; } }
   addEventListener('resize',()=>{ if(running) size(); });
   /* Anteprima: costruisce l'edificio da solo in una scena a parte e ne restituisce un'immagine (messa in cache). */
    let SR=null, SS=null, SC=null; const SNC={};
