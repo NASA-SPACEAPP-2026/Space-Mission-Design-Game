@@ -8,6 +8,7 @@ async function loadModule(search) {
   const store = new Map();
   const context = {
     window: {}, location: { search }, URLSearchParams, console, setTimeout, clearTimeout, setInterval, clearInterval,
+    CompressionStream, DecompressionStream, Response, Blob, TextEncoder, TextDecoder, btoa, atob,
     localStorage: { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) }
   };
   runInNewContext(source, context);
@@ -45,6 +46,17 @@ describe('consortium panel module', () => {
     expect(errText({ data: { error: 'something-new' } })).toBe('Servizio consorzi non disponibile.');
   });
 
+  it('compresses the spectate game state and restores it exactly', async () => {
+    const { pack, unpack } = C._test;
+    const game = { co: 'Agenzia Città', missions: Array.from({ length: 30 }, (_, i) => ({ id: 'm' + i, name: 'AURASAT ' + i, log: 'Tempesta solare ☀️ '.repeat(20) })), world: { items: [] } };
+    const json = JSON.stringify(game), packed = await pack(json);
+    expect(packed.enc).toBe('gz');
+    expect(packed.data).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
+    expect(packed.data.length).toBeLessThan(json.length / 4);
+    expect(JSON.parse(await unpack(packed))).toEqual(game);
+    expect(JSON.parse(await unpack({ enc: 'raw', data: Buffer.from(json).toString('base64') }))).toEqual(game);
+  });
+
   it('runs the offline demo from search to chat to leaving', async () => {
     const api = C._test.demo.call;
     const recommended = (await api('GET', '')).data.consortia.map(c => c.name);
@@ -64,6 +76,8 @@ describe('consortium panel module', () => {
     expect((await api('POST', '/science', { mission: 'm1', points: 90, name: 'AURASAT' })).data).toMatchObject({ counted: true, player: { science: 90 } });
     expect((await api('POST', '/science', { mission: 'm1', points: 90 })).data.counted).toBe(false);
     expect((await api('POST', '/mine/members/Giulia', { action: 'kick' })).status).toBe(403);
+    expect((await api('GET', '/live/Giulia')).data).toMatchObject({ username: 'Giulia', demo: true });
+    expect((await api('GET', '/live/Luca')).data.error).toBe('not_live');
     expect((await api('POST', '/leave', {})).data).toEqual({ left: true, disbanded: false });
     expect((await api('GET', '/mine')).data.consortium).toBeNull();
   });
