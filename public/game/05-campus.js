@@ -131,6 +131,10 @@ const CAM = (() => {
   function densify(pl, step) { const out = []; for (let i = 0; i < pl.length - 1; i++) { const a = pl[i], b = pl[i + 1], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (step || .25))); for (let k = 0; k < n; k++) out.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]); } out.push(pl[pl.length - 1]); return out; }
   function distPL(p, pl) { let m = 1e9; for (let i = 0; i < pl.length - 1; i++) { const a = pl[i], b = pl[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy || 1; let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L; t = Math.max(0, Math.min(1, t)); m = Math.min(m, Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy)); } return m; }
   const RD = ROADS.map(r => [r[0], r[1] / 2 / 26 + .22]);
+  /* smussamento di Chaikin (lo stesso della scena 3D): gli estremi restano fermi */
+  function chaikin(pl, it) { let p = pl.map(q => q.slice()); for (let k = 0; k < (it || 3); k++) { const o = [p[0]]; for (let i = 0; i < p.length - 1; i++) { const a = p[i], b = p[i + 1]; o.push([a[0] * .75 + b[0] * .25, a[1] * .75 + b[1] * .25], [a[0] * .25 + b[0] * .75, a[1] * .25 + b[1] * .75]); } o.push(p[p.length - 1]); p = o; } return p; }
+  /* per il piazzamento: le strade come vengono disegnate (archi smussati), larghe fino al bordo esterno del marciapiede (asfalto hw + .14) */
+  const RDV = GRAPH.edges.map(e => [chaikin(e.p), e.w / 52 + .26]);
   function inPoly(p, pg) { let c = false; for (let i = 0, j = pg.length - 1; i < pg.length; j = i++) { const a = pg[i], b = pg[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; }
   // world default layout
   function defaultWorld() { const it = []; let n = 0; const add = (k, x, y, o) => it.push(Object.assign({ id: 'w' + (++n), k, x, y }, o || {}));
@@ -144,7 +148,7 @@ const CAM = (() => {
     const corners = [[r[0], r[1]], [r[2], r[1]], [r[2], r[3]], [r[0], r[3]]]; if (!corners.every(c => inPoly(c, SITE))) return 'fuori dal campus';
     for (const it of items) { if (it.id === skipId) continue; if (overlap(r, rectOf(it.k, it.x, it.y), d.deco && K[it.k].deco ? .05 : .2)) return 'c’è già ' + K[it.k].n.toLowerCase(); }
     const samp = []; for (let i = 0; i <= 4; i++) for (let j = 0; j <= 4; j++) samp.push([r[0] + (r[2] - r[0]) * i / 4, r[1] + (r[3] - r[1]) * j / 4]);
-    for (const [pl, half] of RD.concat(extraRoads || [])) for (const p of samp) if (distPL(p, pl) < half) return 'sopra una strada';
+    for (const [pl, half] of RDV.concat(extraRoads || [])) for (const p of samp) if (distPL(p, pl) < half) return 'sopra una strada';
     /* niente sul fiume (acqua + sponde): campionamento fitto, cosi' nemmeno un parcheggio largo ci passa sopra */
     for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) if (distPL([r[0] + (r[2] - r[0]) * i / 8, r[1] + (r[3] - r[1]) * j / 8], STREAM) < 3.3) return 'sopra il fiume';
     if (k === 'parking') { let near = false; for (let i = 0; i <= 16 && !near; i++) { const t = i / 16, X = r[0] + (r[2] - r[0]) * t, Y = r[1] + (r[3] - r[1]) * t; for (const [pl, half] of RD) { if (distPL([X, r[1]], pl) < half + .45 || distPL([X, r[3]], pl) < half + .45 || distPL([r[0], Y], pl) < half + .45 || distPL([r[2], Y], pl) < half + .45) { near = true; break; } } } if (!near) return 'the car park must touch a road'; }
@@ -188,12 +192,17 @@ const CAM = (() => {
     NATR.hills.slice().sort((a, b) => (a.x + a.y) - (b.x + b.y)).forEach(hl => s += hillSVG(hl));
     s += '<path d="' + smooth(gp(SITE), true) + '" fill="#ADC47A" opacity=".85"/><path d="' + smooth(gp(SITE), true) + '" fill="none" stroke="#8E968D" stroke-width="1.2" stroke-dasharray="3 3"/>';
     const cw = crawler(items); if (cw) s += '<path d="' + smooth(gp(cw)) + '" fill="none" stroke="#D9D2BC" stroke-width="18" stroke-linecap="round"/><path d="' + smooth(gp(cw)) + '" fill="none" stroke="#9BB46A" stroke-width="6"/>';
-    ROADS.forEach(r => s += '<path d="' + rpath(r[0]) + '" fill="none" stroke="' + RC.curb + '" stroke-width="' + (r[1] + 6) + '" stroke-linecap="round" stroke-linejoin="round"/>');
-    ROADS.forEach(r => s += '<path d="' + rpath(r[0]) + '" fill="none" stroke="' + RC.asph + '" stroke-width="' + r[1] + '" stroke-linecap="round" stroke-linejoin="round"/>');
-    // tratteggio: la strada principale prosegue dritta agli incroci, quelle laterali si fermano al bordo
-    const JM = [[], [[6, 16.5, 13]], [[6.45, 9.4, 11], [21.8, 8.8, 34]]], dash = d => '<path d="' + d + '" fill="none" stroke="#F3F1EA" stroke-width="1.6" stroke-dasharray="10 10" opacity=".85"/>';
-    ROADS.forEach((r, i) => { if (!JM[i].length) { s += dash(rpath(r[0])); return; } const id = 'rdm' + i;
-      s += '<mask id="' + id + '" maskUnits="userSpaceOnUse" x="-9000" y="-9000" width="20000" height="20000"><rect x="-9000" y="-9000" width="20000" height="20000" fill="#fff"/>' + JM[i].map(j => { const g = P(j[0], j[1]); return '<ellipse cx="' + f1(g[0]) + '" cy="' + f1(g[1]) + '" rx="' + j[2] + '" ry="' + f1(j[2] * .7) + '" fill="#000"/>'; }).join('') + '</mask><g mask="url(#' + id + ')">' + dash(rpath(r[0])) + '</g>'; });
+    /* strade dal grafo, smussate come in 3D: tutti i cordoli sotto, poi tutto l'asfalto (gli incroci restano puliti) */
+    const ES = GRAPH.edges.map(e => chaikin(e.p));
+    GRAPH.edges.forEach((e, k) => s += '<path d="' + rpath(ES[k], 1) + '" fill="none" stroke="' + RC.curb + '" stroke-width="' + (e.w + 6) + '" stroke-linecap="round" stroke-linejoin="round"/>');
+    GRAPH.edges.forEach((e, k) => s += '<path d="' + rpath(ES[k], 1) + '" fill="none" stroke="' + RC.asph + '" stroke-width="' + e.w + '" stroke-linecap="round" stroke-linejoin="round"/>');
+    /* tratteggio per arco, interrotto a ogni incrocio: si accorcia della mezza larghezza della strada piu' larga che entra nel nodo, piu' un margine */
+    const dash = d => '<path d="' + d + '" fill="none" stroke="#F3F1EA" stroke-width="1.6" stroke-dasharray="10 10" opacity=".85"/>';
+    const cutPl = (pl, d) => { for (let i = 1; i < pl.length; i++) { const a = pl[i - 1], b = pl[i], l = Math.hypot(b[0] - a[0], b[1] - a[1]); if (d < l) return [[a[0] + (b[0] - a[0]) * d / l, a[1] + (b[1] - a[1]) * d / l]].concat(pl.slice(i)); d -= l; } return []; };
+    const outDir = (k, end) => { const p = end ? ES[k].slice(-2).reverse() : ES[k].slice(0, 2), l = Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]) || 1; return [(p[1][0] - p[0][0]) / l, (p[1][1] - p[0][1]) / l]; };
+    /* piu' stretto l'angolo con l'altra strada, piu' lungo il taglio (mezza larghezza / sin angolo); la prosecuzione dritta non conta */
+    const trimAt = (n, k, end) => { const u = outDir(k, end); let t = 0; n.ends.forEach(([o, oe]) => { if (o === k) return; const v = outDir(o, oe), c = u[0] * v[0] + u[1] * v[1]; if (c < -.7) return; t = Math.max(t, (GRAPH.edges[o].w / 52 + .12 + .35) / Math.max(.35, Math.sqrt(1 - c * c))); }); return t; };
+    GRAPH.edges.forEach((e, k) => { const p = cutPl(cutPl(ES[k], trimAt(GRAPH.nodes[e.a], k, 0)).reverse(), trimAt(GRAPH.nodes[e.b], k, 1)).reverse(); if (p.length > 1) s += dash(rpath(p, 1)); });
     s += bridge();
     // depth sorted objects
     const list = items.map(it => ({ d: it.x + it.y + (K[it.k].w + K[it.k].h) / 2, it }));
@@ -214,5 +223,5 @@ const CAM = (() => {
   function ghost(k, x, y, ok, ctx) { const d = K[k], r = rectOf(k, x, y); return '<g opacity=".72">' + d.draw(x, y, ctx || {}) + '</g>' + poly(gp([[r[0], r[1]], [r[2], r[1]], [r[2], r[3]], [r[0], r[3]]]), 'fill="' + (ok ? 'rgba(69,169,163,.22)' : 'rgba(207,94,76,.28)') + '" stroke="' + (ok ? TEAL : '#CF5E4C') + '" stroke-width="2.5" stroke-dasharray="8 5"'); }
   function toGrid(sx, sy) { const a = (sx - C.ox) / (C.tw / 2), b = (sy - C.oy) / (C.th / 2); return [(a + b) / 2, (b - a) / 2]; }
   function mini(k) { const keep = C; const d = K[k]; const sc = Math.min(1, 3.2 / Math.max(d.w, d.h, (d.top || 1) * .55)); C = { ox: 0, oy: 0, tw: 22 * sc, th: 11 * sc, tz: 11 * sc }; const g = P(d.w / 2, d.h / 2); const s = '<g transform="translate(' + f1(-g[0]) + ' ' + f1(-g[1] + 10) + ')">' + d.draw(0, 0, { rocket: 1, ang: -28 }) + '</g>'; C = keep; return s; }
-  return { R0max: () => MR0F, site: () => SITE, nat: () => nature(), roads: () => ROADS, graph: () => GRAPH, roadGraph, stream: () => STREAM, setScale, K, DEFS, world, ghost, valid, toGrid, defaultWorld, rectOf, mini, crawler, P: (x, y, z) => P(x, y, z), C: () => C };
+  return { R0max: () => MR0F, site: () => SITE, nat: () => nature(), roads: () => ROADS, graph: () => GRAPH, roadGraph, chaikin, stream: () => STREAM, setScale, K, DEFS, world, ghost, valid, toGrid, defaultWorld, rectOf, mini, crawler, P: (x, y, z) => P(x, y, z), C: () => C };
 })();

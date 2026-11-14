@@ -32,6 +32,13 @@ describe("road graph", () => {
     checkGraph(G);
   });
 
+  it("keeps placed objects off the drawn sidewalk", async () => {
+    const CAM = await loadCampus();
+    // R2's north stretch runs near x = 6.25 at z = 13.4; sidewalk edge is 11/52 + .26 = .47 from its axis
+    expect(CAM.valid("pine", 6.25 - 0.45 - 0.9, 13, [], null)).toBe("sopra una strada");
+    expect(CAM.valid("pine", 6.25 - 0.55 - 0.9, 13, [], null)).toBe("");
+  });
+
   it("snaps an endpoint that stops short of another road onto it", async () => {
     const CAM = await loadCampus();
     const G = CAM.roadGraph([[[[0, 0], [10, 0]], 15], [[[5, 5], [5, 0.3]], 11]]);
