@@ -1,6 +1,7 @@
 /* ===== LOGICA v11 (CubeSat e crediti): campus, riunioni con gli stakeholder, missioni parallele in tempo reale. Usa E (engine2). Nessun DOM. ===== */
 const L = (function () {
-  const TIME = { month: 10000, build: 40000, test: 25000, fix: 15000, countdown: 6000, win: 30000 };
+  /* assemblaggio, prove e riparazioni quasi istantanei: niente attese durante la demo */
+  const TIME = { month: 10000, build: 1500, test: 1000, fix: 1000, countdown: 6000, win: 30000 };
   const START_MONEY = 400, RUN = 3, FIXC = 10, STIFFC = 15;
   // Macchinari del laboratorio: si installano in una baia vuota. Alcuni si sbloccano con il livello.
   const MACH = {

@@ -23,6 +23,7 @@ ls "$ROOT"/dist/assets/game-*.js >/dev/null 2>&1 || { echo "Missing dist/assets/
 
 cp -R "$ROOT/dist" "$STAGE/dist"
 cp "$ROOT/server.mjs" "$STAGE/server.mjs"
+cp "$ROOT/gmat-service.json" "$STAGE/gmat-service.json"
 cp -R "$ROOT/backend" "$STAGE/backend"
 cp -R "$ROOT/db" "$STAGE/db"
 mkdir -p "$STAGE/scripts"

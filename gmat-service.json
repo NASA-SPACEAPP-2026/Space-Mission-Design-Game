@@ -1,0 +1,4 @@
+{
+  "url": "https://ca-smg-gmat.mangowave-243fe82d.northeurope.azurecontainerapps.io",
+  "note": "Default NASA GMAT service (Azure Container Apps, scale to zero). The site server and `npm run dev` use it when nothing else is configured; GMAT_URL overrides it, GMAT_URL=off disables it. Change it here if the service moves (see documentation/deployment.md)."
+}

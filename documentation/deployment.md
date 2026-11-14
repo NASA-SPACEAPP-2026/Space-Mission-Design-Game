@@ -6,7 +6,7 @@
 
 ## Deployment components
 
-The main application includes compiled assets and a Node server. PostgreSQL is separate; GMAT is another optional service. The Azure package **does not include the GMAT container**, and `server.mjs` does not proxy `/api/gmat*`.
+The main application includes compiled assets and a Node server. PostgreSQL is separate; GMAT is another optional service. The Node server now forwards `/api/gmat`, `/api/gmat/analysis` and `/api/gmat/lifetime` to the configured service. Production uses `GMAT_URL`, otherwise `gmat-service.json`; `GMAT_URL=off` disables the proxy. No service returns `503 no-gmat`; an unreachable service returns `502 gmat-unreachable`. The container remains separate and is not included in the web ZIP.
 
 | Component | Runtime |
 | --- | --- |
@@ -35,7 +35,8 @@ After `npm run build`, `npm run package:azure` uses Bash and `zip` to create `re
 ```text
 release.zip
   dist/                  HTML, hashed bundles, audio, fonts, compressed assets
-  server.mjs             HTTP server and account routing
+  server.mjs             HTTP server, accounts and GMAT proxy
+  gmat-service.json      Default shared GMAT target
   backend/               Authentication and PostgreSQL connection
   db/                    SQL schema
   scripts/migrate.mjs    Schema application command
@@ -135,9 +136,20 @@ After deployment, verify registration, login, logout, account persistence after 
 | Probe succeeds, accounts return `503` | DB, DNS, firewall, certificates, credentials, schema |
 | Accounts return `403` | `APP_ORIGIN`, custom domain, actual protocol |
 | Old HTML served | Actual deployment, process restart, bundle URL |
-| GMAT returns `404` | Separate service hosting and routing |
+| GMAT returns `503` / `502` | `GMAT_URL` configuration and upstream availability |
 
 Rollback deploys a previous application release; it does not restore PostgreSQL schema or data. Assess code/schema compatibility and verify backup/restore before migrations. Do not delete tables or volumes to fix connection errors.
+
+
+## GMAT on Azure Container Apps
+
+`infra/gmat-image-push.sh` builds and pushes base and service `linux/amd64` images, requiring Docker buildx, registry login and `REPO`. Images must be public for the current provisioning flow. `infra/azure-gmat.sh` requires `IMAGE`, creates a Container Apps environment and a service with 1 vCPU, 2 GiB, external ingress on 8787 and 0–1 replicas. It sets `GMAT_URL` on Web Apps found in the resource group.
+
+These scripts publish images and create external resources; they are not run to prepare this branch. Costs depend on the environment; scale-to-zero introduces cold starts. `gmat-service.json`, included in the web package, provides the default shared target. Update it if the service moves, or use environment-specific `GMAT_URL`. `GMAT_URL=off` disables only the production server proxy.
+
+The Node server now forwards `/api/gmat`, `/api/gmat/analysis` and `/api/gmat/lifetime` to the configured service. Production uses `GMAT_URL`, otherwise `gmat-service.json`; `GMAT_URL=off` disables the proxy. No service returns `503 no-gmat`; an unreachable service returns `502 gmat-unreachable`. The container remains separate and is not included in the web ZIP.
+
+`npm run dev` attempts the local container using explicit `docker-compose.yml` and writes `.gmat-target`, ignored by Git. If Docker is unavailable or startup fails, it selects the shared service in `gmat-service.json`. Vite uses `GMAT_URL` when set to a value other than `off`, otherwise `.gmat-target`, then the shared service and finally localhost:8787. The production server handles `off` as disabling GMAT; it does not currently disable the Vite proxy. Defining a shared endpoint does not certify its remote availability in this branch validation.
 
 ## Resource removal
 
