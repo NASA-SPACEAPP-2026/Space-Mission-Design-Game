@@ -15,7 +15,127 @@ export const LIMITS = { members: 20, text: 300, motto: 60, request: 140, mission
   // spectate: compressed game state (base64), request body for PUT /live, how long a viewer keeps the stream on, when a player counts as gone
   liveState: 160_000, liveBody: 200_000, watchSeconds: 20, liveSeconds: 60 };
 // System message codes (data.code): founded, joined, left, kicked, promoted, demoted, new_director,
-// settings, science, launch, success, failure. The game turns them into translated sentences.
+// settings, science, launch, success, failure, joint_new, joint_done. The game turns them into translated sentences.
+
+/* ---------- Joint mission (lite) ----------
+   2 to 4 teammates design one satellite together, each with a NASA role, one turn at a time:
+   plan (destination, budget) → sat (bus, computer, attitude, battery, solar) → sci (payload) → com (radio) → review.
+   A choice that breaks a budget owned by another role (mass and power: sat; cost: plan) becomes a request that role
+   accepts, counters with another option, or rejects. The physics (mass, power, cost) is the game's own and runs in the
+   browser; the server enforces who may change what and when, versions every action, and awards the science points. */
+export const JOINT = {
+  roles: ['plan', 'sat', 'sci', 'com'],
+  keys: { dest: 'plan', budget: 'plan', ride: 'sat', avi: 'sat', adcs: 'sat', bat: 'sat', sol: 'sat', ray: 'sci', com: 'com' },
+  need: { plan: ['dest', 'budget'], sat: ['ride', 'avi', 'adcs', 'bat', 'sol'], sci: ['ray'], com: ['com'] },
+  owners: { mass: 'sat', power: 'sat', cost: 'plan' },
+  dests: ['leo', 'moon', 'mars'], rides: ['S3', 'S6', 'S12'],
+  points: { leo: 60, moon: 120, mars: 200 }
+};
+const PART = /^[A-Z]{3,5}-[A-Z0-9]{1,12}$/;
+function jointValue(key, value) {
+  if (key === 'dest') return JOINT.dests.includes(value);
+  if (key === 'ride') return JOINT.rides.includes(value);
+  if (key === 'budget') return int(value, 200, 20000);
+  return typeof value === 'string' && PART.test(value);
+}
+export const jointPoints = s => Math.round((JOINT.points[s.design.dest] || 60) * (1 + 0.1 * (jointPlayers(s).length - 1)));
+const jointPlayers = s => [...new Set(JOINT.roles.map(r => s.roles[r]).filter(Boolean))];
+export function jointNew(name, user) {
+  return { name, by: user, phase: 'lobby', turn: null, roles: { plan: user, sat: null, sci: null, com: null },
+    design: { dest: 'leo', budget: 1000, ride: 'S3', sol: 'BASE-SOL3D' }, done: {}, request: null, votes: {}, log: [], seq: 0, points: 0 };
+}
+// Pure rules: returns the next state or throws Fail. canAdmin: director or deputy of the consortium.
+export function jointReduce(state, a, user, canAdmin) {
+  const s = structuredClone(state), mine = r => s.roles[r] === user, players = jointPlayers(s);
+  const no = code => { throw new Fail(409, code); };
+  const log = (code, extra) => { s.log.push({ code, user, at: new Date().toISOString(), ...extra }); s.log = s.log.slice(-30); };
+  if (!a || typeof a.type !== 'string') throw bad('type');
+  if (s.phase === 'done' || s.phase === 'abandoned') no('closed');
+  switch (a.type) {
+    case 'join': {
+      if (s.phase !== 'lobby') no('started');
+      if (!JOINT.roles.includes(a.role)) throw bad('role');
+      if (s.roles[a.role]) no('role_taken');
+      if (players.includes(user)) no('has_role');
+      s.roles[a.role] = user; log('join', { role: a.role }); break;
+    }
+    case 'leave': {
+      if (s.phase !== 'lobby') no('started');
+      if (user === s.by) no('creator');
+      JOINT.roles.forEach(r => { if (s.roles[r] === user) s.roles[r] = null; }); log('leave'); break;
+    }
+    case 'start': {
+      if (s.phase !== 'lobby') no('started');
+      if (user !== s.by && !canAdmin) throw new Fail(403, 'forbidden');
+      if (players.length < 2) no('need_two');
+      // free roles go round-robin to the players, in role order
+      let i = 0; JOINT.roles.forEach(r => { if (!s.roles[r]) s.roles[r] = players[i++ % players.length]; });
+      s.phase = 'design'; s.turn = 'plan'; log('start'); break;
+    }
+    case 'set': {
+      if (s.phase !== 'design') no('not_design');
+      const owner = JOINT.keys[a.key];
+      if (!owner) throw bad('key');
+      if (!mine(owner)) throw new Fail(403, 'not_your_role');
+      if (s.turn !== owner) no('not_your_turn');
+      if (s.request) no('pending_request');
+      if (!jointValue(a.key, a.value)) throw bad('value');
+      const q = a.req;
+      if (q != null) {
+        if (typeof q !== 'object' || JOINT.owners[q.kind] !== q.to || typeof q.delta !== 'number' || !(q.delta >= 0 && q.delta <= 1e5)) throw bad('req');
+        if (!mine(q.to)) {
+          s.request = { id: ++s.seq, from: owner, by: user, to: q.to, key: a.key, value: a.value, kind: q.kind, delta: Math.round(q.delta * 100) / 100 };
+          log('request', { key: a.key, value: a.value, to: q.to, kind: q.kind }); break;
+        }
+      }
+      s.design[a.key] = a.value; log('set', { key: a.key, value: a.value }); break;
+    }
+    case 'answer': {
+      const q = s.request;
+      if (!q) no('no_request');
+      if (!mine(q.to)) throw new Fail(403, 'not_your_role');
+      if (a.decision === 'accept') {
+        s.design[q.key] = q.value;
+        if (q.kind === 'cost') s.design.budget = Math.min(20000, s.design.budget + Math.ceil(q.delta / 50) * 50);
+      } else if (a.decision === 'counter') {
+        if (!jointValue(q.key, a.value)) throw bad('value');
+        s.design[q.key] = a.value;
+      } else if (a.decision !== 'reject') throw bad('decision');
+      log('answer', { decision: a.decision, key: q.key, value: a.decision === 'counter' ? a.value : q.value, to: q.by });
+      s.request = null; break;
+    }
+    case 'done': {
+      if (s.phase !== 'design') no('not_design');
+      if (!mine(s.turn)) throw new Fail(403, 'not_your_turn');
+      if (s.request) no('pending_request');
+      if (JOINT.need[s.turn].some(k => s.design[k] == null)) no('incomplete');
+      s.done[s.turn] = true; log('done', { role: s.turn });
+      const next = JOINT.roles.find(r => !s.done[r]);
+      if (next) s.turn = next; else { s.phase = 'review'; s.turn = null; s.votes = {}; }
+      break;
+    }
+    case 'vote': {
+      if (s.phase !== 'review') no('not_review');
+      if (!players.includes(user)) throw new Fail(403, 'not_player');
+      if (a.go === true) {
+        if (a.ok !== true) no('checks_failed');
+        s.votes[user] = 'go'; log('go');
+        if (players.every(p => s.votes[p] === 'go')) { s.phase = 'done'; s.points = jointPoints(s); log('done_all'); }
+      } else if (a.go === false) {
+        if (!JOINT.roles.includes(a.rework)) throw bad('rework');
+        s.phase = 'design'; s.turn = a.rework; s.done[a.rework] = false; s.votes = {}; log('nogo', { role: a.rework });
+      } else throw bad('go');
+      break;
+    }
+    case 'abandon': {
+      if (user !== s.by && !canAdmin) throw new Fail(403, 'forbidden');
+      s.phase = 'abandoned'; log('abandon'); break;
+    }
+    default: throw bad('type');
+  }
+  return s;
+}
+const jointStatus = phase => phase === 'lobby' ? 'open' : phase === 'done' ? 'done' : phase === 'abandoned' ? 'abandoned' : 'active';
 
 const rank = role => ROLES.indexOf(role);
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -510,6 +630,72 @@ export function createConsortia({ db, origin }) {
       return { status: 201, body: { posted: true } };
     },
 
+    // Joint missions of my consortium: open and running ones, plus those closed in the last day.
+    async jointList({ user }) {
+      const me = await touch(user.id);
+      const list = await rows(db, `SELECT id, state, status, version, updated_at FROM joint_missions WHERE consortium_id=$1
+        AND (status IN ('open','active') OR updated_at > now() - interval '1 day') ORDER BY updated_at DESC LIMIT 10`, [me.cid]);
+      return { body: { joint: list.map(j => ({ id: j.id, name: j.state.name, status: j.status, phase: j.state.phase, turn: j.state.turn,
+        roles: j.state.roles, by: j.state.by, version: j.version, updatedAt: j.updated_at })) } };
+    },
+
+    async jointCreate({ user, body }) {
+      if (typeof body.name !== 'string') throw bad('name');
+      const name = clean(body.name);
+      if (name.length < 3 || name.length > 24 || LINK.test(name)) throw bad('name');
+      await limit(`joint:${user.id}`, 10);
+      const id = randomUUID(), state = jointNew(name, user.username);
+      await tx(db, async t => {
+        const me = await lockMine(t, user.id);
+        const [{ n }] = await rows(t, `SELECT count(*)::int AS n FROM joint_missions WHERE consortium_id=$1 AND status IN ('open','active')`, [me.cid]);
+        if (n >= 3) throw new Fail(409, 'too_many_joint');
+        await t.query(`INSERT INTO joint_missions(id,consortium_id,created_by,status,roles,turn,state) VALUES($1,$2,$3,'open',$4::jsonb,NULL,$5::jsonb)`,
+          [id, me.cid, user.id, JSON.stringify(state.roles), JSON.stringify(state)]);
+        await system(t, me.cid, { code: 'joint_new', user: user.username, mission: name, id });
+      });
+      return { status: 201, body: { id, version: 1, status: 'open', state } };
+    },
+
+    // ?v=<version>: if nothing changed the reply is tiny ({ same: true }).
+    async jointGet({ user, query, params: [id] }) {
+      const me = await touch(user.id);
+      const [j] = await rows(db, 'SELECT id, state, status, version FROM joint_missions WHERE id=$1 AND consortium_id=$2', [id, me.cid]);
+      if (!j) throw new Fail(404, 'not_found');
+      if (query.get('v') === String(j.version)) return { body: { same: true, version: j.version } };
+      return { body: { id: j.id, status: j.status, version: j.version, state: j.state } };
+    },
+
+    // Every action carries the version the player saw: if a teammate changed something meanwhile, it is refused (stale)
+    // with the current version, and the game reloads before trying again. Nobody overwrites anybody.
+    async jointAct({ user, body, params: [id] }) {
+      if (!int(body.v, 1, 1e9)) throw bad('v');
+      await limit(`jointact:${user.id}`, 400);
+      return tx(db, async t => {
+        const me = await lockMine(t, user.id);
+        const [j] = await rows(t, 'SELECT id, state, version FROM joint_missions WHERE id=$1 AND consortium_id=$2 FOR UPDATE', [id, me.cid]);
+        if (!j) throw new Fail(404, 'not_found');
+        if (body.v !== j.version) throw new Fail(409, 'stale', { version: j.version });
+        const s = jointReduce(j.state, body, user.username, rank(me.role) >= 2), status = jointStatus(s.phase), version = j.version + 1;
+        await t.query(`UPDATE joint_missions SET state=$2::jsonb, roles=$3::jsonb, turn=$4, status=$5, version=$6, updated_at=now() WHERE id=$1`,
+          [id, JSON.stringify(s), JSON.stringify(s.roles), s.turn, status, version]);
+        if (status === 'done') {
+          // Science points for every player, once (science_awards key), for them and for the consortium.
+          const players = await rows(t, `SELECT u.id, u.username FROM users u JOIN consortium_members m ON m.user_id=u.id
+            WHERE m.consortium_id=$1 AND u.username = ANY($2::text[])`, [me.cid, jointPlayers(s)]);
+          for (const p of players) {
+            const added = await rows(t, `INSERT INTO science_awards(user_id,mission_key,points,consortium_id) VALUES($1,$2,$3,$4)
+              ON CONFLICT DO NOTHING RETURNING 1`, [p.id, 'joint-' + id, s.points, me.cid]);
+            if (added.length) {
+              await t.query('UPDATE consortium_members SET science=science+$2 WHERE user_id=$1', [p.id, s.points]);
+              await t.query('UPDATE consortia SET science=science+$2 WHERE id=$1', [me.cid, s.points]);
+            }
+          }
+          await system(t, me.cid, { code: 'joint_done', mission: s.name, users: players.map(p => p.username), points: s.points, design: s.design });
+        }
+        return { body: { id, status, version, state: s } };
+      });
+    },
+
     // Spectate, player side: a heartbeat every few seconds (view + mission name). The compressed game state is added
     // only while someone watches (the reply says so). Stickers addressed to the player come back in the reply.
     async live({ user, body }) {
@@ -593,6 +779,8 @@ export function createConsortia({ db, origin }) {
     ['GET', '/mine/unread', 'unread'], ['POST', '/mine/activity', 'activity'],
     ['POST', '/leave', 'leave'], ['POST', '/science', 'science'],
     ['PUT', '/live', 'live'], ['GET', '/live/([A-Za-z0-9_]{3,24})', 'watch'],
+    ['GET', '/mine/joint', 'jointList'], ['POST', '/mine/joint', 'jointCreate'],
+    ['GET', `/mine/joint/${UUID}`, 'jointGet'], ['POST', `/mine/joint/${UUID}/actions`, 'jointAct'],
     ['GET', `/${UUID}`, 'profile'], ['POST', `/${UUID}/join`, 'join']
   ].map(([method, path, name]) => ({ method, pattern: new RegExp(`^${path}$`), run: handlers[name] }));
 

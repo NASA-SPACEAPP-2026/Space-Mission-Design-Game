@@ -200,6 +200,76 @@ describe('Consortia API', () => {
     expect(last.data).toEqual({ code: 'science', user: 'Cyd', mission: 'AURASAT', points: 120 });
   });
 
+  it('plays a joint mission with roles, turns, requests between roles and versions', async () => {
+    expect((await post('Ada', '/mine/joint', { name: 'x' })).body.field).toBe('name');
+    const made = await post('Ada', '/mine/joint', { name: 'Luna Ice' });
+    expect(made.status).toBe(201);
+    const id = made.body.id; let v = 1;
+    const go = async (who, body) => { const r = await post(who, `/mine/joint/${id}/actions`, { v, ...body }); if (r.status === 200) v = r.body.version; return r; };
+    expect((await get('Cyd', '/mine/joint')).body.joint[0]).toMatchObject({ id, name: 'Luna Ice', status: 'open', roles: { plan: 'Ada' } });
+    expect((await get('Cyd', `/mine/joint/${id}?v=1`)).body).toEqual({ same: true, version: 1 });
+    expect((await get('Dan', `/mine/joint/${id}`)).status).toBe(404);
+
+    // Lobby: roles are taken one each, only the creator (or director/deputy) starts, with at least two players.
+    expect((await go('Cyd', { type: 'start' })).body.error).toBe('forbidden');
+    expect((await go('Ada', { type: 'start' })).body.error).toBe('need_two');
+    expect((await go('Cyd', { type: 'join', role: 'plan' })).body.error).toBe('role_taken');
+    expect((await go('Cyd', { type: 'join', role: 'sat' })).status).toBe(200);
+    expect((await post('Bob', `/mine/joint/${id}/actions`, { v: v - 1, type: 'join', role: 'sci' })).body).toEqual({ error: 'stale', version: v });
+    await go('Bob', { type: 'join', role: 'sci' });
+    expect((await go('Ada', { type: 'start' })).body.state).toMatchObject({ phase: 'design', turn: 'plan', roles: { plan: 'Ada', sat: 'Cyd', sci: 'Bob', com: 'Ada' } });
+
+    // Only your role, only in your turn, only valid values.
+    expect((await go('Cyd', { type: 'set', key: 'ride', value: 'S6' })).body.error).toBe('not_your_turn');
+    expect((await go('Bob', { type: 'set', key: 'dest', value: 'moon' })).body.error).toBe('not_your_role');
+    expect((await go('Ada', { type: 'set', key: 'dest', value: 'pluto' })).body.field).toBe('value');
+    await go('Ada', { type: 'set', key: 'dest', value: 'moon' });
+    await go('Ada', { type: 'set', key: 'budget', value: 1200 });
+    await go('Ada', { type: 'done' });
+    for (const [key, value] of [['ride', 'S6'], ['avi', 'BASE-OBC'], ['adcs', 'BASE-MAG'], ['bat', 'BASE-BAT20'], ['sol', 'BASE-SOL6D']]) {
+      expect((await go('Cyd', { type: 'set', key, value })).status).toBe(200);
+    }
+    expect((await go('Ada', { type: 'done' })).body.error).toBe('not_your_turn');
+    await go('Cyd', { type: 'done' });
+
+    // A payload over budget becomes a request to the planner, who accepts and raises the budget.
+    expect((await go('Bob', { type: 'done' })).body.error).toBe('incomplete');
+    let r = await go('Bob', { type: 'set', key: 'ray', value: 'BASE-CAM', req: { to: 'plan', kind: 'cost', delta: 120 } });
+    expect(r.body.state.request).toMatchObject({ to: 'plan', by: 'Bob', key: 'ray', value: 'BASE-CAM', kind: 'cost' });
+    expect(r.body.state.design.ray).toBeUndefined();
+    expect((await go('Bob', { type: 'set', key: 'ray', value: 'BASE-DOSE' })).body.error).toBe('pending_request');
+    expect((await go('Cyd', { type: 'answer', decision: 'accept' })).body.error).toBe('not_your_role');
+    r = await go('Ada', { type: 'answer', decision: 'accept' });
+    expect(r.body.state.design).toMatchObject({ ray: 'BASE-CAM', budget: 1350 });
+    expect(r.body.state.request).toBeNull();
+    // A mass request to the satellite engineer, countered with a lighter part.
+    await go('Bob', { type: 'set', key: 'ray', value: 'NASA-95028', req: { to: 'sat', kind: 'mass', delta: 0.2 } });
+    r = await go('Cyd', { type: 'answer', decision: 'counter', value: 'BASE-DOSE' });
+    expect(r.body.state.design.ray).toBe('BASE-DOSE');
+    await go('Bob', { type: 'done' });
+    // Whoever owns the budget applies their own change directly.
+    r = await go('Ada', { type: 'set', key: 'com', value: 'BASE-UHF', req: { to: 'plan', kind: 'cost', delta: 10 } });
+    expect(r.body.state.request).toBeNull();
+    expect((await go('Ada', { type: 'done' })).body.state).toMatchObject({ phase: 'review', turn: null });
+
+    // Review: GO needs the checks to pass; a NO-GO sends one role back; GO from everyone closes it.
+    expect((await go('Bob', { type: 'vote', go: true })).body.error).toBe('checks_failed');
+    expect((await go('Bob', { type: 'vote', go: false, rework: 'sat' })).body.state).toMatchObject({ phase: 'design', turn: 'sat' });
+    await go('Cyd', { type: 'done' });
+    const before = (await get('Cyd', '/mine')).body;
+    for (const who of ['Ada', 'Cyd']) expect((await go(who, { type: 'vote', go: true, ok: true })).body.status).toBe('active');
+    r = await go('Bob', { type: 'vote', go: true, ok: true });
+    expect(r.body.status).toBe('done');
+    expect(r.body.state.points).toBe(144); // Moon 120 × 1.2 for three players
+    expect((await go('Ada', { type: 'abandon' })).body.error).toBe('closed');
+    const after = (await get('Cyd', '/mine')).body;
+    expect(after.me.science - before.me.science).toBe(144);
+    expect(after.consortium.science - before.consortium.science).toBe(432);
+    expect((await get('Cyd', '/mine/messages')).body.messages.at(-1).data).toMatchObject({ code: 'joint_done', mission: 'Luna Ice', points: 144, users: expect.arrayContaining(['Ada', 'Bob', 'Cyd']) });
+    for (let i = 0; i < 3; i++) await post('Ada', '/mine/joint', { name: 'Extra ' + i });
+    expect((await post('Ada', '/mine/joint', { name: 'One too many' })).body.error).toBe('too_many_joint');
+  });
+
   it('streams a live game only to teammates who watch, and delivers stickers sent while watching', async () => {
     const put = (who, body, opts) => api(who, 'PUT', '/live', body, opts);
     const state = { enc: 'gz', data: 'H4sIAAAAAAAAA6tWKkktLlGyUlAqzy/KSVGqBQBkYzzWEQAAAA==' };
@@ -264,7 +334,8 @@ describe('Consortia API', () => {
     expect((await post('Cyd', '/leave')).body).toEqual({ left: true, disbanded: true });
     expect((await get('Cyd', `/${id}`)).status).toBe(404);
     expect((await db.query('SELECT count(*)::int AS n FROM consortium_messages WHERE consortium_id=$1', [id])).rows[0].n).toBe(0);
-    expect((await db.query('SELECT count(*)::int AS n FROM science_awards')).rows[0].n).toBe(2);
+    // two single-player missions + the joint mission for its three players
+    expect((await db.query('SELECT count(*)::int AS n FROM science_awards')).rows[0].n).toBe(5);
   });
 
   it('upgrades an existing accounts database and can run twice', async () => {
