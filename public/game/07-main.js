@@ -1106,6 +1106,7 @@ vibrazione superata	vibration passed
 {s} creata. Entra nell’edificio amministrativo: la NASA ti aspetta al tavolo.	{s} created. Enter the administration building: NASA is waiting for you at the table.
 {s} pronto al lancio	{s} ready for launch
 {s} è assemblato: esci e portalo all’edificio di testing per le prove.	{s} is assembled: go out and take it to the test building for the tests.
+{s} è assemblato: portalo all’edificio di testing per le prove.	{s} is assembled: take it to the test building for the tests.
 {s} è in orbita: esci e vai al Mission Control Center per seguirlo.	{s} is in orbit: go out to the Mission Control Center to follow it.
 {s} è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.	{s} is ready: phase E begins. Go to the administration building for the launch.
 {s} è sulla postazione: i tecnici iniziano l’assemblaggio.	{s} is on the station: the technicians start assembly.
@@ -1638,6 +1639,7 @@ I requisiti di base non si derogano.	Basic requirements cannot be waived.
 Il piano di volo si progetta nel Centro di dinamica del volo.	The flight plan is designed in the flight dynamics centre.
 Le regole non si derogano.	Rules cannot be waived.
 è assemblato: esci e portalo all’edificio di testing per le prove.	is assembled: go out and take it to the test building for the tests.
+è assemblato: portalo all’edificio di testing per le prove.	is assembled: take it to the test building for the tests.
 Non hai abbastanza soldi.	You do not have enough money.
 Tocca un punto libero del laboratorio per posizionare	Tap a free spot in the lab to place
 Le antenne si collegano alla stazione di terra: costruiscila prima (Edifici).	Antennas connect to the ground station: build it first (Buildings).
@@ -4345,7 +4347,7 @@ const ACT={
       (soft.length?'<p class="fine">Una deroga chiude il requisito, ma è una promessa rotta: chi lo ha chiesto perde '+L.JOY.waive+' punti di soddisfazione, e con loro una parte delle rate.</p>':'')+(base.length?'<p class="fine">I requisiti di base non si derogano.'+(base.some(x=>x.fd)?' Il piano di volo si progetta nel Centro di dinamica del volo.':'')+'</p>':''),actions:'<button class="btn primary" data-act="closeov">Torna al progetto</button>'}); },
   waive(t){ const M=cur(); if(t.dataset.t){ M.tr[t.dataset.t].res='waived'; sfx.bad(); render(); return; } if(L.R(t.dataset.id).rule){ toast('Le regole non si derogano.'); return; } const lv=L.waive(M,t.dataset.id); sfx.bad(); if(lv) gone(M,lv); closeOv(); if(M.phase==='D') ACT.frr(); else ACT.pdr(); },
   toD(){ const M=cur(), cost=costDue(M); if(G.money<cost){ toast('Non hai abbastanza crediti.'); return; } closeOv(); if(M.capC&&!M.overrun){ const tot=cost+(M.lvPaid||0), pct=Math.round((tot/M.capC-1)*100); if(pct>0){ M.overrun=pct; M.stake.forEach(id=>{ M.joy[id]=Math.max(1,(M.joy[id]==null?60:M.joy[id])-Math.min(45,10+pct)); }); setTimeout(()=>toast('Over budget by '+pct+'%: the stakeholders are unhappy, later instalments will shrink.'),400); } } addMoney(-cost,'Pezzi comprati: −'+keur(cost)+'. Fase D: assemblaggio in camera bianca.'); if(once(M,'CDR')) gainXP(L.XP.CDR); M.paid=(M.paid||0); M.partsCredit=0; if(S3.ok){ try{ M.snap=S3.snap(M.sat,240); }catch(e){} } M.paid=(M.paid||0)+cost; M.partsVal=E.budget(M.sat).cost-(M.lvPaid||0); M.phase='D'; M.stage='assembly'; M.tests={}; M.tr={}; M.ready=false; M.buildDur=L.TIME.build*(hasB('factory')?.5:1)*(M.tut?.15:1)*workK()*perk('build'); M.buildEnd=9e15; M.asmWait=true; M.station=null; M.buildNote=false; go('hub'); toast('Pezzi comprati. Fase D: entra nell’edificio di costruzione e porta il satellite in camera bianca.'); },
-  cdr(){ const M=cur(); M.rnd=hasB('rnd'); M.defects=M.tut?{}:L.defects(M); M.stage='test'; M.tests={}; M.tr={}; M.ready=false; sfx.ok(); render(); toast(M.name+' è assemblato: esci e portalo all’edificio di testing per le prove.'); },
+  cdr(){ const M=cur(); M.rnd=hasB('rnd'); M.defects=M.tut?{}:L.defects(M); M.stage='test'; M.tests={}; M.tr={}; M.ready=false; sfx.ok(); go('hub'); toast(M.name+' è assemblato: portalo all’edificio di testing per le prove.'); },
   tolab(){ closeOv(); go('test'); },
   pick(t){ const i=G.missions.findIndex(m=>m.id===t.dataset.id); if(i>=0){ G.cur=i; sfx.tap(); render(); } },
   bay(t){ bayModal(+t.dataset.i); },
