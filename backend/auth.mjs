@@ -95,7 +95,7 @@ export function createAuth({ db, origin, secure = true }) {
             [randomUUID(), username, email?.toLowerCase() ?? null, await passwordHash(password)]);
           user = result.rows[0];
         } catch (error) {
-          if (error.code === '23505') return send(res, 409, { error: 'Registrazione non disponibile con questi dati' });
+          if (error.code === '23505') return send(res, 409, { error: 'Username già in uso' });
           throw error;
         }
       } else {
