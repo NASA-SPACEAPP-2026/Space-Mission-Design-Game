@@ -1,12 +1,11 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="format-detection" content="telephone=no"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><section id="account-entry" aria-label="Go No-Go" hidden>
   <section id="entry-panel" aria-labelledby="account-heading">
-    <h1 id="account-heading" tabindex="-1">Crea account</h1>
+    <h1 id="account-heading" tabindex="-1">Entra</h1>
     <form id="account-form">
       <div class="entry-field"><label for="entry-username" data-it="Username" data-en="Username">Username</label><input id="entry-username" name="username" required minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]{3,24}" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
-      <div class="entry-field"><label for="entry-password" data-it="Password" data-en="Password">Password</label><input id="entry-password" name="password" type="password" required maxlength="128" autocomplete="new-password"></div>
+      <div class="entry-field"><label for="entry-password" data-it="Password" data-en="Password">Password</label><input id="entry-password" name="password" type="password" required maxlength="128" autocomplete="current-password"></div>
       <p id="account-message" role="status" aria-live="polite"></p>
-      <button type="submit" id="account-submit">Crea account e gioca</button>
-      <button type="button" id="account-toggle">Hai già un account? Accedi</button>
+      <button type="submit" id="account-submit">Entra e gioca</button>
     </form>
     <button type="button" id="account-back" data-it="Annulla" data-en="Cancel">Annulla</button>
   </section>

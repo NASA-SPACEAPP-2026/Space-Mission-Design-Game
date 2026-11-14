@@ -5,20 +5,18 @@ const panel = root.querySelector('#entry-panel');
 const form = root.querySelector('#account-form');
 const message = root.querySelector('#account-message');
 const submit = root.querySelector('#account-submit');
-const toggle = root.querySelector('#account-toggle');
 const back = root.querySelector('#account-back');
 const password = form.elements.password;
-let register = true, busy = false, sessionUser = null, waiting = null;
+let busy = false, sessionUser = null, waiting = null;
 let sessionError = '';
 const en = (() => { try { return localStorage.getItem('gngLang') === 'en'; } catch { return false; } })();
 const t = (it, eng) => en ? eng : it;
 root.querySelectorAll('[data-it]').forEach(el => { el.textContent = t(el.dataset.it, el.dataset.en); });
 function mode() {
-  root.querySelector('#account-heading').textContent = register ? t('Crea account', 'Create account') : t('Accedi', 'Sign in');
-  submit.textContent = register ? t('Crea account e gioca', 'Create account & play') : t('Accedi e gioca', 'Sign in & play');
-  toggle.textContent = register ? t('Hai già un account? Accedi', 'Already have an account? Sign in') : t('Prima volta? Crea un account', 'First time? Create an account');
+  root.querySelector('#account-heading').textContent = t('Entra', 'Enter');
+  submit.textContent = t('Entra e gioca', 'Enter & play');
   password.minLength = 1;
-  password.autocomplete = register ? 'new-password' : 'current-password';
+  password.autocomplete = 'current-password';
   message.textContent = sessionError;
 }
 async function request(path, data) {
@@ -74,25 +72,27 @@ window.gngRequireAccount = async () => {
 };
 back.addEventListener('click', cancel);
 document.addEventListener('keydown', event => { if (event.key === 'Escape' && !root.hidden) cancel(); });
-toggle.addEventListener('click', () => { if (busy) return; register = !register; sessionError = ''; mode(); });
 form.addEventListener('submit', async event => {
   event.preventDefault(); if (busy) return;
-  busy = true; submit.disabled = toggle.disabled = true; form.setAttribute('aria-busy', 'true');
+  busy = true; submit.disabled = true; form.setAttribute('aria-busy', 'true');
   submit.textContent = t('Prepariamo il lancio…', 'Preparing for launch…'); message.textContent = '';
   try {
     const username = form.elements.username.value.trim();
-    const data = register ? { username, password: password.value } : { login: username, password: password.value };
-    enter((await request(register ? 'register' : 'login', data)).user);
-  } catch (error) {
-    if (register && error.status === 409) {
-      // Username taken: say so plainly and move to sign-in, keeping what the player typed.
-      const name = form.elements.username.value.trim();
-      register = false;
-      sessionError = t(`Il nome «${name}» è già in uso. Se è il tuo, inserisci la password e premi Accedi; altrimenti scegli un altro nome.`, `The name “${name}” is already taken. If it's yours, enter your password and press Sign in; otherwise pick another name.`);
-      mode(); password.focus({preventScroll:true});
-    } else { sessionError = error.message; mode(); }
-  }
-  finally { busy = false; submit.disabled = toggle.disabled = false; form.removeAttribute('aria-busy'); }
+    // One form for both cases: try to sign in; if the name is unknown, create the account.
+    try {
+      enter((await request('login', { login: username, password: password.value })).user);
+    } catch (error) {
+      if (error.status !== 401) throw error;
+      try {
+        enter((await request('register', { username, password: password.value })).user);
+      } catch (regError) {
+        if (regError.status !== 409) throw regError;
+        // The name exists but the password does not match.
+        throw new Error(t(`Il nome «${username}» esiste già e la password non corrisponde. Riprova la password oppure scegli un altro nome.`, `The name “${username}” already exists and the password doesn't match. Try the password again or pick another name.`));
+      }
+    }
+  } catch (error) { sessionError = error.message; mode(); password.focus({preventScroll:true}); }
+  finally { busy = false; submit.disabled = false; form.removeAttribute('aria-busy'); }
 });
 accountButton.onclick = () => dialog.showModal();
 dialog.querySelector('#account-close').onclick = () => dialog.close();
