@@ -633,7 +633,7 @@ window.GNGCLAN = (function () {
     s.textContent = `
 #clan{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;background:rgba(10,12,16,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
 #clan[hidden]{display:none}
-body.clan-open #account-open,body.clan-open #tbub,body.clan-open #zq{display:none!important}
+body.clan-open #tbub,body.clan-open #zq{display:none!important}
 #clan .clw{width:min(980px,100%);height:min(620px,100%);display:flex;flex-direction:column;background:#15171D;color:#F1ECE6;border-radius:12px;box-shadow:0 0 0 2px #2E3442,0 20px 50px rgba(0,0,0,.6);overflow:hidden;font-size:14px}
 #clan .clh{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 12px;border-bottom:1px solid #262B36;flex:none}
 #clan .clt{display:flex;flex-direction:column;min-width:0;flex:1}
