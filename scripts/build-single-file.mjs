@@ -4,7 +4,7 @@
  * the game script, the CSS and the fonts are inlined, so the file runs by double-click (file://) or from any static host.
  * The soundtrack stays a separate file, as in the normal build.
  *
- *   npm run package:single                 -> writes "Go No-Go.html" next to package.json (audio: public/audio/theme.mp3)
+ *   npm run package:single                 -> writes "dist/Go No-Go.html" (audio: dist/audio/theme.mp3)
  *   node scripts/build-single-file.mjs --bundle out/   -> out/"Go No-Go.html" + out/audio/theme.mp3 (a folder you can move around)
  */
 import { copyFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
@@ -14,8 +14,8 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const dist = resolve(root, "dist");
 const args = process.argv.slice(2), arg = k => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
-const bundle = arg("--bundle"), outFile = bundle ? resolve(bundle, "Go No-Go.html") : resolve(arg("--out") || resolve(root, "Go No-Go.html"));
-const audioUrl = bundle ? "audio/theme.mp3" : "public/audio/theme.mp3";
+const bundle = arg("--bundle"), outFile = bundle ? resolve(bundle, "Go No-Go.html") : resolve(arg("--out") || resolve(dist, "Go No-Go.html"));
+const audioUrl = "audio/theme.mp3";
 
 let html = await readFile(resolve(dist, "index.html"), "utf8");
 
