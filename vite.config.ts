@@ -9,12 +9,8 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-<<<<<<< HEAD
-    // GMAT (NASA) runs in a container; the game calls it through the same origin
-    proxy: { "/api/gmat": "http://localhost:8787" }
-=======
-    proxy: { '/api': 'http://127.0.0.1:8080' }
->>>>>>> origin/dev
+    // GMAT (NASA) runs in a container: its routes go there, everything else under /api goes to the app server (first match wins)
+    proxy: { "/api/gmat": "http://localhost:8787", "/api": "http://127.0.0.1:8080" }
   },
   preview: {
     host: true,

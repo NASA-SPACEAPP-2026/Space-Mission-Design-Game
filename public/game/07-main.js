@@ -5645,13 +5645,8 @@ const C3=(()=>{
     // edifici e oggetti
 
     const tr=[]; const tops={};
-<<<<<<< HEAD
-    OBJ={}; items.forEach(it=>{ if(it.k==='tree'||it.k==='pine'||it.k==='poplar'){ tr.push({id:it.id,x:it.x+.45,y:it.y+.45,k:it.k==='tree'?'round':it.k,s:it.k==='poplar'?.95:1.05}); return; } const keep=built, g=new THREE.Group(); g.userData.id=it.id; built=g; tops[it.id]=building(it,ctx); built=keep; mergeGroup(g); keep.add(g); OBJ[it.id]=g; });
-    nat.trees.forEach(t=>{ if(MTN.some(m=>hyp(t.x-m.x,t.y-m.z)<m.br*1.02)) return; if(dPL([t.x,t.y],SP)<3.3) return; if(cwP&&pdist(t.x,t.y,cwP)<1.7) return; if(RDS.some(r=>pdist(t.x,t.y,r.p)<r.hw+1.1)) return; tr.push({x:t.x,y:t.y,k:t.t,s:t.k*1.05}); }); trees(tr);
-=======
     Object.keys(GLOW).forEach(k=>delete GLOW[k]); OBJ={}; items.forEach(it=>{ if(it.k==='tree'||it.k==='pine'||it.k==='poplar'){ tr.push({id:it.id,x:it.x+.45,y:it.y+.45,k:it.k==='tree'?'round':it.k,s:it.k==='poplar'?.95:1.05}); return; } const keep=built, g=new THREE.Group(); g.userData.id=it.id; built=g; tops[it.id]=building(it,ctx); built=keep; mergeGroup(g); keep.add(g); OBJ[it.id]=g; });
-    nat.trees.forEach(t=>{ if(MTN.some(m=>Math.hypot(t.x-m.x,t.y-m.z)<m.br*1.02)) return; if(dPL([t.x,t.y],SP)<3.3) return; if(cwP&&pdist(t.x,t.y,cwP)<1.7) return; if(RDS.some(r=>pdist(t.x,t.y,r.p)<r.hw+1.1)) return; tr.push({x:t.x,y:t.y,k:t.t,s:t.k*1.05}); }); trees(tr);
->>>>>>> origin/dev
+    nat.trees.forEach(t=>{ if(MTN.some(m=>hyp(t.x-m.x,t.y-m.z)<m.br*1.02)) return; if(dPL([t.x,t.y],SP)<3.3) return; if(cwP&&pdist(t.x,t.y,cwP)<1.7) return; if(RDS.some(r=>pdist(t.x,t.y,r.p)<r.hw+1.1)) return; tr.push({x:t.x,y:t.y,k:t.t,s:t.k*1.05}); }); trees(tr);
     // siepe lungo il confine, lampioni lungo i viali, aiuole davanti agli edifici
     const rects=items.filter(i=>CAM.K[i.k]&&!/tree|pine|poplar/.test(i.k)).map(i=>[i.x-.15,i.y-.15,i.x+CAM.K[i.k].w+.15,i.y+CAM.K[i.k].h+.15]);
     const inR=(x,z)=>rects.some(r=>x>r[0]&&x<r[2]&&z>r[1]&&z<r[3]), nearRd=(x,z,m)=>RDS.some(r=>dPL([x,z],r.p)<r.hw+m);
@@ -5715,7 +5710,6 @@ const C3=(()=>{
   /* ciclo: giorno lungo, tramonto/alba brevissimi (stessa luce), notte breve (blu, non buia del tutto). Chiavi: [secondi, 0=giorno 1=tramonto/alba 2=notte] */
   const TODK=[[0,0],[150,0],[158,1],[165,1],[173,2],[285,2],[293,1],[299,1],[307,0]], CYC=307, SKY=[{bg:'#BFDDEB',fog:'#C7E0E6',hs:'#EAF4FF',hg:'#4F7A2E',hi:.28,sc:'#FFE9C8',si:1.7,fc:'#CFE0FF',fi:.25,lamp:.5,win:0},{bg:'#F0A872',fog:'#EDB58C',hs:'#FFD9B8',hg:'#5C5C3C',hi:.27,sc:'#FF9A55',si:1.25,fc:'#8E9ACB',fi:.22,lamp:2.5,win:.3},{bg:'#1B2A4C',fog:'#24365C',hs:'#7F90CC',hg:'#24304A',hi:.55,sc:'#9DB4FF',si:.08,fc:'#5B6FA8',fi:.3,lamp:6,win:.8}];
   const TCA=new THREE.Color(), TCB=new THREE.Color(); const mixC=(out,a,b,f)=>{ TCA.set(a).convertSRGBToLinear(); TCB.set(b).convertSRGBToLinear(); out.copy(TCA).lerp(TCB,f); };
-<<<<<<< HEAD
   /* Il sole attraversa il cielo dall'alba al tramonto e di notte la luna fa lo stesso: la luce direzionale si sposta e le ombre (rinfrescate dal governatore) la seguono.
      A mezzogiorno la direzione è quella di sempre. Il sole non scende sotto 18°: oltre, le ombre diventerebbero troppo lunghe per la mappa d'ombra. */
   const SUNT=new THREE.Vector3(13,0,8), SD=new THREE.Vector3(), PHI0=Math.atan2(-18,-31), D2R=Math.PI/180, T_RISE=290, T_SET=165, DAYLEN=CYC-T_RISE+T_SET;
@@ -5732,18 +5726,6 @@ const C3=(()=>{
     const lamp=lerpN(A.lamp,B.lamp,f), win=lerpN(A.win,B.win,f); for(let k=0;k<LAMPM.length;k++) LAMPM[k].emissiveIntensity=lamp; if(GLOWM) GLOWM.opacity=Math.max(0,(lamp-.5)/5.5)*.9;
     if(GLASS){ if(GLASS.emissive) GLASS.emissive.setHex(0xFFC873); GLASS.emissiveIntensity=win; } if(GLASSD){ if(GLASSD.emissive) GLASSD.emissive.setHex(0xFFC873); GLASSD.emissiveIntensity=win; }
     if(STARS){ STARS.material.opacity=night; STARS.visible=night>.03; } }
-  function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); const ttl=document.body.classList.contains('ttl-on'); if(ttl!==ttlWas){ ttlWas=ttl; R.setPixelRatio(PR()); size(); }
-    const raw=ts-PF.prev; PF.prev=ts; if(raw>0&&raw<250){ PF.gaps.push(raw); if(PF.gaps.length>90) PF.gaps.shift(); if(++PF.gn%30===0){ const s=PF.gaps.slice().sort((a,b)=>a-b); const p=s[Math.floor(s.length*.2)]; if(p<PF.base){ PF.base=p; PF.hiT=0; } else if(p>PF.base*1.3){ PF.hiT=(PF.hiT||0)+30; if(PF.hiT>1800){ PF.base=p; PF.hiT=0; } } else PF.hiT=0; /* ritmo dello schermo = il più veloce osservato; si adegua solo se resta lento a lungo */ } }
-    const busy=ttl||PT.size>0||ts-lastIn<1200||Math.abs(T.yaw-YAW0)>.002, lv=LVL[PF.lvl], gapMin=RMOTION?(busy?33:80):(lv.cap?1000/lv.cap-3:0); if(ts-last<gapMin) return;
-    const gap=ts-last; last=ts; PF.gap+=(Math.min(gap,100)-PF.gap)*.2; const dt=Math.min(.05,PF.gap/1000), w0=performance.now(); SIMT+=dt; const t=SIMT; /* dt mediato: i frame irregolari non diventano scatti */
-    if(ttl) T.yaw+=dt*.05; else { let dy=((T.yaw-YAW0)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; T.yaw=Math.abs(dy)<1e-4?YAW0:YAW0+dy*Math.pow(.02,dt); } dayNight(t); walk(dt,t); for(let i=0;i<anims.length;i++) anims[i](t); for(let i=0;i<flags.length;i++) flags[i].rotation.y=Math.sin(t*2+i)*.25; edit3(t);
-    if(PF.lvl>=3){ if(++PF.shn>=lv.every){ PF.shn=0; R.shadowMap.needsUpdate=true; } } else { if(!SHPOS) SHPOS=new THREE.Vector3(1e9,0,0); if(SUNC.position.distanceToSquared(SHPOS)>.12){ SHPOS.copy(SUNC.position); R.shadowMap.needsUpdate=true; } } /* livelli bassi: la mappa d'ombra si rifa solo quando il sole si e' mosso (nessun fotogramma pesante a turno); i rover hanno un'ombra a macchia */
-    placeCam(); R.render(scene,cam); project(); perfStep(gap,performance.now()-w0,dt,ttl); }
-=======
-  function dayNight(ts){ if(!HEMC||!SUNC||!scene) return; const T=TODS!=null?TODS:((ts+30)%CYC); let i=0; while(i<TODK.length-2&&T>=TODK[i+1][0]) i++; const a=TODK[i], b=TODK[i+1], f0=Math.max(0,Math.min(1,(T-a[0])/(b[0]-a[0]))), f=f0*f0*(3-2*f0), A=SKY[a[1]], B=SKY[b[1]], L=(x,y)=>x+(y-x)*f;
-    mixC(scene.background,A.bg,B.bg,f); if(scene.fog) mixC(scene.fog.color,A.fog,B.fog,f); mixC(HEMC.color,A.hs,B.hs,f); mixC(HEMC.groundColor,A.hg,B.hg,f); HEMC.intensity=L(A.hi,B.hi); mixC(SUNC.color,A.sc,B.sc,f); SUNC.intensity=L(A.si,B.si); mixC(FILC.color,A.fc,B.fc,f); FILC.intensity=L(A.fi,B.fi);
-    const lamp=L(A.lamp,B.lamp), win=L(A.win,B.win); LAMPM.forEach(m=>{ m.emissiveIntensity=lamp; }); if(GLOWM) GLOWM.opacity=Math.max(0,(lamp-.5)/5.5)*.9; [GLASS,GLASSD].forEach(m=>{ if(m){ if(m.emissive) m.emissive.setHex(0xFFC873); m.emissiveIntensity=win; } });
-    if(STARS){ const ns=(a[1]===2?1:0)*(1-f)+(b[1]===2?1:0)*f; STARS.material.opacity=ns; STARS.visible=ns>.03; } }
   /* bagliore arancione con la sagoma della facility: uno "scafo" arancione attorno ai pezzi dell'edificio (stessa tecnica del contorno cartoon di TOON,
      ma piu' largo, trasparente e pulsante), al posto della macchia CSS sul bottone. Si accende sulle facility evidenziate dal tutorial (.coach-hl) e sulla rampa col razzo pronto (.b3rdy). */
   let GLM=null; const GLOW={};
@@ -5756,10 +5738,12 @@ const C3=(()=>{
   function glowSync(t){ const want={}; HS.forEach(h=>{ if(h.it&&h.b&&(h.b.classList.contains('coach-hl')||h.b.classList.contains('b3rdy'))) want[h.it.id]=1; });
     Object.keys(GLOW).forEach(id=>{ if(!want[id]) glowOff(id); }); Object.keys(want).forEach(glowOn); if(GLM){ const p=.5+.5*Math.sin(t*3.9); GLM.uniforms.uA.value=.65+.35*p; GLM.uniforms.uG.value=4+3*p; } }
   function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); const ttl=document.body.classList.contains('ttl-on'); if(ttl!==ttlWas){ ttlWas=ttl; R.setPixelRatio(PR()); size(); }
-    const busy=ttl||PT.size>0||ts-lastIn<1200||Math.abs(T.yaw-YAW0)>.002; if(ts-last<(busy?33:80)) return; const dt=Math.min(.1,(ts-last)/1000); last=ts; const t=ts/1000;
-    if(ttl) T.yaw+=dt*.05; else { let dy=((T.yaw-YAW0)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; T.yaw=YAW0+dy*Math.pow(.02,dt); } dayNight(t); walk(dt,t); for(let i=0;i<anims.length;i++) anims[i](t); for(let i=0;i<flags.length;i++) flags[i].rotation.y=Math.sin(t*2+i)*.25; edit3(t);
-    glowSync(t); placeCam(); R.render(scene,cam); project(); }
->>>>>>> origin/dev
+    const raw=ts-PF.prev; PF.prev=ts; if(raw>0&&raw<250){ PF.gaps.push(raw); if(PF.gaps.length>90) PF.gaps.shift(); if(++PF.gn%30===0){ const s=PF.gaps.slice().sort((a,b)=>a-b); const p=s[Math.floor(s.length*.2)]; if(p<PF.base){ PF.base=p; PF.hiT=0; } else if(p>PF.base*1.3){ PF.hiT=(PF.hiT||0)+30; if(PF.hiT>1800){ PF.base=p; PF.hiT=0; } } else PF.hiT=0; /* ritmo dello schermo = il più veloce osservato; si adegua solo se resta lento a lungo */ } }
+    const busy=ttl||PT.size>0||ts-lastIn<1200||Math.abs(T.yaw-YAW0)>.002, lv=LVL[PF.lvl], gapMin=RMOTION?(busy?33:80):(lv.cap?1000/lv.cap-3:0); if(ts-last<gapMin) return;
+    const gap=ts-last; last=ts; PF.gap+=(Math.min(gap,100)-PF.gap)*.2; const dt=Math.min(.05,PF.gap/1000), w0=performance.now(); SIMT+=dt; const t=SIMT; /* dt mediato: i frame irregolari non diventano scatti */
+    if(ttl) T.yaw+=dt*.05; else { let dy=((T.yaw-YAW0)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; T.yaw=Math.abs(dy)<1e-4?YAW0:YAW0+dy*Math.pow(.02,dt); } dayNight(t); walk(dt,t); for(let i=0;i<anims.length;i++) anims[i](t); for(let i=0;i<flags.length;i++) flags[i].rotation.y=Math.sin(t*2+i)*.25; edit3(t);
+    if(PF.lvl>=3){ if(++PF.shn>=lv.every){ PF.shn=0; R.shadowMap.needsUpdate=true; } } else { if(!SHPOS) SHPOS=new THREE.Vector3(1e9,0,0); if(SUNC.position.distanceToSquared(SHPOS)>.12){ SHPOS.copy(SUNC.position); R.shadowMap.needsUpdate=true; } } /* livelli bassi: la mappa d'ombra si rifa solo quando il sole si e' mosso (nessun fotogramma pesante a turno); i rover hanno un'ombra a macchia */
+    glowSync(t); placeCam(); R.render(scene,cam); project(); perfStep(gap,performance.now()-w0,dt,ttl); }
   /* ---------- input: trascina, pizzica, rotellina ---------- */
   const PT=new Map(); let drag=null, pinch=null, moved=false;
   function clampT(){ const s=CAM.site(); let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9; s.forEach(p=>{ x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); z0=Math.min(z0,p[1]); z1=Math.max(z1,p[1]); }); T.x=Math.max(x0,Math.min(x1,T.x)); T.z=Math.max(z0,Math.min(z1,T.z)); T.d=Math.max(11,Math.min(58,T.d)); }

@@ -7,12 +7,9 @@
     "node": ">=24"
   },
   "scripts": {
-<<<<<<< HEAD
     "predev": "node scripts/gmat-up.mjs",
-=======
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
     "dev:api": "node --env-file-if-exists=.env --watch server.mjs",
->>>>>>> origin/dev
     "dev": "vite",
     "build": "vite build && node scripts/build-game.mjs && node scripts/precompress.mjs",
     "preview": "vite preview",
