@@ -200,6 +200,53 @@ describe('Consortia API', () => {
     expect(last.data).toEqual({ code: 'science', user: 'Cyd', mission: 'AURASAT', points: 120 });
   });
 
+  it('streams a live game only to teammates who watch, and delivers stickers sent while watching', async () => {
+    const put = (who, body, opts) => api(who, 'PUT', '/live', body, opts);
+    const state = { enc: 'gz', data: 'H4sIAAAAAAAAA6tWKkktLlGyUlAqzy/KSVGqBQBkYzzWEQAAAA==' };
+    expect((await put('Fay', { view: 'hub' })).body.error).toBe('no_consortium');
+    expect((await put('Ada', { view: 'hub' }, { origin: 'https://evil.example' })).status).toBe(403);
+    expect((await put('Ada', { view: 'HUB!' })).body.field).toBe('view');
+    expect((await put('Ada', { view: 'hub', state: { enc: 'gz', data: 'not base64!' } })).body.field).toBe('state');
+    expect((await put('Ada', { view: 'hub', state: { enc: 'gz', data: 'A'.repeat(160_004) } })).body.field).toBe('state');
+    expect((await put('Ada', { view: 'hub', state: { enc: 'gz', data: 'A'.repeat(210_000) } })).status).toBe(413);
+
+    // Nobody watches yet: a heartbeat only, which also shows the player as "playing".
+    expect((await put('Ada', { view: 'mcc', mission: 'AURASAT' })).body).toEqual({ watched: false, reactions: [], lastId: 0 });
+    expect((await get('Bob', '/mine')).body.members.find(m => m.username === 'Ada').status).toBe('playing');
+    // A viewer turns the stream on; the state arrives with the player's next heartbeat and is kept between them.
+    expect((await get('Bob', '/live/ada')).body).toMatchObject({ username: 'Ada', view: 'mcc', mission: 'AURASAT', state: null });
+    expect((await put('Ada', { view: 'mcc', mission: 'AURASAT', state })).body.watched).toBe(true);
+    expect((await get('Bob', '/live/Ada')).body.state).toEqual(state);
+    await put('Ada', { view: 'build', mission: 'AURASAT' });
+    expect((await get('Bob', '/live/Ada')).body).toMatchObject({ view: 'build', state });
+
+    // Only teammates, never yourself, never someone who opted out or is not playing.
+    expect((await get('Dan', '/live/Ada')).body.error).toBe('member_not_found');
+    expect((await get('Ada', '/live/Ada')).body.error).toBe('self');
+    expect((await get('Bob', '/live/Cyd')).body.error).toBe('spectate_off');
+    await post('Cyd', '/mine/preferences', { spectate: true });
+    expect((await get('Bob', '/live/Cyd')).body.error).toBe('not_live');
+
+    // Stickers sent while watching are addressed to the player and come back in their heartbeat.
+    await cool();
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_laugh', to: 'ada' })).body.message).toMatchObject({ sticker: 'zorty_laugh', to: 'Ada' });
+    await cool();
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_cry', to: 'Dan' })).body.error).toBe('member_not_found');
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_cry', to: '<b>' })).body.field).toBe('to');
+    const beat = (await put('Ada', { view: 'build' })).body;
+    expect(beat.reactions).toEqual([expect.objectContaining({ sticker: 'zorty_laugh', author: 'Bob' })]);
+    expect((await put('Ada', { view: 'build', since: beat.lastId })).body.reactions).toEqual([]);
+
+    // Opting out drops the stored state at once and stops the stream.
+    await post('Ada', '/mine/preferences', { spectate: false });
+    expect((await put('Ada', { view: 'build', state })).body.watched).toBe(false);
+    expect((await get('Bob', '/live/Ada')).body.error).toBe('spectate_off');
+    await post('Ada', '/mine/preferences', { spectate: true });
+    expect((await get('Bob', '/live/Ada')).body.state).toBeNull();
+    await db.query(`UPDATE live_sessions SET updated_at = now() - interval '2 minutes'`);
+    expect((await get('Bob', '/live/Ada')).body.error).toBe('not_live');
+  });
+
   it('hands over leadership when the director leaves or is inactive, and disbands when empty', async () => {
     expect((await post('Bob', '/leave')).body).toEqual({ left: true, disbanded: false });
     expect((await get('Ada', '/mine')).body.me.role).toBe('director');
