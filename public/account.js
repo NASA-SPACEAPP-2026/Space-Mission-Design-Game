@@ -2,8 +2,6 @@
 // player tries to enter the game (Continue / New game). Session tokens remain in HttpOnly cookies.
 const root = document.querySelector('#account-entry');
 const panel = root.querySelector('#entry-panel');
-const artwork = root.querySelector('#entry-art');
-artwork.innerHTML = window.gngEntryArtwork?.() || '';
 const form = root.querySelector('#account-form');
 const message = root.querySelector('#account-message');
 const submit = root.querySelector('#account-submit');
@@ -16,14 +14,11 @@ const en = (() => { try { return localStorage.getItem('gngLang') === 'en'; } cat
 const t = (it, eng) => en ? eng : it;
 root.querySelectorAll('[data-it]').forEach(el => { el.textContent = t(el.dataset.it, el.dataset.en); });
 function mode() {
-  root.querySelector('#account-heading').textContent = register ? t('La tua missione inizia qui.', 'Your mission starts here.') : t('Bentornato, comandante.', 'Welcome back, commander.');
-  root.querySelector('#account-description').textContent = register ? t('Crea il tuo account. Il prossimo lancio porta il tuo nome.', 'Create your account. The next launch has your name on it.') : t('La tua agenzia ti aspetta. Pronto al prossimo lancio?', 'Your agency awaits. Ready for the next launch?');
+  root.querySelector('#account-heading').textContent = register ? t('Crea account', 'Create account') : t('Accedi', 'Sign in');
   submit.textContent = register ? t('Crea account e gioca', 'Create account & play') : t('Accedi e gioca', 'Sign in & play');
-  toggle.textContent = register ? t('Hai già un account? Accedi', 'Already have an account? Sign in') : t('Prima missione? Crea un account', 'First mission? Create an account');
+  toggle.textContent = register ? t('Hai già un account? Accedi', 'Already have an account? Sign in') : t('Prima volta? Crea un account', 'First time? Create an account');
   password.minLength = 1;
   password.autocomplete = register ? 'new-password' : 'current-password';
-  root.querySelector('#password-hint').textContent = register ? t('Fino a 128 caratteri. Una frase lunga va benissimo.', 'Up to 128 characters. A long phrase works great.') : t('Inserisci la password del tuo account.', 'Enter your account password.');
-  form.elements.username.autocomplete = 'username';
   message.textContent = sessionError;
 }
 async function request(path, data) {
@@ -74,17 +69,12 @@ window.gngRequireAccount = async () => {
     root.hidden = false;
     mode();
     // Do not summon a phone keyboard before the visitor chooses a field.
-    root.querySelector('#account-heading').focus();
+    form.elements.username.focus({preventScroll:true});
   });
 };
 back.addEventListener('click', cancel);
 document.addEventListener('keydown', event => { if (event.key === 'Escape' && !root.hidden) cancel(); });
 toggle.addEventListener('click', () => { if (busy) return; register = !register; sessionError = ''; mode(); });
-root.querySelector('#password-show').addEventListener('click', event => {
-  const shown = password.type === 'password'; password.type = shown ? 'text' : 'password';
-  event.currentTarget.textContent = shown ? t('Nascondi', 'Hide') : t('Mostra', 'Show');
-  event.currentTarget.setAttribute('aria-pressed', String(shown));
-});
 form.addEventListener('submit', async event => {
   event.preventDefault(); if (busy) return;
   busy = true; submit.disabled = toggle.disabled = true; form.setAttribute('aria-busy', 'true');
