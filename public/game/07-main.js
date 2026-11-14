@@ -418,6 +418,7 @@ Fase A	Phase A
 Fase B	Phase B
 Fase B, passo {n}: nel Centro di dinamica del volo disegna la missione (DRM).	Phase B, step {n}: in the flight dynamics centre draw the mission (DRM).
 Fase B: esci e vai al Centro di dinamica del volo per disegnare la missione (DRM).	Phase B: go out to the flight dynamics centre to draw the mission (DRM).
+Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM).	Phase B: go to the flight dynamics centre to draw the mission (DRM).
 Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM). Tocca l’edificio sulla mappa.	Phase B: go to the flight dynamics centre to draw the mission (DRM). Tap the building on the map.
 Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM): prima torna al campus con la casetta in basso a destra.	Phase B: go to the flight dynamics centre to draw the mission (DRM): first go back to the campus with the house button at the bottom right.
 Fase C	Phase C
@@ -721,6 +722,7 @@ Personale	Staff
 Perturbazioni orbitali	Orbital perturbations
 Perturbazioni orbitali: Orbita a {n} × {n} km.	Orbital perturbations: Orbit at {n} × {n} km.
 Pezzi comprati. Ora porta il satellite su una postazione della camera bianca.	Parts bought. Now take the satellite to a clean-room station.
+Pezzi comprati. Fase D: entra nell’edificio di costruzione e porta il satellite in camera bianca.	Parts bought. Phase D: enter the assembly building and take the satellite to the clean room.
 Pezzi comprati: {n} cr. Fase D: assemblaggio in camera bianca.	Parts bought: {n} cr. Phase D: assembly in the clean room.
 Piano di volo	Flight plan
 Pianta	Plant
@@ -877,6 +879,7 @@ Risorse	Resources
 Risorse di bordo	On-board resources
 Robotica	Robotics
 Ruota	Rotate
+Ruota la stanza	Rotate the room
 Ruote che girano per orientare il satellite con precisione	Spinning wheels to point the satellite precisely
 Ruote di reazione da dischi rigidi	Hard-disk reaction wheels
 Ruote di reazione ricavate da dischi rigidi: assetto a tre assi a bassissimo costo.	Reaction wheels made from hard disks: three-axis attitude at very low cost.
@@ -1070,6 +1073,7 @@ lancio, viaggio e discesa con il lander	launch, trip and descent with the lander
 manovra di discesa	descent manoeuvre
 manovra di salita	climb manoeuvre
 lancio prenotato {n} cr. Fase C: costruisci il satellite nell’edificio di costruzione.	launch booked {n} cr. Phase C: freeze the design in the assembly building.
+lancio prenotato {n} cr. Fase C: revisione CDR e acquisto dei pezzi.	launch booked {n} cr. Phase C: CDR review and parts purchase.
 lato opposto, trascinabile	opposite side, draggable
 livello {n}	level {n}
 lo metti dove vuoi	put it where you like
@@ -1197,6 +1201,7 @@ vibrazione superata	vibration passed
 {s} creata. Entra nell’edificio amministrativo: la NASA ti aspetta al tavolo.	{s} created. Enter the administration building: NASA is waiting for you at the table.
 {s} pronto al lancio	{s} ready for launch
 {s} è assemblato: esci e portalo all’edificio di testing per le prove.	{s} is assembled: go out and take it to the test building for the tests.
+{s} è assemblato: portalo all’edificio di testing per le prove.	{s} is assembled: take it to the test building for the tests.
 {s} è in orbita: esci e vai al Mission Control Center per seguirlo.	{s} is in orbit: go out to the Mission Control Center to follow it.
 {s} è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.	{s} is ready: phase E begins. Go to the administration building for the launch.
 {s} è sulla postazione: i tecnici iniziano l’assemblaggio.	{s} is on the station: the technicians start assembly.
@@ -1729,6 +1734,7 @@ I requisiti di base non si derogano.	Basic requirements cannot be waived.
 Il piano di volo si progetta nel Centro di dinamica del volo.	The flight plan is designed in the flight dynamics centre.
 Le regole non si derogano.	Rules cannot be waived.
 è assemblato: esci e portalo all’edificio di testing per le prove.	is assembled: go out and take it to the test building for the tests.
+è assemblato: portalo all’edificio di testing per le prove.	is assembled: take it to the test building for the tests.
 Non hai abbastanza soldi.	You do not have enough money.
 Tocca un punto libero del laboratorio per posizionare	Tap a free spot in the lab to place
 Le antenne si collegano alla stazione di terra: costruiscila prima (Edifici).	Antennas connect to the ground station: build it first (Buildings).
@@ -2554,6 +2560,7 @@ Rata PDR	PDR instalment
 Nessuna nuova rata	No new instalment
 · lancio prenotato −	· launch booked −
 . Fase C: costruisci il satellite nell’edificio di costruzione.	. Phase C: build the satellite in the assembly building.
+. Fase C: revisione CDR e acquisto dei pezzi.	. Phase C: CDR review and parts purchase.
 Responsabile programmi ·	Programme manager ·
 al tavolo	at the table
 missioni insieme	missions together
@@ -3037,7 +3044,7 @@ async function musStart(){ if(!musOn()||MUS.src||MUS.loading) return; try{ AC=AC
 function musStop(){ if(!MUS.src||!AC) return; const s=MUS.src, g=MUS.gain, n=AC.currentTime; g.gain.cancelScheduledValues(n); g.gain.setValueAtTime(g.gain.value,n); g.gain.linearRampToValueAtTime(0,n+.6); setTimeout(()=>{ try{ s.stop(); }catch(e){} },700); MUS.src=null; }
 ['pointerdown','keydown','touchstart'].forEach(ev=>window.addEventListener(ev,e=>{ if(e.target&&e.target.closest&&e.target.closest('[data-act="music"]')) return; musStart(); },true));
 document.addEventListener('visibilitychange',()=>{ if(!AC) return; if(document.hidden) AC.suspend(); else AC.resume(); });
-const TOAST_NO=/installat|costruit|rimoss|spostat|Musica (accesa|spenta)|nel tuo roster|creata\.|Modalità libera|Sandbox|prima missione|first mission|Tutorial saltato|Tutorial skipped|Partita cancellata|Saved game deleted|Tutorial finito|Tutorial done|Pianta (aggiunta|rimossa)|Pubblicata in bacheca|rimossa dalla bacheca|Sei tornato alla fase|Stipendi della|Pezzi comprati|accetta la controproposta|è sulla postazione|è sulla rampa|Rata PDR|Nessuna nuova rata|Prima rata|Fase A: rientra|finanzia la missione|assemblaggio completato|Fase B: esci|è assemblato: esci|comincia la fase E|è in orbita: esci|in volo: segui la telemetria|Fase C: costruisci/;
+const TOAST_NO=/installat|costruit|rimoss|spostat|Musica (accesa|spenta)|nel tuo roster|creata\.|Modalità libera|Sandbox|prima missione|first mission|Tutorial saltato|Tutorial skipped|Partita cancellata|Saved game deleted|Tutorial finito|Tutorial done|Pianta (aggiunta|rimossa)|Pubblicata in bacheca|rimossa dalla bacheca|Sei tornato alla fase|Stipendi della|Pezzi comprati|accetta la controproposta|è sulla postazione|è sulla rampa|Rata PDR|Nessuna nuova rata|Prima rata|Fase A: rientra|finanzia la missione|assemblaggio completato|Fase B: (esci|vai al)|è assemblato: esci|comincia la fase E|è in orbita: esci|in volo: segui la telemetria|Fase C: costruisci/;
 // schermi della sala controllo: tocchi uno schermo e si apre in grande (come il taccuino); quello di stato porta con sé le risorse di bordo
 const MZOOM=(()=>{ let el=null, home=null, dash=null, dashHome=null;
   function close(){ if(!el) return; if(home&&home.parent&&home.parent.isConnected) home.parent.insertBefore(el,home.next&&home.next.parentNode===home.parent?home.next:null); if(dash&&dashHome&&dashHome.isConnected) dashHome.appendChild(dash); ['#mzoomBg','#mzoomBox'].forEach(q=>{ const x=$(q); if(x) x.remove(); }); el=null; home=null; dash=null; dashHome=null; }
@@ -3677,7 +3684,7 @@ function drmPanel(M){ const D=M.drm, dest=M.sat.dest||'leo', land=drmLand(M), re
     '<h3 style="margin-top:12px">Fine vita (fase F)</h3><div class="deol">'+[['reentry','🔥 Rientro',atm?'in atmosfera':'niente atmosfera',!atm],['impact','💥 Impatto','sulla superficie',dest==='leo'],['grave','🪦 Cimitero',dest==='leo'?'sopra la geostazionaria':'orbita molto alta',false]].map(([k,n,sub,dis])=>'<button class="'+(D.eol&&D.eol.k===k?'on':'')+'" data-act="drmeol" data-k="'+k+'"'+(dis?' disabled':'')+'><b>'+n+'</b><small>'+sub+'</small></button>').join('')+'</div>';
   h+='<div class="dtot"><span>Durata totale</span><b class="num">'+(land?D.relMo:drmMonths(M))+' mesi</b></div>';
   { const k0=winMode(M), lc0=M.sat.lv?E.lvCost(M.sat):0, rx=rushExtra({drm:{win:'rush'}},lc0);
-    h+='<h3 style="margin-top:12px">'+TX('Finestra di lancio','Launch window')+'</h3><div class="deol">'+[['rush','⚡ Rush',TX('subito · extra '+keur(rx)+' sul lancio','right away · extra '+keur(rx)+' on the launch')],['ontime','🎯 On time',TX('richiesta dagli stakeholder · attesa breve','what the stakeholders asked · short wait')],['relaxed','🌿 Relaxed',TX('nessun extra · attesa lunga · gli stakeholder si lamentano','no extra · long wait · stakeholders will be unhappy')]].map(([k,n,sub])=>'<button class="'+(k0===k?'on':'')+'" data-act="drmwin" data-k="'+k+'"><b>'+n+'</b><small>'+sub+'</small></button>').join('')+'</div>'; }
+    h+='<h3 style="margin-top:12px">'+TX('Finestra di lancio','Launch window')+'</h3><div class="deol">'+[['rush','⚡ Rush',TX('extra '+keur(rx)+' sul lancio · stakeholder più contenti a fine missione','extra '+keur(rx)+' on the launch · happier stakeholders at the end')],['ontime','🎯 On time',TX('quella chiesta dagli stakeholder','what the stakeholders asked')],['relaxed','🌿 Relaxed',TX('nessun extra · gli stakeholder si lamentano','no extra · stakeholders will be unhappy')]].map(([k,n,sub])=>'<button class="'+(k0===k?'on':'')+'" data-act="drmwin" data-k="'+k+'"><b>'+n+'</b><small>'+sub+'</small></button>').join('')+'</div>'; }
   const ready=land||(D.eol&&drmStarH(M)!=null); h+='<button class="btn primary" style="width:100%" data-act="bstep" data-k="sat"'+(ready?'':' disabled')+'>'+TX('Conferma la DRM · torna al campus','Confirm the DRM · back to the campus')+'</button>'+'</div>';
   return h; }
 function vDRM(v,M){ const D=drmInit(M); DRMH=Math.round(Math.max(400,Math.min(600,1000/(innerWidth/Math.max(1,innerHeight))*1.05))); if(drmLand(M)){ D.eol={k:'surf'}; D.orbits=[]; }
@@ -4233,13 +4240,15 @@ function launchScene3(st,port,wide,vw){ const T=v=>String(v).replace(/&/g,'&amp;
   IR3.pending={room:'launch',st}; queueMicrotask(IR3.sync); const dis=st.busy?' dis':'';
   return '<div id="lsvg" class="full r3host r3fixed" data-3d="1" data-room="launch" role="img" aria-label="Launch pad seen from the bunker"></div><div class="lframe"></div><div class="lsub">'+T(st.sub||'')+'</div>'+
     '<div class="lcon"><button class="lbtn lgo'+dis+'" data-act="xlaunch">LAUNCH</button><div class="ldisp"><div class="lname">'+T(String(st.name).slice(0,18))+'</div><div id="lcnt">'+T(st.cnt||'T-10')+'</div><div class="ldur'+dis+'"><button class="lpm" data-act="durm" aria-label="Fewer months">−</button><span>'+T(st.dur)+' months</span><button class="lpm" data-act="durp" aria-label="More months">+</button></div></div><button class="lbtn lab'+dis+'" data-act="abort">ABORT</button></div>'; }
-/* ---------- finestra di lancio: Rush (subito, con un extra) · On time (quella chiesta dagli stakeholder, attesa breve) · Relaxed (nessun extra, attesa lunga, gli stakeholder si lamentano) ---------- */
+/* ---------- finestra di lancio: Rush (con un extra, stakeholder piu' contenti a fine missione: rata finale e bonus piu' alti) · On time (quella chiesta dagli stakeholder) · Relaxed (nessun extra, gli stakeholder si lamentano).
+   Non si aspetta piu': il lancio e' possibile subito dopo il Go, la scelta conta solo per costi e soddisfazione. ---------- */
 const WINK=['rush','ontime','relaxed'];
 const winMode=M=>{ const k=M&&M.drm&&M.drm.win; return WINK.indexOf(k)>=0?k:'ontime'; };
 const winName=k=>({rush:'Rush',ontime:'On time',relaxed:'Relaxed'})[k]||'On time';
-const winWait=M=>{ const k=winMode(M); return k==='rush'?0:k==='relaxed'?L.TIME.win*3:L.TIME.win; };
+const winWait=M=>0;
 const rushExtra=(M,lc)=>winMode(M)==='rush'?Math.max(8,Math.round((lc||0)*.25)):0;
-function winLeft(M){ if(!M||!M.ready) return 0; if(M.winAt==null) M.winAt=now(); return Math.max(0,M.winAt-now()); }
+/* sempre 0, anche per i salvataggi vecchi che hanno ancora un'attesa in corso */
+function winLeft(M){ return 0; }
 function winText(M){ const s=Math.ceil(winLeft(M)/1000); return s>0?TX('FINESTRA ','WINDOW ')+Math.floor(s/60)+':'+String(s%60).padStart(2,'0'):'T-10'; }
 function winLabel(M){ return TX('Finestra ','Window ')+winName(winMode(M)); }
 /* aggiorna il conto alla rovescia sulla consolle del bunker e sblocca LAUNCH quando la finestra si apre */
@@ -4515,7 +4524,7 @@ const ACT={
     else { M.stage='done'; review({eb:'Fine fase A',name:'System Requirements Review',code:'PRR',nasa:'System Requirements Review',stamp:'GO',short:LANG==='en'?'System requirements set. Now you draw the orbit.':'Requisiti di sistema fissati. Ora si disegna l’orbita.',body:'<p>'+esc(E.RIDES[M.sat.ride].n)+' · '+M.reqs.filter(x=>x.kind==='SYS').length+' requisiti di sistema. In fase B si fa l’analisi orbitale nel Centro di dinamica del volo.</p>',actions:'<button class="btn primary" data-act="toB">Avanti</button>'}); } },
   toA(){ const M=cur(); closeOv(); const first=once(M,'MDR'), inst=first?L.installment(M,'MDR'):0; M.got=(M.got||0)+inst; if(inst) addMoney(inst); if(first) gainXP(L.XP.MDR); M.phase='A'; M.stage='type'; render(); toast((inst?'Prima rata: '+keur(inst)+'. ':'')+'Fase A: rientra nell’edificio amministrativo per scegliere il satellite e sentire lo staff tecnico.'); },
   pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.stake=M.stake; d.acc=d.acc||{}; E.prune(d); d.sol=L.availSol(M,d.ride)[0]||d.sol; L.startMeeting(M,'A'); sfx.ok(); render(); },
-  toB(){ const M=cur(); closeOv(); if(once(M,'SRR')) gainXP(L.XP.PRR); M.phase='B'; M.stage='drm'; if(!M.sat.lv){ const ks=Object.keys(E.LV).filter(k=>lvShown(k,M)&&!lvLock(k,M)&&E.LV[k].fits.indexOf(M.sat.ride)>=0); if(ks.length) M.sat.lv=ks[0]; } render(); toast('Fase B: esci e vai al Centro di dinamica del volo per disegnare la missione (DRM).'); },
+  toB(){ const M=cur(); closeOv(); if(once(M,'SRR')) gainXP(L.XP.PRR); M.phase='B'; M.stage='drm'; if(!M.sat.lv){ const ks=Object.keys(E.LV).filter(k=>lvShown(k,M)&&!lvLock(k,M)&&E.LV[k].fits.indexOf(M.sat.ride)>=0); if(ks.length) M.sat.lv=ks[0]; } go('hub'); toast('Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM).'); },
   ride(t){ const d=cur().sat, k=t.dataset.k; d.ride=k; E.prune(d); sel=null; sfx.tap(); bRefresh(); },
   stab(t){ shelfTab=t.dataset.k; sfx.tap(); renderShelf(); },
   ssort(t){ shelfSort=t.dataset.k; sfx.tap(); renderShelf(); },
@@ -4532,8 +4541,8 @@ const ACT={
     review({eb:'Fine fase C',name:'Critical Design Review',code:'CDR',nasa:'Critical Design Review',stamp:'NO-GO',no:true,body:'<ul class="reqs">'+bad.map(x=>'<li><span class="c">'+(x.base?'BASE':x.code)+'</span><span>'+esc(x.t)+(x.who?' <span class="fine">· '+esc(PEO[x.who].n)+'</span>':'')+'</span><span>'+(x.base?'':L.R(x.id).rule?'<span class="fine">regola</span>':'<button class="btn small no" data-act="waive" data-id="'+x.id+'">Deroga</button>')+'</span></li>').join('')+'</ul>'+
       (soft.length?'<p class="fine">Una deroga chiude il requisito, ma è una promessa rotta: chi lo ha chiesto perde '+L.JOY.waive+' punti di soddisfazione, e con loro una parte delle rate.</p>':'')+(base.length?'<p class="fine">I requisiti di base non si derogano.'+(base.some(x=>x.fd)?' Il piano di volo si progetta nel Centro di dinamica del volo.':'')+'</p>':''),actions:'<button class="btn primary" data-act="closeov">Torna al progetto</button>'}); },
   waive(t){ const M=cur(); if(t.dataset.t){ M.tr[t.dataset.t].res='waived'; sfx.bad(); render(); return; } if(L.R(t.dataset.id).rule){ toast('Le regole non si derogano.'); return; } const lv=L.waive(M,t.dataset.id); sfx.bad(); if(lv) gone(M,lv); closeOv(); if(M.phase==='D') ACT.frr(); else ACT.pdr(); },
-  toD(){ const M=cur(), cost=costDue(M); if(G.money<cost){ toast('Non hai abbastanza crediti.'); return; } closeOv(); if(M.capC&&!M.overrun){ const tot=cost+(M.lvPaid||0), pct=Math.round((tot/M.capC-1)*100); if(pct>0){ M.overrun=pct; M.stake.forEach(id=>{ M.joy[id]=Math.max(1,(M.joy[id]==null?60:M.joy[id])-Math.min(45,10+pct)); }); setTimeout(()=>toast('Over budget by '+pct+'%: the stakeholders are unhappy, later instalments will shrink.'),400); } } addMoney(-cost,'Pezzi comprati: −'+keur(cost)+'. Fase D: assemblaggio in camera bianca.'); if(once(M,'CDR')) gainXP(L.XP.CDR); M.paid=(M.paid||0); M.partsCredit=0; if(S3.ok){ try{ M.snap=S3.snap(M.sat,240); }catch(e){} } M.paid=(M.paid||0)+cost; M.partsVal=E.budget(M.sat).cost-(M.lvPaid||0); M.phase='D'; M.stage='assembly'; M.tests={}; M.tr={}; M.ready=false; M.buildDur=L.TIME.build*(hasB('factory')?.5:1)*(M.tut?.15:1)*workK()*perk('build'); M.buildEnd=9e15; M.asmWait=true; M.station=null; M.buildNote=false; render(); toast('Pezzi comprati. Ora porta il satellite su una postazione della camera bianca.'); },
-  cdr(){ const M=cur(); M.rnd=hasB('rnd'); M.defects=M.tut?{}:L.defects(M); M.stage='test'; M.tests={}; M.tr={}; M.ready=false; sfx.ok(); render(); toast(M.name+' è assemblato: esci e portalo all’edificio di testing per le prove.'); },
+  toD(){ const M=cur(), cost=costDue(M); if(G.money<cost){ toast('Non hai abbastanza crediti.'); return; } closeOv(); if(M.capC&&!M.overrun){ const tot=cost+(M.lvPaid||0), pct=Math.round((tot/M.capC-1)*100); if(pct>0){ M.overrun=pct; M.stake.forEach(id=>{ M.joy[id]=Math.max(1,(M.joy[id]==null?60:M.joy[id])-Math.min(45,10+pct)); }); setTimeout(()=>toast('Over budget by '+pct+'%: the stakeholders are unhappy, later instalments will shrink.'),400); } } addMoney(-cost,'Pezzi comprati: −'+keur(cost)+'. Fase D: assemblaggio in camera bianca.'); if(once(M,'CDR')) gainXP(L.XP.CDR); M.paid=(M.paid||0); M.partsCredit=0; if(S3.ok){ try{ M.snap=S3.snap(M.sat,240); }catch(e){} } M.paid=(M.paid||0)+cost; M.partsVal=E.budget(M.sat).cost-(M.lvPaid||0); M.phase='D'; M.stage='assembly'; M.tests={}; M.tr={}; M.ready=false; M.buildDur=L.TIME.build*(hasB('factory')?.5:1)*(M.tut?.15:1)*workK()*perk('build'); M.buildEnd=9e15; M.asmWait=true; M.station=null; M.buildNote=false; go('hub'); toast('Pezzi comprati. Fase D: entra nell’edificio di costruzione e porta il satellite in camera bianca.'); },
+  cdr(){ const M=cur(); M.rnd=hasB('rnd'); M.defects=M.tut?{}:L.defects(M); M.stage='test'; M.tests={}; M.tr={}; M.ready=false; sfx.ok(); go('hub'); toast(M.name+' è assemblato: portalo all’edificio di testing per le prove.'); },
   tolab(){ closeOv(); go('test'); },
   pick(t){ const i=G.missions.findIndex(m=>m.id===t.dataset.id); if(i>=0){ G.cur=i; sfx.tap(); render(); } },
   bay(t){ bayModal(+t.dataset.i); },
@@ -4560,7 +4569,7 @@ const ACT={
   frr(){ const M=cur(), miss=L.status(M,M.sat).list.filter(x=>x.kind==='tests'&&!x.ok).sort((a,b)=>(L.R(a.id).rule?1:0)-(L.R(b.id).rule?1:0)), un=L.TESTS.filter(t=>!M.tests[t]), RK=L.risks(M,G.lab.filter(Boolean)).list, hi=RK.filter(x=>x.p*x.i>=6);
     if(miss.length){ review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nasa:'Flight Readiness Review',stamp:'NO-GO',no:true,body:'<p>'+miss.map(x=>x.code+' · '+esc(x.t)).join('<br>')+'</p><p class="fine">'+(L.R(miss[0].id).rule?'L’ente regolatore non autorizza il lancio senza queste prove: niente deroghe.':esc(PEO.pa.n)+' non firma senza queste prove.')+'</p>',actions:'<button class="btn primary" data-act="closeov">Torna alle prove</button>'+(L.R(miss[0].id).rule?'':'<button class="btn no" data-act="waive" data-id="'+miss[0].id+'">Deroga</button>')}); return; }
     review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nasa:'Flight Readiness Review',short:(LANG==='en'?'Open risks: ':'Rischi aperti: ')+'<b>'+RK.length+'</b>'+(hi.length?', <b class="bad">'+hi.length+(LANG==='en'?' high':' alti')+'</b>':'')+(LANG==='en'?'. The Go is your call.':'. Il Go lo decidi tu.'),body:(un.length?'<p>Senza prova superata: '+un.map(t=>L.MACH[t].n).join(', ')+'. Eventuali difetti voleranno con il satellite.</p>':'<p>Tutte le prove superate.</p>')+'<p><b>Rischi aperti: '+RK.length+'</b>, di cui <b>'+hi.length+' alti</b>'+(hi.length?': '+hi.map(x=>esc(x.t)).join(', '):'')+'.</p><p>Con il Go gli stakeholder versano la terza rata: <b class="num">'+keur(L.installment(M,'FRR'))+'</b>.</p><p>La decisione è tua.</p>',actions:'<button class="btn primary" data-act="go">Go</button><button class="btn" data-act="closeov">No-go</button>'}); },
-  go(){ const M=cur(); M.ready=true; M.winAt=now()+winWait(M); closeOv(); sfx.stamp(); const first=once(M,'FRR'); if(first) gainXP(L.XP.FRR); const inst=first?L.installment(M,'FRR'):0; M.got=(M.got||0)+inst; addMoney(inst); if(M.sat.lv!=='HOME'){ render(); toast(M.name+' è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.'); return; } toast(M.name+' è sulla rampa di lancio: comincia la fase E.'); render(); },
+  go(){ const M=cur(); M.ready=true; M.winAt=now()+winWait(M); closeOv(); sfx.stamp(); const first=once(M,'FRR'); if(first) gainXP(L.XP.FRR); const inst=first?L.installment(M,'FRR'):0; M.got=(M.got||0)+inst; addMoney(inst); /* dopo il Go si torna al campus (go qui e' la funzione di navigazione, non questo metodo) */ go('hub'); if(M.sat.lv!=='HOME'){ toast(M.name+' è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.'); return; } toast(M.name+' è sulla rampa di lancio: comincia la fase E.'); },
   xopen(){ xLaunchModal(cur()); },
   xlaunch(){ const M=cur(); if(!M||M.phase!=='D'||!M.ready||LBUSY) return; if(winLeft(M)>0){ sfx.bad(); toast(TX('La finestra di lancio non è ancora aperta.','The launch window is not open yet.')); return; } LBUSY=true; document.body.classList.add('lfly'); M.duration=LDUR||M.duration; const rk=$('#lrk'), cnt=$('#lcnt'); $$('.lbtn,.ldur').forEach(b=>b.classList.add('dis')); let n=10; sfx.tap();
     const iv=setInterval(()=>{ n--; if(cnt) cnt.textContent=n>0?'T-'+n:'DECOLLO'; if(n===3){ if(rk) rk.classList.add('ign'); IR3.launch('ign'); } if(n>0){ sfx.tap(); return; } clearInterval(iv); sfx.stamp(); tone(60,1.8,'sawtooth',.06);
@@ -4606,7 +4615,7 @@ const ACT={
   hire(){ if(G.staff>=spaces()){ toast('Tutti i posti auto sono occupati: costruisci un parcheggio.'); return; } if(G.money<HIRE){ toast('Non hai abbastanza crediti.'); return; } addMoney(-HIRE); G.staff++; sfx.ok(); save(); staffModal(); hud(); if(view==='hub') render(); },
   fire(){ if(G.staff<=staffNeed()) return; G.staff--; sfx.tap(); save(); staffModal(); if(view==='hub') render(); },
   rplant(t){ if(G.money<PLANTC){ toast('Non hai abbastanza crediti.'); return; } RPLACE={room:t.dataset.r,k:'plant'}; RSEL=null; sfx.tap(); render(); },
-  resc(){ RPLACE=null; render(); }, rselx(){ RSEL=null; render(); },
+  resc(){ RPLACE=null; render(); }, rselx(){ RSEL=null; render(); }, rrot(){ sfx.tap(); IR3.turn(1); },
   vcase(t){ VCASE=+t.dataset.i; sfx.tap(); render(); }, vpick(t){ const ok=G.missions.filter(m=>m.result&&m.result.ok), sl=vSlots(ok), i=+t.dataset.i, id=t.dataset.id||null; if(id) for(let j=0;j<5;j++) if(sl[j]===id) sl[j]=null; sl[i]=id; G.showcase=sl; VCASE=null; sfx.tap(); save(); render(); },
   plantsel(t){ RSEL={room:t.dataset.r,i:+t.dataset.i}; sfx.tap(); render(); },
   rplantdel(){ if(!RSEL) return; const R=G.rooms[RSEL.room]; R.plants.splice(RSEL.i,1); RSEL=null; sfx.tap(); toast('Pianta rimossa: squadra al '+morale()+'%.'); save(); render(); },
@@ -4641,7 +4650,9 @@ function pdrB(){ const M=cur(), p=O.plan(M), bad=[]; if(!M.drm||!(drmLand(M)||(M
   const inst=L.installment(M,'PDR'), lc=M.sat.lv?E.lvCost(M.sat):0, rush=rushExtra(M,lc);
   if(bad.length){ review({eb:'Fine fase B',name:'Preliminary Design Review',code:'PDR',nasa:'Preliminary Design Review',stamp:'NO-GO',no:true,body:'<ul class="reqs">'+bad.map(x=>'<li><span class="c">ORB</span><span>'+x+'</span><span></span></li>').join('')+'</ul>',actions:'<button class="btn primary" data-act="closeov">Torna alla fase B</button>'}); return; }
   review({eb:'Fine fase B',name:'Preliminary Design Review',code:'PDR',nasa:'Preliminary Design Review',stamp:'GO',short:(LANG==='en'?'Orbit and launch approved. Second instalment: ':'Orbita e lancio approvati. Seconda rata: ')+'<b class="num">'+keur(inst)+'</b>.',body:'<p>Lancio: <b>'+esc(E.LV[M.sat.lv].n)+'</b>'+(lc?' · prenotazione '+keur(lc):'')+(rush?' + extra Rush '+keur(rush):'')+' · finestra '+winName(winMode(M))+'. Orbita di lavoro: '+(p.land?'sul suolo':O.fmt(p.final))+'; ΔV del piano '+Math.round(p.tot)+' m/s'+(p.tot>1?': con il propulsore che hai scelto':'')+'. Fase C: il progetto si congela e alla CDR compri i pezzi.</p>'+(()=>{ const q=dataBud(M); return q.ok?'':'<p class="bad">Attenzione: la radio scarica solo il '+pct(q.k)+' dei dati prodotti. La scienza in volo calerà nella stessa misura.</p>'; })()+(p.atm&&p.atm.p>0.005&&p.atm.worst?'<p class="bad">Attenzione: '+pct(p.atm.p)+' di probabilità che l’attrito dell’atmosfera faccia rientrare il satellite prima del tempo (pericentro a '+nf(p.atm.worst.pe,0)+' km).</p>':'')+'<p>Gli stakeholder versano la seconda rata, <b class="num">'+keur(inst)+'</b>.</p>'+(G.money+inst<lc+rush?'<p class="bad">Anche con la rata non basta per prenotare il lancio.</p>':'')+payPlan(M,'PDR'),actions:'<button class="btn primary" data-act="toC">Prenota il lancio e vai avanti</button><button class="btn" data-act="closeov">Non ancora</button>'}); }
-function toC(){ const M=cur(), first=!(M.once&&M.once.PDR), inst=first?L.installment(M,'PDR'):0, lc=E.lvCost(M.sat), rush=rushExtra(M,lc); if(G.money+inst<lc+rush){ toast('Non hai abbastanza crediti, nemmeno con la rata.'); return; } closeOv(); once(M,'PDR'); M.got=(M.got||0)+inst; M.lvPaid=lc; M.rushPaid=rush; M.lvFixed=true; addMoney(inst-lc-rush); if(first) gainXP(L.XP.PDR); M.phase='C'; M.stage='design'; render(); toast((inst?'Rata PDR '+keur(inst):'Nessuna nuova rata')+(lc?' · lancio prenotato −'+keur(lc):'')+(rush?' · extra Rush −'+keur(rush):'')+'. Fase C: costruisci il satellite nell’edificio di costruzione.'); }
+function toC(){ const M=cur(), first=!(M.once&&M.once.PDR), inst=first?L.installment(M,'PDR'):0, lc=E.lvCost(M.sat), rush=rushExtra(M,lc); if(G.money+inst<lc+rush){ toast('Non hai abbastanza crediti, nemmeno con la rata.'); return; } closeOv(); once(M,'PDR'); M.got=(M.got||0)+inst; M.lvPaid=lc; M.rushPaid=rush; M.lvFixed=true; addMoney(inst-lc-rush); if(first) gainXP(L.XP.PDR); M.phase='C'; M.stage='design'; render(); toast((inst?'Rata PDR '+keur(inst):'Nessuna nuova rata')+(lc?' · lancio prenotato −'+keur(lc):'')+(rush?' · extra Rush −'+keur(rush):'')+'. Fase C: revisione CDR e acquisto dei pezzi.');
+  /* la CDR si apre subito, qui nel Centro di dinamica del volo: niente viaggio all'edificio di costruzione solo per comprare i pezzi */
+  ACT.pdr(); }
 function gone(M,lv){ const P2=PEO[lv.who]; sfx.leave(); if(!lv.staff) M.funded=L.pledged(M);
   toast(lv.staff?P2.n+' se ne va: d’ora in poi nessuno ti segnala i rischi del suo sottosistema.':P2.org+' lascia la missione: niente più rate da lui. Le sue tecnologie non sono più disponibili.'); }
 // rate: chi è contento paga tutto, chi è scontento paga meno
@@ -4749,7 +4760,7 @@ function labMachines(){ const M=cur(), inLab=M&&M.phase==='D'&&M.stage!=='assemb
 const SF2={teal:'#45A9A3'};
 function roomSt(room,extra){ G.rooms=G.rooms||{}; const R=G.rooms[room]||(G.rooms[room]={plants:[]}); return Object.assign({plants:R.plants,sel:RSEL&&RSEL.room===room?RSEL.i:null,machines:room==='test'?labMachines():[],moveI:(RPLACE&&RPLACE.room===room&&RPLACE.moveI!=null)?RPLACE.moveI:null},extra||{}); }
 function roomBox(room,extra,ovl){ const pl=(G.rooms[room]||{plants:[]}).plants.length, pk=RPLACE&&RPLACE.room===room;
-  const tools='<div class="ctools">'+(room==='clean'||room==='test'?'':'<button data-act="rplant" data-r="'+room+'" title="Le piante rendono più felici i dipendenti">🪴<span class="tl"> Pianta · '+keur(PLANTC)+'</span></button>')+(pk?'<button class="on" data-act="resc">Annulla</button>':'')+'</div>';
+  const tools='<div class="ctools">'+(IR3.can()?'<button data-act="rrot" title="Ruota la stanza" aria-label="Ruota la stanza">⟳</button>':'')+(room==='clean'||room==='test'?'':'<button data-act="rplant" data-r="'+room+'" title="Le piante rendono più felici i dipendenti">🪴<span class="tl"> Pianta · '+keur(PLANTC)+'</span></button>')+(pk?'<button class="on" data-act="resc">Annulla</button>':'')+'</div>';
   const pop=room==='clean'&&PICKST&&!pk?'<div class="cpop"><b>'+TX('Quale satellite assembli qui?','Which satellite do you assemble here?')+'</b><div class="row">'+G.missions.filter(x=>x.phase==='D'&&x.stage==='assembly'&&x.asmWait).map(x=>'<button class="btn small primary" data-act="cleanpick" data-id="'+x.id+'">'+esc(x.name)+'</button>').join('')+'<button class="btn small" data-act="cleanpickx">'+TX('Chiudi','Close')+'</button></div></div>':room==='test'&&MSEL!=null&&!pk&&G.lab[MSEL]?'<div class="cpop mpop"><b>'+esc(L.MACH[G.lab[MSEL]].n)+'</b><div class="row"><button class="btn small" data-act="mmove">✥ Sposta</button><button class="btn small" data-act="mselx">Chiudi</button></div><span class="fine">Puoi cambiare la disposizione del laboratorio quando vuoi.</span></div>':RSEL&&RSEL.room===room&&!pk?'<div class="cpop"><b>Pianta da interno</b><div class="row"><button class="btn small" data-act="rplantdel">Rimuovi</button><button class="btn small" data-act="rselx">Chiudi</button></div><span class="fine">'+plantsN()+' piante in tutto · squadra felice al '+morale()+'%</span></div>':'';
   const hint=false?'<div class="chint" id="rhint">'+(RPLACE.k==='plant'?'Tocca un punto libero per mettere la pianta.':(RPLACE.moveI!=null?'Tocca il nuovo posto per: ':'Tocca un punto libero per posizionare: ')+L.MACH[RPLACE.k].n.toLowerCase()+'.')+' Esc per annullare.</div>':'';
   const st0=roomSt(room,extra), use3=IR3.can(); if(use3){ IR3.pending={room,st:st0}; queueMicrotask(IR3.sync); }
@@ -5790,7 +5801,7 @@ const IR3=(()=>{
   const RW=18, RD=14, RH=3.6; const DEF={yaw:.32,pit:.74};
   let R=null, scene=null, cam=null, host=null, raf=0, running=false, okGL=null, dirty=true, lastT=0, built=null, sig='', ghostG=null, ghostK='';
   let CROWD=[], MACHP=[], NF=[], anims=[], walkers=[], HS=[], TG=[], hotEl=null, tagEl=null, PAR=null, FP=[], curRoom='', curSt=null, ro=null, hotEls=[], tagEls=[];
-  const CAM={yaw:DEF.yaw,pit:DEF.pit,zoom:1,tx:RW/2,tz:RD/2,dFit:30}; let camDirty=true; const WSAVE={}; let SUN=null, HEM=null, FILL=null, SK='room', MEET=null, LCH=null, liveShadow=false; const SKIND=r=>r==='meet'?'meet':r==='launch'?'launch':'room';
+  const CAM={yaw:DEF.yaw,pit:DEF.pit,zoom:1,tx:RW/2,tz:RD/2,dFit:30}; let camDirty=true, WG=null, yawTo=null; const WSAVE={}; let SUN=null, HEM=null, FILL=null, SK='room', MEET=null, LCH=null, liveShadow=false; const SKIND=r=>r==='meet'?'meet':r==='launch'?'launch':'room';
   const col=h=>new THREE.Color(h).convertSRGBToLinear();
   const MC={};
   function mat(h,o){ o=o||{}; const k=h+'|'+(o.r==null?.75:o.r)+'|'+(o.m||0)+'|'+(o.e||'')+'|'+(o.ei||'')+'|'+(o.t||'')+'|'+(o.b||'');
@@ -5976,17 +5987,35 @@ const IR3=(()=>{
       g.position.x=W.x; g.position.z=W.z; g.rotation.y=W.h; u.update(dt); }); }
 
   /* ---------- guscio della stanza ---------- */
+  /* quattro pareti intere, ognuna in un suo gruppo (y0 = fondo, x0 = sinistra, y1 = davanti, x1 = destra): wallsFor() nasconde quelle tra la camera e la stanza, cosi' la stanza si puo' ruotare */
   function shell(o){ bx(-.3,-.3,RW,RD,-.3,0,o.floor,{r:.9,cs:false}); const t=pl(0,0,RW,RD,.003,'#ffffff',{r:.9}); t.material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9,map:floorTex(o.floor,o.tileC||o.floor,[RW/(o.tile||1),RD/(o.tile||1)])}); t.receiveShadow=true;
-    bx(-.3,-.3,RW,0,0,RH,o.wallR,{r:.9}); bx(-.3,0,0,RD,0,RH,o.wallL,{r:.9}); bx(-.34,-.34,RW,.04,RH,RH+.12,o.cap,{r:.6}); bx(-.34,0,.04,RD,RH,RH+.12,o.cap,{r:.6});
-    bx(0,.0,RW,.02,.0,.14,o.skirt||'#C9CCC8',{r:.7,cs:false}); bx(.0,0,.02,RD,.0,.14,o.skirt||'#C9CCC8',{r:.7,cs:false});
-    if(o.stripe){ bx(0,.02,RW,.04,o.stripe[0],o.stripe[0]+.2,o.stripe[1],{r:.5,cs:false}); bx(.02,0,.04,RD,o.stripe[0],o.stripe[0]+.2,o.stripe[1],{r:.5,cs:false}); }
-    bx(RW,0,RW+.25,RD+.25,-.3,.38,o.cap,{r:.6}); bx(0,RD,RW,RD+.25,-.3,.38,o.cap,{r:.6}); }
-  function onWall(wall,a,b,z0,z1,c,o,depth){ o=o||{}; const d=depth||.05; return wall==='y'?bx(a,.0,b,d,z0,z1,c,Object.assign({cs:false},o)):bx(.0,a,d,b,z0,z1,c,Object.assign({cs:false},o)); }
+    WG={}; ['y0','x0','y1','x1'].forEach(k=>{ const g=new THREE.Group(); g.userData.dyn=true; PAR.add(g); WG[k]=g; });
+    const sk=o.skirt||'#C9CCC8', st=o.stripe;
+    inGrp(WG.y0,()=>{ bx(-.3,-.3,RW,0,0,RH,o.wallR,{r:.9}); bx(-.34,-.34,RW,.04,RH,RH+.12,o.cap,{r:.6}); bx(0,.0,RW,.02,.0,.14,sk,{r:.7,cs:false}); if(st) bx(0,.02,RW,.04,st[0],st[0]+.2,st[1],{r:.5,cs:false}); });
+    inGrp(WG.x0,()=>{ bx(-.3,0,0,RD,0,RH,o.wallL,{r:.9}); bx(-.34,0,.04,RD,RH,RH+.12,o.cap,{r:.6}); bx(.0,0,.02,RD,.0,.14,sk,{r:.7,cs:false}); if(st) bx(.02,0,.04,RD,st[0],st[0]+.2,st[1],{r:.5,cs:false}); });
+    /* le pareti davanti non fanno ombra: la luce le attraversa come prima, quando erano solo un bordino */
+    inGrp(WG.y1,()=>{ bx(-.3,RD,RW+.3,RD+.3,-.3,RH,o.wallR,{r:.9,cs:false}); bx(-.34,RD-.04,RW+.34,RD+.34,RH,RH+.12,o.cap,{r:.6,cs:false}); bx(0,RD-.02,RW,RD,.0,.14,sk,{r:.7,cs:false}); if(st) bx(0,RD-.04,RW,RD-.02,st[0],st[0]+.2,st[1],{r:.5,cs:false}); });
+    inGrp(WG.x1,()=>{ bx(RW,-.3,RW+.3,RD,-.3,RH,o.wallL,{r:.9,cs:false}); bx(RW-.04,-.34,RW+.34,RD,RH,RH+.12,o.cap,{r:.6,cs:false}); bx(RW-.02,0,RW,RD,.0,.14,sk,{r:.7,cs:false}); if(st) bx(RW-.04,0,RW-.02,RD,st[0],st[0]+.2,st[1],{r:.5,cs:false}); }); }
+  /* contorni e unione dei pezzi fatti parete per parete, cosi' ogni parete resta un blocco a se' che si puo' nascondere */
+  function wallsPrep(){ if(!WG) return; Object.values(WG).forEach(g=>{ g.userData.dyn=false; TOON.outlineStatic(g,{minDim:.05}); mergeStatic(g); g.userData.dyn=true; }); }
+  /* nasconde le pareti tra la camera e la stanza: conta solo la direzione da cui si guarda, non lo spostamento della vista */
+  function wallsFor(){ if(!WG) return; const s=Math.sin(CAM.yaw), c=Math.cos(CAM.yaw), e=.02, was=WG.y0.visible+''+WG.x0.visible+WG.y1.visible+WG.x1.visible;
+    WG.y1.visible=!(c>e); WG.y0.visible=!(c<-e); WG.x1.visible=!(s>e); WG.x0.visible=!(s<-e);
+    /* le ombre sono calcolate una volta sola: si rifanno solo quando una parete compare o sparisce, cosi' una parete nascosta non lascia la sua ombra */
+    if(R&&was!==WG.y0.visible+''+WG.x0.visible+WG.y1.visible+WG.x1.visible) R.shadowMap.needsUpdate=true; }
+  /* pareti: 'y' = fondo (y=0), 'x' = sinistra (x=0), 'y1' = davanti (y=RD), 'x1' = destra (x=RW); a..b e' il tratto lungo la parete, depth quanto sporge verso l'interno */
+  const WK={y:'y0',x:'x0',y1:'y1',x1:'x1'};
+  function onWall(wall,a,b,z0,z1,c,o,depth){ o=Object.assign({cs:false},o||{}); const d=depth||.05; let m; inGrp(WG[WK[wall]],()=>{ m=wall==='y'?bx(a,.0,b,d,z0,z1,c,o):wall==='x'?bx(.0,a,d,b,z0,z1,c,o):wall==='y1'?bx(a,RD-d,b,RD,z0,z1,c,o):bx(RW-d,a,RW,b,z0,z1,c,o); }); return m; }
+  /* piano (schermo o pannello) appeso alla parete, rivolto verso l'interno della stanza */
+  function onWallPlane(wall,m,a,b,z0,z1){ const c=(a+b)/2, zc=(z0+z1)/2; if(wall==='y') m.position.set(c,zc,.075); else if(wall==='x'){ m.rotation.y=Math.PI/2; m.position.set(.075,zc,c); } else if(wall==='y1'){ m.rotation.y=Math.PI; m.position.set(c,zc,RD-.075); } else { m.rotation.y=-Math.PI/2; m.position.set(RW-.075,zc,c); } WG[WK[wall]].add(m); }
+  /* porta a due ante con oblo' e insegna verde di uscita */
+  function door(wall,a,b){ const m=(a+b)/2, g={r:.1,e:'#5FA3C8',ei:.3}; onWall(wall,a-.12,b+.12,0,2.4,'#5B656D',{r:.6},.07); onWall(wall,a,m-.02,0,2.25,'#D9DEE2',{r:.5},.1); onWall(wall,m+.02,b,0,2.25,'#D9DEE2',{r:.5},.1);
+    onWall(wall,a+.18,m-.2,1.3,1.95,'#9CCBE3',g,.12); onWall(wall,m+.2,b-.18,1.3,1.95,'#9CCBE3',g,.12); onWall(wall,m-.12,m-.06,.95,1.1,'#2B2F36',{r:.4},.14); onWall(wall,m+.06,m+.12,.95,1.1,'#2B2F36',{r:.4},.14); onWall(wall,m-.35,m+.35,2.5,2.75,'#2FA35B',{e:'#2FA35B',ei:.8},.09); }
   function windows(wall,a,b,z0,z1,n){ const w=(b-a)/n; onWall(wall,a,b,z0,z1,'#2B3A44',{r:.5},.07); for(let i=0;i<n;i++){ onWall(wall,a+i*w+.06,a+(i+1)*w-.06,z0+.06,z1-.06,'#9CCBE3',{r:.1,e:'#5FA3C8',ei:.35,m:.2},.09); onWall(wall,a+i*w+w/2-.015,a+i*w+w/2+.015,z0+.06,z1-.06,'#2B3A44',{r:.5},.1); } onWall(wall,a,b,z0-.04,z0+.04,'#D9DDE0',{r:.5},.12); }
   function rollDoor(wall,a,b,z1){ onWall(wall,a-.1,b+.1,0,z1+.1,'#8A929A',{r:.6},.08); const n=Math.round(z1/.22); for(let i=0;i<n;i++) onWall(wall,a,b,i*.22+.02,i*.22+.2,i%2?'#D5D9DC':'#E4E7E9',{r:.5},.12); onWall(wall,(a+b)/2-.2,(a+b)/2+.2,.85,.95,'#2B2F36',{r:.4},.16); }
   function wallScreen(wall,a,b,z0,z1,kind,seed){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:screenTex(kind,seed)})); m.scale.set(b-a,z1-z0,1);
-    if(wall==='y'){ m.position.set((a+b)/2,(z0+z1)/2,.075); } else { m.rotation.y=Math.PI/2; m.position.set(.075,(z0+z1)/2,(a+b)/2); } PAR.add(m); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
-  function wallPanel(wall,a,b,z0,z1,tex){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tex})); m.scale.set(b-a,z1-z0,1); if(wall==='y') m.position.set((a+b)/2,(z0+z1)/2,.075); else { m.rotation.y=Math.PI/2; m.position.set(.075,(z0+z1)/2,(a+b)/2); } PAR.add(m); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
+    onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
+  function wallPanel(wall,a,b,z0,z1,tex){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tex})); m.scale.set(b-a,z1-z0,1); onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
   function textTex(lines,bg,fg){ return ctex(512,256,(g,w,h)=>{ g.fillStyle=bg||'#0B141C'; g.fillRect(0,0,w,h); g.font='700 44px monospace'; g.textBaseline='middle'; lines.forEach((l,i)=>{ g.fillStyle=l[1]||fg||'#43D3E0'; g.fillText(l[0],24,60+i*72); }); g.strokeStyle='#1A1F24'; g.lineWidth=12; g.strokeRect(0,0,w,h); }); }
 
   /* ---------- macchinari del laboratorio ---------- */
@@ -6092,7 +6121,23 @@ const IR3=(()=>{
       [[3.4,9],[6.8,10.4],[10.4,10.4],[13.8,9],[15.6,5.6]].forEach((p,i)=>{ podium(p[0],p[1],.9); if(st.sats&&st.sats[i]) satellite(p[0],p[1],.98,1.5,{wings:true}); else cy(p[0],p[1],.5,.98,1.6,'#BFE2EE',{t:.12,cs:false}); });
       [[2.4,12.2],[6,12.6],[9.6,12.6],[13.2,12.6],[16.4,12.2]].forEach(p=>{ cy(p[0],p[1],.08,0,.9,'#C9CED2'); sp(p[0],p[1],.95,.1,'#F2B544'); });
       walkers_('visit',6,['plain','coat','head','plain','vest','plain']); }
+    farDecor(room,st);
     (st.plants||[]).forEach((p,i)=>{ plant(p.x+.3,p.y+.3); FP.push([p.x,p.y,p.x+.6,p.y+.6,.15]); if(st.sel===i) pl(p.x-.1,p.y-.1,p.x+.7,p.y+.7,.03,'#45A9A3',{t:.55}); });
+  }
+  /* arredi delle due pareti che si vedono solo ruotando la stanza (davanti 'y1', destra 'x1'): una porta d'ingresso e qualcosa in tema, lontano dai mobili vicini al muro */
+  function farDecor(room,st){
+    if(room==='build'){ door('y1',4.6,6.4); windows('y1',8.6,17.4,2.2,3.3,10); wallScreen('x1',1.5,5.5,1.5,3.1,'bars',4); windows('x1',6.5,13.4,1.8,3.3,7); }
+    else if(room==='clean'){ for(let i=0;i<10;i++) onWall('y1',.5+i*1.75,1.95+i*1.75,2.5,3.05,'#FFFFFF',{r:.4},.05); for(let i=0;i<7;i++) onWall('x1',.5+i*1.9,1.95+i*1.9,2.5,3.05,'#FFFFFF',{r:.4},.05);
+      door('y1',6.8,8.4); wallScreen('y1',9.4,13.4,1.2,2.3,'gauges',5); wallScreen('x1',8.4,12.4,1.3,2.4,'chart',6); }
+    else if(room==='test'){ door('y1',5.6,7.4); windows('y1',8.6,17.4,2.2,3.3,9); wallScreen('x1',.8,4.8,1.5,3.1,'chart',7); wallScreen('x1',9.4,13.2,1.5,3.1,'gauges',8); }
+    else if(room==='mcc'){ onWall('y1',0,RW,3.3,RH,'#2E363E',{r:.6},.06); onWall('x1',0,RD,3.3,RH,'#262D34',{r:.6},.06);
+      for(let i=0;i<22;i++) onWall('y1',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1); for(let i=0;i<17;i++) onWall('x1',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1);
+      door('y1',5,6.6); wallScreen('y1',8,13.6,1.4,3.05,'globe',14); wallScreen('x1',1.2,6.4,1.4,3.05,'grid',15); wallScreen('x1',7,12.2,1.4,3.05,'chart',16); }
+    else if(room==='factory'){ door('y1',5,6.8); windows('y1',8,17.4,1.8,3.3,11); wallScreen('x1',1,5.6,1.4,3.1,'gauges',9); windows('x1',6.6,13.4,1.8,3.3,7); }
+    else if(room==='ground'){ door('y1',2.2,3.8); wallScreen('y1',5.5,12.5,1.6,3.3,'bars',10); wallScreen('x1',1,5.4,1.6,3.2,'sat',11); wallScreen('x1',6,10.4,1.6,3.2,'chart',12); }
+    else if(room==='rnd'){ door('y1',8.6,10.2); windows('y1',11.4,17.4,1.2,3.1,6); wallPanel('x1',1.5,5.5,1.3,2.8,textTex([['IDEA → TEST','#22313B'],['→ FLY','#8E5BB0']],'#FFFFFF')); wallScreen('x1',6.5,11.5,1.2,3,'chart',13); }
+    else if(room==='office'){ door('y1',.8,2.4); windows('y1',6.4,12.4,1.1,3.2,6); wallScreen('x1',4.6,9.6,1.2,3,'chart',9); }
+    else if(room==='visit'){ door('y1',7.2,8.8); wallPanel('y1',11,16,1.2,2.8,textTex([['Go No-Go','#22313B'],['space agency','#EB7D44']],'#F6F5F1')); wallScreen('x1',2,7,1.1,3.1,'globe',10); windows('x1',8,12.8,1.2,3,4); }
   }
 
 
@@ -6251,7 +6296,7 @@ const IR3=(()=>{
     if(room==='build'){ [[4.4,3],[7.6,3],[4.4,8],[7.6,8]].forEach((b,i)=>{ const m=(st.benches||[])[i]; addHS(m?'data-act="openyard" data-id="'+m.id+'"':'data-act="benchfree"',b[0],b[1],b[0]+2.6,b[1]+1.2,0,m?1.6:.9,m?m.label:'Free bench'); { const cm=cur(), hint=!!(m&&cm&&cm.id===m.id&&cm.phase==='B'&&cm.stage==='sat'); addTag(b[0]+1.3,b[1]+.6,m?2.0:1.2,hint?'Design table · click to open':m?m.label:'free bench',hint?'#EB7D44':m?m.col:'#9A9A90',hint?'on':'','',HS.length-1); } }); }
     if(room==='clean'){ [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>{ const m=(st.stations||[])[i]; addHS('data-act="station" data-i="'+i+'"',p[0]-1.1,p[1]-1.1,p[0]+1.1,p[1]+1.1,0,m?1.9:1.1,m?m.label:'Free station'); addTag(p[0],p[1],m?2.2+m.size*.4:1.5,m?m.label:'free station',m?m.col:'#9A9A90','','',HS.length-1); }); addTag(2,12,2.6,'Gowning','#45A9A3','','',null,1.5); addTag(16.1,12.2,2.9,'Air shower','#45A9A3','','',null,1.3); }
     if(room==='test'){ (st.machines||[]).forEach(m=>{ if(m.i===st.moveI) return; const f=IR.FOOT[m.k]||[2,2], h={vib:1.2,tvac:2.7,emc:2.4,mass:1.1,func:1.3,shock:2.8}[m.k]||1.5; addHS('data-act="mach" data-k="'+m.k+'"',m.x,m.y,m.x+f[0],m.y+f[1],0,h,m.n); addTag(m.x+f[0]/2,m.y+f[1]/2,h+.5,m.n+(m.lab?' · '+m.lab:''),m.col||'#45A9A3','','',HS.length-1); }); }
-    if(room==='mcc'){ addHS('data-act="mccwall"',0,0,RW,.1,1.3,3.2,'Control room screens'); addHS('data-act="mccwall"',0,0,.1,13.4,1.3,3.2,'Control room screens'); addTag(2.1,12,2.9,'Guest room','#45A9A3','','',null,1.6); }
+    if(room==='mcc'){ addHS('data-act="mccwall"',0,0,RW,.1,1.3,3.2,'Control room screens'); HS[HS.length-1].wall='y0'; addHS('data-act="mccwall"',0,0,.1,13.4,1.3,3.2,'Control room screens'); HS[HS.length-1].wall='x0'; addTag(2.1,12,2.9,'Guest room','#45A9A3','','',null,1.6); }
     if(room==='factory'){ addTag(9,6.5,3.2,'Integration line · times halved','#EB7D44','','',null,2.4); (st.sats||[]).forEach((m,i)=>{ if(m) addTag([3.4,8,12.6][i]+.6,6.5,2.5,m.label,'#EB7D44','','',null,1.2); }); }
     if(room==='ground') addTag(15.6,12.4,3.1,'Antenna model','#45A9A3','','',null,1.4);
     if(room==='rnd'){ addTag(14.8,9.8,3.1,'Prototype under test','#45A9A3','','',null,1.4); addTag(13.2,4.2,1.9,'3D printer','#8E5BB0','','',null,1.1); }
@@ -6276,13 +6321,13 @@ const IR3=(()=>{
   function clearBuilt(){ if(!built) return; scene.remove(built); const cached=new Set(Object.values(MC)), tcache=new Set(Object.values(TC)), shr=new Set(Object.values(SCRM).concat(Object.values(CELLM),[BLOBM]));
     built.traverse(o=>{ if(o.geometry&&SHARED.indexOf(o.geometry)<0) o.geometry.dispose(); const m=o.material; if(m&&!cached.has(m)&&!shr.has(m)){ if(m.map&&m.map!==BLOB&&!tcache.has(m.map)) m.map.dispose(); m.dispose(); } }); }
   function saveWalkers(){ if(curRoom&&walkers.length) WSAVE[curRoom]=walkers.map(w=>({x:w.x,z:w.z})); }
-  function rebuild(room,st){ if(room===curRoom) saveWalkers(); clearBuilt(); built=new THREE.Group(); scene.add(built); anims=[]; walkers=[]; FP=[]; NF=[]; MACHP=[]; MEET=null; LCH=null; clearGhost(); PAR=built; const kind=SKIND(room); applyScene(kind);
+  function rebuild(room,st){ if(room===curRoom) saveWalkers(); clearBuilt(); built=new THREE.Group(); scene.add(built); anims=[]; walkers=[]; FP=[]; NF=[]; MACHP=[]; MEET=null; LCH=null; WG=null; clearGhost(); PAR=built; const kind=SKIND(room); applyScene(kind);
     if(kind==='room'){ CROWD=[]; buildRoom(room,st); adjustCrowd(room); navBuild(); walkers.forEach(w=>{ if(w.fresh||!freeAt(w.x,w.z)){ const p=randFree(); w.x=p[0]; w.z=p[1]; w.fresh=false; } w.P.g.position.set(w.x,0,w.z); }); }
     else if(kind==='meet') buildMeet(st); else buildLaunch(st);
     if(kind!=='launch'){ const ao=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:aoTex(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2})); ao.rotation.x=-Math.PI/2; ao.scale.set(RW,RD,1); ao.position.set(RW/2,.012,RD/2); ao.userData.keep=true; built.add(ao); }
-    TOON.outlineStatic(built,{minDim:.05}); mergeStatic(built); TOON.outlineEach(built,{minDim:.05}); R.shadowMap.needsUpdate=true; dirty=true; }
+    wallsPrep(); TOON.outlineStatic(built,{minDim:.05}); mergeStatic(built); TOON.outlineEach(built,{minDim:.05}); wallsFor(); R.shadowMap.needsUpdate=true; dirty=true; }
   /* camera orbitale attorno al centro della stanza; la distanza base inquadra la stanza intera con un margine */
-  function placeCam(){ const cp=Math.cos(CAM.pit), d=CAM.dFit/CAM.zoom; cam.position.set(CAM.tx+Math.sin(CAM.yaw)*cp*d,.6+Math.sin(CAM.pit)*d,CAM.tz+Math.cos(CAM.yaw)*cp*d); cam.lookAt(CAM.tx,.6,CAM.tz); cam.updateMatrixWorld(true); cam.updateProjectionMatrix(); }
+  function placeCam(){ const cp=Math.cos(CAM.pit), d=CAM.dFit/CAM.zoom; cam.position.set(CAM.tx+Math.sin(CAM.yaw)*cp*d,.6+Math.sin(CAM.pit)*d,CAM.tz+Math.cos(CAM.yaw)*cp*d); cam.lookAt(CAM.tx,.6,CAM.tz); cam.updateMatrixWorld(true); cam.updateProjectionMatrix(); wallsFor(); }
   function fit(){ const w=host.clientWidth||900, h=host.clientHeight||560; R.setSize(w,h,false); R.domElement.style.width=w+'px'; R.domElement.style.height=h+'px'; cam.aspect=w/h; if(SK!=='room'){ fitFixed(); layout(); return; }
     const pts=[[0,0,0],[RW,0,0],[0,0,RD],[RW,0,RD],[0,RH,0],[RW,RH,0],[0,RH,RD],[RW,.4,RD],[RW,.4,0],[0,.4,RD]].map(p=>new THREE.Vector3(p[0],p[1],p[2])); const sv=[CAM.zoom,CAM.tx,CAM.tz,CAM.yaw,CAM.pit]; CAM.zoom=1; CAM.tx=RW/2; CAM.tz=RD/2; CAM.yaw=DEF.yaw; CAM.pit=DEF.pit;
     let d=14; for(let i=0;i<120;i++){ CAM.dFit=d; placeCam(); let ok=true; for(const p of pts){ V.copy(p).project(cam); if(Math.abs(V.x)>.97||V.y>.80||V.y<-.96){ ok=false; break; } } if(ok) break; d*=1.025; }
@@ -6292,22 +6337,26 @@ const IR3=(()=>{
   function setView(yaw,pit){ DEF.yaw=yaw; DEF.pit=pit; if(host){ CAM.yaw=yaw; CAM.pit=pit; fit(); } return host?cover():null; }
   function scr(x,y,z){ V.set(x,z,y).project(cam); return [(V.x+1)/2*host.clientWidth,(1-V.y)/2*host.clientHeight]; }
   function layout(){ if(!hotEl) return;
-    HS.forEach((h,k)=>{ const b=h.b, el=hotEls[k]; if(!el) return; let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; [b[0],b[2]].forEach(x=>[b[1],b[3]].forEach(y=>[b[4],b[5]].forEach(z=>{ const p=scr(x,y,z); x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); y0=Math.min(y0,p[1]); y1=Math.max(y1,p[1]); })));
+    HS.forEach((h,k)=>{ const b=h.b, el=hotEls[k]; if(!el) return; const off=!!(h.wall&&WG&&WG[h.wall]&&!WG[h.wall].visible); el.hidden=off; if(off) return; let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; [b[0],b[2]].forEach(x=>[b[1],b[3]].forEach(y=>[b[4],b[5]].forEach(z=>{ const p=scr(x,y,z); x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); y0=Math.min(y0,p[1]); y1=Math.max(y1,p[1]); })));
       const cd=cam.position.distanceTo(V.set((b[0]+b[2])/2,(b[4]+b[5])/2,(b[1]+b[3])/2)); const s=el.style; s.zIndex=String(Math.max(1,2000-Math.round(cd*20))); s.left=x0.toFixed(1)+'px'; s.top=y0.toFixed(1)+'px'; s.width=(x1-x0).toFixed(1)+'px'; s.height=(y1-y0).toFixed(1)+'px'; });
     TG.forEach((t,k)=>{ const el=tagEls[k]; if(!el) return; const p=scr(t.x,t.y,t.z); el.style.left=p[0].toFixed(1)+'px'; el.style.top=p[1].toFixed(1)+'px'; });
     const bub=document.getElementById('mbub'); if(bub&&MEET&&bub.dataset.seat!=null&&MSEATP[+bub.dataset.seat]){ const q=MSEATP[+bub.dataset.seat], p=scr(q.x,q.y,2.35), hr=host.getBoundingClientRect(), w=bub.offsetWidth||260, hud=document.getElementById('hud'); bub.style.left=Math.max(hr.left+w/2+8,Math.min(hr.right-w/2-8,hr.left+p[0]))+'px'; bub.style.top=Math.max(((hud&&hud.getBoundingClientRect().bottom)||60)+bub.offsetHeight+8,hr.top+p[1])+'px'; } }
-  function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); if(ts-lastT<30) return; const dt=Math.min(.05,(ts-lastT)/1000||.033); lastT=ts; const t=ts/1000; /* 30 fps regolari (con tolleranza), dt limitato a 50 ms */
+  function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); if(ts-lastT<33) return; const dt=Math.min(.05,(ts-lastT)/1000||.033); lastT=ts; const t=ts/1000; /* 30 fps regolari (con tolleranza), dt limitato a 50 ms */
+    if(yawTo!=null){ const k=Math.min(1,dt*9); CAM.yaw+=(yawTo-CAM.yaw)*k; if(Math.abs(yawTo-CAM.yaw)<.002){ CAM.yaw=yawTo; yawTo=null; } camDirty=true; }
     if(camDirty){ if(SK==='room') placeCam(); layout(); camDirty=false; dirty=true; } anims.forEach(f=>f(t,dt)); stepWalkers(dt,t); if(!anims.length&&!walkers.length&&!dirty) return; dirty=false; R.render(scene,cam); }
 
   /* ---------- controlli della camera: trascina per ruotare, rotella per lo zoom, tasto destro per spostare ---------- */
   const PT=new Map(); let drag=null, moved=false, pinch=null;
   const isPlacing=()=>host&&host.classList.contains('placing');
-  /* stessi gesti del campus: un dito sposta la vista (la stanza resta sotto il dito), due dita zoomano; col mouse tasto destro o Maiusc ruota */
-  function onDown(e){ if(!running||SK!=='room') return; PT.set(e.pointerId,[e.clientX,e.clientY]);
+  /* un dito sposta la vista (la stanza resta sotto il dito); due dita: allargarle o stringerle zooma, girarle come una manopola ruota la stanza (insieme, come nelle mappe); col mouse tasto destro o Maiusc ruota */
+  const fang=a=>Math.atan2(a[1][1]-a[0][1],a[1][0]-a[0][0]);
+  function onDown(e){ if(!running||SK!=='room') return; PT.set(e.pointerId,[e.clientX,e.clientY]); yawTo=null;
     if(PT.size===1){ moved=false; drag={x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,tx:CAM.tx,tz:CAM.tz,rot:e.button===2||e.shiftKey}; }
-    else if(PT.size===2){ const a=Array.from(PT.values()); pinch={d0:Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])),z0:CAM.zoom}; drag=null; moved=true; } }
+    else if(PT.size===2){ const a=Array.from(PT.values()); pinch={d0:Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])),z0:CAM.zoom,a:fang(a)}; drag=null; moved=true; } }
   function onMove(e){ if(!PT.has(e.pointerId)) return; PT.set(e.pointerId,[e.clientX,e.clientY]);
-    if(pinch&&PT.size>=2){ const a=Array.from(PT.values()), d=Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])); CAM.zoom=Math.max(.7,Math.min(3.2,pinch.z0*d/pinch.d0)); camDirty=true; return; }
+    if(pinch&&PT.size>=2){ const a=Array.from(PT.values()), d=Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])); CAM.zoom=Math.max(.7,Math.min(3.2,pinch.z0*d/pinch.d0));
+      /* rotazione libera: si somma il giro fatto dalle dita dall'ultimo movimento (girare in senso orario fa girare la stanza in senso orario) */
+      const an=fang(a); let da=an-pinch.a; if(da>Math.PI) da-=2*Math.PI; else if(da<-Math.PI) da+=2*Math.PI; pinch.a=an; CAM.yaw+=da; camDirty=true; return; }
     if(!drag) return; const dx=e.clientX-drag.x0, dy=e.clientY-drag.y0; if(!moved&&Math.hypot(dx,dy)<7) return; if(isPlacing()&&!drag.rot) return; moved=true;
     if(drag.rot){ CAM.yaw-=(e.clientX-drag.x)*.006; CAM.pit=Math.max(.4,Math.min(1.3,CAM.pit+(e.clientY-drag.y)*.005)); drag.x=e.clientX; drag.y=e.clientY; camDirty=true; return; }
     const hh=(host&&host.clientHeight)||innerHeight, k=2*(CAM.dFit/CAM.zoom)*Math.tan((cam?cam.fov:40)*Math.PI/360)/hh, c=Math.cos(CAM.yaw), sn=Math.sin(CAM.yaw), py=dy/Math.max(.5,Math.sin(CAM.pit));
@@ -6317,7 +6366,9 @@ const IR3=(()=>{
   function onWheel(e){ if(SK!=='room') return; e.preventDefault(); CAM.zoom=Math.max(.7,Math.min(3.2,CAM.zoom*Math.exp(-e.deltaY*.0012))); camDirty=true; }
   /* a livello di window, in cattura: arriva prima del gestore dei data-act e di quello del posizionamento */
   addEventListener('click',e=>{ if(moved&&e.target.closest&&e.target.closest('#roomsvg')){ e.stopPropagation(); e.preventDefault(); moved=false; } },true);
-  function resetCam(){ CAM.yaw=DEF.yaw; CAM.pit=DEF.pit; CAM.zoom=1; CAM.tx=RW/2; CAM.tz=RD/2; camDirty=true; }
+  function resetCam(){ yawTo=null; CAM.yaw=DEF.yaw; CAM.pit=DEF.pit; CAM.zoom=1; CAM.tx=RW/2; CAM.tz=RD/2; camDirty=true; }
+  /* pulsante ⟳: un quarto di giro in senso orario, con una breve animazione (i tocchi ripetuti si sommano) */
+  function turn(dir){ if(!running||SK!=='room') return; yawTo=(yawTo==null?CAM.yaw:yawTo)+(dir||1)*Math.PI/2; dirty=true; }
 
   /* ---------- API ---------- */
   function skey(room,st){ return skey0(room,st)+(room==='meet'||room==='launch'?'':'|s'+STAFFN(room)); }
@@ -6338,7 +6389,7 @@ const IR3=(()=>{
   function clearGhost(){ if(ghostG){ scene.remove(ghostG); ghostG.traverse(o=>{ if(o.material) o.material.dispose(); }); ghostG=null; } ghostK=''; dirty=true; }
   function setGhost(room,gh){ if(!running||room!==curRoom) return; if(!gh){ clearGhost(); return; } const k=gh?gh.k:''; if(k!==ghostK){ if(ghostG){ scene.remove(ghostG); ghostG=null; } ghostK=k; if(k){ const f=k==='plant'?[.6,.6]:(IR.FOOT[k]||[1,1]), h=k==='plant'?1:({vib:.8,tvac:2.5,emc:2.5,mass:.9,func:1.1,shock:2.8}[k]||1.2); ghostG=new THREE.Group(); const fl=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({color:0x37C26A,transparent:true,opacity:.7,depthWrite:false})); fl.rotation.x=-Math.PI/2; fl.scale.set(f[0],f[1],1); fl.position.set(f[0]/2,.05,f[1]/2); const gmod=ghostModel(k); ghostG.add(fl,gmod.g); ghostG.userData.m=[fl.material,gmod.m]; scene.add(ghostG); } }
     if(ghostG&&gh){ ghostG.position.set(gh.x,0,gh.y); const c=gh.ok?0x37C26A:0xE0483C; ghostG.userData.m.forEach(m=>m.color.setHex(c)); } dirty=true; }
-  return { launch:launchCtl, snap:snapMachine, focus:(x,z,zm,yaw,pit)=>{ CAM.tx=x; CAM.tz=z; CAM.zoom=zm; if(yaw!=null) CAM.yaw=yaw; if(pit!=null) CAM.pit=pit; camDirty=true; }, cover:()=>host?cover():null, setView, slam,info:()=>R?{tex:R.info.memory.textures,geo:R.info.memory.geometries,progs:R.info.programs.length,walkers:walkers.length,crowd:CROWD.length,cups:MEET?MEET.seats.map(r=>r&&r.cup?[+r.cup.position.y.toFixed(2),r.cupT==null?null:+r.cupT.toFixed(1)]:null):null,calls:R.info.render.calls,sc:scene.children.length,ghost:!!ghostG,pos:walkers.map(w=>[+w.x.toFixed(1),+w.z.toFixed(1),w.path?1:0])}:null, can, mount, update, sync, toGrid, ghost:setGhost, pending:null, stop:()=>{ running=false; } };
+  return { launch:launchCtl, snap:snapMachine, turn, focus:(x,z,zm,yaw,pit)=>{ CAM.tx=x; CAM.tz=z; CAM.zoom=zm; if(yaw!=null) CAM.yaw=yaw; if(pit!=null) CAM.pit=pit; camDirty=true; }, cover:()=>host?cover():null, setView, slam,info:()=>R?{tex:R.info.memory.textures,geo:R.info.memory.geometries,progs:R.info.programs.length,walkers:walkers.length,crowd:CROWD.length,cups:MEET?MEET.seats.map(r=>r&&r.cup?[+r.cup.position.y.toFixed(2),r.cupT==null?null:+r.cupT.toFixed(1)]:null):null,calls:R.info.render.calls,sc:scene.children.length,ghost:!!ghostG,pos:walkers.map(w=>[+w.x.toFixed(1),+w.z.toFixed(1),w.path?1:0])}:null, can, mount, update, sync, toGrid, ghost:setGhost, pending:null, stop:()=>{ running=false; } };
 })();
 
 /* ==========================================================================
