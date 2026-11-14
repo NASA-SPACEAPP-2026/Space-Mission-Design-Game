@@ -5409,7 +5409,7 @@ const C3=(()=>{
     // edifici e oggetti
 
     const tr=[]; const tops={};
-    OBJ={}; items.forEach(it=>{ if(it.k==='tree'||it.k==='pine'||it.k==='poplar'){ tr.push({id:it.id,x:it.x+.45,y:it.y+.45,k:it.k==='tree'?'round':it.k,s:it.k==='poplar'?.95:1.05}); return; } const keep=built, g=new THREE.Group(); g.userData.id=it.id; built=g; tops[it.id]=building(it,ctx); built=keep; mergeGroup(g); keep.add(g); OBJ[it.id]=g; });
+    Object.keys(GLOW).forEach(k=>delete GLOW[k]); OBJ={}; items.forEach(it=>{ if(it.k==='tree'||it.k==='pine'||it.k==='poplar'){ tr.push({id:it.id,x:it.x+.45,y:it.y+.45,k:it.k==='tree'?'round':it.k,s:it.k==='poplar'?.95:1.05}); return; } const keep=built, g=new THREE.Group(); g.userData.id=it.id; built=g; tops[it.id]=building(it,ctx); built=keep; mergeGroup(g); keep.add(g); OBJ[it.id]=g; });
     nat.trees.forEach(t=>{ if(MTN.some(m=>Math.hypot(t.x-m.x,t.y-m.z)<m.br*1.02)) return; if(dPL([t.x,t.y],SP)<3.3) return; if(cwP&&pdist(t.x,t.y,cwP)<1.7) return; if(RDS.some(r=>pdist(t.x,t.y,r.p)<r.hw+1.1)) return; tr.push({x:t.x,y:t.y,k:t.t,s:t.k*1.05}); }); trees(tr);
     // siepe lungo il confine, lampioni lungo i viali, aiuole davanti agli edifici
     const rects=items.filter(i=>CAM.K[i.k]&&!/tree|pine|poplar/.test(i.k)).map(i=>[i.x-.15,i.y-.15,i.x+CAM.K[i.k].w+.15,i.y+CAM.K[i.k].h+.15]);
@@ -5464,10 +5464,21 @@ const C3=(()=>{
     mixC(scene.background,A.bg,B.bg,f); if(scene.fog) mixC(scene.fog.color,A.fog,B.fog,f); mixC(HEMC.color,A.hs,B.hs,f); mixC(HEMC.groundColor,A.hg,B.hg,f); HEMC.intensity=L(A.hi,B.hi); mixC(SUNC.color,A.sc,B.sc,f); SUNC.intensity=L(A.si,B.si); mixC(FILC.color,A.fc,B.fc,f); FILC.intensity=L(A.fi,B.fi);
     const lamp=L(A.lamp,B.lamp), win=L(A.win,B.win); LAMPM.forEach(m=>{ m.emissiveIntensity=lamp; }); if(GLOWM) GLOWM.opacity=Math.max(0,(lamp-.5)/5.5)*.9; [GLASS,GLASSD].forEach(m=>{ if(m){ if(m.emissive) m.emissive.setHex(0xFFC873); m.emissiveIntensity=win; } });
     if(STARS){ const ns=(a[1]===2?1:0)*(1-f)+(b[1]===2?1:0)*f; STARS.material.opacity=ns; STARS.visible=ns>.03; } }
+  /* bagliore arancione con la sagoma della facility: uno "scafo" arancione attorno ai pezzi dell'edificio (stessa tecnica del contorno cartoon di TOON,
+     ma piu' largo, trasparente e pulsante), al posto della macchia CSS sul bottone. Si accende sulle facility evidenziate dal tutorial (.coach-hl) e sulla rampa col razzo pronto (.b3rdy). */
+  let GLM=null; const GLOW={};
+  function glowMat(){ if(GLM) return GLM; const m=TOON.mat; GLM=new THREE.ShaderMaterial({uniforms:Object.assign({},m.uniforms,{uG:{value:4},uA:{value:.8},uC:{value:new THREE.Color('#EB7D44')}}),side:THREE.BackSide,transparent:true,depthWrite:false,fog:true,toneMapped:false,
+      vertexShader:m.vertexShader.replace('uniform float uW;','uniform float uW; uniform float uG;').replace('uW*k','uW*uG*k'),fragmentShader:'#include <fog_pars_fragment>\nuniform vec3 uC; uniform float uA;\nvoid main(){ gl_FragColor=vec4(uC,uA);\n#include <fog_fragment>\n}'}); return GLM; }
+  const GLSKIP={PlaneGeometry:1,CircleGeometry:1,RingGeometry:1,ShapeGeometry:1};
+  function glowOn(id){ const g=OBJ[id]; if(!g||GLOW[id]) return; const src=[], out=[]; g.traverse(o=>{ if(o.isMesh&&!o.isInstancedMesh&&!o.userData.ol&&o.geometry&&o.geometry.attributes.position&&!GLSKIP[o.geometry.type]) src.push(o); });
+    src.forEach(o=>{ TOON.onrm(o.geometry); const h=new THREE.Mesh(o.geometry,glowMat()); h.userData.ol=1; h.castShadow=h.receiveShadow=false; h.raycast=()=>{}; h.renderOrder=-1; o.add(h); out.push(h); }); GLOW[id]=out; }
+  function glowOff(id){ (GLOW[id]||[]).forEach(h=>{ if(h.parent) h.parent.remove(h); }); delete GLOW[id]; }
+  function glowSync(t){ const want={}; HS.forEach(h=>{ if(h.it&&h.b&&(h.b.classList.contains('coach-hl')||h.b.classList.contains('b3rdy'))) want[h.it.id]=1; });
+    Object.keys(GLOW).forEach(id=>{ if(!want[id]) glowOff(id); }); Object.keys(want).forEach(glowOn); if(GLM){ const p=.5+.5*Math.sin(t*3.9); GLM.uniforms.uA.value=.65+.35*p; GLM.uniforms.uG.value=4+3*p; } }
   function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); const ttl=document.body.classList.contains('ttl-on'); if(ttl!==ttlWas){ ttlWas=ttl; R.setPixelRatio(PR()); size(); }
     const busy=ttl||PT.size>0||ts-lastIn<1200||Math.abs(T.yaw-YAW0)>.002; if(ts-last<(busy?33:80)) return; const dt=Math.min(.1,(ts-last)/1000); last=ts; const t=ts/1000;
     if(ttl) T.yaw+=dt*.05; else { let dy=((T.yaw-YAW0)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; T.yaw=YAW0+dy*Math.pow(.02,dt); } dayNight(t); walk(dt,t); for(let i=0;i<anims.length;i++) anims[i](t); for(let i=0;i<flags.length;i++) flags[i].rotation.y=Math.sin(t*2+i)*.25; edit3(t);
-    placeCam(); R.render(scene,cam); project(); }
+    glowSync(t); placeCam(); R.render(scene,cam); project(); }
   /* ---------- input: trascina, pizzica, rotellina ---------- */
   const PT=new Map(); let drag=null, pinch=null, moved=false;
   function clampT(){ const s=CAM.site(); let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9; s.forEach(p=>{ x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); z0=Math.min(z0,p[1]); z1=Math.max(z1,p[1]); }); T.x=Math.max(x0,Math.min(x1,T.x)); T.z=Math.max(z0,Math.min(z1,T.z)); T.d=Math.max(11,Math.min(58,T.d)); }
