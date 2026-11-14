@@ -76,7 +76,14 @@ A small quality governor lowers the pixel ratio and the shadow refresh rate if a
 
 - `?perf=1` shows a small overlay (fps, frame time, draw calls, quality level).
 - `?q=0..3` forces a quality level (3 = best) for testing. The last level used is remembered in `localStorage` (`gngQ`).
+- `?mob=1` forces the mobile code paths on a desktop browser (1024 px shadow map, fewer and simpler walkers).
 - `prefers-reduced-motion` keeps the old low frame rate.
+
+## Standalone single-file build
+
+`npm run package:single` builds the game and writes **`Go No-Go.html`**: one file with the game script, CSS and fonts inlined, so it
+opens by double-click or from any static host. The soundtrack stays a separate file (`public/audio/theme.mp3`; for a movable folder use
+`node scripts/build-single-file.mjs --bundle out/`). Regenerate it whenever the source changes: it is not rebuilt automatically.
 
 ## Branches and deployment
 
