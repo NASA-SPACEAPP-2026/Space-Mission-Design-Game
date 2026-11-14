@@ -16,7 +16,34 @@ const E = (function () {
   // Finanziamento NASA per missione. Bilanciato con una simulazione a libro mastro completo (v39): a livello di sblocco il rendimento
   // (utile / costo, con tutte le prove) è ~0,8-1,0 su ogni destinazione; cresce del 3% per ogni livello sopra lo sblocco (prima +12% su tutti i livelli: a livello 18 rendeva 5-6 volte il costo).
   // Gli atterraggi restano sulla curva precedente: il costo del lander è a peso e non è stato rimisurato.
+  // ---- Corpi esterni (batch 4). Valori INVENTATI ma plausibili; FONTE UNICA di DEST, ZONES, BODY, ECL, capture, ART, FUND, LV e del catalogo (BODIES).
+  // R = raggio (km); vg = velocità circolare di gioco (km/s) usata per scalare mu cosi' che il delta-v resti giocabile; cap = frenata di cattura (m/s);
+  // c = costo base del passaggio (crediti); d = distanza (Mkm); days = viaggio; zones = [chiave, fascia di quota km, livello, nome?, descrizione?]
+  const ZNAME = { fly: 'Sorvolo ravvicinato', low: 'Orbita bassa', high: 'Orbita alta' };
+  const ZDESC = { fly: 'Un passaggio veloce vicino al corpo: la frenata costa poco, ma si osserva per poco tempo.', low: 'Un’orbita di cattura stretta attorno al corpo: dati di dettaglio, ma servono molti ΔV per arrivarci.', high: 'Un’orbita larga e stabile: lenta da percorrere, comoda per misure a lungo termine.' };
+  const mkZones = list => list.map(([k, band, lvl, n, s]) => { const z = { k, n: n || ZNAME[k], band, lvl, s: s || ZDESC[k] }; if (k === 'fly') z.capK = 0.4; return z; });
+  const EXT = {
+    mercury: { n: 'Mercurio', gen: ['a Mercurio', 'di Mercurio'], en: 'Mercury', col: '#9A8F86', pal: ['#B7ADA3', '#5E5650'], R: 2439.7, vg: 3.0, lvl: 12, dv: 1000, cap: 600, c: 5200, d: 91, days: 300, sciK: 2.6, sk: 3, types: ['sci', 'obs', 'demo'], ext: 'solo orbita o sorvolo: niente atterraggio (nessun rover, ambiente troppo caldo)',
+      zones: mkZones([['fly', [1000, 6000], 12], ['low', [200, 1000], 13], ['high', [6000, 20000], 12]]), ecl: { fly: 0.3, low: 0.6, high: 0.4 }, ride: 'DEEP',
+      deco: '<circle cx="-6" cy="-5" r="3" fill="#000" opacity=".16"/><circle cx="6" cy="4" r="4" fill="#000" opacity=".14"/><circle cx="-4" cy="8" r="2" fill="#000" opacity=".16"/>', behind: '' },
+    jupiter: { n: 'Giove', gen: ['a Giove', 'di Giove'], en: 'Jupiter', col: '#C8A27A', pal: ['#E3C9A3', '#8C5E3A'], R: 71492, vg: 4.5, lvl: 14, dv: 1300, cap: 780, c: 9000, d: 628, days: 1900, sciK: 3.0, sk: 3, types: ['sci', 'obs', 'demo'], ext: 'gigante gassoso: niente atterraggio, solo orbita o sorvolo',
+      zones: mkZones([['fly', [30000, 300000], 14], ['low', [300000, 1500000], 14], ['high', [1500000, 6000000], 15]]), ecl: { fly: 0.5, low: 1.5, high: 2.5 }, ride: 'DEEP',
+      deco: '<path d="M-17 -9h34M-17 -3h34M-17 3h34M-17 9h34" stroke="#9C6B44" stroke-width="2.4" opacity=".55"/><ellipse cx="5" cy="4" rx="3.4" ry="2" fill="#B5543A" opacity=".85"/>', behind: '' },
+    saturn: { n: 'Saturno', gen: ['a Saturno', 'di Saturno'], en: 'Saturn', col: '#E3CE9C', pal: ['#F2E3BA', '#9C8454'], R: 60268, vg: 4.5, lvl: 16, dv: 1400, cap: 840, c: 11000, d: 1275, days: 2600, sciK: 3.2, sk: 3, types: ['sci', 'obs', 'demo'], ext: 'gigante gassoso con anelli: niente atterraggio',
+      zones: mkZones([['fly', [20000, 200000], 16], ['low', [200000, 1200000], 16], ['high', [1200000, 5000000], 17]]), ecl: { fly: 0.6, low: 1.8, high: 2.5 }, ride: 'DEEPX',
+      deco: '<path d="M-17 -8h34M-17 -2h34M-17 4h34M-17 10h34" stroke="#B59A66" stroke-width="2.2" opacity=".5"/>', behind: '<ellipse rx="22" ry="5.5" fill="none" stroke="#CDB98A" stroke-width="2.6" transform="rotate(-18)"/>' },
+    uranus: { n: 'Urano', gen: ['a Urano', 'di Urano'], en: 'Uranus', col: '#8FD3DC', pal: ['#B9EDF1', '#4A8E9A'], R: 25559, vg: 4.0, lvl: 18, dv: 1500, cap: 900, c: 14000, d: 2720, days: 6000, sciK: 3.4, sk: 3, types: ['sci', 'demo'], ext: 'gigante di ghiaccio: niente atterraggio, comunicazioni molto lente',
+      zones: mkZones([['fly', [10000, 100000], 18], ['low', [100000, 600000], 18], ['high', [600000, 3000000], 19]]), ecl: { fly: 0.5, low: 1.5, high: 3 }, ride: 'DEEPX',
+      deco: '<path d="M-17 -4h34M-17 4h34" stroke="#fff" stroke-width="2" opacity=".25"/>', behind: '' },
+    neptune: { n: 'Nettuno', gen: ['a Nettuno', 'di Nettuno'], en: 'Neptune', col: '#4B6FD6', pal: ['#7C9BEE', '#1E3A8C'], R: 24764, vg: 4.0, lvl: 19, dv: 1600, cap: 960, c: 16000, d: 4350, days: 7500, sciK: 3.6, sk: 3, types: ['sci', 'demo'], ext: 'gigante di ghiaccio: niente atterraggio, comunicazioni molto lente',
+      zones: mkZones([['fly', [10000, 100000], 19], ['low', [100000, 600000], 19], ['high', [600000, 3000000], 19]]), ecl: { fly: 0.5, low: 1.5, high: 3 }, ride: 'DEEPX',
+      deco: '<path d="M-17 -6h34M-17 6h34" stroke="#fff" stroke-width="1.8" opacity=".22"/><ellipse cx="-4" cy="2" rx="4" ry="2.4" fill="#0F2166" opacity=".6"/>', behind: '' },
+    sun: { n: 'Sole', gen: ['al Sole', 'del Sole'], en: 'the Sun', col: '#FFC83D', pal: ['#FFF3B0', '#FF9A1F'], R: 695700, vg: 6.0, lvl: 20, dv: 1800, cap: 1080, c: 20000, d: 150, days: 200, sciK: 4.0, sk: 3, types: ['sci', 'obs'], ext: 'solo sorvolo ravvicinato e osservazione: niente orbita stabile e niente atterraggio',
+      zones: mkZones([['fly', [4000000, 9000000], 20, 'Sorvolo del perielio', 'Un passaggio ravvicinato nella corona solare: tutto dipende dallo scudo termico.'], ['low', [9000000, 30000000], 20, 'Orbita eliocentrica interna', 'Un’orbita attorno al Sole, dentro quella di Mercurio: osservazione quasi continua.']]), ecl: { fly: 0.05, low: 0.05 }, ride: 'DEEPX',
+      deco: '<circle r="17" fill="#FFE27A" opacity=".45"/><circle cx="-5" cy="-4" r="5" fill="#fff" opacity=".35"/>', behind: '<circle r="22" fill="#FFC83D" opacity=".18"/><circle r="19.5" fill="#FFC83D" opacity=".28"/>' }
+  };
   const FUND = { base: { leo: 450, moon: 2600, mars: 5600, venus: 6200 }, grow: 0.03 };
+  Object.keys(EXT).forEach(k => { FUND.base[k] = Math.round(EXT[k].c * 2.1 / 100) * 100; });
   const fundOf = (id, Mi) => { const s = stk(id); if (!s) return 0; if (id !== 'nasa' || !Mi) return s.fund; const dest = (Mi.sat && Mi.sat.dest) || 'leo', lv = Mi.lvl || 1;
     if (Mi.zone === 'surf') return Math.round(({ leo: 450, moon: 2800, mars: 6000, venus: 6000 }[dest] || 450) * (1 + 0.12 * (lv - 1)) * 3.5 / 10) * 10;
     const ul = DEST[dest] ? DEST[dest].lvl : 1;
@@ -36,7 +63,10 @@ const E = (function () {
     HOME: { n: 'Lancio dalla tua piattaforma', k: 'Il tuo razzo, dal tuo campus: il 40% in meno del rideshare', who: 'La tua agenzia', fits: ['S3', 'S6', 'S12'], c: { S3: 90, S6: 150, S12: 240 }, dest: ['leo'], dvK: 1, lvl: 20, pad: 1, h: 0.8 },
     MOON: { n: 'Passaggio verso la Luna', k: 'Un posto per CubeSat su una missione lunare: ti rilascia in un’orbita lunare alta', who: 'Ente terzo', fits: ['S6', 'S12'], c: 1200, dest: ['moon'], dvK: 1, lvl: 5, h: 1.4 },
     LANDER: { n: 'Posto su un lander commerciale', k: 'Il lander ti porta fino al suolo: si paga a chilo, il lancio è compreso', who: 'Ente terzo', fits: ['S3', 'S6', 'S12'], c: 0, dest: ['moon', 'mars'], dvK: 0, lvl: 8, surf: 1, h: 1.4 },
-    MARS: { n: 'Passaggio verso Marte o Venere', k: 'Un posto su una sonda interplanetaria: ti rilascia in un’orbita allungata', who: 'Ente terzo', fits: ['S12'], c: 3000, dest: ['mars', 'venus'], dvK: 1, lvl: 10, ell: 1, h: 1.5 }
+    MARS: { n: 'Passaggio verso Marte o Venere', k: 'Un posto su una sonda interplanetaria: ti rilascia in un’orbita allungata', who: 'Ente terzo', fits: ['S12'], c: 3000, dest: ['mars', 'venus'], dvK: 1, lvl: 10, ell: 1, h: 1.5 },
+    // batch 4: passaggi verso i corpi esterni. DEEP = sonda di classe media (Mercurio, Giove); DEEPX = sonda di classe Flagship, lanciatore pesante (Saturno, Urano, Nettuno, Sole). cd = prezzo per corpo (da EXT.c)
+    DEEP: { n: 'Passaggio verso Mercurio o Giove', k: 'Un posto su una sonda di classe media: ti rilascia in un’orbita circolare di lavoro dopo la frenata', who: 'Ente terzo', fits: ['S12'], c: 5200, cd: { mercury: 5200, jupiter: 9000 }, dest: ['mercury', 'jupiter'], dvK: 1, lvl: 12, ell: 1, h: 1.6 },
+    DEEPX: { n: 'Passaggio su una sonda Flagship (lanciatore pesante)', k: 'Un posto su una grande sonda lanciata con un razzo pesante: serve per i pianeti esterni e per il Sole', who: 'Ente terzo', fits: ['S12'], c: 11000, cd: { saturn: 11000, uranus: 14000, neptune: 16000, sun: 20000 }, dest: ['saturn', 'uranus', 'neptune', 'sun'], dvK: 1, lvl: 16, ell: 1, h: 2.0 }
   };
   const DEST = {
     leo: { n: 'Terra', lvl: 1, dv: 0, sk: 4, sciK: 0.6, orbit: 'orbita bassa attorno alla Terra', end: 'Rientro distruttivo in atmosfera.', col: '#3E7BD6', far: 0, loc: 'Orbita terrestre bassa' },
@@ -44,11 +74,12 @@ const E = (function () {
     mars: { n: 'Marte', lvl: 10, dv: 650, sk: 3, sciK: 2.2, orbit: 'orbita attorno a Marte', end: 'Parcheggiato in un’orbita cimitero alta.', col: '#C8603A', far: 1, loc: 'Orbita di Marte' },
     venus: { n: 'Venere', lvl: 15, dv: 700, sk: 3.5, sciK: 2.4, orbit: 'orbita attorno a Venere', end: 'Ingresso controllato nell’atmosfera di Venere.', col: '#E2C27A', far: 1, loc: 'Spazio profondo' }
   };
+  Object.keys(EXT).forEach(k => { const x = EXT[k]; DEST[k] = { n: x.n, lvl: x.lvl, dv: x.dv, sk: x.sk, sciK: x.sciK, orbit: 'orbita attorno ' + x.gen[0].replace(/^al /, 'al ').replace(/^a /, 'a '), end: 'Parcheggiato in un’orbita cimitero alta.', col: x.col, far: 1, loc: 'Spazio profondo', ext: 1 }; });
   const dvK = d => { const L = LV[d.lv]; if (!L) return 1; return typeof L.dvK === 'number' ? L.dvK : (L.dvK[d.dest || 'leo'] != null ? L.dvK[d.dest || 'leo'] : 1); };
   const dvNeed = d => Math.round(DEST[d.dest || 'leo'].dv * dvK(d));
   const skOf = d => d.noProp ? 0 : d.skMs != null ? d.skMs : DEST[d.dest || 'leo'].sk * (d.skK || 1); // d.skMs: ΔV mensile di mantenimento calcolato da GMAT (resistenza dell'atmosfera)
   const eclOf = d => d.eclH || M.eclH;
-  const lvCost = d => { const L = LV[d.lv]; if (!L) return 0; return typeof L.c === 'number' ? L.c : (L.c[d.ride] || 0); };
+  const lvCost = d => { const L = LV[d.lv]; if (!L) return 0; if (L.cd && L.cd[d.dest] != null) return L.cd[d.dest]; return typeof L.c === 'number' ? L.c : (L.c[d.ride] || 0); };
   // ---------- pezzi dal database ----------
   const CATMAP = { 'Computer': 'avi', 'Batteria': 'bat', 'Radio e comunicazioni': 'com', 'Propulsione': 'prop', 'Payload': 'ray', 'Gestione potenza': 'pwr', 'Fine vita': 'eol' };
   const NAV = ['BASE-STT', 'BASE-GPS', 'NASA-9319', 'NASA-157469', 'NASA-17871', 'NASA-102319'];
@@ -225,29 +256,29 @@ const E = (function () {
   const rate = f => (f.ray ? 10 * quality(f) : 0) * f.bonus * f.mult * (f.sciK || 1) * (f.rob ? 1.3 : 1);
   function month(f) { f.month++; f.fuel -= f.sk; const g = rate(f); f.sci += g;
     if (f.fuel < 0 && !f.noProp) { f.fuel = 0; f.nofuel = true; } if (f.noProp) f.fuel = 0; return g; }
-  const BASE = ['spe', 'rw', 'ecl', 'mascon', 'radio', 'met', 'partner'], LOOP = ['spe', 'ecl', 'mascon', 'met'];
-  function nextEvent(f) { if (!f.deck.length) { const src = (f.evN ? LOOP : BASE.filter(k => k !== 'partner' || f.d.stake.length)).slice();
+  const BASE = ['spe', 'rw', 'ecl', 'mascon', 'radio', 'deb', 'sw', 'met', 'partner'], LOOP = ['spe', 'ecl', 'mascon', 'deb', 'sw', 'met'];
+  function nextEvent(f) { if (!f.deck.length) { const src = (f.evN ? LOOP : BASE).filter(k => (k !== 'partner' || f.d.stake.length) && (k !== 'deb' || (f.d.dest || 'leo') === 'leo')).slice();
       for (let i = src.length - 1; i > 0; i--) { const j = Math.floor(f.r() * (i + 1)); const t = src[i]; src[i] = src[j]; src[j] = t; } f.deck = src; }
     f.evN++; return f.deck.shift(); }
   const pc = x => Math.round(x * 100) + '%';
   function die(f, why) { f.alive = false; f.ended = true; f.cause = why; return { t: why, tone: 'bad', end: true }; }
   const EV = {
-    spe: { t: 'Tempesta solare', art: 'sun', q: () => 'Particelle solari in arrivo: il satellite è passato da solo in safe mode per proteggersi. Riaccendi gli strumenti per misurare la tempesta?',
+    spe: { t: 'Tempesta solare', art: 'sun', fix: { k: 'b', risk: 'a', cost: 20 }, q: () => 'Particelle solari in arrivo: il satellite è passato da solo in safe mode per proteggersi. Riaccendi gli strumenti per misurare la tempesta?',
       opts: f => [{ k: 'a', l: 'Riaccendi e misura', h: '+30 scienza · ' + pc(f.pSpe) + ' di bruciare un computer' }, { k: 'b', l: 'Resta in safe mode', h: 'nessun dato questo mese' }],
       run(f, k) { if (k === 'b') { f.sci -= Math.min(f.sci, rate(f)); return { t: 'Strumenti spenti finché passa.', tone: 'flat' }; }
         f.sci += 30; if (f.r() >= f.pSpe) return { t: 'Tempesta misurata dal vivo. +30 scienza.', tone: 'good' };
         if (f.spare.obc > 0) { f.spare.obc--; f.pSpe = Math.max(f.pSpe, 0.35); return { t: 'Dati presi, ma un computer è bruciato. Ora voli senza scorta.', tone: 'bad' }; }
         return die(f, 'Il computer di bordo non risponde più dopo la tempesta solare.'); } },
-    rw: { t: 'Assetto in avaria', art: 'wheel', q: f => f.spare.rw ? 'Un attuatore di assetto si è fermato.' : 'Un attuatore di assetto si è fermato, e non hai una scorta.',
+    rw: { t: 'Assetto in avaria', art: 'wheel', fix: { k: 'a', risk: 'b', cost: 25 }, q: f => f.spare.rw ? 'Un attuatore di assetto si è fermato.' : 'Un attuatore di assetto si è fermato, e non hai una scorta.',
       opts: f => f.spare.rw ? [{ k: 'ok', l: 'Continua', h: 'la quarta ruota prende il carico' }] : [{ k: 'a', l: 'Punta con i propulsori', h: f.gas >= 30 ? '−30% gas · scienza −30%' : 'non hai propulsori', off: f.gas < 30 }, { k: 'b', l: 'Lascia ruotare piano', h: 'scienza −60%' }],
       run(f, k) { if (k === 'ok') { f.spare.rw--; return { t: 'La scorta prende il carico.', tone: 'good' }; }
         if (k === 'a') { f.gas -= 30; f.mult *= 0.7; return { t: 'Assetto tenuto a colpi di propulsore.', tone: 'flat' }; } f.mult *= 0.4; return { t: 'Il satellite ruota lento: si misura a tratti.', tone: 'bad' }; } },
-    radio: { t: 'Radio muta', art: 'radio', q: f => f.spare.com ? 'Il trasmettitore principale tace.' : 'Il trasmettitore tace, ed è l’unico.',
+    radio: { t: 'Radio muta', art: 'radio', fix: { k: 'b', risk: 'a', cost: 20 }, q: f => f.spare.com ? 'Il trasmettitore principale tace.' : 'Il trasmettitore tace, ed è l’unico.',
       opts: f => f.spare.com ? [{ k: 'ok', l: 'Passa alla riserva', h: 'nessuna perdita' }] : [{ k: 'a', l: 'Reset a freddo', h: Math.round(Math.min(.9, .6 + (f.sig || 0)) * 100) + '% torna · ' + Math.round((1 - Math.min(.9, .6 + (f.sig || 0))) * 100) + '% persa per sempre' + (f.sig ? ' (antenne di terra)' : '') }, { k: 'b', l: 'Potenza ridotta', h: 'scienza −40%, sicuro' }],
       run(f, k) { if (k === 'ok') { f.spare.com--; return { t: 'Radio di riserva accesa. Nessun dato perso.', tone: 'good' }; }
         if (k === 'b') { f.mult *= 0.6; return { t: 'Si trasmette a bassa potenza.', tone: 'flat' }; }
         if (f.r() < Math.min(.9, .6 + (f.sig || 0))) return { t: f.sig ? 'Le antenne di terra riagganciano il segnale: la radio riparte.' : 'La radio riparte.', tone: 'good' }; return die(f, 'Radio persa: nessun comando arriva più a bordo.'); } },
-    ecl: { t: 'Eclisse', art: 'eclipse', q: f => f.eclWh > M.dodMax * f.bat ? 'Il Sole resta coperto per ' + f.eclM + ' minuti. La batteria non basta per tenere tutto acceso.' : 'Il Sole resta coperto per ' + f.eclM + ' minuti.',
+    ecl: { t: 'Eclisse', art: 'eclipse', fix: { k: 'a', risk: 'b', cost: 15 }, q: f => f.eclWh > M.dodMax * f.bat ? 'Il Sole resta coperto per ' + f.eclM + ' minuti. La batteria non basta per tenere tutto acceso.' : 'Il Sole resta coperto per ' + f.eclM + ' minuti.',
       opts: f => f.eclWh > M.dodMax * f.bat ? [{ k: 'a', l: 'Spegni i payload', h: 'perdi i dati del mese' }, { k: 'b', l: 'Tieni tutto acceso', h: '45% di rovinare la batteria' }] : [{ k: 'ok', l: 'Continua', h: 'la batteria regge' }],
       run(f, k) { const out = [];
         if (k === 'a') { f.sci -= Math.min(f.sci, rate(f)); out.push('Payload spenti per l’eclisse.'); }
@@ -256,10 +287,18 @@ const E = (function () {
         if (!f.coldDone) { f.coldDone = true; f.cold.forEach(c => { if (c === 'prop') { f.fuel = Math.max(0, f.fuel - 40); out.push('Una linea del propellente è gelata: −40 m/s.'); }
           if (c === 'bat') { f.bat *= 0.8; out.push('Batteria al freddo: capacità −20%.'); }  }); }
         return { t: out.length ? out.join(' ') : 'Eclisse passata senza danni.', tone: out.length ? (k === 'a' && out.length === 1 ? 'flat' : 'bad') : 'good' }; } },
-    mascon: { t: 'Mascon', art: 'mascon', q: f => (f.d.dest || 'moon') === 'moon' ? 'Le concentrazioni di massa lunari stanno deformando l’orbita.' : 'Atmosfera residua e gravità irregolare stanno deformando l’orbita.',
+    mascon: { t: 'Mascon', art: 'mascon', fix: { k: 'a', risk: 'b', cost: 15 }, q: f => (f.d.dest || 'moon') === 'moon' ? 'Le concentrazioni di massa lunari stanno deformando l’orbita.' : 'Atmosfera residua e gravità irregolare stanno deformando l’orbita.',
       opts: f => [{ k: 'a', l: 'Correggi', h: '−15 m/s', off: f.fuel < 15 }, { k: 'b', l: 'Lascia andare', h: 'pericentro +90 km · apocentro −250 km' }],
       run(f, k) { if (k === 'a') { f.fuel -= 15; return { t: 'Orbita rimessa a posto.', tone: 'flat' }; } f.pe += 90; f.ap -= 250;
         return { t: 'Orbita a ' + Math.round(f.pe) + ' × ' + Math.round(f.ap) + ' km.' + (quality(f) < 1 ? ' Una parte della scienza è fuori portata.' : ''), tone: quality(f) < 1 ? 'bad' : 'flat' }; } },
+    deb: { t: 'Detriti in avvicinamento', art: 'meteor', fix: { k: 'a', risk: 'b', cost: 30 }, q: () => 'La sorveglianza spaziale segnala un frammento di detrito che passerà a meno di 200 metri dal satellite.',
+      opts: f => [{ k: 'a', l: 'Manovra evasiva', h: f.noProp ? 'serve un propulsore' : '−5 m/s', off: f.noProp || f.fuel < 5 }, { k: 'b', l: 'Non fare nulla', h: '1 probabilità su 8 di collisione' }],
+      run(f, k) { if (k === 'a') { f.fuel -= 5; return { t: 'Manovra evasiva riuscita: il frammento passa lontano.', tone: 'flat' }; }
+        if (f.r() < 0.125) return die(f, 'Collisione con un detrito: il satellite si frammenta.'); return { t: 'Il frammento è passato a 150 metri. È andata bene.', tone: 'flat' }; } },
+    sw: { t: 'Errore software', art: 'radio', fix: { k: 'a', risk: 'b', cost: 10 }, q: () => 'Il software di uno strumento si è bloccato: lo strumento non risponde più ai comandi.',
+      opts: () => [{ k: 'a', l: 'Carica la patch da terra', h: 'lo strumento riparte' }, { k: 'b', l: 'Lascia così', h: '50% che resti bloccato: scienza dimezzata' }],
+      run(f, k) { if (k === 'a') return { t: 'Patch caricata: lo strumento riparte.', tone: 'good' };
+        if (f.r() < 0.5) { f.mult *= 0.5; return { t: 'Lo strumento resta bloccato: scienza dimezzata.', tone: 'bad' }; } return { t: 'Lo strumento si è riavviato da solo.', tone: 'good' }; } },
     partner: { t: 'Richiesta di un partner', art: 'deal', q: f => stk(f.d.stake[0]).n + ' chiede una campagna di misure extra.',
       opts: f => [{ k: 'a', l: 'Accetta', h: '−10 m/s · +15 crediti · reputazione +1', off: f.fuel < 10 }, { k: 'b', l: 'Rifiuta', h: 'nessun effetto' }],
       run(f, k) { if (k === 'a') { f.fuel -= 10; f.extra += 15; f.repX++; return { t: 'Campagna extra consegnata.', tone: 'good' }; } return { t: 'Richiesta declinata.', tone: 'flat' }; } },
@@ -304,7 +343,7 @@ const E = (function () {
     const rep = quests.reduce((a, x) => a + (x.ok ? stk(x.id).rep : -stk(x.id).rep), 0) + f.repX + (f.impact === 'near' ? -3 : 0);
     return { ok, sci, months: f.month, reward, rep, quests, impact: f.impact, cause: f.cause, alive: f.alive }; }
 
-  return { DBX, fundOf, FUND, tipOf, RANK, fitsRide, solOK, pointing, needPt, ACC, thermalPack, nCells, LV, DEST, dvNeed, skOf, eclOf, lvCost, blocked, M, MU, RM, PLAT, SEED, MAXSTAKE, STAKE, RIDES, SOLAR, CATS, PARTS, TESTS, FIX, STIFF, TARGET, stk, unlocked, budget0, fresh, shape, cellsOf, grid, fits, autoPlace, prune,
+  return { DBX, fundOf, FUND, tipOf, RANK, fitsRide, solOK, pointing, needPt, ACC, thermalPack, nCells, LV, DEST, EXT, dvNeed, skOf, eclOf, lvCost, blocked, M, MU, RM, PLAT, SEED, MAXSTAKE, STAKE, RIDES, SOLAR, CATS, PARTS, TESTS, FIX, STIFF, TARGET, stk, unlocked, budget0, fresh, shape, cellsOf, grid, fits, autoPlace, prune,
     layout, budget, checks, risks, rng, newFlight, launch, commission, month, rate, quality, nextEvent, EV, orbNew, orbStep, orbEl, zone, settle, has };
 })();
 if (typeof module !== 'undefined') module.exports = E;

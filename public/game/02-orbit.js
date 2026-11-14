@@ -44,6 +44,9 @@ const O = (function () {
   const LAND = { moon: { n: 'Atterraggio con un lander lunare commerciale', perKg: 1200, cost: 0, risk: 0.1, dv: 0, sciK: 1.6 }, mars: { n: 'Atterraggio con un lander marziano', perKg: 3000, cost: 0, risk: 0.15, dv: 0, sciK: 1.7 } };
   // ore d'ombra per orbita (o notte sul suolo): niente più 267 minuti ovunque
   const ECL = { moon: { low: 0.8, med: 4.45, high: 3, surf: 6 }, leo: { low: 0.6, med: 1, high: 1.2 }, mars: { low: 0.7, med: 1, high: 1.5, surf: 12, phobos: 0.9, deimos: 1.1 }, venus: { low: 0.6, med: 0.9, high: 1.5 } };
+  // batch 4: corpi esterni derivati da E.EXT (fonte unica). mu di gioco = vg² · r, r = distanza media geometrica delle fasce: il delta-v resta giocabile.
+  Object.keys(typeof E === 'undefined' ? {} : E.EXT).forEach(k => { const x = E.EXT[k], zs = x.zones, lo = Math.min(...zs.map(z => z.band[0])), hi = Math.max(...zs.map(z => z.band[1]));
+    ZONES[k] = zs; ECL[k] = x.ecl; capture[k] = x.cap; ART[k] = x.gen; BODY[k] = { R: x.R, mu: Math.round(x.vg * x.vg * (x.R + Math.sqrt(lo * hi))) }; });
   const zoneOf = M => { const d = M.sat, Z = ZONES[d.dest || 'leo'] || []; return Z.find(z => z.k === (M.zone || (d.dest === 'leo' ? 'low' : 'med'))) || Z[0]; };
   // quota di lavoro dentro la fascia: 0 = bordo basso, 1 = bordo alto. Cambia scienza e mantenimento d'orbita.
   const frac = M => M.traj && M.traj.frac != null ? M.traj.frac : 0.5;
@@ -107,6 +110,8 @@ const O = (function () {
     if (k === 0) { const n = t.debris ? { pe: t.debris.pe, ap: t.debris.ap, i: t.debris.i, raan: 0, argp: 0 } : nominal(t); if (!t.debris && work(M).slider) Object.assign(n, workEl(M, t)); return { el: n, cap: 0, why: 'Il lanciatore dedicato ti porta già nell’orbita di lavoro.' }; }
     const iA = t.debris ? t.debris.i - 6 : (t.i[1] - t.i[0] < 60 ? (t.i[0] + t.i[1]) / 2 : 30);
     if (dest === 'moon') return { el: { pe: 800, ap: 8000, i: iA, raan: 0, argp: 0 }, cap: 0, why: 'Rilascio dopo il viaggio dalla Terra: orbita lunare alta e allungata.' };
+    if (E.EXT[dest]) { const zz = zoneOf(M), h = Math.round(Math.sqrt(zz.band[0] * zz.band[1])), cp = Math.round(capture[dest] * k * (zz.capK || 1));
+      return { el: { pe: h, ap: h, i: iA, raan: 0, argp: 0 }, cap: cp, why: 'La sonda che ti porta frena per te e ti lascia in un’orbita circolare di lavoro: la frenata di cattura costa ' + cp + ' m/s ed è già nel conto.' }; }
     if (L && L.ell) return { el: { pe: 400, ap: 8000, i: iA, raan: 0, argp: 0 }, cap: 0, why: 'La sonda che ti porta frena per te: rilascio in un’orbita allungata.' };
     if (dest === 'leo') { const iT = t.debris ? t.debris.i - 6 : (t.i[1] - t.i[0] < 60 ? mid(t.i) : 97.6), z = zoneOf(M);
       if (z.k === 'med') return { el: { pe: 400, ap: 20000, i: iT, raan: 0, argp: 0 }, cap: 0, why: 'Il rideshare ti rilascia in un’orbita di trasferimento allungata fino a 20.000 km.' };
@@ -175,6 +180,9 @@ const O = (function () {
     if (ob.legs.length > n) ob.legs.length = n; return ob.legs; }
   // fine vita dall'ultima orbita
   function eolPlan(M, last, B, lf) { const D = M.drm, d = M.sat, dest = d.dest || 'leo', k = D.eol ? D.eol.k : null; if (!k || k === 'surf') return { dv: 0, el: null, t: '', k };
+    // batch 5: corpi esterni (E.EXT). Il corpo è già parcheggiato in alto: il cimitero costa il 10% e il rientro il 30% della frenata di cattura; nessun costo nei sorvoli.
+    if (E.EXT[dest]) { const z = zoneOf(M), fly = !!z && z.k === 'fly', gr = k === 'grave', dv = fly ? 0 : Math.round(capture[dest] * (gr ? 0.10 : 0.30)), hG2 = gr ? Math.round(Math.max(...ZONES[dest].map(q => q.band[1])) * 1.2) : 0;
+      return { dv, el: gr ? { pe: hG2, ap: hG2, i: last.i, raan: last.raan, argp: 0 } : last, t: gr ? 'Verso l’orbita cimitero' : 'Rientro in atmosfera', k }; }
     const mu = B.mu, kl = kep(last, B), rp = kl.a * (1 - kl.e), ra = kl.a * (1 + kl.e);
     if (k === 'reentry' || k === 'impact') { const lfr = lf && (dest === 'leo' || dest === 'mars') ? (d.placed.eol ? lf.sail : lf.nom) : null, byGmat = lfr ? lfr.days != null && lfr.days <= 1825 : null, nat = k === 'reentry' && ATM[dest] && (byGmat != null ? byGmat : (d.placed.eol || last.pe <= (dest === 'leo' ? 600 : 250))), rpT = B.R + (k === 'impact' ? -50 : 60);
       if (nat) return { dv: 0, el: null, t: d.placed.eol ? 'Rientro con la vela: nessuna manovra' : 'Rientro naturale: l’atmosfera frena il satellite', k, nat: true };
@@ -214,6 +222,7 @@ const O = (function () {
     const stratOk = (!st.cap.length || !!sc) && (!st.tr.length || !!strn);
     const f = orbits[obm ? si : orbits.length - 1].el, inR = (x, r) => x >= r[0] - 0.5 && x <= r[1] + 0.5;
     const noProp = !d.placed.prop, early = ['0', 'A', 'B'].indexOf(M.phase) >= 0, rp = noProp ? (HOOK.refProp ? HOOK.refProp(M) : { isp: 231, propM: 0.5 }) : null, none = !!(rp && rp.none);
+    if (noProp && eol && eol.dv > 0) { after = Math.max(0, after - eol.dv); eol.dv = 0; eol.nat = true; }
     if (!bad && noProp && tot + after > 1 && none) bad = 'Il piano chiede ' + Math.round(tot + after) + ' m/s di manovre, ma al tuo livello non hai ancora un propulsore (il primo si sblocca al livello ' + rp.lvl + '): scegli un’orbita di lavoro dove il razzo ti lascia già, senza manovre';
     else if (!bad && noProp && tot + after > 1 && !early) bad = 'Servono ' + Math.round(tot + after) + ' m/s di manovre: monta un sistema di propulsione';
     const chk = land ? { pe: true, ap: true, i: true } : { pe: inR(f.pe, t.pe), ap: inR(f.ap, t.ap), i: inR(f.i, t.i) }; const ok = !bad && chk.pe && chk.ap && chk.i && (stratOk || tot <= 1);
@@ -314,7 +323,15 @@ const O = (function () {
       'Propagate Prop(Sat) {Sat.ElapsedDays = ' + lf.cap + ', Sat.' + c.b + '.Altitude = ' + lf.thr + '};', 'Report ST Sat.ElapsedDays Sat.' + c.b + '.Altitude', ''];
     return L.join('\n').replace(/[^\x00-\x7f]/g, '-'); }
   const fmt = el => Math.round(el.pe) + ' × ' + (isFinite(el.ap) ? Math.round(el.ap) : '∞') + ' km · i ' + Math.round(el.i) + '°';
+  /* Stima del tempo di rientro naturale in orbita terrestre bassa, quando GMAT non risponde.
+     Atmosfera esponenziale a tratti (densita' per attivita' solare media, tabella di Vallado/CIRA-72) e
+     decadimento quasi circolare da/dt = -rho*(Cd*A/m)*sqrt(mu*a), integrato a passi di 1 km fino a 150 km. Restituisce i giorni (null se > 100 anni). */
+  const RHO = [[150, 2.070e-9, 22.523], [180, 5.464e-10, 29.740], [200, 2.789e-10, 37.105], [250, 7.248e-11, 45.546], [300, 2.418e-11, 53.628], [350, 9.518e-12, 53.298], [400, 3.725e-12, 58.515], [450, 1.585e-12, 60.828], [500, 6.967e-13, 63.822], [600, 1.454e-13, 71.835], [700, 3.614e-14, 88.667], [800, 1.170e-14, 124.64], [900, 5.245e-15, 181.05], [1000, 3.019e-15, 268.00]];
+  const rhoAt = h => { let r = RHO[0]; for (const x of RHO) if (h >= x[0]) r = x; return r[1] * Math.exp(-(h - r[0]) / r[2]); };
+  function decayDays(alt, mass, area) { if (!(alt > 0) || !(mass > 0) || !(area > 0)) return null; const mu = BODY.leo.mu * 1e9, Re = BODY.leo.R, k = 2.2 * area / mass; let t = 0;
+    for (let h = Math.min(alt, 2000); h > 150; h -= 1) { const a = (Re + h) * 1000, rate = rhoAt(h) * k * Math.sqrt(mu * a); t += 1000 / rate; if (t > 36525 * 86400) return null; }
+    return t / 86400; }
   const HOOK = { refProp: null, gmat: null, gmatAn: null, gmatLf: null };
-  return { gmat, gmatAnalysis, gmatLifetime, LIFE, STATIONS, nuFromM, hook: HOOK, ECL, ATMH, atmRisk, transfer, legEl, eMax, tle, kep, pqK, work, workEl, frac, ZONES, LAND, zoneOf, landOf, goal, autoBurns, strategies, stmt, BODY, TYPES, state, elements, burn, plan, target, initial, fmt, D2R };
+  return { decayDays, satArea, gmat, gmatAnalysis, gmatLifetime, LIFE, STATIONS, nuFromM, hook: HOOK, ECL, ATMH, atmRisk, transfer, legEl, eMax, tle, kep, pqK, work, workEl, frac, ZONES, LAND, zoneOf, landOf, goal, autoBurns, strategies, stmt, BODY, TYPES, state, elements, burn, plan, target, initial, fmt, D2R };
 })();
 if (typeof module !== 'undefined') module.exports = O;
