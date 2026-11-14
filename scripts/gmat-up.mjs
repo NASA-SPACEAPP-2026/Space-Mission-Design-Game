@@ -24,5 +24,5 @@ if (!sh(['image', 'inspect', LOCAL], { quiet: true })) {
   if (sh(['pull', '--platform', 'linux/amd64', REMOTE])) sh(['tag', REMOTE, LOCAL]);
   else { log('not published yet: building it locally (one-time ~420 MB download of NASA GMAT)…'); if (!sh(['build', '--platform', 'linux/amd64', '-f', 'docker/gmat/Dockerfile.base', '-t', LOCAL, '.'])) done(false, 'could not build the GMAT image'); }
 }
-if (!sh(['compose', 'up', '-d', '--build', 'gmat'])) done(false, 'could not start the local GMAT container');
+if (!sh(['compose', '-f', 'docker-compose.yml', 'up', '-d', '--build', 'gmat'])) done(false, 'could not start the local GMAT container');
 else done(true, 'local GMAT container is up');
