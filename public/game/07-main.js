@@ -4994,7 +4994,7 @@ function dEnd(e){ if(!DSAT) return; const D=DSAT; DSAT=null; D.el.remove(); cons
   if(best&&bd<110) dropOn(D,best); else { if(!ts.length) toast(D.kind==='clean'?'Le due postazioni sono occupate: aspetta che un satellite finisca.':'Nessun macchinario libero per questo satellite.'); else toast(D.kind==='clean'?'Lascialo sopra una postazione libera.':'Lascialo sopra un macchinario.'); render(); } }
 document.addEventListener('pointerup',dEnd); document.addEventListener('pointercancel',dEnd);
 function dropOn(D,t){ const i=G.missions.findIndex(m=>m.id===D.id), M=G.missions[i]; if(!M) return; G.cur=i;
-  if(D.kind==='clean'){ M.asmWait=false; M.station=+t.dataset.i; M.buildEnd=now()+(M.buildDur||L.TIME.build); sfx.put(); toast(M.name+' è sulla postazione: i tecnici iniziano l’assemblaggio.'); save(); render(); return; }
+  if(D.kind==='clean'){ M.asmWait=false; M.station=+t.dataset.i; M.buildEnd=now()+Math.min(M.buildDur||L.TIME.build,L.TIME.build); sfx.put(); toast(M.name+' è sulla postazione: i tecnici iniziano l’assemblaggio.'); save(); render(); return; }
   ACT.runtest({dataset:{k:t.dataset.k}}); }
 function labProg(M){ const run=Object.keys(M.tr).filter(k=>M.tr[k].res==='run'); if(!run.length) return ''; return '<div class="panel wprog">'+run.map(k=>{ const r=M.tr[k], p=Math.max(0,Math.min(1,1-(r.end-now())/(r.dur||1))), sec=Math.max(0,Math.ceil((r.end-now())/1000)); return '<div class="wp"><span>'+esc(L.MACH[k].n)+'</span><div class="mbar"><i style="width:'+Math.round(p*100)+'%"></i></div><span class="num">'+pct(p)+' · '+sec+' s</span></div>'; }).join('')+'</div>'; }
 function labMachines(){ const M=cur(), inLab=M&&M.phase==='D'&&M.stage!=='assembly'?M:null;
