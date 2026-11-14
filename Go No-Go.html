@@ -1403,10 +1403,10 @@ const E = (function () {
       zones: mkZones([['fly', [1000, 6000], 12], ['low', [200, 1000], 13], ['high', [6000, 20000], 12]]), ecl: { fly: 0.3, low: 0.6, high: 0.4 }, ride: 'DEEP',
       deco: '<circle cx="-6" cy="-5" r="3" fill="#000" opacity=".16"/><circle cx="6" cy="4" r="4" fill="#000" opacity=".14"/><circle cx="-4" cy="8" r="2" fill="#000" opacity=".16"/>', behind: '' },
     jupiter: { n: 'Giove', gen: ['a Giove', 'di Giove'], en: 'Jupiter', col: '#C8A27A', pal: ['#E3C9A3', '#8C5E3A'], R: 71492, vg: 4.5, lvl: 14, dv: 1300, cap: 780, c: 9000, d: 628, days: 1900, sciK: 3.0, sk: 3, types: ['sci', 'obs', 'demo'], ext: 'gigante gassoso: niente atterraggio, solo orbita o sorvolo',
-      zones: mkZones([['fly', [30000, 300000], 14], ['low', [300000, 1500000], 14], ['high', [1500000, 6000000], 15]]), ecl: { fly: 0.5, low: 1.5, high: 3 }, ride: 'DEEP',
+      zones: mkZones([['fly', [30000, 300000], 14], ['low', [300000, 1500000], 14], ['high', [1500000, 6000000], 15]]), ecl: { fly: 0.5, low: 1.5, high: 2.5 }, ride: 'DEEP',
       deco: '<path d="M-17 -9h34M-17 -3h34M-17 3h34M-17 9h34" stroke="#9C6B44" stroke-width="2.4" opacity=".55"/><ellipse cx="5" cy="4" rx="3.4" ry="2" fill="#B5543A" opacity=".85"/>', behind: '' },
     saturn: { n: 'Saturno', gen: ['a Saturno', 'di Saturno'], en: 'Saturn', col: '#E3CE9C', pal: ['#F2E3BA', '#9C8454'], R: 60268, vg: 4.5, lvl: 16, dv: 1400, cap: 840, c: 11000, d: 1275, days: 2600, sciK: 3.2, sk: 3, types: ['sci', 'obs', 'demo'], ext: 'gigante gassoso con anelli: niente atterraggio',
-      zones: mkZones([['fly', [20000, 200000], 16], ['low', [200000, 1200000], 16], ['high', [1200000, 5000000], 17]]), ecl: { fly: 0.6, low: 1.8, high: 3.5 }, ride: 'DEEPX',
+      zones: mkZones([['fly', [20000, 200000], 16], ['low', [200000, 1200000], 16], ['high', [1200000, 5000000], 17]]), ecl: { fly: 0.6, low: 1.8, high: 2.5 }, ride: 'DEEPX',
       deco: '<path d="M-17 -8h34M-17 -2h34M-17 4h34M-17 10h34" stroke="#B59A66" stroke-width="2.2" opacity=".5"/>', behind: '<ellipse rx="22" ry="5.5" fill="none" stroke="#CDB98A" stroke-width="2.6" transform="rotate(-18)"/>' },
     uranus: { n: 'Urano', gen: ['a Urano', 'di Urano'], en: 'Uranus', col: '#8FD3DC', pal: ['#B9EDF1', '#4A8E9A'], R: 25559, vg: 4.0, lvl: 18, dv: 1500, cap: 900, c: 14000, d: 2720, days: 6000, sciK: 3.4, sk: 3, types: ['sci', 'demo'], ext: 'gigante di ghiaccio: niente atterraggio, comunicazioni molto lente',
       zones: mkZones([['fly', [10000, 100000], 18], ['low', [100000, 600000], 18], ['high', [600000, 3000000], 19]]), ecl: { fly: 0.5, low: 1.5, high: 3 }, ride: 'DEEPX',
@@ -1900,6 +1900,9 @@ const O = (function () {
     if (ob.legs.length > n) ob.legs.length = n; return ob.legs; }
   // fine vita dall'ultima orbita
   function eolPlan(M, last, B) { const D = M.drm, d = M.sat, dest = d.dest || 'leo', k = D.eol ? D.eol.k : null; if (!k || k === 'surf') return { dv: 0, el: null, t: '', k };
+    // batch 5: corpi esterni (E.EXT). Il corpo è già parcheggiato in alto: il cimitero costa il 10% e il rientro il 30% della frenata di cattura; nessun costo nei sorvoli.
+    if (E.EXT[dest]) { const z = zoneOf(M), fly = !!z && z.k === 'fly', gr = k === 'grave', dv = fly ? 0 : Math.round(capture[dest] * (gr ? 0.10 : 0.30)), hG2 = gr ? Math.round(Math.max(...ZONES[dest].map(q => q.band[1])) * 1.2) : 0;
+      return { dv, el: gr ? { pe: hG2, ap: hG2, i: last.i, raan: last.raan, argp: 0 } : last, t: gr ? 'Verso l’orbita cimitero' : 'Rientro in atmosfera', k }; }
     const mu = B.mu, kl = kep(last, B), rp = kl.a * (1 - kl.e), ra = kl.a * (1 + kl.e);
     if (k === 'reentry' || k === 'impact') { const nat = k === 'reentry' && ATM[dest] && (d.placed.eol || last.pe <= (dest === 'leo' ? 600 : 250)), rpT = B.R + (k === 'impact' ? -50 : 60);
       if (nat) return { dv: 0, el: null, t: d.placed.eol ? 'Rientro con la vela: nessuna manovra' : 'Rientro naturale: l’atmosfera frena il satellite', k, nat: true };
@@ -4270,6 +4273,17 @@ Destinazioni su Luna	Destinations at the Moon
 Destinazioni su Marte	Destinations at Mars
 Destinazioni su Terra	Destinations at Earth
 Destinazioni su Venere	Destinations at Venus
+Destinazioni su Mercurio	Destinations at Mercury
+Destinazioni su Giove	Destinations at Jupiter
+Destinazioni su Saturno	Destinations at Saturn
+Destinazioni su Urano	Destinations at Uranus
+Destinazioni su Nettuno	Destinations at Neptune
+Destinazioni su Sole	Destinations at the Sun
+Catalogo	Catalogue
+Tutti i corpi celesti	All celestial bodies
+Il Sole e tutti i pianeti del Sistema Solare. Distanze, tempi e costi sono stime di gioco.	The Sun and all the planets of the Solar System. Distances, times and costs are game estimates.
+volabile ora	flyable now
+anteprima	preview
 Detriti	Debris
 Dettagli	Details
 Detumbling completato con le bobine magnetiche.	Detumbling completed with the magnetic coils.
@@ -5600,6 +5614,7 @@ e studiarne il suolo da vicino.	and study its soil up close.
 e studiare il suolo di una luna di Marte.	and study the soil of a moon of Mars.
 stadio di discesa	descent stage
 non sul suolo	not on the ground
+non per questo corpo	not for this body
 I tipi con il lucchetto non hanno ancora un payload o un propulsore adatto al tuo livello: si sbloccano salendo.	Locked types do not yet have a payload or thruster suited to your level: they unlock as you level up.
 Sul suolo il payload è un	On the ground the payload is a
 lander con trivella	lander with a drill
