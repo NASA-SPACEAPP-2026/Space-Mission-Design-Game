@@ -3731,13 +3731,14 @@ document.addEventListener('pointerup',e=>{ if(!DRMADD||!(e.target.closest&&e.tar
   DRMADD=false; DRMG=null; D.done=false; drmSync(M); sfx.put(); save(); render(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&DRMADD){ DRMADD=false; DRMG=null; render(); } });
 // ---- Δv della DRM (passo 3): il tratto fino all'orbita di lavoro viene dal piano 3D, il resto da trasferimenti di Hohmann ----
-function drmDv(M,p){ const D=M.drm; if(!D||drmLand(M)) return {rows:[],extra:0}; if(p&&p.ob){ const rows=[]; if(p.ini.cap) rows.push({t:'Frenata di cattura',dv:p.capDv}); p.orbits.forEach((o,k)=>{ if(k) rows.push({t:'Verso '+o.name+(k===p.si?' ★':''),dv:o.dv}); }); if(p.eol&&p.eol.k) rows.push({t:p.eol.t,dv:p.eol.dv}); return {rows,extra:p.after}; } const B=O.BODY[M.sat.dest||'leo'], mu=B.mu, R=B.R, rel=drmRel(M), hs=[rel.h].concat(D.orbits.map(o=>o.h)), si=D.star<0?0:D.star+1, rows=[];
+function drmDv(M,p){ const D=M.drm; if(!D||drmLand(M)) return {rows:[],extra:0}; if(p&&p.ob){ const rows=[]; if(p.ini.cap) rows.push({t:'Frenata di cattura',dv:p.capDv}); p.orbits.forEach((o,k)=>{ if(k) rows.push({t:'Verso '+o.name+(k===p.si?' ★':''),dv:o.dv}); }); if(p.eol&&p.eol.k) rows.push(M.sat.placed.prop?{t:p.eol.t,dv:p.eol.dv}:{t:natLife(M,p),dv:0}); return {rows,extra:p.after}; } const B=O.BODY[M.sat.dest||'leo'], mu=B.mu, R=B.R, rel=drmRel(M), hs=[rel.h].concat(D.orbits.map(o=>o.h)), si=D.star<0?0:D.star+1, rows=[];
   const vc=r=>Math.sqrt(mu/r), hoh=(h1,h2)=>{ const r1=R+h1, r2=R+h2, a=(r1+r2)/2; return 1000*(Math.abs(Math.sqrt(mu*(2/r1-1/a))-vc(r1))+Math.abs(vc(r2)-Math.sqrt(mu*(2/r2-1/a)))); };
   const dvDown=(h,hp)=>{ const r=R+h, rp=R+hp, a=(r+rp)/2; return 1000*(vc(r)-Math.sqrt(mu*(2/r-1/a))); };
   rows.push({t:'Dal rilascio all’orbita di lavoro ★',dv:p.tot,src:'piano 3D'}); let extra=0;
   for(let i=si;i<hs.length-1;i++){ const dv=hoh(hs[i],hs[i+1]); extra+=dv; rows.push({t:'Da '+drmKm(hs[i])+' a '+drmKm(hs[i+1]),dv}); }
   const last=hs[hs.length-1];
-  if(D.eol){ let dv=0, t=''; if(D.eol.k==='reentry'){ const nat=(M.sat.dest||'leo')==='leo'&&last<=600; dv=nat?0:dvDown(last,(M.sat.dest||'leo')==='leo'?60:50); t=nat?'Rientro naturale: l’atmosfera frena il satellite':'Rientro in atmosfera'; } else if(D.eol.k==='impact'){ dv=dvDown(last,0); t='Impatto controllato'; } else if(D.eol.k==='grave'){ dv=hoh(last,drmGrave(M)); t='Verso l’orbita cimitero'; } extra+=dv; rows.push({t,dv}); }
+  if(D.eol&&!M.sat.placed.prop){ rows.push({t:natLife(M,p,last),dv:0}); }
+  else if(D.eol){ let dv=0, t=''; if(D.eol.k==='reentry'){ const nat=(M.sat.dest||'leo')==='leo'&&last<=600; dv=nat?0:dvDown(last,(M.sat.dest||'leo')==='leo'?60:50); t=nat?'Rientro naturale: l’atmosfera frena il satellite':'Rientro in atmosfera'; } else if(D.eol.k==='impact'){ dv=dvDown(last,0); t='Impatto controllato'; } else if(D.eol.k==='grave'){ dv=hoh(last,drmGrave(M)); t='Verso l’orbita cimitero'; } extra+=dv; rows.push({t,dv}); }
   return {rows,extra}; }
 function drmTable(M,p){ const D=M.drm; if(!D) return ''; if(drmLand(M)) return '<div class="panel"><h3>Dalla DRM</h3><p class="fine">Missione con lander: il lancio porta il satellite fino al suolo.</p></div>';
   const dd=drmDv(M,p), tot=p.tot*1.05+dd.extra, av=p.dvAvail, bad=tot>av+1;
@@ -3794,6 +3795,12 @@ O.hook.gmatLf=(M,req)=>{ const r=Object.assign({},req); delete r.sail; const bas
   lfScenarios(req).forEach(s=>{ const k=base+'|'+s+'|l1', hit=GML.cache[k]||(M.gmatL&&M.gmatL[k]); if(hit){ GML.cache[k]=hit; out[s]=hit; } else miss.push(s); });
   if(GML.capture){ GML.req=req; GML.miss=miss; GML.base=base; return out; }
   if(miss.length) gmlAsk(); return out; };
+/* senza propulsore: niente manovra di fine vita. In orbita terrestre si calcola solo quanto ci mette a rientrare (GMAT se ha risposto, altrimenti una stima) */
+function natLife(M,p,alt){ const dest=M.sat.dest||'leo'; if(dest!=='leo') return TX('Nessun propulsore: nessuna manovra di fine vita, il satellite resta in orbita','No propulsion: no end-of-life manoeuvre, the satellite stays in orbit');
+  const w=p&&p.lf&&(p.lf.nom||p.lf.max); let d, src='GMAT';
+  if(w&&w.days!==undefined){ d=w.days; } else { const o=p&&p.orbits&&p.orbits.length?p.orbits[p.orbits.length-1].el:null, h=alt!=null?alt:o?(o.pe+(isFinite(o.ap)?o.ap:o.pe))/2:null, b=E.budget(M.sat); d=h==null?null:O.decayDays(h,b.wet,O.satArea(M.sat)); src=TX('stima','estimate'); }
+  const life=d==null?TX('oltre 100 anni','more than 100 years'):d<60?nf(d,0)+TX(' giorni',' days'):d<730?nf(d/30.4,0)+TX(' mesi',' months'):nf(d/365,1)+TX(' anni',' years');
+  return TX('Nessun propulsore: rientro naturale in circa ','No propulsion: natural re-entry in about ')+life+' ('+src+')'; }
 const fmtLife=(r,over)=>!r?'GMAT sta calcolando…':r.days==null?over:r.days<60?nf(r.days,0)+' giorni':r.days<730?nf(r.days/30.4,0)+' mesi':nf(r.days/365,1)+' anni';
 function anRows(M,p){ const an=p.an, lf=p.lf||{}, rows=[], dest=M.sat.dest||'leo', ev=an&&an.evolution; if(!an) return rows; const e=an.eclipse;
   rows.push(['Periodo orbitale',nf(an.period/60,0)+' min','gmat']);
@@ -3890,7 +3897,7 @@ function obPanel(M,p){ const lk=fdLocked(M); let h='<div id="obst">'+obStatus(M,
   p.orbits.forEach((o,k)=>{ if(k>0) h+='<div class="oblink">↓ ΔV <b id="obdv'+k+'">'+nf(o.dv,0)+' m/s</b>'+(o.mid?' <span class="fine" id="obvia'+k+'">via '+obSum(o.mid)+'</span>':'<span id="obvia'+k+'"></span>')+'</div>';
     const on=k===OBSEL&&k>0; h+='<article class="obc'+(on?' on':'')+'" style="--c:'+obCol(k)+'"><div class="obh"'+(k>0?' data-act="obsel" data-k="'+k+'" role="button" tabindex="0"':'')+'><span class="dot"></span><b>'+(k===0?'Rilascio':esc(o.name))+(k===p.si?' ★':'')+'</b><span class="sum num" id="obs'+k+'">'+obSum(o.el)+' · i '+nf(o.el.i,1)+'°</span></div>'+
       (k===0?'<p class="fine" style="margin:0 10px 8px">'+esc(p.ini.why)+(M.sat.lv?'':' Scegli il lanciatore qui sopra.')+'</p>':'')+(on?obEditor(M,p,k):'')+'</article>'; });
-  if(p.eol&&p.eol.k){ h+='<div class="oblink">↓ ΔV <b id="obdvF">'+nf(p.eol.dv,0)+' m/s</b></div><article class="obc fin" style="--c:'+OBFIN+'"><div class="obh"><span class="dot"></span><b>Fine vita</b><span class="sum" id="obsF">'+esc(p.eol.t)+'</span></div></article>'; }
+  if(p.eol&&p.eol.k){ h+='<div class="oblink">↓ ΔV <b id="obdvF">'+nf(p.eol.dv,0)+' m/s</b></div><article class="obc fin" style="--c:'+OBFIN+'"><div class="obh"><span class="dot"></span><b>Fine vita</b><span class="sum" id="obsF">'+esc(M.sat.placed.prop?p.eol.t:natLife(M,p))+'</span></div></article>'; }
   h+='</div>';
   if(p.st.cap.length||p.st.tr.length){ const kg=dv=>p.wet*(1-Math.exp(-dv/(p.isp*9.80665))), cardS=(leg,o,base)=>{ const on=(leg==='cap'?p.sc:p.strn)===o, dv=base*o.f; return '<button class="stg'+(on?' sel':'')+(o.off?' lock':'')+'" data-act="strat" data-leg="'+leg+'" data-k="'+o.k+'"'+(o.off||lk?' disabled':'')+'><b>'+o.n+'</b><span>'+o.s+'</span><ul class="kv"><li><span>ΔV</span><b>'+Math.round(dv)+' m/s</b></li><li><span>Propellente</span><b>'+(o.k==='ion'?'pochissimo':nf(kg(dv),2)+' kg')+'</b></li><li><span>Rischio</span><b class="'+(o.risk?'bad':'')+'">'+(o.risk?Math.round(o.risk*100)+'% di perdere il satellite':'nessuno')+'</b></li></ul>'+(o.off?'<small class="lk">🔒 '+o.off+'</small>':'')+'</button>'; };
     h+='<details class="obstr"><summary>Come eseguire le manovre</summary>'+(p.st.cap.length?'<h3>Cattura all’arrivo</h3><div class="stgs">'+p.st.cap.map(o=>cardS('cap',o,p.ini.cap)).join('')+'</div>':'')+(p.st.tr.length?'<h3>Trasferimenti fino all’orbita ★</h3><div class="stgs">'+p.st.tr.map(o=>cardS('tr',o,p.raw.trDv)).join('')+'</div>':'')+'</details>'; }
@@ -3899,7 +3906,7 @@ function obPanel(M,p){ const lk=fdLocked(M); let h='<div id="obst">'+obStatus(M,
 function obLive(M){ const p=O.plan(M), s=(id,t,html)=>{ const e=$('#'+id); if(e){ if(html) setH(e,t); else setT(e,t); } };
   s('obst',obStatus(M,p),1); s('obmeter',obMeter(M,p),1);
   p.orbits.forEach((o,k)=>{ s('obs'+k,obSum(o.el)+' · i '+nf(o.el.i,1)+'°'); if(k){ s('obdv'+k,nf(o.dv,0)+' m/s'); s('obvia'+k,o.mid?'via '+obSum(o.mid):''); } });
-  if(p.eol){ s('obdvF',nf(p.eol.dv,0)+' m/s'); s('obsF',p.eol.t); }
+  if(p.eol){ s('obdvF',nf(p.eol.dv,0)+' m/s'); s('obsF',M.sat.placed.prop?p.eol.t:natLife(M,p)); }
   const o=p.orbits[OBSEL]; if(o&&OBSEL>0){ const B=obBody(M), dest=M.sat.dest||'leo', r=O.atmRisk(dest,o.el.pe); s('obpa'+OBSEL,'Pericentro <b>'+nf(o.el.pe,0)+' km</b> · apocentro <b>'+nf(o.el.ap,0)+' km</b>'+(o.el.pe<=0?' · <b class="bad">tocca la superficie</b>':r>0?' · <b class="bad">nell’atmosfera: '+pct(Math.min(.95,r*(OBSEL===p.si?1.5:1)))+' di rientro</b>':''),1); s('obtle'+OBSEL,obTLE(M,o.el,OBSEL),1);
     const L2=M.ob.legs[o.leg]; ['e','i','raan','argp','ma'].forEach(q=>{ [ 'ob'+q+OBSEL,'obn'+q+OBSEL ].forEach(id=>{ const e=$('#'+id); if(e&&document.activeElement!==e) e.value=q==='e'&&id.indexOf('obn')===0?(+L2[q]||0).toFixed(3):(L2[q]||0); }); }); }
   return p; }
