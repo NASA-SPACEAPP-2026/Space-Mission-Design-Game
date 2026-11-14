@@ -27,7 +27,7 @@ async function request(path, data) {
   try {
     const response = await fetch(`/api/auth/${path}`, { signal: controller.signal, ...(data === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }) });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || t('Servizio account non disponibile. Riprova tra poco.', 'Account service unavailable. Please try again shortly.'));
+    if (!response.ok) throw Object.assign(new Error(result.error || t('Servizio account non disponibile. Riprova tra poco.', 'Account service unavailable. Please try again shortly.')), { status: response.status });
     return result;
   } catch (error) {
     if (error.name === 'AbortError' || error instanceof TypeError) throw new Error(t('Connessione non disponibile. Controlla la rete e riprova.', 'Connection unavailable. Check your network and try again.'));
@@ -83,7 +83,15 @@ form.addEventListener('submit', async event => {
     const username = form.elements.username.value.trim();
     const data = register ? { username, password: password.value } : { login: username, password: password.value };
     enter((await request(register ? 'register' : 'login', data)).user);
-  } catch (error) { sessionError = error.message; mode(); }
+  } catch (error) {
+    if (register && error.status === 409) {
+      // Username taken: say so plainly and move to sign-in, keeping what the player typed.
+      const name = form.elements.username.value.trim();
+      register = false;
+      sessionError = t(`Il nome «${name}» è già in uso. Se è il tuo, inserisci la password e premi Accedi; altrimenti scegli un altro nome.`, `The name “${name}” is already taken. If it's yours, enter your password and press Sign in; otherwise pick another name.`);
+      mode(); password.focus({preventScroll:true});
+    } else { sessionError = error.message; mode(); }
+  }
   finally { busy = false; submit.disabled = toggle.disabled = false; form.removeAttribute('aria-busy'); }
 });
 accountButton.onclick = () => dialog.showModal();
