@@ -1,77 +1,79 @@
-# Salvataggi locali e formato `gng32.save`
+**English** | [Italiano](legacy-save-format.it.md)
 
-[Indice](README.md) · [Database account](authentication.md)
+# Local saves and the `gng32.save` format
 
-## Dove si trova la partita
+[Index](README.md) · [Account database](authentication.md)
 
-La partita è un oggetto JavaScript serializzato in JSON nella chiave `localStorage['gng32.save']`. Il codice di riferimento è [`public/game/07-main.js`](../public/game/07-main.js), in particolare `newG()`, `save()` e `load()`.
+## Where missions live
 
-Il nome del documento conserva il percorso storico, ma il salvataggio descritto è ancora quello usato dal gioco attuale. Il progetto dispone anche di PostgreSQL per gli account: **il DB non contiene una copia della partita**.
+The game serializes its mutable JavaScript state to JSON under `localStorage['gng32.save']`. The reference implementation is [`public/game/07-main.js`](../public/game/07-main.js), particularly `newG()`, `save()`, and `load()`.
 
-Il `localStorage` è legato all'origine e al profilo browser. `http://localhost:5173`, `http://localhost:8080` e un dominio HTTPS hanno archivi distinti. Anche browser diversi o profili diversi separano le partite. La persistenza aperta da `file://` dipende dal browser e non va considerata un sistema di sincronizzazione.
+This document retains its historical filename, but the format described is still in current use. PostgreSQL exists for accounts; **the DB does not hold a copy of the game**.
 
-## Chiavi utilizzate
+`localStorage` belongs to an origin and browser profile. `http://localhost:5173`, `http://localhost:8080`, and an HTTPS domain have separate storage. Different browsers and profiles also separate saves. Persistence under `file://` is browser-dependent and is not a synchronization mechanism.
 
-| Chiave | Contenuto |
+## Storage keys
+
+| Key | Contents |
 | --- | --- |
-| `gng32.save` | Stato principale di gioco |
-| `gngLang` | Lingua selezionata, `it` oppure `en` |
-| `gngQ` | Ultimo livello di qualità grafica |
-| `gngPrev` | Copia temporanea della partita quando si entra nel tutorial da una partita esistente |
+| `gng32.save` | Main game state |
+| `gngLang` | Selected language, `it` or `en` |
+| `gngQ` | Last graphics quality level |
+| `gngPrev` | Temporary prior-game snapshot when entering the tutorial from an existing game |
 
-Le chiavi di gioco non sono credenziali. Il token account è gestito dal cookie `gng_session`, non da queste chiavi.
+These are not credentials. The account session token uses the `gng_session` cookie instead.
 
-## Versione e struttura
+## Version and structure
 
-`newG()` inizializza `v: 32`. `load()` restituisce il valore soltanto se riesce a interpretarlo come JSON e trova `v === 32`; altrimenti restituisce `null`. Il controllo della versione non valida ogni proprietà annidata.
+`newG()` initializes `v: 32`. `load()` returns data only when JSON parsing succeeds and `v === 32`; otherwise it returns `null`. The version check does not validate every nested property.
 
-| Campi iniziali | Significato |
+| Initial fields | Meaning |
 | --- | --- |
-| `v` | Versione del salvataggio, 32 |
-| `co`, `flag`, `cedit`, `myBoard` | Nome agenzia, personalizzazione e stato interfaccia |
-| `money`, `xp`, `sciTotal`, `staff` | Economia, esperienza, scienza e personale |
-| `missions`, `cur` | Collezione missioni e indice selezionato |
-| `world`, `plots`, `pad` | Campus, collocazioni e stato infrastrutture |
-| `lab`, `labPos`, `rooms` | Laboratori, posizioni e stanze |
-| `recruited`, `fresh` | Organizzazioni reclutate e stato degli sblocchi |
-| `tut`, `tutDone` | Tutorial attivo e completamento |
-| `speed`, `vt`, `lastReal` | Velocità, tempo simulato e riferimento temporale reale |
+| `v` | Save version, 32 |
+| `co`, `flag`, `cedit`, `myBoard` | Agency name, customization, and UI state |
+| `money`, `xp`, `sciTotal`, `staff` | Economy, experience, science, and staff |
+| `missions`, `cur` | Mission collection and selected index |
+| `world`, `plots`, `pad` | Campus, placements, and infrastructure |
+| `lab`, `labPos`, `rooms` | Labs, positions, and rooms |
+| `recruited`, `fresh` | Recruited organizations and unlock state |
+| `tut`, `tutDone` | Active tutorial and completion |
+| `speed`, `vt`, `lastReal` | Simulation speed, virtual time, and real-time reference |
 
-Altri campi, come modalità sandbox, difficoltà, avatar, equipaggio e musica, vengono aggiunti dai percorsi di interfaccia durante la partita. Non tutti sono presenti nell'oggetto iniziale.
+Other properties, including sandbox, difficulty, avatar, crew, and music, are added by UI flows during gameplay. They are not all present in the initial object.
 
-Le missioni sono oggetti mutabili con campi facoltativi: requisiti, stakeholder, collocazione componenti, orbita, lanciatore, prove, fase operativa e rapporti. Anche risultati GMAT possono essere conservati nella missione. Questa guida non definisce uno schema esaustivo dei campi annidati: per una modifica occorre verificare anche chi legge e scrive il campo nel codice.
+Missions are mutable objects with optional requirements, stakeholders, component placements, orbit, launcher, tests, operational phase, and reports. GMAT results may also be stored in a mission. This guide is not an exhaustive nested schema: inspect both readers and writers before changing a field.
 
-## Scrittura, caricamento e recupero
+## Writing, loading, and recovery
 
-`save()` chiama `payPhase()` e poi serializza tutto `G`. Non è quindi una funzione puramente dedicata alla copia: prima della scrittura applica anche logica della fase economica.
+`save()` calls `payPhase()` before serializing all of `G`. It is therefore not a pure copy operation: economic phase logic runs before the write.
 
-Ogni scrittura sostituisce il valore precedente della chiave. Non sono presenti cronologia, salvataggi multipli o una transazione comune con PostgreSQL. Gli errori di serializzazione o di accesso allo storage vengono intercettati senza messaggio: quota esaurita o storage bloccato possono impedire la persistenza.
+Each write replaces the previous key value. There is no history, multiple-save system, or shared transaction with PostgreSQL. Serialization and storage errors are caught silently; quota exhaustion or blocked storage can prevent persistence.
 
-JSON illeggibile e versioni diverse vengono ignorati da `load()`. Se l'avvio fallisce successivamente, il codice mostra una schermata di recupero con l'opzione di ricominciare: quel percorso elimina le chiavi che iniziano con `gng` e svuota `sessionStorage`. La cancellazione dal menu principale ha un comportamento distinto e conserva `gngLang`.
+Unreadable JSON and other versions are ignored by `load()`. If startup later fails, a recovery screen offers to restart: that path removes keys beginning with `gng` and clears `sessionStorage`. Main-menu deletion behaves differently and retains `gngLang`.
 
-Non c'è un migratore generale tra versioni. Non assumere che qualunque salvataggio storico sia compatibile solo perché il numero di versione è uguale.
+There is no general cross-version migrator. Do not assume every historical save is compatible simply because its version number matches.
 
-## Backup manuale prima di intervenire
+## Manual backup before changes
 
-Dalla console sviluppatore del browser, **sulla stessa origine dove giochi**, puoi leggere:
+In browser developer tools, **on the origin where you play**, read:
 
 ```javascript
 localStorage.getItem('gng32.save')
 ```
 
-Copia il JSON restituito in un file di testo. Per ripristinare un backup v32, dopo averne verificato provenienza e contenuto:
+Copy the resulting JSON into a text file. To restore a trusted, inspected v32 backup:
 
 ```javascript
-const backup = /* incolla qui l'oggetto JSON del tuo backup */;
-if (backup?.v !== 32) throw new Error('Versione del salvataggio non supportata');
+const backup = /* paste your backup JSON object here */;
+if (backup?.v !== 32) throw new Error('Unsupported save version');
 localStorage.setItem('gng32.save', JSON.stringify(backup));
 location.reload();
 ```
 
-Il ripristino sovrascrive la partita corrente di quell'origine; conserva prima anche una copia del valore esistente. Non incollare script ricevuti da fonti sconosciute nella console.
+Restoring replaces that origin's current game; first back up the existing value too. Do not paste scripts from untrusted sources into developer tools.
 
-## Rapporto con gli account
+## Relationship to accounts
 
-Login, logout e cambio account non trasferiscono né cancellano il salvataggio. Due account nello stesso profilo e sulla stessa origine accedono alla stessa partita locale. Eliminare cookie non equivale a eliminare il salvataggio; eliminare i dati del sito può invece cancellare entrambi.
+Login, logout, and account switching neither transfer nor erase the save. Two accounts on the same profile and origin use the same local game. Removing cookies does not necessarily remove saves; clearing site data can remove both.
 
-Un backup PostgreSQL conserva gli account, non le missioni. Un eventuale salvataggio cloud richiederà una nuova implementazione: associazione all'utente, API protette, gestione conflitti e migrazione dei dati locali.
+A PostgreSQL backup preserves accounts, not missions. Cloud saves require new implementation: user association, protected APIs, conflict handling, and local-data migration.
