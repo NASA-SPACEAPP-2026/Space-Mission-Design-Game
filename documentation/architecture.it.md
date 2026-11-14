@@ -41,9 +41,10 @@ Il server Node inoltra ora `/api/gmat`, `/api/gmat/analysis` e `/api/gmat/lifeti
 | 7 | `05-campus.js` | Campus e strutture |
 | 8 | `06-rooms.js` | Ambienti e stanze |
 | 9 | `08-minigames.js` | Minigiochi e prove |
-| 10 | `07-main.js` | Avvio, stato, interfacce, salvataggio e integrazioni |
+| 10 | `09-consortia.js` | Pannello del consorzio (clan), chat e demo senza rete |
+| 11 | `07-main.js` | Avvio, stato, interfacce, salvataggio e integrazioni |
 
-L'ordine non coincide con l'ordinamento alfabetico: `08-minigames.js` precede `07-main.js`. Una modifica deve mantenere coerenti HTML, `scripts/build-game.mjs` e test del contratto.
+L'ordine non coincide con l'ordinamento alfabetico: `08-minigames.js` e `09-consortia.js` precedono `07-main.js`. Una modifica deve mantenere coerenti HTML, `scripts/build-game.mjs` e test del contratto.
 
 `public/account.js` viene caricato separatamente come modulo e gestisce il pulsante e il dialogo account. Non trasforma lo stato del gioco in dati associati all'utente.
 

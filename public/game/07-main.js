@@ -436,6 +436,9 @@ Eclisse	Eclipse
 Eclisse di {n} minuti: Eclisse passata senza danni.	{n}-minute eclipse: Eclipse passed without damage.
 Edifici	Buildings
 Edificio amministrativo	Administration building
+Sala del Consiglio	Council Hall
+Entra in un consorzio	Join a Consortium
+Consorzio	Consortium
 Edificio di costruzione	Assembly building
 Edificio di testing	Test building
 Educazione	Education
@@ -3157,8 +3160,9 @@ Sostenibilità	Sustainability
       if(x!==t) ch=true; return l0+x+t0; });
     return ch?out.join(''):core; }
   const SKIP={SCRIPT:1,STYLE:1,TEXTAREA:1,INPUT:1,CANVAS:1};
-  function node(n){ if(n.nodeType===3){ if(n.__t===n.data) return; const p=n.parentNode; if(p&&SKIP[p.nodeName]) return; const r=tr(n.data); if(r!==n.data) n.data=r; n.__t=n.data; return; }
-    if(n.nodeType!==1) return; ['title','aria-label','placeholder'].forEach(a=>{ const v=n.getAttribute&&n.getAttribute(a); if(v&&n['__a'+a]!==v){ const r=tr(v); if(r!==v) n.setAttribute(a,r); n['__a'+a]=n.getAttribute(a); } }); if(SKIP[n.nodeName]) return; for(let c=n.firstChild;c;c=c.nextSibling) node(c); }
+  function node(n){ if(n.nodeType===3){ if(n.__t===n.data) return; const p=n.parentNode; if(p&&(SKIP[p.nodeName]||p.closest&&p.closest('[translate="no"]'))) return; const r=tr(n.data); if(r!==n.data) n.data=r; n.__t=n.data; return; }
+    /* translate="no": testi che il codice scrive gia' nelle due lingue, o scritti dai giocatori (chat del consorzio) */
+    if(n.nodeType!==1||n.closest&&n.closest('[translate="no"]')) return; ['title','aria-label','placeholder'].forEach(a=>{ const v=n.getAttribute&&n.getAttribute(a); if(v&&n['__a'+a]!==v){ const r=tr(v); if(r!==v) n.setAttribute(a,r); n['__a'+a]=n.getAttribute(a); } }); if(SKIP[n.nodeName]) return; for(let c=n.firstChild;c;c=c.nextSibling) node(c); }
   function start(){ if(LANG!=='en') return; document.documentElement.lang='en'; setNames(); node(document.body); new MutationObserver(ms=>{ setNames(); ms.forEach(m=>{ if(m.type==='characterData') node(m.target); else if(m.type==='attributes') node(m.target); else m.addedNodes.forEach(node); }); }).observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['title','aria-label','placeholder']}); }
   return {start,tr,names:()=>setNames()}; })();
 
@@ -3425,10 +3429,11 @@ function wkSlot(el,d){ const par=el.parentNode; if(!par) return; let arr=par._dz
 WK.raf=requestAnimationFrame(wkFrame);
 
 function cCtx(){ const M=cur(), next=nextPlace(M), labels={}; ['admin','mcc','fd','build','test','pad'].forEach(k=>{ const w=waitOf(k); labels[k]=next===k?'!':w?w.replace('⏳',''):''; });
+  labels.council=CLANST.member?(CLANST.unread?CLANST.unread+' 💬':''):TX('Entra in un consorzio','Join a Consortium');
   const pm=padMission(); return { walkers:wkScene('campus'), labels, flag:G.flag||null, pad:{ rocket:!!pm, rocketH:pm?.85*(E.LV[pm.sat.lv]||{h:1}).h:1, ready:!!(pm&&pm.phase==='D'&&pm.ready), name:pm?pm.name:'' } }; }
 /* anteprima 3D dell'edificio (stesso modello del campus); se il 3D non c'e', resta il disegno 2D */
 function tileImg(k){ let u=null; try{ u=C3.can()&&C3.snap?C3.snap(k):null; }catch(e){ u=null; } return u?'<img class="timg" alt="" src="'+u+'">':'<svg viewBox="-48 -44 96 66" aria-hidden="true">'+CAM.mini(k)+'</svg>'; }
-function vHub(v){ { const oc=document.getElementById('flc'); if(oc&&CUST==='flag') FLDRAFT=oc.toDataURL(); } const sh=CUST&&!CPLACE, W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(G.xp), M=cur(), next=nextPlace(M);
+function vHub(v){ if(autoPlace('council')) save(); /* la Sala del Consiglio c'e' in ogni campus, anche nelle partite salvate prima */ { const oc=document.getElementById('flc'); if(oc&&CUST==='flag') FLDRAFT=oc.toDataURL(); } const sh=CUST&&!CPLACE, W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(G.xp), M=cur(), next=nextPlace(M);
   const st={items:W.items,mode:G.cedit?'edit':'',sel:CSEL,moving:CPLACE&&CPLACE.moveId};
   const tiles=CMENU[CTAB].map(k=>{ const ki=cKind(k), lock=lv<ki.lvl, built=cBuilt(k); return '<button class="ctile'+(CPLACE&&CPLACE.k===k&&!CPLACE.moveId?' on':'')+(lock||built?' lock':'')+'" data-act="cplace" data-k="'+k+'"'+(lock||built?' disabled':'')+' title="'+esc(ki.s)+'">'+tileImg(k)+'<b>'+esc(ki.n)+'</b><small>'+(built?'costruito':k==='dish'&&!hasB('ground')?'serve la stazione di terra':lock?'livello '+ki.lvl:keur(ki.c)+(SREQ[k]?' · 👥'+SREQ[k]:'')+(k==='parking'?' · 🚗14':''))+'</small>'+(lock?'<span class="lk">🔒</span>':'')+'</button>'; }).join('');
   const pop=CSEL&&G.cedit&&!CPLACE?(()=>{ const it=W.items.find(i=>i.id===CSEL); if(!it) return ''; const d=CAM.K[it.k], ki=cKind(it.k), canDel=!d.core; return '<div class="cpop"><b>'+esc(d.n)+'</b><div class="row"><button class="btn small primary" data-act="cmove">Sposta</button>'+(canDel?'<button class="btn small" data-act="cdel">Rimuovi'+(ki.c?' · +'+keur(Math.round(ki.c/2)):'')+'</button>':'')+(it.k==='build'?'<button class="btn small" data-act="flagedit">Bandiera</button>':'')+'</div><span class="fine">'+(d.core?'Gli edifici principali si spostano ma non si demoliscono.':'Rimuovendolo recuperi metà del costo.')+'</span></div>'; })():'';
@@ -3522,13 +3527,21 @@ function riskList(M){ if(!M) return []; try{ return L.risks(M,G.lab.filter(Boole
 function riskMini(M){ const R=riskList(M), col=(p,i)=>p*i>=6?'#F2B8AE':p*i>=3?'#F6DFA4':'#CDEBD6'; let s='<svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="7" fill="#22313B"/>';
   for(let i=3;i>=1;i--) for(let p=1;p<=3;p++){ const x=3+(p-1)*10.5, y=3+(3-i)*10.5, n=R.filter(r=>r.p===p&&r.i===i).length; s+='<rect x="'+x+'" y="'+y+'" width="9.5" height="9.5" rx="2" fill="'+col(p,i)+'"/>'+(n?'<circle cx="'+(x+4.75)+'" cy="'+(y+4.75)+'" r="2.9" fill="#22313B"/>':''); }
   return s+'</svg>'; }
+/* consorzio (clan): bottone con il badge dei messaggi non letti; senza login apre l'invito a registrarsi */
+let CLANST={auth:false,member:false,unread:0,name:'',crest:null};
+function clanInit(){ if(!window.GNGCLAN) return; const en=()=>TX('it','en')==='en';
+  GNGCLAN.init({ en, toast:t=>toast(t), sfx:k=>{ try{ sfx[k](); }catch(e){} },
+    /* missioni concluse da condividere in chat come scheda */
+    missions:()=>G.missions.filter(m=>m.phase==='done'&&!m.tut&&m.result).map(m=>{ const dn=(E.DEST[m.sat&&m.sat.dest]||{}).n||''; return {name:String(m.name||'').slice(0,24),type:String(m.type||'sci').slice(0,16),dest:String(en()?I18N.tr(dn):dn).slice(0,24),sci:Math.max(0,m.result.sci|0),months:Math.max(0,Math.min(600,m.result.months|0)),ok:!!m.result.ok}; }),
+    onState:st=>{ const was=CLANST; CLANST=st; if(view==='hub'&&(was.member!==st.member||was.unread!==st.unread||was.name!==st.name||JSON.stringify(was.crest)!==JSON.stringify(st.crest))) C3.hall(st,cCtx().labels.council); } }); }
+const clanBtn=()=>window.GNGCLAN?'<button class="rs clanb" data-act="clan" title="'+TX('Consorzio','Consortium')+'" aria-label="'+TX('Consorzio','Consortium')+'"><svg viewBox="0 0 24 24" fill="none" stroke="#7FD8CC" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.4 2.7-6 6-6s6 2.6 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.6 14.1c3 .3 5.4 2.7 5.4 5.9"/></svg>'+GNGCLAN.badgeHTML()+'</button>':'';
 function hud(){ try{ staffPlan(); }catch(e){} document.documentElement.classList.toggle('big',!!G.big); const M0=cur(), M=M0&&M0.phase==='done'&&view==='hub'?null:M0;
   const al=G.missions.some(m=>m.alert||m.pauseAt), cl=crewList(), mo=Math.round(morale());
   $('#hud').innerHTML='<div class="hud-l"><div class="crew">'+cl.map((c,i)=>'<button class="cface" data-act="crewinfo" data-i="'+i+'" title="'+esc(c.n)+'" aria-label="'+esc(c.n)+'">'+faceSVG(c)+'<small>'+esc(c.n.split(' ')[0])+'</small><i><u style="width:'+mo+'%"></u></i></button>').join('')+'</div>'+
     '<button class="mcard msn'+(al?' alert':'')+'" data-act="switch" aria-label="'+TX('Cambia missione','Switch mission')+'">'+(al?'<span class="abdg" title="Problema in volo">!</span>':'')+'<small>'+(M?TX('Missione','Mission')+' · '+phn(M):TX('Campus','Campus'))+'</small><b>'+esc(M?M.name:(G.co||TX('La tua agenzia','Your agency')))+'</b><em>'+esc(hudObjective(M))+'</em></button>'+
     /* matrice dei rischi sempre visibile, per tutta la partita: col numero dei rischi aperti; toccandola si apre la tabella completa */
     (()=>{ const rn=riskList(M).length; return '<button class="rmx evt" data-act="risks" title="'+(M?TX('Matrice dei rischi di ','Risk matrix of ')+esc(M.name):TX('Matrice dei rischi','Risk matrix'))+'">'+riskMini(M)+'<span>'+TX('Rischi','Risks')+'</span>'+(rn?'<b class="rn">'+rn+'</b>':'')+'</button>'; })()+'</div>'+
-    '<div class="hud-r"><div class="res"><button class="rs" data-act="rank" title="'+TX('Punti scienza · lega ','Science points · league ')+LEAGUES[leagueOf(G.sciTotal||0)][1]+'"><b>'+(G.sciTotal||0)+'</b>'+RICO.sci+'</button><button class="rs" data-act="staff" title="'+TX('Dipendenti / posti auto','Staff / parking')+'"><b>'+G.staff+'/'+spaces()+'</b>'+RICO.stf+'</button><div class="rs money'+(G.money<0?' neg':'')+'"><b>'+(G.sandbox?'∞':nf(Math.round(G.money),0))+'</b>'+RICO.cr+'</div></div>'+hexB('pause','Menu','menu')+lvlRing()+'</div>';
+    '<div class="hud-r"><div class="res">'+clanBtn()+'<button class="rs" data-act="rank" title="'+TX('Punti scienza · lega ','Science points · league ')+LEAGUES[leagueOf(G.sciTotal||0)][1]+'"><b>'+(G.sciTotal||0)+'</b>'+RICO.sci+'</button><button class="rs" data-act="staff" title="'+TX('Dipendenti / posti auto','Staff / parking')+'"><b>'+G.staff+'/'+spaces()+'</b>'+RICO.stf+'</button><div class="rs money'+(G.money<0?' neg':'')+'"><b>'+(G.sandbox?'∞':nf(Math.round(G.money),0))+'</b>'+RICO.cr+'</div></div>'+hexB('pause','Menu','menu')+lvlRing()+'</div>';
   $('#dock').innerHTML=dockHTML();
   }
 /* il tasto casa lampeggia quando qui hai finito: il passo dopo della missione e' in un altro edificio */
@@ -4733,7 +4746,7 @@ let TVS=0; function tick(){ if(!G) return; clock(); let dirty=false;
   winRefresh(); if(Math.random()<.1) save(); }
 function finish(M,fl){ if(M.phase==='done') return; const x=L.closeOut(M,fl,hasB('visit'));
   M.joy=x.joy; gainXP(x.ok?L.XP.win:L.XP.lose); M.result=Object.assign({},x,{joy:undefined}); M.phase='done'; M.got=(M.got||0)+x.inst;
-  addMoney(x.net); if(!M.tut){ const l0=leagueOf(G.sciTotal||0); G.sciTotal=(G.sciTotal||0)+Math.max(0,Math.round((x.sci|0)*perk('sci'))); const l1=leagueOf(G.sciTotal); pushRank(); if(l1>l0) setTimeout(()=>leagueUp(l1),2600); hud(); } if(M===cur()) setTimeout(()=>mcrReview(M),300); else toast(M.name+': missione '+(x.ok?'riuscita':'chiusa')+'. Bilancio '+keur(x.net)+'.'); }
+  addMoney(x.net); if(!M.tut){ const l0=leagueOf(G.sciTotal||0); G.sciTotal=(G.sciTotal||0)+Math.max(0,Math.round((x.sci|0)*perk('sci'))); const l1=leagueOf(G.sciTotal); pushRank(); if(!G.sandbox&&window.GNGCLAN) GNGCLAN.science(M.id,Math.round((x.sci|0)*perk('sci')),M.name); if(l1>l0) setTimeout(()=>leagueUp(l1),2600); hud(); } if(M===cur()) setTimeout(()=>mcrReview(M),300); else toast(M.name+': missione '+(x.ok?'riuscita':'chiusa')+'. Bilancio '+keur(x.net)+'.'); }
 // La revisione di chiusura: i conti, le cause di ogni evento, e il "e se..."
 let MCRM=null, WIO=[];
 function causeOf(M,l){ const c=l.c||''; if(!c) return '';
@@ -4767,6 +4780,7 @@ function mcrReview(M){ const r=M.result; if(!r) return; const X=mcrParts(M), fl=
 /* ---------- azioni ---------- */
 const ACT={
   enter(t){ $('#pop').hidden=true; if(t.dataset.k==='pad'&&!G.pad){ padModal(); return; } if(t.dataset.k==='fd'&&lwPending(cur())){ sfx.tap(); lwOpen(cur()); toast(TX('Prima scegli la finestra di lancio.','First choose the launch window.')); return; } sfx.tap(); go(t.dataset.k); }, home(){ go('hub'); },
+  clan(){ $('#pop').hidden=true; sfx.tap(); if(window.GNGCLAN) GNGCLAN.open(); },
   switch(){ if(!G.missions.length){ newMission(); return; } switcher(); },
   setcur(t){ G.cur=+t.dataset.i; $('#pop').hidden=true; $('#drawer').hidden=true; sfx.tap(); render(); },
   newm(){ if(G.tut){ toast('Prima finisci il tutorial, oppure saltalo.'); sfx.bad(); return; } newMission(); }, closeov(){ closeOv(); }, closedr(){ $('#drawer').hidden=true; },
@@ -4948,7 +4962,7 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
   mccwall(){ MCCV='wall'; sfx.tap(); render(); }, mccroom(){ MCCV='room'; sfx.tap(); render(); }, backph(){ backModal(); }, backgo(){ backGo(); }, tutend(){ endTutorial(false); },
 };
 const dishN=()=>hasB('ground')?Math.min(6,G.world.items.filter(i=>i.k==='dish').length):0;
-function startFlight(M){ M.phase='E'; M.launchAt=now(); M.dataK=dataBud(M).k; M.boost=(hasB('ground')?1.2:1)+.03*dishN(); M.sig=.05*dishN(); gainXP(L.XP.launch); save(); }
+function startFlight(M){ M.phase='E'; M.launchAt=now(); M.dataK=dataBud(M).k; M.boost=(hasB('ground')?1.2:1)+.03*dishN(); M.sig=.05*dishN(); gainXP(L.XP.launch); save(); if(!M.tut&&!G.sandbox&&window.GNGCLAN) GNGCLAN.activity('launch',M.name); }
 const durList=M=>[6,9,12,18,24].filter(m=>m>=L.minMonths(M));
 function durOptions(M){ return [6,9,12,18,24].filter(m=>m>=L.minMonths(M)).map(m=>'<option value="'+m+'">'+m+' mesi</option>').join(''); }
 // lancio affidato a un ente terzo: niente rampa, si parte da un sito esterno
@@ -5219,7 +5233,7 @@ const vis=el=>{ if(!el) return false; const r=el.getBoundingClientRect(); return
 /* ====== Missione 0 · tutorial invisibile ======
    Niente barra, niente blocchi: un alone arancione pulsante indica il prossimo passo logico, gli edifici non ancora utili restano nascosti
    e il personale spiega con una battuta breve, solo la prima volta che si entra in una schermata. */
-const TUT_HIDE=['build','fd','test','mcc','pad'];
+const TUT_HIDE=['build','fd','test','mcc','pad','council'];
 function tutUnlock(){ if(!G||!G.tut) return []; const M=G.missions[0]; if(!M) return []; const u=G.tutU=G.tutU||['admin'], nw=[], add=k=>{ if(u.indexOf(k)<0){ u.push(k); nw.push(k); } }, ph=M.phase;
   if(ph==='B'||ph==='C'||ph==='D'||ph==='E'||ph==='F'||ph==='done'){ add('build'); add('fd'); }
   if(ph==='D'||ph==='E'||ph==='F'||ph==='done') add('test');
@@ -5279,7 +5293,7 @@ function welcome(){ $('#ov').innerHTML='<div class="rv" role="dialog" aria-modal
 function start(){ try{ const nj=document.getElementById('nojs'); if(nj) nj.remove(); start0(); }catch(e){ console.error(e); document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:#DCE6EE;font:15px/1.5 sans-serif;padding:16px"><div style="max-width:440px;background:#fff;border-radius:16px;padding:22px;box-shadow:0 8px 30px rgba(0,0,0,.15)"><h2 style="font:700 22px/1.2 sans-serif;margin:0 0 8px">Salvataggio non compatibile</h2><p style="margin:0 0 14px">La partita salvata in questo browser viene da una versione precedente del gioco e non si riesce ad aprire.</p><p style="margin:0 0 14px;font-size:12px;color:#5F6E80">'+String(e&&e.message||e).replace(/</g,'&lt;')+'</p><button id="gngReset" style="background:#F07B3F;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer">Ricomincia da capo</button></div></div>'); document.getElementById('gngReset').onclick=()=>{ try{ Object.keys(localStorage).filter(k=>/^gng/i.test(k)).forEach(k=>localStorage.removeItem(k)); }catch(_){} try{ sessionStorage.clear(); }catch(_){} location.href=location.href.split('#')[0]; setTimeout(()=>location.reload(),300); }; } }
 // v33.1 · ogni edificio dichiarato costruito deve stare sulla mappa: lo piazza da solo vicino al centro del campus
 /* Posizionamento automatico degli edifici: sceglie, tra tutti i punti validi, quello vicino al centro del campus che non finisce dietro a un edificio alto (la camera guarda da sud) e che non nasconde gli altri */
-const BH={admin:3,mcc:2.8,fd:2.6,build:6,test:2.8,factory:3.6,ground:2.6,rnd:4.6,office:5,visit:2.8,pad:3.2};
+const BH={admin:3,mcc:2.8,fd:2.6,build:6,test:2.8,factory:3.6,ground:2.6,rnd:4.6,office:5,visit:2.8,pad:3.2,council:2.4};
 function hides(f,fk,b,bk){ /* il rettangolo f (alto BH[fk]) nasconde b? b sta dietro (y minore) entro l'ombra prospettica di f */
   const hh=BH[fk]||2.5, dep=hh*.9; if(b[3]>f[1]+.5||b[3]<f[1]-dep) return false; const sh=Math.max(0,f[1]-b[3])*.3; return b[0]<f[2]+.8+sh&&b[2]>f[0]-.8-sh; }
 function autoPlace(k,multi){ const W=G.world; if(!W||!CAM.K[k]||(!multi&&W.items.some(i=>i.k===k))) return false; syncSite(); const d=CAM.K[k], cx=13.75, cy=7.25; const SB=multi?CAM.site():null, xA=SB?Math.floor(Math.min(...SB.map(p=>p[0]))):-3, xB=SB?Math.ceil(Math.max(...SB.map(p=>p[0]))):21.5, yA=SB?Math.floor(Math.min(...SB.map(p=>p[1]))):-4, yB=SB?Math.ceil(Math.max(...SB.map(p=>p[1]))):20, stp=multi?1:.5;
@@ -5292,7 +5306,7 @@ function autoPlace(k,multi){ const W=G.world; if(!W||!CAM.K[k]||(!multi&&W.items
 function relayoutSandbox(){ if(!G||!G.sandbox||!G.world||G.layoutV===2) return false; const ex=['factory','ground','rnd','office','visit','pad']; G.world.items=G.world.items.filter(i=>ex.indexOf(i.k)<0&&!((i.k==='tree'||i.k==='pine')&&i.x>13&&i.x<27&&i.y>-1&&i.y<17)); G.layoutV=2; return true; }
 function fixPlots(){ if(!G||!G.world) return; let ch=relayoutSandbox(); (G.plots||[]).filter(Boolean).forEach(k=>{ if(L.BUILD[k]&&autoPlace(k)) ch=true; }); if(G.pad&&autoPlace('pad')) ch=true; return ch; }
 function start0(){ G=load(); if(G) G.speed=1; const fresh=!G; if(!G) G=newG(); if(G.cedit&&!CUST) G.cedit=false; G.recruited=G.recruited||[]; if(G.rooms&&G.rooms.clean) G.rooms.clean.plants=[]; if(G.rooms&&G.rooms.test) G.rooms.test.plants=[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m));
-  G.lastReal=G.lastReal||Date.now(); clock(); view='hub'; render(); initBoard(); setInterval(tick,500); let nw=innerWidth<640; addEventListener('resize',()=>{ const n=innerWidth<640; if(n!==nw){ nw=n; if(view==='hub') render(); } });
+  G.lastReal=G.lastReal||Date.now(); clock(); view='hub'; render(); initBoard(); clanInit(); setInterval(tick,500); let nw=innerWidth<640; addEventListener('resize',()=>{ const n=innerWidth<640; if(n!==nw){ nw=n; if(view==='hub') render(); } });
   openTitle('main','title'); coach(); try{ if(fixPlots()) save(); }catch(e){ console.warn(e); } if(!fresh&&G.tutDone&&!G.sandbox&&!G.boost33&&!(G.missions||[]).some(m=>m.phase==='done'&&!m.tut)){ G.boost33=1; const add=Math.max(0,Math.round(L.START_MONEY*dif().money)-150); if(add){ G.money+=add; save(); setTimeout(()=>toast('Fondo di avvio aumentato: +'+keur(add)+' per la prima missione.'),1500); } } I18N.start(); }
 /* ==========================================================================
    v39 · Campus in 3D vero (three.js): lo stesso mondo verde con il bosco,
@@ -5646,6 +5660,18 @@ const C3=(()=>{
       s.position.set(x,0,z); s.rotation.y=ang+Math.PI/2; built.add(s); } }
   /* ---------- edifici ---------- */
   const H=z=>z*.9;
+  /* Sala del Consiglio: cupola, stemma e bandiere si aggiornano senza ricostruire la scena (hall() dal pannello del consorzio) */
+  let HALL=null, HST={member:false,unread:0,crest:null};
+  function hallTex(st){ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'), tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding;
+    g.fillStyle='#8E969C'; g.beginPath(); g.arc(128,128,116,0,Math.PI*2); g.fill(); g.lineWidth=12; g.strokeStyle='#FFFFFF'; g.stroke();
+    g.fillStyle='#FFFFFF'; g.textAlign='center'; g.font='800 30px Inter, system-ui, sans-serif'; g.fillText(TX('ENTRA IN UN','JOIN A'),128,120); g.fillText(TX('CONSORZIO','CONSORTIUM'),128,158);
+    if(st.member&&st.crest&&window.GNGCLAN){ const im=new Image(); im.onload=()=>{ g.clearRect(0,0,256,256); g.drawImage(im,6,6,244,244); tex.needsUpdate=true; }; im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(GNGCLAN.crestSVG(st.crest,244)); }
+    return tex; }
+  function hallApply(){ if(!HALL) return; const st=HST, c=st.member&&st.crest&&/^#[0-9a-f]{6}$/i.test(st.crest.color)?st.crest.color:'#9AA3A9';
+    HALL.dome.color.set(st.member?'#BFE3EA':'#B9C0C4'); HALL.dome.emissive.set(c); HALL.lit=!!(st.member&&st.unread); HALL.dome.emissiveIntensity=st.member?(HALL.lit?.6:.14):0; HALL.flagMat.color.set(c);
+    const key=JSON.stringify([!!st.member,st.crest,TX('it','en')]); if(HALL.key!==key){ HALL.key=key; const old=HALL.tex; HALL.tex=hallTex(st); HALL.crestMats.forEach(m=>{ m.map=HALL.tex; m.needsUpdate=true; }); if(old) old.dispose(); } }
+  function hall(st,label){ HST=Object.assign({},HST,st); hallApply(); const b=hot&&hot.querySelector('.b3h[data-k="council"]');
+    if(b&&label!==undefined) b.innerHTML='<span class="b3t'+(label?' wt':'')+'">'+(label?'<i class="b3w">'+esc(label)+'</i>':'')+'<b>'+esc(CAM.K.council.n)+'</b></span>'; }
   function building(it,ctx){ const x=it.x, y=it.y, k=it.k, K=CAM.K[k]; let top=1.5;
     if(k==='admin'){ apron(x,y,x+4.6,y+4.4,'#D9D3C6'); lawn(x+.2,y+2.6,x+2.4,y+4.2);
       /* ala a mezzaluna: vetro scuro, solette bianche, lamelle di legno */
@@ -5752,6 +5778,19 @@ const C3=(()=>{
       top=2.5; }
     else if(k==='parking'){ { const o=rslab(x+3,y+1.5,6,3,.45,0,.05,M('#D9D3C6',{roughness:.9}),.02); o.castShadow=false; } /* piastra bassa: quasi a filo con la strada */ for(let i=0;i<=6;i++){ add(new THREE.BoxGeometry(.04,.01,1.2),M('#F3F1EA'),x+.15+i*.9,.065,y+.8); add(new THREE.BoxGeometry(.04,.01,1.2),M('#F3F1EA'),x+.15+i*.9,.065,y+2.2); }
       const cg=['#E04A3C','#7BC043','#F2B83A','#2E86C1','#EB7D44','#1FA2A8']; const PLG=new THREE.Group(); [0,1,3,4,5].forEach((i,j)=>{ const g=rover(); g.children[4].material=M(cg[(i+1)%6]); g.position.set(x+.6+i*.9,.06,y+.8); g.rotation.y=Math.PI/2; flat(PLG,g); }); [1,2,4].forEach((i,j)=>{ const g=rover(); g.children[4].material=M(cg[(i+3)%6]); g.position.set(x+.6+i*.9,.06,y+2.2); g.rotation.y=-Math.PI/2; flat(PLG,g); }); mergeGroup(PLG); built.add(PLG); top=.6; }
+    else if(k==='council'){ apron(x,y,x+3.4,y+3.4,'#D9D3C6'); const cx=x+1.7, cz=y+1.7;
+      /* Sala del Consiglio: tamburo basso bianco con fascia di vetro, cupola di vetro che si accende del colore del consorzio */
+      cyl(cx,cz,1.25,.1,.85,WHITE(),40); ring(cx,cz,1.27,.34,.3,glassMat()); cyl(cx,cz,1.4,.95,.1,WHITE(),40);
+      const dm=new THREE.MeshStandardMaterial({color:col('#B9C0C4'),emissive:col('#000000'),emissiveIntensity:0,roughness:.12,metalness:.15,transparent:true,opacity:.85,envMapIntensity:1.2});
+      dome(cx,cz,1.02,1.05,dm,.6).userData.dyn=true;
+      /* stemma del consorzio sulla facciata (due lati) e sulle bandiere davanti */
+      const cm=new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide}), fm=new THREE.MeshStandardMaterial({color:col('#9AA3A9'),roughness:.8,side:THREE.DoubleSide});
+      add(new THREE.CircleGeometry(.4,32),cm,cx,.55,cz+1.29).userData.dyn=true;
+      const side=add(new THREE.CircleGeometry(.4,32),cm,cx+1.29,.55,cz); side.rotation.y=Math.PI/2; side.userData.dyn=true;
+      for(let i=0;i<4;i++){ const px=x+.4+i*.86, pz=y+3.22; add(new THREE.CylinderGeometry(.02,.02,1.45,6),M('#D8D7D2'),px,.72,pz); add(new THREE.PlaneGeometry(.38,.26),i%3===0?cm:fm,px+.2,1.27,pz).userData.dyn=true; }
+      if(ctx){ HALL={dome:dm,crestMats:[cm],flagMat:fm,key:null,tex:null,lit:false}; anims.push(t=>{ if(HALL&&HALL.dome===dm&&HALL.lit) dm.emissiveIntensity=.45+.35*Math.sin(t*3.2); }); hallApply(); }
+      else cm.map=hallTex({});
+      top=2.2; }
     else if(k==='dish'){ dish(it.x+.5,it.y+.5,0,.48,.8,-.7); top=1.3; }
     else if(k==='pond'){ const cx=x+1.8, cz=y+1.4; const rim=rslab(cx,cz,3.5,2.7,1.3,0,.12,M('#D9D3C2',{roughness:.9}),.04); rim.castShadow=false;
       const w=rslab(cx,cz,3.15,2.35,1.15,.06,.08,waterMat({hx:1.575,hz:1.175,r:1.15}),0); w.castShadow=false; [[1.1,1],[2.3,1.6],[1.6,1.9],[2.6,.9],[.9,1.7]].forEach(p=>{ const l=add(new THREE.CylinderGeometry(.13,.13,.02,10),M('#5FA63A'),x+p[0],.15,y+p[1]); l.castShadow=false; });
@@ -6203,7 +6242,7 @@ const C3=(()=>{
      try{ if(!SR){ SR=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true}); SR.setPixelRatio(1); SR.setSize(240,162,false); SR.outputEncoding=THREE.sRGBEncoding; SR.toneMapping=THREE.ACESFilmicToneMapping; SR.toneMappingExposure=.95; SS=new THREE.Scene(); SS.add(new THREE.HemisphereLight(col('#EAF4FF'),col('#6F8A55'),.9)); const sun=new THREE.DirectionalLight(col('#FFE9C8'),1.9); sun.position.set(-8,16,12); SS.add(sun); const fl=new THREE.DirectionalLight(col('#CFE0FF'),.5); fl.position.set(10,6,6); SS.add(fl); SC=new THREE.PerspectiveCamera(30,240/162,.1,200); }
        TOON.outlineStatic(g,{minDim:.045}); TOON.outlineEach(g,{minDim:.045}); SS.add(g); const bb=new THREE.Box3().setFromObject(g), c=bb.getCenter(new THREE.Vector3()), sz=bb.getSize(new THREE.Vector3()), TK=(k==='tree'||k==='pine'||k==='poplar'), r=TK?(k==='tree'?3.4:4.3):Math.max(sz.x,sz.z,sz.y*.9,.8), d=r*2.1, yaw=.38, pit=.62; if(TK){ c.set(0,k==='tree'?1.45:1.85,0); sz.set(sz.x,0,sz.z); }
        SC.position.set(c.x+Math.sin(yaw)*d*Math.cos(pit),c.y+d*Math.sin(pit),c.z+Math.cos(yaw)*d*Math.cos(pit)); SC.lookAt(c.x,c.y-sz.y*.1,c.z); SR.render(SS,SC); const u=SR.domElement.toDataURL('image/png'); SS.remove(g); SNC[k]=u; return u; }catch(e){ return null; } }
-   return {can,snap,mount,stop,dbgScene:()=>scene,roadDbg:on=>{ RDDBG=on!==false; if(RDG) RDG.visible=RDDBG; return RDDBG; },roadCheck:()=>RDREP,cats:()=>walkers.filter(w=>w.kind==='c').map(w=>w.st),bar:()=>BARL,arch:()=>ARCHL,mtn:()=>MTN.map(m=>[+m.x.toFixed(1),+m.z.toFixed(1),m.br,m.h]),park:()=>({on:!!PARK,away:walkers.filter(w=>w.park||w.away).length,bad:walkers.filter(w=>(w.park||w.away)&&!PARK.ok(w.g.position.x,w.g.position.z)).length}),dodgeTest:()=>{ const r=walkers.find(q=>q.kind==='r'), c=walkers.find(q=>q.kind==='c'); c.away=true; c.fx=r.g.position.x+(r.hx||0)*.6; c.fz=r.g.position.z+(r.hz||0)*.6; c.legs=[[c.fx,c.fz]]; c.li=0; c.st='sit'; c.t=30; c.dcd=0; return [r,c]; },parkNow:()=>walkers.forEach(w=>{ if(w.kind==='p') w.pkc=0; if(w.kind==='c'){ w.force=true; w.t=0; } }),petTest:()=>{ const P0=walkers.length; people([[[8,9],[22,9]]],1); const ped=walkers[P0]; ped.dir=1; ped.u=3; ped.sp=.2; ped.cool=0; cats([[[8,9.4],[22,9.4]]],1); const ct=walkers[walkers.length-1]; ct.u=7; ct.dir=-1; ct.sp=.3; ct.cool=0; ct.sure=true; return [ped,ct]; },n:()=>walkers.filter(w=>w.kind==='p').length,tod:s=>{ TODS=s; },hit:()=>{ const P0=walkers.length; people([[[8,9],[22,9]]],1); const ped=walkers[P0]; ped.dir=1; ped.u=3; ped.sp=.5; ped.cool=0; ped.will=true; rovers([[[2,9.7],[28,9.7]]]); const car=walkers[walkers.length-1]; car.u=6.5; car.sp=1.2; return [ped,car]; },focus:(x,z)=>{ T.x=x; T.z=z; },view:(x,z,d,yaw,pitch)=>{ T.x=x; T.z=z; T.d=d; if(yaw!=null){ T.yaw=yaw; } if(pitch!=null) T.pitch=pitch; lastIn=performance.now(); }};
+   return {can,snap,mount,stop,hall,dbgScene:()=>scene,roadDbg:on=>{ RDDBG=on!==false; if(RDG) RDG.visible=RDDBG; return RDDBG; },roadCheck:()=>RDREP,cats:()=>walkers.filter(w=>w.kind==='c').map(w=>w.st),bar:()=>BARL,arch:()=>ARCHL,mtn:()=>MTN.map(m=>[+m.x.toFixed(1),+m.z.toFixed(1),m.br,m.h]),park:()=>({on:!!PARK,away:walkers.filter(w=>w.park||w.away).length,bad:walkers.filter(w=>(w.park||w.away)&&!PARK.ok(w.g.position.x,w.g.position.z)).length}),dodgeTest:()=>{ const r=walkers.find(q=>q.kind==='r'), c=walkers.find(q=>q.kind==='c'); c.away=true; c.fx=r.g.position.x+(r.hx||0)*.6; c.fz=r.g.position.z+(r.hz||0)*.6; c.legs=[[c.fx,c.fz]]; c.li=0; c.st='sit'; c.t=30; c.dcd=0; return [r,c]; },parkNow:()=>walkers.forEach(w=>{ if(w.kind==='p') w.pkc=0; if(w.kind==='c'){ w.force=true; w.t=0; } }),petTest:()=>{ const P0=walkers.length; people([[[8,9],[22,9]]],1); const ped=walkers[P0]; ped.dir=1; ped.u=3; ped.sp=.2; ped.cool=0; cats([[[8,9.4],[22,9.4]]],1); const ct=walkers[walkers.length-1]; ct.u=7; ct.dir=-1; ct.sp=.3; ct.cool=0; ct.sure=true; return [ped,ct]; },n:()=>walkers.filter(w=>w.kind==='p').length,tod:s=>{ TODS=s; },hit:()=>{ const P0=walkers.length; people([[[8,9],[22,9]]],1); const ped=walkers[P0]; ped.dir=1; ped.u=3; ped.sp=.5; ped.cool=0; ped.will=true; rovers([[[2,9.7],[28,9.7]]]); const car=walkers[walkers.length-1]; car.u=6.5; car.sp=1.2; return [ped,car]; },focus:(x,z)=>{ T.x=x; T.z=z; },view:(x,z,d,yaw,pitch)=>{ T.x=x; T.z=z; T.d=d; if(yaw!=null){ T.yaw=yaw; } if(pitch!=null) T.pitch=pitch; lastIn=performance.now(); }};
 })();
 
 /* ==========================================================================
