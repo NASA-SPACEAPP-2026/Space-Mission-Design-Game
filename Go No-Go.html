@@ -1271,6 +1271,23 @@ body.zopen .zdlg{display:none}
 .zrq h5{margin:8px 0 2px;font:800 10.5px/1.2 var(--f-m,monospace);letter-spacing:.1em;text-transform:uppercase;color:#B5562A}.zrq p{margin:0}
 .zrq .zrx{position:absolute;top:6px;right:6px;width:28px;height:28px;border:0;border-radius:50%;background:rgba(0,0,0,.08);cursor:pointer;color:#445}
 @media (max-height:520px){.zrq .zrs{height:84px}.zrq .zrb{font-size:12.5px}}
+/* batch 6: every Zorty speech bubble uses the #zpanel (help "?") look: dark translucent panel, light text, green hairline border, 16px radius */
+.zdlg .zdb,.zrq .zrb{background:rgba(20,26,32,.97);color:#dfe9ee;border:1px solid rgba(91,227,154,.45);border-radius:16px;box-shadow:0 14px 44px rgba(0,0,0,.55)}
+.zdlg .zdb:before,.zrq .zrb:before{left:-8px;border-right-color:rgba(91,227,154,.45)}
+.zdlg .zdb>b,.zrq .zrb>b{color:#5BE39A;font-size:12px}
+.zdlg .zdn,.zrq h5{color:#F2A272}
+.zrq .zrx{background:rgba(255,255,255,.1);color:#cfd9de}
+.zdlg .btn,.zrq .btn{background:transparent;color:#dfe9ee;border:1.5px solid rgba(223,233,238,.6);box-shadow:none}
+.zdlg .btn:hover,.zrq .btn:hover{background:rgba(255,255,255,.12)}
+.zdlg .btn.primary,.zrq .btn.primary{background:#EB7D44;border-color:#EB7D44;color:#1B1410}
+.zdlg .btn.primary:hover,.zrq .btn.primary:hover{background:#F29566;border-color:#F29566}
+/* batch 6: toast never covers the HUD pills / mission header: bottom-centre, above the dock row */
+#toast.toast{top:auto!important;bottom:calc(84px + var(--sai-b,0px))!important;left:50%;transform:translateX(-50%);z-index:170;pointer-events:none;max-width:min(92vw,520px)}
+@media (max-height:520px){#toast.toast{bottom:calc(66px + var(--sai-b,0px))!important;max-width:min(60vw,440px)}}
+body:has(.zdlg) #toast.toast{bottom:calc(190px + var(--sai-b,0px))!important}
+@media (max-height:520px){body:has(.zdlg) #toast.toast{bottom:calc(138px + var(--sai-b,0px))!important}}
+body:has(.ov:not([hidden])) #toast.toast{top:calc(var(--hudh,55px) + 4px)!important;bottom:auto!important;max-width:min(92vw,520px)}
+body.tutmode #toast.toast{bottom:calc(150px + var(--sai-b,0px))!important}
 /* ==== Blocco note del tavolo (diario) ==== */
 .npnote{position:fixed;left:50%;bottom:calc(20px + var(--sai-b,0px));transform:translateX(-50%);z-index:55;background:#EB7D44;color:#fff;border:2px solid #fff;border-radius:24px;padding:11px 20px;font:800 14px/1 var(--f-b,sans-serif);letter-spacing:.02em;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35);animation:npp 1.5s ease-in-out infinite}
 @keyframes npp{50%{box-shadow:0 0 0 7px rgba(235,125,68,.28),0 6px 18px rgba(0,0,0,.35)}}
@@ -6924,6 +6941,11 @@ DataRelay Europa	DataRelay Europe
 v38 · NASA Space Apps 2026 · Torino	v38 · NASA Space Apps 2026 · Turin
 NASA Space Apps Challenge 2026 · Torino · «Space Mission Design Game»	NASA Space Apps Challenge 2026 · Turin · «Space Mission Design Game»
 ΔV corto	ΔV short
+Mobilità	Mobility
+affidabilità	reliability
+sostenibilità	sustainability
+visibilità	visibility
+Sostenibilità	Sustainability
 {s} soddisfatto ({n} cr)	{s} satisfied ({n} cr)`, ex=new Map(); RAW.split('\n').forEach(l=>{ const i=l.indexOf('\t'); if(i>0) ex.set(l.slice(0,i),l.slice(i+1)); }); const exl=new Map(); ex.forEach((v,k)=>{ if(!exl.has(k.toLowerCase())) exl.set(k.toLowerCase(),k); });
   const NUM=/[−+\-]?\d[\d.,]*\d|[−+\-]?\d/g, enNum=x=>/^[−+\-]?\d{1,3}(\.\d{3})+(,\d+)?$|^[−+\-]?\d+,\d+$/.test(x)?x.replace(/[.,]/g,c=>c==='.'?',':'.'):x;
   let NM=[]; const setNames=()=>{ let ex2=[]; try{ ex2=Object.values(E.LV).map(o=>o.n).concat(Object.values(L.PEOPLE).map(o=>o.n),Object.values(L.PEOPLE).map(o=>o.org)); }catch(e){} NM=(G?[G.co].concat(G.missions.map(m=>m.name)):[]).concat(ex2).filter(x=>x&&String(x).length>2).map(String).filter((x,i,a)=>a.indexOf(x)===i).sort((a,b)=>b.length-a.length); };
@@ -7328,7 +7350,7 @@ function vAdmin(v){ let M=cur(); const rdy=G.missions.find(m=>m.phase==='D'&&m.r
 const RIDEC={};
 function rideFeas(M,k){ const acc=M.reqs.filter(x=>M.waived.indexOf(x.id)<0).map(x=>x.id), key=M.id+'|'+k+'|'+acc.join(','); if(key in RIDEC) return RIDEC[key];
   const Mx=Object.assign({},M,{rideFixed:true,sat:Object.assign({},M.sat,{ride:k})}); let ok=!!(M.wit&&M.wit.ride===k&&L.satOK(Mx,M.wit,acc)); if(!ok) try{ ok=!!(L.anySat(Mx,acc,400,0x77)||L.anySat(Mx,acc,800,0x78)); }catch(e){ ok=true; } return RIDEC[key]=ok; }
-function vSatType(v,M){ const lvN=L.level(G.xp), dest=M.sat.dest||'leo', why=k=>{ const R=E.RIDES[k]; if(lvN<R.lvl) return '🔒 livello '+R.lvl; if(!Object.keys(E.LV).some(l=>E.LV[l].fits.indexOf(k)>=0&&E.LV[l].dest.indexOf(dest)>=0&&!!E.LV[l].surf===L.landing(M))) return 'nessun lancio per '+E.DEST[dest].n+' accetta questa taglia'; if(!M.tut&&!rideFeas(M,k)) return '⚠ con i requisiti accettati non basta'; return ''; };
+function vSatType(v,M){ const lvN=L.level(G.xp), dest=M.sat.dest||'leo', why=k=>{ const R=E.RIDES[k]; if(lvN<R.lvl) return '🔒 livello '+R.lvl; if(!Object.keys(E.LV).some(l=>E.LV[l].fits.indexOf(k)>=0&&E.LV[l].dest.indexOf(dest)>=0&&!!E.LV[l].surf===L.landing(M))) return 'no launcher to '+I18N.tr(E.DEST[dest].n)+' accepts this size'; if(!M.tut&&!rideFeas(M,k)) return '⚠ con i requisiti accettati non basta'; return ''; };
   v.innerHTML=meetBg(M)+'<div class="head"><div><h3>Edificio amministrativo · Fase A</h3><h1>Che satellite costruisci?</h1></div></div>'+
     '<h3 style="margin:4px 0 8px">CubeSat</h3><div class="sts">'+Object.keys(E.RIDES).map(k=>{ const R=E.RIDES[k], w=why(k); return '<button class="stc'+(M.sat.ride===k&&M.rideFixed?' sel':'')+(w?' lock':'')+'" data-act="pickType" data-k="'+k+'"'+(w?' disabled':'')+'>'+structIcon(k)+'<b>'+R.n+'</b><span class="fine">'+R.s+'</span><ul class="kv"><li><span>Struttura</span><b>'+keur(R.c)+'</b></li><li><span>Massa massima</span><b>'+R.massLim+' kg</b></li><li><span>Griglia</span><b>'+R.cols+' × '+R.rows+' caselle</b></li></ul>'+(w?'<small class="lk">'+w+'</small>':'')+'</button>'; }).join('')+'</div>'+
     '<h3 style="margin:18px 0 8px">Altre classi</h3><div class="sts"><div class="stc lock"><b>Microsatellite</b><span class="fine">Classe ESPA, fino a circa 180 kg</span><small class="lk">🔒 in arrivo</small></div>'+
@@ -7422,7 +7444,7 @@ function cleanPanel(){ const A=G.missions.filter(m=>m.phase==='D'&&m.stage==='as
     return '<div class="mli'+(m===cur()?' on':'')+'" data-act="pick" data-id="'+m.id+'"><span><b>'+esc(m.name)+'</b><div class="fine" id="cl-t-'+m.id+'">'+(done?'integrazione completata':'integrazione '+pct(Math.max(0,p))+' · '+Math.ceil((m.buildEnd-now())/1000/G.speed)+' s')+'</div></span><span id="cl-a-'+m.id+'" data-s="'+(done?'d':'w')+'">'+(done?'<button class="btn small primary" data-act="cdrm" data-id="'+m.id+'">Al laboratorio →</button>':'')+'</span><div class="prog"><i id="cl-b-'+m.id+'" style="width:'+Math.max(0,p)*100+'%"></i></div></div>'; }).join(''):'<p class="fine">Nessun satellite in assemblaggio. Ci arrivano dopo la CDR, in fase D. Più satelliti possono essere assemblati insieme.</p>')+'</div></div>'; }
 function lvLock(k,M){ const o=E.LV[k], lv=L.level(G.xp); if(lv<o.lvl) return '🔒 livello '+o.lvl; if(o.pad&&!G.pad) return '🔒 costruisci la tua rampa di lancio'; return ''; }
 const lvShown=(k,M)=>{ const o=E.LV[k]; return o.dest.indexOf(M.sat.dest||'leo')>=0&&!!o.surf===L.landing(M); };
-function lvCostTxt(o){ if(o.surf) return '1.200 cr per kg'; return typeof o.c==='number'?keur(o.c):'da '+keur(Math.min.apply(null,Object.keys(o.c).map(k=>o.c[k]))); }
+function lvCostTxt(o){ if(o.surf) return '1,200 cr per kg'; return typeof o.c==='number'?keur(o.c):'from '+keur(Math.min.apply(null,Object.keys(o.c).map(k=>o.c[k]))); }
 function vLaunchers(v,M){ const D=E.DEST[M.sat.dest||'leo'];
   v.innerHTML='<div class="head"><div><h3>Edificio di costruzione · Fase B · 1 di 3</h3><h1>Come vai nello spazio</h1></div></div>'+
     '<div class="lvs">'+Object.keys(E.LV).filter(k=>lvShown(k,M)).map(k=>{ const o=E.LV[k], lock=lvLock(k,M), need=E.dvNeed({lv:k,dest:M.sat.dest});
@@ -7556,13 +7578,13 @@ function drmSVG(M,o){ o=o||{}; const H=o.H||600, mini=!!o.mini, dest=M.sat.dest|
   // fasce: obiettivo e bloccate
   const b=drmBand(M), lv=L.level(G.xp); O.ZONES[dest].filter(z=>z.band).forEach(z=>{ const y1=S.y(z.band[1]), y0=S.y(z.band[0]), lock=z.lvl>lv, tgt=b&&z.band===b;
     if(lock) s+='<rect x="-1500" y="'+Math.min(y0,y1)+'" width="4000" height="'+Math.abs(y0-y1)+'" fill="#E9EDF1" opacity=".8"/>'+(mini?'':T(16,Math.min(y0,y1)+16,'🔒 '+z.n.toLowerCase()+' · livello '+z.lvl,11,'start','#8D99A6',700));
-    else if(tgt) s+='<rect x="-1500" y="'+Math.min(y0,y1)+'" width="4000" height="'+Math.abs(y0-y1)+'" fill="#3FA86B" opacity=".08"/>'+(mini?'':T(16,Math.min(y0,y1)+16,'FASCIA OBIETTIVO · '+z.n.toUpperCase()+' '+nf(z.band[0])+'–'+nf(z.band[1])+' km',11,'start','#2F7D4E',700)); });
+    else if(tgt) s+='<rect x="-1500" y="'+Math.min(y0,y1)+'" width="4000" height="'+Math.abs(y0-y1)+'" fill="#3FA86B" opacity=".08"/>'+(mini?'':T(16,Math.min(y0,y1)+16,''+TX('FASCIA OBIETTIVO','TARGET BAND')+' · '+I18N.tr(z.n).toUpperCase()+' '+nf(z.band[0])+'–'+nf(z.band[1])+' km',11,'start','#2F7D4E',700)); });
   if(!mini){ const out=O.ZONES[dest].filter(z=>z.band&&(S.leo?z.band[0]>S.max:(z.band[0]>S.max||z.band[1]<S.min))); const up=out.filter(z=>z.band[0]>S.max), dn=out.filter(z=>z.band[1]<S.min);
     if(up.length) s+=T(976,S.leo?150*k:S.y(S.max)+16*k,(S.leo?'↑ ':'↓ ')+up.map(z=>z.n.toLowerCase()+(z.lvl>lv?' 🔒 liv. '+z.lvl:'')).join(' · '),11,'end','#8D99A6',600);
     if(dn.length) s+=T(976,S.y(S.min)-8*k,'↑ '+dn.map(z=>z.n.toLowerCase()+(z.lvl>lv?' 🔒 liv. '+z.lvl:'')).join(' · '),11,'end','#8D99A6',600); }
   // pianeti
   if(S.leo){ s+=drmPlanet('leo',S.ySurf,false,{atm:S.ySurf-S.yAtm,k}); if(!mini) s+=T(24,S.yAtm+20*k,'ATMOSFERA TERRESTRE',11,'start','#2C6E9E',700)+T(24,S.ySurf+34*k,'TERRA',13,'start','#fff',800); }
-  else { s+=drmPlanet(dest,S.yTop,true,{k})+drmPlanet('leo',S.yEarth,false,{atm:10*k,k}); if(!mini) s+=T(976,S.yTop-12*k,DRMN[dest].toUpperCase(),13,'end',dest==='venus'?'#7A5A1E':'#fff',800)+T(24,S.yEarth+30*k,'TERRA',13,'start','#fff',800)+'<path d="M-1500 '+S.yGap+'H2500" stroke="#D5DCE3" stroke-dasharray="3 5"/>'+T(976,S.yGap+18*k,'↓ spazio tra la Terra e '+(dest==='moon'?'la Luna':DRMN[dest].replace(/^Sole$/,'il Sole'))+' (non in scala)',11,'end','#8D99A6',500); }
+  else { s+=drmPlanet(dest,S.yTop,true,{k})+drmPlanet('leo',S.yEarth,false,{atm:10*k,k}); if(!mini) s+=T(976,S.yTop-12*k,DRMN[dest].toUpperCase(),13,'end',dest==='venus'?'#7A5A1E':'#fff',800)+T(24,S.yEarth+30*k,'TERRA',13,'start','#fff',800)+'<path d="M-1500 '+S.yGap+'H2500" stroke="#D5DCE3" stroke-dasharray="3 5"/>'+T(976,S.yGap+18*k,'↓ space between Earth and '+(dest==='moon'?'the Moon':dest==='sun'?'the Sun':I18N.tr(DRMN[dest]))+' (not to scale)',11,'end','#8D99A6',500); }
   // asse quote
   if(!mini){ const ticks=S.leo?[100,300,1000,3000,10000,36000]:[10,30,100,300,1000,3000,10000,30000]; ticks.forEach(h=>{ if(h<S.min*.9||h>S.max*1.05) return; const y=S.y(h); s+='<path d="M984 '+y+'h10" stroke="#AAB4BE" stroke-width="1.5"/>'+T(980,y+4,nf(h),10,'end','#9AA6B2',500); }); }
   const lanes=[], rel=drmRel(M), land=drmLand(M);
@@ -7587,9 +7609,9 @@ function drmSVG(M,o){ o=o||{}; const H=o.H||600, mini=!!o.mini, dest=M.sat.dest|
   hs.forEach((h,i)=>{ const mo=i===0?(D.star<0?D.relMo:0):D.orbits[i-1].mo, xm=(X(i)+X(i+1))/2, y=ys[i], star=(i===0&&D.star<0)||(i>0&&D.star===i-1); if(!mo&&!star) return;
     s+=drmSat(xm,y,mini?1.8:1)+(star?'<g transform="translate('+(xm-(mini?42:28))+' '+(y-(mini?30:22))+')"><circle r="'+(mini?17:10)+'" fill="#F07B3F"/><text y="'+(mini?7:4.5)+'" font-size="'+(mini?20:12)+'" text-anchor="middle" fill="#fff" font-weight="800">★</text></g>':'')+drmPill(xm,y+(mini?34:22),mo+(mini?' m':' mesi'),mini); });
   if(!mini){ const note=(x,y,t)=>T(x+12,y,t,11.5,'start','#3A4856',500,1);
-    s+=note(X(0),(yE+ys[0])/2,S.leo?'lancio e rilascio':'lancio e viaggio verso '+(dest==='moon'?'la Luna':DRMN[dest]));
-    for(let i=1;i<hs.length;i++) s+=note(X(i),(ys[i-1]+ys[i])/2+4,(S.leo?hs[i]>hs[i-1]:hs[i]>hs[i-1])?'manovra di salita':'manovra di discesa');
-    if(eolY!=null) s+=note(X(hs.length),(ys[hs.length-1]+eolY)/2+4,eolK==='reentry'?'rientro in atmosfera':eolK==='impact'?'impatto controllato':'verso l’orbita cimitero'); }
+    s+=note(X(0),(yE+ys[0])/2,S.leo?'launch and release':'launch and trip to '+(dest==='moon'?'the Moon':dest==='sun'?'the Sun':I18N.tr(DRMN[dest])));
+    for(let i=1;i<hs.length;i++) s+=note(X(i),(ys[i-1]+ys[i])/2+4,(S.leo?hs[i]>hs[i-1]:hs[i]>hs[i-1])?'climb manoeuvre':'descent manoeuvre');
+    if(eolY!=null) s+=note(X(hs.length),(ys[hs.length-1]+eolY)/2+4,eolK==='reentry'?'re-entry into the atmosphere':eolK==='impact'?'controlled impact':'to the graveyard orbit'); }
   if(eolK==='reentry') s+=drmFire(X(hs.length),eolY+(S.leo?14:8)*k,mini?1.8:1); if(eolK==='impact') s+=drmBurst(X(hs.length),eolY,mini?1.8:1); if(eolK==='grave') s+='<circle cx="'+(X(hs.length)+step*.6+6)+'" cy="'+eolY+'" r="'+(mini?8:5)+'" fill="#22313B"/>';
   // riga fantasma (aggiunta)
   if(!mini&&DRMG){ const y=lineY(DRMG.h); s+='<path d="M-1500 '+y+'H2500" stroke="'+(DRMG.ok?'#F07B3F':'#CF5E4C')+'" stroke-width="2" stroke-dasharray="7 6"/><g transform="translate('+Math.max(140,Math.min(860,DRMG.x))+' '+y+')"><rect x="-120" y="-40" width="240" height="26" rx="13" fill="#22313B"/><text y="-22" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff" font-family="Inter,sans-serif">'+esc(DRMG.ok?'Rilascia: nuova orbita a '+drmKm(DRMG.h):DRMG.why)+'</text><circle r="7" fill="'+(DRMG.ok?'#F07B3F':'#CF5E4C')+'" stroke="#fff" stroke-width="3"/></g>'; }
@@ -7709,7 +7731,7 @@ function obStatus(M,p){ const t=p.t, f=p.final, chk=(l,x,r)=>'<li><span class="m
   h+='<ul class="tgl"><li><span></span><span>ΔV del piano (+5% di margine)</span><span class="num">'+nf(need,0)+' m/s</span></li><li><span></span><span>ΔV del satellite</span><span class="num">'+nf(p.dvAvail,0)+' m/s</span></li>'+(noMan?'':chk('Dopo il piano: mantenimento d’orbita',rest>=0&&mo>=mm,(rest>0?'~'+Math.max(0,Math.min(999,mo))+' mesi':'non basta')+' · servono '+mm))+'</ul>';
   if(p.atm&&p.atm.rows.length){ h+='<div class="atmbox"><b>⚠ Orbite dentro l’atmosfera</b><ul>'+p.atm.rows.map(x=>'<li>'+esc(x.n)+': pericentro '+nf(x.pe,0)+' km'+(x.crash?' · <b>tocca la superficie</b>':' · '+pct(x.r)+' di rientro')+'</li>').join('')+'</ul><p class="fine">Sotto i '+O.ATMH[M.sat.dest||'leo'][1]+' km l’aria frena il satellite a ogni passaggio al pericentro: rischia di rientrare e bruciare prima della fine della missione.</p></div>'; }
   return h; }
-function obTLE(M,el,k){ const t=O.tle(el,obBody(M),(M.seed||1)%90000+10000+k); return '<details class="tlebox"><summary>Elementi in formato TLE</summary><pre class="tle">'+esc((M.name||'SAT').toUpperCase().slice(0,24))+'\n'+t[0]+'\n'+t[1]+'</pre><p class="fine">Riga 2: inclinazione, Ω (nodo ascendente), eccentricità (senza «0.»), ω (argomento del pericentro), anomalia media, moto medio in giri al giorno ('+nf(t[2],3)+').</p></details>'; }
+function obTLE(M,el,k){ const t=O.tle(el,obBody(M),(M.seed||1)%90000+10000+k); return '<details class="tlebox"><summary>Elementi in formato TLE</summary><pre class="tle">'+esc((M.name||'SAT').toUpperCase().slice(0,24))+'\n'+t[0]+'\n'+t[1]+'</pre><p class="fine">Line 2: inclination, Ω (ascending node), eccentricity (without «0.»), ω (argument of periapsis), mean anomaly, mean motion in revolutions per day ('+nf(t[2],3)+').</p></details>'; }
 function obSlider(k,key,lab,min,max,step,val,dis,fmtv){ return '<div class="fdrow obrow"><label for="ob'+key+k+'">'+lab+'</label><input type="range" id="ob'+key+k+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'" data-ob="'+key+'" data-k="'+k+'"'+dis+'><input type="number" class="num" id="obn'+key+k+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+(fmtv?fmtv(val):val)+'" data-ob="'+key+'" data-k="'+k+'"'+dis+'></div>'; }
 function obEditor(M,p,k){ const o=p.orbits[k], B=obBody(M), Lg=M.ob.legs[o.leg], dis=fdLocked(M)?' disabled':'', a=B.R+o.h, em=Math.floor(O.eMax(o.h,B)*1000)/1000, ss=a<=12352*1.5?Math.acos(Math.max(-1,-Math.pow(a/12352,3.5)))*180/Math.PI:null;
   const pr=[['circ','Circolare'],['pol','Polare'],ss&&(M.sat.dest||'leo')==='leo'?['sso','Eliosincrona'] :null,['eq','Equatoriale'],['same','Piano precedente']].filter(Boolean);
@@ -8274,14 +8296,14 @@ function typeAvail(t){ const lv=L.level(G.xp), key=[lv,nmState.dest,nmState.zone
 function nmSync(){ const z=O.ZONES[nmState.dest].find(x=>x.k===nmState.zone), lnd=nmLanding(), sel=$('#mt');
   $('#nmSum').innerHTML=planet(nmState.dest,26)+'<div><b>'+esc(E.DEST[nmState.dest].n)+' · '+esc(z.n)+'</b><span class="fine">'+esc(zoneBand(z))+(lnd?' · stadio di discesa '+keur((O.LAND[nmState.dest]&&z.surf?O.LAND[nmState.dest]:O.LAND[z.k]||{}).cost||0):'')+'</span></div><button class="btn small" data-act="nmplanet">Cambia</button>';
   Array.from(sel.options).forEach(o=>{ const base=O.TYPES[o.value].n, land=lnd&&['tel','com','deb'].indexOf(o.value)>=0, xt=!!E.EXT[nmState.dest]&&E.EXT[nmState.dest].types.indexOf(o.value)<0, ok=!land&&!xt&&typeAvail(o.value); o.disabled=!ok; o.textContent=base+(ok?'':' · 🔒 '+(land?'non sul suolo':xt?'non per questo corpo':'')); }); if(sel.selectedOptions[0].disabled){ const f=Array.from(sel.options).find(o=>!o.disabled); if(f) sel.value=f.value; }
-  $('#mtd').textContent=Array.from(sel.options).some(o=>o.disabled&&!(lnd&&['tel','com','deb'].indexOf(o.value)>=0))?O.TYPES[sel.value].s+' I tipi con il lucchetto non hanno ancora un payload o un propulsore adatto al tuo livello: si sbloccano salendo.':lnd?'Sul suolo il payload è un '+(z.surf?'rover':'lander con trivella')+': servono missioni scientifiche, di osservazione o dimostrative.':O.TYPES[sel.value].s;
+  $('#mtd').textContent=Array.from(sel.options).some(o=>o.disabled&&!(lnd&&['tel','com','deb'].indexOf(o.value)>=0))?O.TYPES[sel.value].s+' I tipi con il lucchetto non hanno ancora un payload o un propulsore adatto al tuo livello: si sbloccano salendo.':lnd?'On the surface the payload is a '+(z.surf?'rover':'lander with a drill')+': you need science, observation or demonstration missions.':O.TYPES[sel.value].s;
   const ms=$('#ms'); if(ms.dataset.auto==='1') ms.value=nmStmt(); }
 const maxActive=()=>L.maxActiveAt(L.level(G.xp)), activeN=()=>G.missions.filter(m=>m.phase!=='done').length;
 function newMission(){ if(activeN()>=maxActive()){ toast('Al livello '+L.level(G.xp)+' puoi gestire al massimo '+maxActive()+' missioni aperte. Chiudine una o sali di livello.'); sfx.bad(); return; } const el=$('#ov'), lv=L.level(G.xp); nmState.dest='leo'; nmState.zone='low';
   el.innerHTML='<div class="rv wide" role="dialog" aria-modal="true"><div id="nmMain"><h3>Nuova missione</h3><h2>Che missione vuoi fare?</h2><div class="nm"><div><label for="mn">Titolo</label><input type="text" id="mn" maxlength="18" value="'+esc(['AURASAT','SELENE-1','LUX','ORBIS','ARTEMIDE','HERMES'][G.missions.length%6])+'">'+
     '<label for="mt" style="margin-top:14px">Tipo di missione</label><select id="mt">'+Object.keys(O.TYPES).map(k=>'<option value="'+k+'">'+O.TYPES[k].n+'</option>').join('')+'</select><p class="fine" id="mtd" hidden></p>'+
     '<label for="ms" style="margin-top:14px">Mission statement</label><textarea id="ms" rows="3" maxlength="280" data-auto="1"></textarea></div>'+
-    '<div><label>Destinazione</label><div class="nmsum" id="nmSum"></div><label style="margin-top:12px">Scegli il corpo</label><div class="dests">'+Object.keys(E.DEST).map(k=>{ const D=E.DEST[k], lock=lv<D.lvl; return '<button class="dcard'+(k===nmState.dest?' sel':'')+(lock?' lock':'')+'" data-act="dest" data-k="'+k+'"'+(lock?' disabled':'')+'>'+planet(k)+'<b>'+D.n+'</b><small>'+(lock?'🔒 livello '+D.lvl:O.ZONES[k].length+' destinazioni')+'</small></button>'; }).join('')+'</div><button class="btn small" style="margin-top:8px" data-act="nmall">🪐 Tutti i pianeti e il Sole</button></div></div>'+
+    '<div><label>Destinazione</label><div class="nmsum" id="nmSum"></div><label style="margin-top:12px">Scegli il corpo</label><div class="dests">'+Object.keys(E.DEST).filter(k=>k==='leo'||k==='moon').map(k=>{ const D=E.DEST[k], lock=lv<D.lvl; return '<button class="dcard'+(k===nmState.dest?' sel':'')+(lock?' lock':'')+'" data-act="dest" data-k="'+k+'"'+(lock?' disabled':'')+'>'+planet(k)+'<b>'+D.n+'</b><small>'+(lock?'🔒 livello '+D.lvl:O.ZONES[k].length+' destinazioni')+'</small></button>'; }).join('')+'</div><button class="btn small" style="margin-top:8px" data-act="nmall">🪐 Other planets &amp; stars</button></div></div>'+
     '<div class="row"><button class="btn primary" data-act="mkm">Crea la missione</button><button class="btn" data-act="closeov">Annulla</button></div></div><div id="nmZone" hidden></div></div>'; el.hidden=false; $('#pop').hidden=true;
   $('#ms').addEventListener('input',e=>{ e.target.dataset.auto='0'; }); $('#mt').addEventListener('change',()=>nmSync()); nmSync(); }
 function nmZones(k){ const lv=L.level(G.xp), D=E.DEST[k], Z=O.ZONES[k];
