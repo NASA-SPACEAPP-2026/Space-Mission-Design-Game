@@ -1272,6 +1272,15 @@ g.coach-hl{animation:tutPulseSvg 1.6s ease-in-out infinite!important;box-shadow:
 body.tutmode .ov{padding-top:12px}
 .sdlg{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:min(330px,70vw);display:flex;gap:10px;align-items:flex-start;padding:10px 30px 10px 10px;background:rgba(14,20,28,.94);border:1px solid rgba(235,125,68,.55);border-radius:12px;color:#dfe9ee;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:40;opacity:0;transform:translateY(12px);visibility:hidden;pointer-events:none;transition:opacity .18s ease,transform .18s ease,visibility 0s .18s}
 .sdlg.show{opacity:1;transform:none;visibility:visible;pointer-events:auto;transition-delay:0s}
+/* tutorial: fumetto di Zorty che spiega il passo, in basso a sinistra sopra la fila di tasti esagonali (+, casa, bandiera) */
+#tbub{position:fixed;top:auto!important;right:auto!important;height:auto!important;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(98px + env(safe-area-inset-bottom,0px));max-width:min(360px,calc(100vw - 90px));display:flex;gap:8px;align-items:flex-end;padding:8px 30px 8px 6px;background:rgba(14,20,28,.94);border:1px solid rgba(235,125,68,.55);border-radius:12px;color:#dfe9ee;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:60}
+#tbub .tb-z{flex:0 0 auto;width:46px;height:auto;max-height:74px;object-fit:contain}
+#tbub .tb-n{display:block;font:700 10px/1 var(--f-m,monospace);text-transform:uppercase;letter-spacing:.1em;color:#EB7D44}#tbub .tb-s{display:block;font-size:13px;line-height:1.35;margin-top:3px}
+#tbub .tb-x{position:absolute;top:0;right:0;width:32px;height:32px;background:none;border:0;color:#8fa3ad;font-size:12px;cursor:pointer}
+#tbub.pop{animation:tbpop .28s ease-out}@keyframes tbpop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+body.zopen #tbub,body:has(#mg:not([hidden])) #tbub{display:none}
+@media (max-height:520px){#tbub{left:calc(8px + env(safe-area-inset-left,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));max-width:min(320px,46vw);padding:6px 28px 6px 4px}#tbub .tb-z{width:36px;max-height:56px}#tbub .tb-s{font-size:12px}}
+@media (prefers-reduced-motion:reduce){#tbub.pop{animation:none}}
 .sd-face{flex:0 0 46px;width:46px;height:46px;border-radius:50%;overflow:hidden;background:#1b2733;border:2px solid #EB7D44}.sd-face svg{width:100%;height:100%;display:block}
 .sd-name{font:700 10px/1 var(--f-m,monospace);text-transform:uppercase;letter-spacing:.1em;color:#EB7D44}.sd-txt{font-size:13px;line-height:1.35;margin-top:3px}
 .sd-x{position:absolute;top:0;right:0;width:36px;height:36px;background:none;border:0;color:#8fa3ad;font-size:12px;cursor:pointer}

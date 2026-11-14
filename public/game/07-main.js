@@ -1032,6 +1032,9 @@ orbita obiettivo	target orbit
 orbite intermedie	intermediate orbits
 parcheggiato a {n} km	parked at {n} km
 passo {n} di {n}	step {n} of {n}
+Passo {n}	Step {n}
+Passo {n}: progetta il satellite nell’edificio di costruzione. Tocca l’edificio sulla mappa.	Step {n}: design the satellite in the assembly building. Tap the building on the map.
+Passo {n}: progetta il satellite nell’edificio di costruzione: prima torna al campus con la casetta in basso a destra.	Step {n}: design the satellite in the assembly building: first go back to the campus with the house button at the bottom right.
 più	more
 pochissimo	very little
 possibile	possible
@@ -4761,11 +4764,19 @@ function sdNext(){ if(SD.cur||!SD.q.length) return; const m=SD.q.shift(); let el
 function sdSay(who,txt,skip){ SD.q.push([who,txt,skip]); sdNext(); }
 function tutKey(){ if(view==='build') return BVIEW==='yard'?'yard':(BROOM==='clean'?'clean':'build'); return view; }
 document.addEventListener('pointerdown',()=>{ SD.last=Date.now(); },true);
+/* solo nel tutorial: Zorty spiega ogni passo in un fumetto leggero in basso a sinistra (non blocca il gioco, si chiude con ✕ e riappare al passo dopo) */
+function tutBub(stp){ let b=$('#tbub'); const txt=stp&&stp.t?String(stp.t):'';
+  if(!b){ if(!txt) return; b=document.createElement('div'); b.id='tbub'; b.setAttribute('role','status'); b.setAttribute('aria-live','polite'); b.hidden=true;
+    b.innerHTML='<img class="tb-z" alt="" src="'+((ZORTY.SPR&&ZORTY.SPR.suggerisce)||'')+'"><div class="tb-t"><b class="tb-n">Zorty</b><span class="tb-s"></span></div><button class="tb-x" type="button" aria-label="'+TX('Chiudi','Close')+'">✕</button>';
+    document.body.appendChild(b); b.querySelector('.tb-x').addEventListener('click',()=>{ tutBub.closed=tutBub.last; b.hidden=true; }); }
+  if(!txt){ b.hidden=true; return; }
+  if(txt!==tutBub.last){ tutBub.last=txt; b.querySelector('.tb-s').textContent=txt; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+  b.hidden=tutBub.closed===txt; }
 function coach(){ const box=$('#coach'), hand=$('#chand'); if(box) box.hidden=true; if(hand) hand.hidden=true; const prev=document.querySelector('.coach-hl');
-  if(document.body.classList.contains('ttl-on')||!G||!G.tut){ if(prev) prev.classList.remove('coach-hl'); document.body.classList.toggle('tutmode',!!(G&&G.tut&&!document.body.classList.contains('ttl-on'))); return; }
+  if(document.body.classList.contains('ttl-on')||!G||!G.tut){ if(prev) prev.classList.remove('coach-hl'); tutBub(null); document.body.classList.toggle('tutmode',!!(G&&G.tut&&!document.body.classList.contains('ttl-on'))); return; }
   document.body.classList.add('tutmode'); G.sdSeen=G.sdSeen||{};
   const M=G.missions[0], nw=tutUnlock(); if(nw.length){ nw.forEach(k=>{ if(SD_NEW[k]) sdSay(SD_NEW[k][0],SD_NEW[k][1]); }); if(view==='hub') render(); }
-  const stp=coachStep();
+  const stp=coachStep(); tutBub(stp);
   if(M&&M.phase==='done'&&$('#ov').hidden&&coach.mcr&&!coach.ended){ coach.ended=true; tutEndModal(); return; }
   let el=(stp&&stp.sel)?Array.from(document.querySelectorAll(stp.sel)).find(vis):null;
   { const any=el||(stp&&stp.sel?document.querySelector(stp.sel):null), dk=any&&any.closest&&any.closest('.dockL,.dockR'), vw=$('#view'); if(dk&&vw){ const sd=dk.classList.contains('dockL')?'L':'R', rb=document.querySelector('.rb[data-k="'+sd+'"]'); if(!vw.classList.contains('open'+sd)&&rb&&vis(rb)) el=rb; } }
