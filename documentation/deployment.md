@@ -1,88 +1,141 @@
-# Deployment (Azure App Service + GitHub Actions)
+# Distribuzione su Azure e pipeline CI/CD
 
-## How it works
+[Indice](README.md) · [Configurazione DB](authentication.md) · [Verifiche](testing.md)
 
-`.github/workflows/ci-cd.yml` runs on every pull request and push to `main` / `dev`:
+## Componenti da distribuire
 
-1. **Build and test**: `npm ci`, `npm run check` (Vitest + Vite build), then
-   `npm run package:azure` builds `release.zip`.
-2. **Deploy** (push only): the job logs in to Azure with OIDC (no stored password), deploys the
-   zip and smoke-tests `/api/health`, `/` and the audio asset.
+L'applicazione principale comprende asset compilati e server Node. PostgreSQL è un servizio separato; GMAT è un ulteriore servizio opzionale. Il pacchetto Azure **non include il container GMAT** e `server.mjs` non inoltra `/api/gmat*`.
 
-| Branch | GitHub Environment | Azure Web App | Plan |
-|--------|--------------------|---------------|------|
-| `dev`  | `staging`          | `smg-staging-*` | F1 (free) |
-| `main` | `production`       | `smg-prod-*`    | B1 (about 12 EUR/month, billed hourly) |
+| Componente | Esecuzione |
+| --- | --- |
+| Frontend | File in `dist/`, serviti dal backend |
+| HTTP e API account | Node.js 24+, comando `node server.mjs` |
+| Account e sessioni | PostgreSQL configurato da `DATABASE_URL` |
+| Calcoli GMAT | Container separato, da pubblicare e instradare esplicitamente |
 
-The zip contains:
+Questa guida descrive script e workflow del repository. I nomi delle risorse generati, lo stato del deploy e i costi effettivi vanno verificati nell'account Azure.
+
+## Branch e ambienti
+
+| Evento | Comportamento della CI |
+| --- | --- |
+| PR verso `dev` o `main` | Installazione, test, build, verifica e packaging |
+| Push su `dev` | Controlli e deploy nell'ambiente `staging` |
+| Push su `main` | Controlli e deploy nell'ambiente `production` |
+| Push su un branch di lavoro | Nessun deploy previsto da questo workflow |
+
+Flusso consigliato: branch di lavoro → PR verso `dev` → collaudo staging → PR `dev` verso `main`. La creazione di `update-documentation` non pubblica automaticamente alcun sito.
+
+## Contenuto della release
+
+Dopo `npm run build`, `npm run package:azure` usa Bash e `zip` per creare `release.zip`:
 
 ```text
-dist/          static 2D game (index.html + hashed assets/ + audio + .br/.gz)
-server.mjs     minimal static server and account API
-package.json   runtime manifest plus lockfile and production dependencies
+release.zip
+  dist/                  HTML, bundle con hash, audio, font e file compressi
+  server.mjs             Server HTTP e routing account
+  backend/               Autenticazione e connessione PostgreSQL
+  db/                    Schema SQL
+  scripts/migrate.mjs    Comando per applicare lo schema
+  package.json
+  package-lock.json
+  node_modules/          Dipendenze runtime installate con npm ci --omit=dev
 ```
 
-The build minifies the split game scripts into one content-hashed
-`assets/game-<hash>.js` and precompresses text assets. `server.mjs` serves the `.br`/`.gz`
-version, sets `ETag`/`Last-Modified`/`Content-Length` and answers `304` on revalidation.
+Il packaging richiede una build già presente e valida la presenza degli asset essenziali. La CI lo esegue su Linux, così le dipendenze runtime sono installate nell'ambiente di packaging. Non è previsto un build remoto su App Service.
 
-App Service runs `node server.mjs`, serving assets and account APIs. PostgreSQL runs separately.
-Apply the migration before deploying and configure account environment settings as described in
-[Account e database](./authentication.md). The package also contains `backend/`, `db/`,
-`scripts/migrate.mjs` and production `node_modules/`; there is no server-side build step.
+In Windows usa una shell con Bash, npm e `zip`, per esempio un ambiente WSL opportunamente configurato. Non è un comando PowerShell nativo.
 
-## One-time setup
+## Provisioning iniziale
 
-1. `az login`, then run `./infra/azure-setup.sh`. It creates the resource group, the two plans
-   and web apps, sets the startup command to `node server.mjs`, and creates the OIDC trust for
-   the two GitHub environments.
-2. Run the `gh variable set ...` commands it prints (repository variables plus
-   `AZURE_WEBAPP_NAME` per environment).
-3. In GitHub: protect `main` and `dev` (require PR + the "Build and test" check). Optionally add
-   required reviewers to the `production` environment for a manual approval before each deploy.
-4. Push to `dev` first and check the staging URL, then merge `dev` into `main`.
+### 1. Applicazioni web e identità della pipeline
 
-### Existing web apps created before the 2D refactor
+Leggi e poi esegui `infra/azure-setup.sh` in Bash con Azure CLI autenticata e permessi adeguati. Lo script definisce un gruppo risorse, due piani Linux e due Web App:
 
-They may still point at the removed `app/backend/dist/index.js`. The deploy action now sets
-`startup-command: node server.mjs`, uses `clean: true` and restarts the app explicitly after
-deployment, so the next `dev`/`main` deploy fixes them automatically. The smoke test also waits
-for the compressed response and `ETag` before passing.
+| Ambiente | Impostazione nello script |
+| --- | --- |
+| Staging | Piano F1, senza Always On |
+| Produzione | Piano B1, Always On attivo |
+| Regione predefinita | `westeurope` |
+| Runtime predefinito | `NODE:24-lts` |
+| Avvio | `node server.mjs` |
 
-If you need to fix one immediately, replace `<app>` with the real App Service name (without
-angle brackets: the shell reads `<app>` as input redirection):
+Le SKU sono scelte dello script, non una garanzia di disponibilità o prezzo. Il piano F1 ha limiti operativi e può sospendere l'app. Il provisioning crea risorse che possono generare costi.
 
-```bash
-az webapp config set --name smg-staging-768b8a --resource-group rg-space-mission-game \
-  --startup-file "node server.mjs"
-az webapp restart --name smg-staging-768b8a --resource-group rg-space-mission-game
-```
+Lo script configura HTTPS, `SCM_DO_BUILD_DURING_DEPLOYMENT=false`, `NODE_ENV=production`, un'applicazione Entra e credenziali federate GitHub OIDC per gli ambienti `staging` e `production`. Assegna il ruolo `Website Contributor` sul gruppo risorse e stampa i comandi per impostare le variabili GitHub.
 
-The Node runtime must be 24:
+### 2. Variabili GitHub
 
-```bash
-az webapp config show --name <app> --resource-group rg-space-mission-game --query linuxFxVersion
-az webapp config set  --name <app> --resource-group rg-space-mission-game --linux-fx-version "NODE|24-lts"
-```
+| Variabile | Ambito |
+| --- | --- |
+| `AZURE_CLIENT_ID` | Repository |
+| `AZURE_TENANT_ID` | Repository |
+| `AZURE_SUBSCRIPTION_ID` | Repository |
+| `AZURE_RESOURCE_GROUP` | Facoltativa; predefinita `rg-space-mission-game` nel workflow |
+| `AZURE_WEBAPP_NAME` | Specifica per ciascun GitHub Environment |
 
-## Caching
+La pipeline usa OIDC per accedere ad Azure. Le credenziali DB non devono finire in queste variabili pubbliche di configurazione del workflow.
 
-`server.mjs` sets:
+### 3. Database per ambiente
 
-- `index.html`: `no-cache`;
-- `/assets/*` (Vite content-hashed files): `public, max-age=31536000, immutable`;
-- `/audio/*` (versioned `?v=<hash>`) and `/fonts/*`: `public, max-age=31536000, immutable`;
-- other files: `public, max-age=3600`;
-- `/api/health`: `no-store`.
+Dopo la creazione della Web App, esegui separatamente per ogni ambiente `infra/azure-database.sh`, impostando `RG`, `PG_SERVER`, `WEBAPP` e `PG_ADMIN_PASSWORD`. Non attivare il tracciamento dei comandi con segreti.
 
-## After the challenge
+Lo script crea PostgreSQL 17 Flexible Server, database e regole firewall per gli IP di uscita possibili della Web App. Non configura automaticamente un accesso per la macchina che esegue le migrazioni. Staging e produzione devono usare database e credenziali separati.
 
-`./infra/azure-teardown.sh` deletes the resource group and the app registration, which stops all
-charges. Set a budget alert in Azure Cost Management while the app is live.
+### 4. Impostazioni App Service
 
-## Known gaps
+| Impostazione | Valore richiesto |
+| --- | --- |
+| `DATABASE_URL` | Connessione PostgreSQL dell'ambiente, credenziali correttamente codificate nella URL |
+| `DATABASE_SSL` | `true` |
+| `APP_ORIGIN` | Origine HTTPS effettivamente visitata, senza slash finale |
+| `NODE_ENV` | `production`, anche in staging ospitato |
 
-- The F1 staging app stops for the day after 60 CPU minutes and sleeps when idle.
-- `index.html` is still a monolith; the module extraction described in
-  [architecture.md](./architecture.md) is the next step.
-- There is no server-side leaderboard or multiplayer backend. Saves are per browser.
+Usa una gestione sicura dei segreti, eventualmente riferimenti Key Vault. La verifica del certificato TLS resta attiva. Il backend rifiuta configurazioni di produzione senza DB, con TLS disabilitato o origine HTTP.
+
+### 5. Schema prima della release
+
+Da un ambiente autorizzato a raggiungere PostgreSQL, imposta le variabili corrette ed esegui `npm run db:migrate`. Il comando carica anche `.env` se esiste: controlla di non puntare involontariamente al DB locale.
+
+La migrazione va applicata **prima del deploy**, prima in staging e poi in produzione. Il provisioning, l'avvio Node e il workflow CI/CD attuale non la eseguono automaticamente. Vedi [limiti del migratore](authentication.md#avvio-e-migrazioni).
+
+## Sequenza del workflow
+
+`.github/workflows/ci-cd.yml`:
+
+1. Esegue checkout, configura Node 24 e installa con `npm ci`.
+2. Esegue `npm run check` e `npm run package:azure`.
+3. Per i push pubblica l'artefatto temporaneo e avvia il job di deploy dell'ambiente.
+4. Accede ad Azure tramite OIDC e distribuisce lo ZIP, con pulizia e comando di avvio `node server.mjs`.
+5. Riavvia esplicitamente App Service.
+6. Ritenta lo smoke test per gestire l'avvio a freddo.
+
+Lo smoke remoto verifica sonda, compressione Brotli, ETag, HTML, `/api/auth/me`, bundle gioco, font e audio. Non registra utenti, non prova il flusso completo di login e non verifica GMAT. Il risultato di `/api/auth/me` senza cookie dimostra l'accesso alla tabella utenti, non l'intero contratto account.
+
+Proteggi `dev` e `main` richiedendo PR e controlli. L'eventuale approvazione del deploy produzione si configura nel GitHub Environment.
+
+## Cache e invalidazione
+
+Il server assegna un anno di cache immutabile a `/assets/*`, `/audio/*` e `/fonts/*`, `no-cache` all'HTML e agli script `/game/*`, un'ora agli altri file. API e sonda hanno `no-store`.
+
+Il bundle di gioco usa un hash nel nome; l'audio usa una versione nella URL. Per modifiche a file con nome stabile e cache lunga occorre prevedere una nuova URL o un'invalidazione coerente.
+
+## Collaudo, rollback e diagnostica
+
+Dopo il deploy verifica registrazione, accesso, uscita, persistenza dell'account dopo riavvio, separazione dati staging/produzione e gioco ospite. Controlla che un salvataggio preesistente sia ancora leggibile nella stessa origine. Per il flusso completo usa la [guida alle verifiche](testing.md).
+
+In caso di errore:
+
+| Sintomo | Verifica |
+| --- | --- |
+| Processo non avviato | Runtime Node, comando di avvio e variabili obbligatorie |
+| Sonda positiva, account `503` | DB, DNS, firewall, certificati, credenziali e schema |
+| Account `403` | `APP_ORIGIN`, dominio personalizzato e protocollo effettivo |
+| HTML vecchio | Deploy effettivo, riavvio processo e URL del bundle |
+| GMAT `404` | Hosting e instradamento del servizio separato |
+
+Un rollback distribuisce una release applicativa precedente; non ripristina lo schema né i dati PostgreSQL. Valuta la compatibilità della release con lo schema e verifica backup e ripristino prima delle migrazioni. Non cancellare tabelle o volumi per risolvere un errore di connessione.
+
+## Rimozione risorse
+
+`infra/azure-teardown.sh` avvia l'eliminazione dell'intero gruppo risorse e rimuove un'applicazione Entra trovata per nome. È un'operazione distruttiva: include anche eventuali database nel gruppo. Verifica subscription, gruppo, identità e backup prima di eseguirla. Non elimina automaticamente risorse esterne a quel gruppo.
