@@ -30,6 +30,33 @@ const LANG='en';
 const I18N=(()=>{ const RAW=`Particelle solari in arrivo: il satellite è passato da solo in safe mode per proteggersi. Riaccendi gli strumenti per misurare la tempesta?	Solar particles incoming: the satellite switched to safe mode by itself to protect itself. Switch the instruments back on to measure the storm?
 Riaccendi e misura	Switch on and measure
 Resta in safe mode	Stay in safe mode
+Rientro nell’atmosfera	Atmospheric re-entry
+Ingresso nell’atmosfera	Atmosphere entry
+Impatto sulla superficie	Impact on the surface
+dopo {n} giorni	after {n} days
+Senza propulsione l’orbita cade: GMAT prevede il contatto con la superficie o l’atmosfera dopo {n} giorni, ne servono almeno {n}.	Without propulsion the orbit falls: GMAT predicts contact with the surface or atmosphere after {n} days, at least {n} are needed.
+{n} giorni	{n} days
+oltre 5 anni	over 5 years
+oltre 1 anno	over 1 year
+Vita in orbita (sole medio)	Orbit lifetime (average Sun)
+Vita con il massimo solare	Lifetime at solar maximum
+Vita con il minimo solare	Lifetime at solar minimum
+Vita con la vela di rientro	Lifetime with the drag sail
+Regola dei 5 anni	5-year rule
+rispettata ✓	met ✓
+non rispettata ✕: serve la vela o una manovra di fine vita	not met ✕: needs the sail or an end-of-life manoeuvre
+Vita prima dell’impatto	Lifetime before impact
+Vita prima dell’atmosfera	Lifetime before the atmosphere
+Crescita dell’eccentricità	Eccentricity growth
+{n} al mese	{n} a month
+Deriva del pericentro	Periapsis drift
+Precessione del nodo	Node precession
+Distanza dalla Terra	Distance from Earth
+{n} – {n} milioni di km	{n} – {n} million km
+Tempo luce (solo andata)	Light time (one way)
+{n} – {n} min	{n} – {n} min
+Vita dell’orbita (GMAT)	Orbit lifetime (GMAT)
+Senza propulsione l’orbita decade: GMAT stima circa {n} giorni di vita (caso peggiore), ne servono almeno {n}.	Without propulsion the orbit decays: GMAT estimates about {n} days of life (worst case), at least {n} are needed.
 Analisi GMAT (NASA)	GMAT analysis (NASA)
 GMAT sta analizzando l’orbita…	GMAT is analysing the orbit…
 GMAT non raggiungibile: valori del modello	GMAT unreachable: game model values
@@ -3712,20 +3739,43 @@ function gmaAsk(){ if(GMA.timer||GMA.busy||Date.now()<GMA.off||(view!=='fd'&&vie
       if(ok&&j&&j.eclipse){ GMA.cache[k]=j; const ks=Object.keys(M.gmatA||(M.gmatA={})); if(ks.length>=6) delete M.gmatA[ks[0]]; M.gmatA[k]=j; GMA.st='gmat'; save(); }
       else { GMA.off=Date.now()+(j&&j.error==='busy'?4000:30000); GMA.st='model'; } GMA.busy=false; gmaRefresh(); })
     .catch(()=>{ GMA.off=Date.now()+30000; GMA.st='model'; GMA.busy=false; gmaRefresh(); }); },800); }
-O.hook.gmatAn=(M,req)=>{ const k=gmxKey(req)+'|a2', hit=GMA.cache[k]||(M.gmatA&&M.gmatA[k]);
+O.hook.gmatAn=(M,req)=>{ const k=gmxKey(req)+'|a3', hit=GMA.cache[k]||(M.gmatA&&M.gmatA[k]);
   if(GMA.capture){ GMA.req=req; GMA.key=k; return hit||null; }
   if(hit){ GMA.cache[k]=hit; return hit; } gmaAsk(); return null; };
 const stOwn=k=>k==='milan'||(k==='svalbard'&&hasB('ground'))||(k==='canberra'&&dishN()>0);
-function anRows(M,p){ const an=p.an, rows=[]; if(!an) return rows; const e=an.eclipse, dest=M.sat.dest||'leo';
+/* Vita dell'orbita (GMAT): una richiesta per scenario (sole medio, massimo, minimo, con la vela), una alla volta, sempre per il piano corrente. Ogni risposta si salva con la missione. */
+const GML={ cache:{}, timer:0, busy:false, off:0, capture:false, req:null, miss:[], base:'' }, LF_SAIL_M2=1.0;
+const lfScenarios=req=>{ const s=['nom']; if(req.sail&&(req.dest==='leo'||req.dest==='mars')) s.push('sail'); if(req.dest==='leo') s.push('max','min'); return s; }; // l'ordine conta: prima i valori che decidono la regola dei 5 anni
+function gmlAsk(){ if(GML.timer||GML.busy||Date.now()<GML.off||(view!=='fd'&&view!=='build')) return;
+  GML.timer=setTimeout(()=>{ GML.timer=0; const M=cur(); if(!M) return; GML.capture=true; GML.req=null; try{ O.plan(M); }finally{ GML.capture=false; }
+    const req=GML.req, miss=GML.miss||[]; if(!req||!miss.length) return; const s=miss[0], k=GML.base+'|'+s+'|l1'; GML.busy=true;
+    fetch('/api/gmat/lifetime',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.assign({},req,{sail:undefined,scenario:s,sailArea:LF_SAIL_M2}))}).then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+      if(ok&&j&&j.scenario){ GML.cache[k]=j; const ks=Object.keys(M.gmatL||(M.gmatL={})); if(ks.length>=12) delete M.gmatL[ks[0]]; M.gmatL[k]=j; save(); } else GML.off=Date.now()+(j&&j.error==='busy'?5000:30000);
+      GML.busy=false; gmaRefresh(); if(ok) gmlAsk(); })
+    .catch(()=>{ GML.off=Date.now()+30000; GML.busy=false; gmaRefresh(); }); },1500); }
+O.hook.gmatLf=(M,req)=>{ const r=Object.assign({},req); delete r.sail; const base=gmxKey(r)+'|a3', out={}, miss=[];
+  lfScenarios(req).forEach(s=>{ const k=base+'|'+s+'|l1', hit=GML.cache[k]||(M.gmatL&&M.gmatL[k]); if(hit){ GML.cache[k]=hit; out[s]=hit; } else miss.push(s); });
+  if(GML.capture){ GML.req=req; GML.miss=miss; GML.base=base; return out; }
+  if(miss.length) gmlAsk(); return out; };
+const fmtLife=(r,over)=>!r?'GMAT sta calcolando…':r.days==null?over:r.days<60?nf(r.days,0)+' giorni':r.days<730?nf(r.days/30.4,0)+' mesi':nf(r.days/365,1)+' anni';
+function anRows(M,p){ const an=p.an, lf=p.lf||{}, rows=[], dest=M.sat.dest||'leo', ev=an&&an.evolution; if(!an) return rows; const e=an.eclipse;
   rows.push(['Periodo orbitale',nf(an.period/60,0)+' min','gmat']);
   rows.push(['Ombra per orbita',e.events?'media '+nf(e.avgMin,0)+' min · massima '+nf(e.maxMin,0)+' min · al sole '+nf(e.sunlitPct,0)+'%':'nessuna: orbita al crepuscolo, sempre al sole','gmat']);
   if(an.contacts){ O.STATIONS.forEach(s=>{ const c=an.contacts[s.k]||{passesDay:0,minDay:0}, own=stOwn(s.k); rows.push(['Contatti · '+s.n,own?nf(c.passesDay,1)+' passaggi al giorno · '+nf(c.minDay,0)+' min al giorno':(s.k==='svalbard'?'serve l’edificio di terra':'serve una parabola nel centro di terra'),'gmat',!own]); }); rows.push(['Contatti totali',nf(contactMin(M),0)+' min al giorno','gmat']); }
   else rows.push(['Contatti con la terra',nf(contactMin(M),0)+' min al giorno','model']);
-  if(an.decay){ const d=an.decay; rows.push(['Perdita di quota',d.measurable?nf(d.kmMonth,1)+' km al mese':'trascurabile','gmat']);
-    rows.push(['Vita stimata dell’orbita',d.lifeMonths!=null?(d.lifeMonths<24?nf(d.lifeMonths,0)+' mesi':nf(d.lifeMonths/12,1)+' anni'):'oltre 10 anni','gmat']);
-    rows.push(['ΔV di mantenimento',nf(d.skDvMonth,1)+' m/s al mese','gmat']);
-    rows.push(['Deriva del nodo (J2)',(d.nodeDegDay>=0?'+':'−')+nf(Math.abs(d.nodeDegDay),2)+' °/giorno'+(d.sso?' · eliosincrona ✓':''),'gmat']); }
-  else if(dest!=='leo') rows.push(['Perdita di quota e vita','modello del gioco (GMAT solo per l’orbita terrestre)','model']);
+  if(an.impact) rows.push([dest==='leo'||dest==='mars'?'Rientro nell’atmosfera':dest==='venus'?'Ingresso nell’atmosfera':'Impatto sulla superficie','dopo '+nf(an.impact.days,0)+' giorni','gmat']);
+  if(an.earth){ const x=an.earth; rows.push(['Distanza dalla Terra',nf(Math.min(x.km0,x.km1)/1e6,2)+' – '+nf(Math.max(x.km0,x.km1)/1e6,2)+' milioni di km','gmat']); rows.push(['Tempo luce (solo andata)',nf(Math.min(x.lightMin0,x.lightMin1),x.lightMin0<1?2:1)+' – '+nf(Math.max(x.lightMin0,x.lightMin1),x.lightMin0<1?2:1)+' min','gmat']); }
+  if(an.decay){ const d=an.decay; rows.push(['Perdita di quota',d.measurable?nf(d.kmMonth,1)+' km al mese':'trascurabile','gmat']); }
+  if(ev&&dest!=='leo'){ rows.push(['Crescita dell’eccentricità','+'+nf(ev.eccGrowthMonth,4)+' al mese','gmat']); rows.push(['Deriva del pericentro',(ev.periKmMonth>=0?'+':'−')+nf(Math.abs(ev.periKmMonth),1)+' km al mese','gmat']); }
+  if(ev) rows.push(['ΔV di mantenimento',nf(ev.skDvMonth,1)+' m/s al mese','gmat']);
+  if(an.decay) rows.push(['Deriva del nodo (J2)',(an.decay.nodeDegDay>=0?'+':'−')+nf(Math.abs(an.decay.nodeDegDay),2)+' °/giorno'+(an.decay.sso?' · eliosincrona ✓':''),'gmat']);
+  else if(ev) rows.push(['Precessione del nodo',(ev.nodeDegDay>=0?'+':'−')+nf(Math.abs(ev.nodeDegDay),2)+' °/giorno','gmat']);
+  // vita: propagazione GMAT fino al rientro (Terra, Marte), all'impatto (Luna) o all'atmosfera (Venere)
+  if(dest==='leo'||dest==='mars'){ rows.push(['Vita in orbita (sole medio)',fmtLife(lf.nom,'oltre 5 anni'),'gmat']);
+    if(dest==='leo'){ rows.push(['Vita con il massimo solare',fmtLife(lf.max,'oltre 5 anni'),'gmat']); rows.push(['Vita con il minimo solare',fmtLife(lf.min,'oltre 5 anni'),'gmat']); }
+    if(M.sat.placed&&M.sat.placed.eol) rows.push(['Vita con la vela di rientro',fmtLife(lf.sail,'oltre 5 anni'),'gmat']);
+    const r5=M.sat.placed&&M.sat.placed.eol?lf.sail:lf.nom; if(r5) rows.push(['Regola dei 5 anni',r5.days!=null&&r5.days<=1825?'rispettata ✓':'non rispettata ✕: serve la vela o una manovra di fine vita','gmat']); }
+  else rows.push([dest==='moon'?'Vita prima dell’impatto':'Vita prima dell’atmosfera',fmtLife(lf.nom,'oltre 1 anno'),'gmat']);
   return rows; }
 function obAn(M,p){ const rows=anRows(M,p), st=p.an?'':'<p class="fine">'+(GMA.st==='wait'?'GMAT sta analizzando l’orbita…':'GMAT non raggiungibile: valori del modello')+'</p>';
   return '<div class="gmaan"><h3>Analisi GMAT (NASA)</h3>'+st+(rows.length?'<ul class="tgl">'+rows.map(r=>'<li style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px;padding:5px 0'+(r[3]?';opacity:.55':'')+'"><span>'+esc(r[0])+' <small class="fine">'+(r[2]==='gmat'?'GMAT':'modello')+'</small></span><span class="num" style="flex:1 1 55%;text-align:right">'+esc(r[1])+'</span></li>').join('')+'</ul>':'')+'</div>'; }
@@ -3947,7 +3997,7 @@ const DATAG={Scientifica:[0.3,1],Osservazione:[1.5,1.6],Telescopio:[1.2,1.6],Sup
 function payData(id){ const t=P[id]&&P[id].db; if(!t) return 0; const m=String(t.mis||'').split(';')[0].trim(), g=DATAG[m]||[0.5,1]; return g[0]*Math.pow(Math.max(1,+t.sv||1),g[1]); }
 function radioRef(t){ const s=(t.n||'')+' '+(t.code||''); if(/profondo|Vulcan|DSTX/i.test(s)) return 4e8; if(/Ka\b|banda X|XBAND/i.test(s)) return 4e6; return (+t.sv||0)<=20?3000:40000; }
 function linkDist(M){ const dest=M.sat.dest||'leo'; if(dest==='moon') return 384400; if(dest==='mars') return 2.25e8; if(dest==='venus') return 1.6e8; const h=(M.drm&&typeof drmStarH==='function'&&drmStarH(M))||null, b=O.zoneOf(M).band; return h||(b?Math.sqrt(b[0]*b[1]):550); }
-function contactMin(M){ const dest=M.sat.dest||'leo', z=(O.zoneOf(M)||{}).k; const an=dest==='leo'?O.plan(M).an:null; if(an&&an.contacts) return O.STATIONS.filter(s=>stOwn(s.k)).reduce((a,s)=>a+((an.contacts[s.k]||{}).minDay||0),0); // somma delle stazioni sbloccate (sovrapposizioni ignorate)
+function contactMin(M){ const dest=M.sat.dest||'leo', z=(O.zoneOf(M)||{}).k; const an=O.plan(M).an; if(an&&an.contacts) return O.STATIONS.filter(s=>stOwn(s.k)).reduce((a,s)=>a+((an.contacts[s.k]||{}).minDay||0),0); // somma delle stazioni sbloccate (sovrapposizioni ignorate)
    const base=dest!=='leo'?480:z==='high'?1200:z==='med'?300:30; return base*(hasB('ground')?1.5:1)*(1+.1*dishN()); }
 function dataBud(M,d){ d=d||M.sat; const pid=d.placed.ray&&d.placed.ray.id, rid=d.placed.com&&d.placed.com.id, t=rid&&P[rid]?P[rid].db:null, gen=pid?payData(pid):0, dist=linkDist(M), ref=t?radioRef(t):1, rate=t?(+t.sv||0)*Math.min(1,Math.pow(ref/Math.max(dist,1),2)):0, cmin=contactMin(M), down=rate*cmin*60/8/1000;
   return {gen,down,rate,cmin,dist,ok:down>=gen-1e-9,k:gen>0?Math.min(1,down/gen):1}; }
@@ -3985,7 +4035,7 @@ function twinView(M){ const l=TWIN[(M.type||'sci')+':'+(M.sat.dest||'leo')]; if(
 function missionFacts(m){ const d=m.sat, b=E.budget(d), db=dataBud(m), lv=E.LV[d.lv], r=m.result, p=O.plan(m);
   return [['Tipo',O.TYPES[m.type||'sci'].n],['Destinazione',zoneName(m)],['Satellite',E.RIDES[d.ride]?E.RIDES[d.ride].n:'—'],['Lanciatore',lv?lv.n:'—'],['Orbita di lavoro',m.drm&&!drmLand(m)?drmKm(drmStarH(m)||0):p.land?'sul suolo':O.fmt(p.final)],
     ['Massa',nf(b.wet,1)+' / '+Math.min(b.massLim,lvCap(m))+' kg'],['Potenza',nf(b.demand,1)+' / '+nf(b.gen,1)+' W'],['Costo',keur(b.cost)],['Dati',mbf(db.gen)+' prodotti · '+mbf(db.down)+' scaricati al giorno'],['ΔV del piano',Math.round(p.tot)+' / '+Math.round(p.dvAvail)+' m/s'],
-    ['Durata',(r?r.months:m.duration||'—')+' mesi'],['Scienza',r?String(r.sci):'—'],['Esito',r?(r.ok?'Riuscita':'Non riuscita'):phn(m)],['Maturità (NASA CML)',cmlTag(m)],['Fonte del ΔV',p.gmat?'GMAT (NASA)':'Modello del gioco']].concat(p.an?[['Ombra massima per orbita (GMAT)',nf(p.an.eclipse.maxMin,0)+' min'],['Contatti con la terra (GMAT)',nf(contactMin(m),0)+' min al giorno']].concat(p.an.decay?[['Vita stimata dell’orbita (GMAT)',p.an.decay.lifeMonths!=null?(p.an.decay.lifeMonths<24?nf(p.an.decay.lifeMonths,0)+' mesi':nf(p.an.decay.lifeMonths/12,1)+' anni'):'oltre 10 anni']]:[]):[]); }
+    ['Durata',(r?r.months:m.duration||'—')+' mesi'],['Scienza',r?String(r.sci):'—'],['Esito',r?(r.ok?'Riuscita':'Non riuscita'):phn(m)],['Maturità (NASA CML)',cmlTag(m)],['Fonte del ΔV',p.gmat?'GMAT (NASA)':'Modello del gioco']].concat(p.an?[['Ombra massima per orbita (GMAT)',nf(p.an.eclipse.maxMin,0)+' min'],['Contatti con la terra (GMAT)',nf(contactMin(m),0)+' min al giorno']].concat(p.lf&&p.lf.nom?[['Vita dell’orbita (GMAT)',fmtLife(p.lf.nom,(m.sat.dest||'leo')==='moon'||(m.sat.dest||'leo')==='venus'?'oltre 1 anno':'oltre 5 anni')]]:[]):[]); }
 function reportHTML(M){ const f=missionFacts(M), mp=M.result?mcrParts(M):null, parts=Object.keys(M.sat.placed).map(c=>P[M.sat.placed[c].id]).filter(Boolean);
   const css='body{font:15px/1.5 system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#1E2A3A;background:#F3F6F9;margin:0;padding:24px}main{max-width:900px;margin:auto;background:#fff;border-radius:16px;padding:28px;box-shadow:0 4px 20px rgba(0,0,0,.08)}h1{font-size:28px;margin:0}h2{font-size:16px;text-transform:uppercase;letter-spacing:.08em;color:#5F6E80;margin:24px 0 8px}table{border-collapse:collapse;width:100%}td{padding:6px 8px;border-bottom:1px solid #E3E8ED;vertical-align:top}td:first-child{color:#5F6E80;width:38%}.num{font-family:ui-monospace,Menlo,monospace}.chain{display:grid;gap:8px}.chn{display:grid;grid-template-columns:1fr 20px 1.3fr 20px 1fr;gap:4px}.chn>div{border:1px solid #E3E8ED;border-radius:8px;padding:6px 8px;font-size:13px}.chn small{display:block;color:#5F6E80;font-size:11px;text-transform:uppercase}.bad{color:#B23A2C}.good{color:#1F7A44}.drm{border:1px solid #E3E8ED;border-radius:10px;overflow:hidden}.drm svg{display:block;width:100%;height:auto}table.pay td:last-child{text-align:right}footer{margin-top:24px;color:#8D99A6;font-size:12px}';
   return '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Resoconto '+esc(M.name)+'</title><style>'+css+'</style></head><body><main><p style="color:#5F6E80;margin:0">Go No-Go · resoconto di missione · '+esc(G.co||'')+'</p><h1>'+esc(M.name)+'</h1>'+(M.statement?'<p><i>'+esc(M.statement)+'</i></p>':'')+
@@ -4585,7 +4635,7 @@ O.hook.refProp=M=>{ const ride=M.sat.ride, ids=L.availCat(M,'prop',ride);
 function pdrB(){ const M=cur(), p=O.plan(M), bad=[]; if(!M.drm||!(drmLand(M)||(M.drm.eol&&drmStarH(M)!=null))) bad.push('Completa la Design Reference Mission (passo 1): orbita di lavoro ★ e fine vita.'); else if(!M.drm.done) bad.push('Progetta il satellite (passo 2).'); else { const ck=E.checks(M.sat).list.filter(x=>!x.ok&&['parts','place','mass','pow','bat','point'].indexOf(x.k)>=0); ck.forEach(x=>bad.push('Satellite: '+esc(x.t)+'.')); const dd=drmDv(M,p); if(!ck.length&&!p.bad&&p.tot*1.05+dd.extra>p.dvAvail+1) bad.push('La DRM chiede '+Math.round(p.tot*1.05+dd.extra)+' m/s, il satellite ne ha '+Math.round(p.dvAvail)+'.'); }
   if(M.sat.lv){ const wet=E.budget(M.sat).wet, cap=lvCap(M); if(wet>cap+1e-9) bad.push('Il satellite pesa '+nf(wet,1)+' kg, ma '+esc(E.LV[M.sat.lv].n)+' ne porta al massimo '+cap+' in quest’orbita.'); }
   if(!M.sat.lv) bad.push('Scegli come vai nello spazio.'); else { if(p.bad) bad.push(esc(p.bad)+'.'); else if(!p.ok) bad.push(p.stratOk?'L’orbita finale non è dentro la fascia obiettivo.':'Scegli una strategia per ogni tratto del viaggio.'); else if(p.ref&&p.tot>1&&p.tot*1.05>p.dvAvail) bad.push('Il piano chiede '+Math.round(p.tot*1.05)+' m/s (con il margine), ma il miglior propulsore del tuo livello ne dà circa '+Math.round(p.dvAvail)+': scegli un’orbita più vicina a quella di rilascio.'); }
-  { const an=p.an; if(an&&an.decay&&an.decay.measurable&&an.decay.lifeMonths!=null&&!M.sat.placed.prop&&an.decay.lifeMonths<L.minMonths(M)) bad.push('Senza propulsione l’orbita decade: GMAT stima circa '+nf(an.decay.lifeMonths,0)+' mesi di vita, ne servono almeno '+L.minMonths(M)+'.'); }
+  { const an=p.an, w=p.lf&&(p.lf.max||p.lf.nom), dd=M.sat.dest||'leo'; if(an&&an.impact&&!M.sat.placed.prop&&an.impact.days<L.minMonths(M)*30.4) bad.push('Senza propulsione l’orbita cade: GMAT prevede il contatto con la superficie o l’atmosfera dopo '+nf(an.impact.days,0)+' giorni, ne servono almeno '+nf(L.minMonths(M)*30.4,0)+'.'); if(!M.sat.placed.prop&&(dd==='leo'||dd==='mars')&&w&&w.days!=null&&w.days<L.minMonths(M)*30.4) bad.push('Senza propulsione l’orbita decade: GMAT stima circa '+nf(w.days,0)+' giorni di vita (caso peggiore), ne servono almeno '+nf(L.minMonths(M)*30.4,0)+'.'); else if(!w&&an&&an.decay&&an.decay.measurable&&an.decay.lifeMonths!=null&&!M.sat.placed.prop&&an.decay.lifeMonths<L.minMonths(M)) bad.push('Senza propulsione l’orbita decade: GMAT stima circa '+nf(an.decay.lifeMonths,0)+' mesi di vita, ne servono almeno '+L.minMonths(M)+'.'); }
   const inst=L.installment(M,'PDR'), lc=M.sat.lv?E.lvCost(M.sat):0, rush=rushExtra(M,lc);
   if(bad.length){ review({eb:'Fine fase B',name:'Preliminary Design Review',code:'PDR',nasa:'Preliminary Design Review',stamp:'NO-GO',no:true,body:'<ul class="reqs">'+bad.map(x=>'<li><span class="c">ORB</span><span>'+x+'</span><span></span></li>').join('')+'</ul>',actions:'<button class="btn primary" data-act="closeov">Torna alla fase B</button>'}); return; }
   review({eb:'Fine fase B',name:'Preliminary Design Review',code:'PDR',nasa:'Preliminary Design Review',stamp:'GO',short:(LANG==='en'?'Orbit and launch approved. Second instalment: ':'Orbita e lancio approvati. Seconda rata: ')+'<b class="num">'+keur(inst)+'</b>.',body:'<p>Lancio: <b>'+esc(E.LV[M.sat.lv].n)+'</b>'+(lc?' · prenotazione '+keur(lc):'')+(rush?' + extra Rush '+keur(rush):'')+' · finestra '+winName(winMode(M))+'. Orbita di lavoro: '+(p.land?'sul suolo':O.fmt(p.final))+'; ΔV del piano '+Math.round(p.tot)+' m/s'+(p.tot>1?': con il propulsore che hai scelto':'')+'. Fase C: il progetto si congela e alla CDR compri i pezzi.</p>'+(()=>{ const q=dataBud(M); return q.ok?'':'<p class="bad">Attenzione: la radio scarica solo il '+pct(q.k)+' dei dati prodotti. La scienza in volo calerà nella stessa misura.</p>'; })()+(p.atm&&p.atm.p>0.005&&p.atm.worst?'<p class="bad">Attenzione: '+pct(p.atm.p)+' di probabilità che l’attrito dell’atmosfera faccia rientrare il satellite prima del tempo (pericentro a '+nf(p.atm.worst.pe,0)+' km).</p>':'')+'<p>Gli stakeholder versano la seconda rata, <b class="num">'+keur(inst)+'</b>.</p>'+(G.money+inst<lc+rush?'<p class="bad">Anche con la rata non basta per prenotare il lancio.</p>':'')+payPlan(M,'PDR'),actions:'<button class="btn primary" data-act="toC">Prenota il lancio e vai avanti</button><button class="btn" data-act="closeov">Non ancora</button>'}); }

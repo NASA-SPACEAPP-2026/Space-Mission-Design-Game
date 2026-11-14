@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 
-const MAX_WAITING = 5, TIMEOUT_MS = 30000, ANALYSIS_TIMEOUT_MS = 90000, CACHE_MAX = 500;
+const MAX_WAITING = 5, TIMEOUT_MS = 30000, ANALYSIS_TIMEOUT_MS = 120000, LIFETIME_TIMEOUT_MS = 240000, CACHE_MAX = 500;
 const DESTS = new Set(['leo', 'moon', 'mars', 'venus']);
 
 // 02-orbit.js is a classic script: evaluate it with a fake CommonJS `module`
@@ -57,6 +57,13 @@ export function validateAnalysis(b) {
   return { dest: b.dest, el: pick(b.el), mass: b.mass ?? 4, area: b.area ?? 0.03 };
 }
 
+const SCENARIOS = new Set(['nom', 'max', 'min', 'sail']);
+export function validateLifetime(b) {
+  const p = validateAnalysis(b); if (typeof p === 'string') return p;
+  if (!SCENARIOS.has(b.scenario) || (b.sailArea != null && !num(b.sailArea, 0.1, 100))) return 'bad-plan';
+  return { ...p, scenario: b.scenario, sailArea: b.sailArea ?? 1.0 };
+}
+
 const ms = s => Date.parse(String(s).trim().replace(/^(\d\d) (\w{3}) (\d{4}) (.*)$/, '$1 $2 $3 $4 UTC'));
 /** Shadow per orbit from an EclipseLocator report. The last event is dropped: it may be cut off by the end of the run. */
 export function parseEclipse(txt, days) {
@@ -75,28 +82,46 @@ export function parseContacts(txt, days) {
   }
   return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, { passesDay: v.passes / days, minDay: v.seconds / 60 / days }]));
 }
-/** State report rows: days, SMA, altitude, RAAN, INC. Two windows of one orbit each (start and end): the means remove the J2 oscillation of the osculating SMA. */
+/** State report rows: days, SMA, ECC, periapsis radius, RAAN, INC, distance to Earth. Two windows of one orbit each (start and end): the means remove the short-period oscillation of the osculating elements. */
 export function parseState(txt) {
-  const rows = String(txt).split(/\r?\n/).map(s => s.trim()).filter(Boolean).map(l => l.split(/\s+/).map(Number)).filter(r => r.length >= 5 && r.every(Number.isFinite));
-  if (rows.length < 4) return null;
-  // RAAN (column 3) is an angle: use the circular mean, or a polar orbit near 0/360 averages to 180
-  const h = rows.length >> 1, R = Math.PI / 180, mean = rs => rs[0].map((_, c) => c === 3 ? (Math.atan2(rs.reduce((a, r) => a + Math.sin(r[c] * R), 0), rs.reduce((a, r) => a + Math.cos(r[c] * R), 0)) / R + 360) % 360 : rs.reduce((a, r) => a + r[c], 0) / rs.length);
-  return { a: mean(rows.slice(0, h)), b: mean(rows.slice(h)) };
+  const rows = String(txt).split(/\r?\n/).map(x => x.trim()).filter(Boolean).map(l => l.split(/\s+/).map(Number)).filter(r => r.length >= 7 && r.every(Number.isFinite));
+  // first window: days < 0.2. The row after it is the one written when the 30-day propagation stopped, then the second window.
+  const w1 = rows.filter(r => r[0] < 0.2), w2 = rows.filter(r => r[0] >= 0.2);
+  if (w1.length < 2 || !w2.length) return null;
+  // RAAN (column 4) is an angle: use the circular mean, or a polar orbit near 0/360 averages to 180
+  const R = Math.PI / 180, mean = rs => rs[0].map((_, c) => c === 4 ? (Math.atan2(rs.reduce((a, r) => a + Math.sin(r[c] * R), 0), rs.reduce((a, r) => a + Math.cos(r[c] * R), 0)) / R + 360) % 360 : rs.reduce((a, r) => a + r[c], 0) / rs.length);
+  return { a: mean(w1), b: mean(w2), stopDays: w2[0][0] };
 }
-// scale height of the upper atmosphere (km), coarse: the lifetime is an estimate H / (decay rate)
+/** Last line of a lifetime report: days elapsed and altitude when the run stopped. Not re-entered if it ran to the cap. */
+export function parseLifetime(txt, cap) {
+  const last = String(txt).split(/\r?\n/).map(s => s.trim()).filter(Boolean).pop() || '', v = (last.match(/-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?/g) || []).map(Number);
+  if (v.length < 2 || !v.every(Number.isFinite)) return null;
+  return { days: v[0] < cap - 0.5 ? v[0] : null, cap, alt: v[1] };
+}
+// scale height of the upper atmosphere (km), coarse: only used for the legacy lifetime estimate shown when the full lifetime run is not available
 const scaleH = alt => alt < 300 ? 45 : alt < 400 ? 52 : alt < 500 ? 60 : alt < 600 ? 70 : 85;
 const DECAY_NOISE_KM_MONTH = 0.3; // below this the measured change is within the noise of the orbit-mean
+const C_KM_S = 299792.458;
 
-export function derive(dest, req, st, ecl, con, days, mu) {
-  const a = (req.el.pe + req.el.ap) / 2 + ({ leo: 6371, moon: 1737.4, mars: 3389.5, venus: 6051.8 })[dest], period = 2 * Math.PI * Math.sqrt(a ** 3 / mu);
-  const out = { period, eclipse: ecl, contacts: null, decay: null, days };
-  if (dest !== 'leo') return out;
-  out.contacts = con;
-  if (st) {
-    const span = st.b[0] - st.a[0] || days, dSma = st.a[1] - st.b[1], perMonth = dSma * 30 / span, alt = (st.a[2] + st.b[2]) / 2, raan = ((st.b[3] - st.a[3] + 540) % 360) - 180, node = raan / span;
-    const sk = perMonth > DECAY_NOISE_KM_MONTH ? Math.sqrt(mu / a) * 1000 / 2 * perMonth / a : 0;
-    out.decay = { kmMonth: Math.max(0, perMonth), measurable: perMonth > DECAY_NOISE_KM_MONTH, skDvMonth: sk, lifeMonths: perMonth > DECAY_NOISE_KM_MONTH ? scaleH(alt) / perMonth : null, nodeDegDay: node, sso: Math.abs(node - 0.9856) < 0.12 };
+/** Everything the game needs from one analysis run, for any body. B = { mu, R } of the central body. */
+export function derive(dest, req, st, ecl, con, days, B) {
+  const a = (req.el.pe + req.el.ap) / 2 + B.R, period = 2 * Math.PI * Math.sqrt(a ** 3 / B.mu);
+  const out = { period, eclipse: ecl, contacts: con, evolution: null, decay: null, earth: null, impact: null, days };
+  if (!st) return out;
+  if (st.stopDays != null && st.stopDays < days - 0.5) out.impact = { days: st.stopDays }; // the orbit reached the surface / the atmosphere interface before the 30 days were over
+  const span = st.b[0] - st.a[0] || days, k = 30 / span, smaLoss = (st.a[1] - st.b[1]) * k, eccGrow = (st.b[2] - st.a[2]) * k, periDrift = (st.b[3] - st.a[3]) * k;
+  const node = (((st.b[4] - st.a[4] + 540) % 360) - 180) / span, v = Math.sqrt(B.mu / a) * 1000;
+  let sk;
+  if (dest === 'leo') {
+    const alt = (st.a[3] + st.b[3]) / 2 - B.R, ok = smaLoss > DECAY_NOISE_KM_MONTH;
+    sk = ok ? v / 2 * smaLoss / a : 0;
+    out.decay = { kmMonth: Math.max(0, smaLoss), measurable: ok, skDvMonth: sk, lifeMonths: ok ? scaleH(alt) / smaLoss : null, nodeDegDay: node, sso: Math.abs(node - 0.9856) < 0.12 };
+  } else {
+    // Moon, Mars, Venus: eccentricity growth and drift of the apsides (third-body and gravity-field perturbations, plus drag at Mars)
+    sk = v / 2 * (Math.abs(eccGrow) + Math.abs(smaLoss) / a);
+    const d0 = st.a[6], d1 = st.b[6]; out.earth = { km0: d0, km1: d1, lightMin0: d0 / C_KM_S / 60, lightMin1: d1 / C_KM_S / 60 };
   }
+  out.evolution = { smaKmMonth: -smaLoss, eccGrowthMonth: eccGrow, periKmMonth: periDrift, skDvMonth: sk, nodeDegDay: node };
   return out;
 }
 
@@ -105,7 +130,7 @@ export function createBridge({ gmatConsole = process.env.GMAT_CONSOLE, exec = ru
   const makeQueue = () => { let busy = false; const waiting = [];
     const next = () => { if (busy || !waiting.length) return; busy = true; const job = waiting.shift(); job().finally(() => { busy = false; next(); }); };
     return fn => new Promise(res => { if (waiting.length >= MAX_WAITING) return res({ error: 'busy' }); waiting.push(() => fn().then(res, e => res({ error: 'gmat-failed', detail: String(e && e.message || e).slice(0, 200) }))); next(); }); };
-  const enqueue = makeQueue(), enqueueAn = makeQueue();
+  const enqueue = makeQueue(), enqueueAn = makeQueue(), enqueueLf = makeQueue();
 
   async function solve(p) {
     const dir = await mkdtemp(join(tmpdir(), 'gmat-')), report = join(dir, 'dv.txt');
@@ -122,17 +147,35 @@ export function createBridge({ gmatConsole = process.env.GMAT_CONSOLE, exec = ru
   async function solveAnalysis(p) {
     const dir = await mkdtemp(join(tmpdir(), 'gmat-an-')), files = { ecl: join(dir, 'ecl.txt'), con: join(dir, 'con.txt'), st: join(dir, 'st.txt') };
     try {
-      const Or = orbit(), days = p.dest === 'leo' ? 30 : 7, script = Or.gmatAnalysis(p, { files }), file = join(dir, 'a.script');
+      const Or = orbit(), days = 30, script = Or.gmatAnalysis(p, { files }), file = join(dir, 'a.script');
       await writeFile(file, script);
       await exec(gmatConsole, ['--run', file], dir, ANALYSIS_TIMEOUT_MS);
       const rd = f => readFile(f, 'utf8').catch(() => '');
       const [e, c, s] = await Promise.all([rd(files.ecl), rd(files.con), rd(files.st)]);
       if (!e) return { error: 'gmat-no-result' };
-      return derive(p.dest, p, parseState(s), parseEclipse(e, days), p.dest === 'leo' ? parseContacts(c, days) : null, days, Or.BODY[p.dest].mu);
+      return derive(p.dest, p, parseState(s), parseEclipse(e, days), parseContacts(c, days), days, Or.BODY[p.dest]);
+    } finally { rm(dir, { recursive: true, force: true }).catch(() => {}); }
+  }
+
+  async function solveLifetime(p) {
+    const dir = await mkdtemp(join(tmpdir(), 'gmat-lf-')), st = join(dir, 'life.txt');
+    try {
+      const Or = orbit(), file = join(dir, 'l.script'); await writeFile(file, Or.gmatLifetime(p, { files: { st } }));
+      await exec(gmatConsole, ['--run', file], dir, LIFETIME_TIMEOUT_MS);
+      const r = parseLifetime(await readFile(st, 'utf8').catch(() => ''), Or.LIFE[p.dest].cap);
+      return r ? { scenario: p.scenario, ...r } : { error: 'gmat-no-result' };
     } finally { rm(dir, { recursive: true, force: true }).catch(() => {}); }
   }
 
   return {
+    async lifetime(body) {
+      if (!gmatConsole) return { error: 'no-gmat' };
+      const p = validateLifetime(body); if (typeof p === 'string') return { error: p };
+      const key = 'lf:' + planKey(p); if (cache.has(key)) return cache.get(key);
+      const r = await enqueueLf(() => solveLifetime(p));
+      if (!r.error) { cache.set(key, r); if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value); }
+      return r;
+    },
     async analyze(body) {
       if (!gmatConsole) return { error: 'no-gmat' };
       const p = validateAnalysis(body); if (typeof p === 'string') return { error: p };

@@ -58,7 +58,10 @@ the code is split. The next refactor step converts them to ES modules/TypeScript
 
 The game asks NASA's [General Mission Analysis Tool](https://software.nasa.gov/software/GSC-19468-1) to compute
 the ΔV of every transfer, plus the real **eclipse time, ground-station contacts and orbit decay** of the player's
-working orbit (shown in the *GMAT analysis* card of the Orbit Budget, the build gauges, the PDR and the report).
+working orbit around **Earth, the Moon, Mars and Venus** (shown in the *GMAT analysis* card of the Orbit Budget, the build gauges,
+the PDR and the report). A separate background job flies the orbit to re-entry (Earth, Mars), impact (Moon) or the atmosphere (Venus) to
+get the **orbit lifetime**: three solar-activity levels for Earth, and the end-of-life rule (re-entry within 5 years, or a drag sail,
+or a disposal burn) now depends on it.
 GMAT runs in a Docker container; `npm run dev` starts it for you (`scripts/gmat-up.mjs`). Without Docker the game
 quietly falls back to its own numbers, and every value says which source it came from.
 

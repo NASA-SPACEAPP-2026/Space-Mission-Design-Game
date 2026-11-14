@@ -46,9 +46,24 @@ describe('O.gmat', () => {
     expect(s).toContain("CL.Filename = '/w/c.txt';");
     expect((s.match(/^For /gm) || []).length).toBe(2);
   });
-  it('analysis script for the Moon only looks at eclipses', () => {
-    const s = O.gmatAnalysis({ dest: 'moon', el: { pe: 100, ap: 100, i: 90, raan: 0, argp: 0 }, mass: 4, area: 0.03 }, {});
-    expect(s).toContain('EL.OccultingBodies = {Luna};'); expect(s).not.toContain('ContactLocator'); expect(s).not.toContain('Drag.');
+  it('analysis script is built per body: gravity field, third bodies, drag, occulting body', () => {
+    const mk = dest => O.gmatAnalysis({ dest, el: { pe: 300, ap: 300, i: 90, raan: 0, argp: 0 }, mass: 4, area: 0.045 }, {});
+    const moon = mk('moon'), mars = mk('mars'), venus = mk('venus'), earth = mk('leo');
+    expect(moon).toContain("FM.GravityField.Luna.PotentialFile = 'LP165P.cof';"); expect(moon).toContain('FM.PointMasses = {Earth, Sun};'); expect(moon).toContain('CL.OccultingBodies = {Luna};'); expect(moon).toContain('EL.OccultingBodies = {Luna};'); expect(moon).toContain('FM.Drag = None;');
+    expect(mars).toContain('FM.Drag.AtmosphereModel = Exponential;'); expect(mars).toContain("Mars50c.cof"); expect(mars).toContain('CL.UseLightTimeDelay = true;');
+    expect(venus).toContain('MGNP180U.cof'); expect(venus).toContain('FM.Drag = None;'); expect(venus).not.toContain('AtmosphereModel');
+    expect(earth).toContain('FM.Drag.AtmosphereModel = JacchiaRoberts;'); expect(earth).not.toContain('CL.OccultingBodies');
+    expect((moon.match(/If 'Alive' Sat\.Luna\.Altitude > 4/g) || []).length).toBe(2); expect(moon).toContain('Sat.ElapsedDays = 30, Sat.Luna.Altitude = 3'); expect(earth).toContain('Sat.Earth.Altitude = 140');
+    for (const s of [moon, mars, venus, earth]) { expect(/^[\x00-\x7f]*$/.test(s)).toBe(true); expect(s).toContain('Create ContactLocator CL;'); expect(s).toContain('Sat.Earth.RMAG'); expect(s.indexOf('Create Variable I;')).toBeLessThan(s.indexOf('BeginMissionSequence;')); expect(/;[ \t]+\S/.test(s)).toBe(false); }
+  });
+  it('lifetime script: stop altitude, solar flux per scenario, sail area replaces the body area', () => {
+    const base = { dest: 'leo', el: { pe: 450, ap: 450, i: 51.6, raan: 0, argp: 0 }, mass: 3.5, area: 0.045 };
+    const nom = O.gmatLifetime({ ...base, scenario: 'nom' }, { files: { st: '/w/l.txt' } }), max = O.gmatLifetime({ ...base, scenario: 'max' }), min = O.gmatLifetime({ ...base, scenario: 'min' }), sail = O.gmatLifetime({ ...base, scenario: 'sail', sailArea: 1 });
+    expect(nom).toContain('Sat.Earth.Altitude = 140'); expect(nom).toContain('Sat.ElapsedDays = 1825'); expect(nom).toContain('FM.Drag.F107 = 150;'); expect(max).toContain('FM.Drag.F107 = 230;'); expect(min).toContain('FM.Drag.F107 = 70;');
+    expect(nom).toContain('Sat.DragArea = 0.0450;'); expect(sail).toContain('Sat.DragArea = 1.0000;');
+    expect(O.gmatLifetime({ ...base, dest: 'moon', scenario: 'nom' })).toContain('Sat.Luna.Altitude = 3');
+    expect(O.gmatLifetime({ ...base, dest: 'venus', scenario: 'nom' })).toContain('Sat.Venus.Altitude = 150');
+    expect(O.gmatLifetime({ ...base, dest: 'mars', scenario: 'nom' })).toContain('Sat.Mars.Altitude = 100');
+    expect(/^[\x00-\x7f]*$/.test(nom)).toBe(true);
   });
 });
-

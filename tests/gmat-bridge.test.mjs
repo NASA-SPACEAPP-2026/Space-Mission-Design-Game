@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { createBridge, derive, parseContacts, parseEclipse, parseReport, parseState, validate, validateAnalysis } from '../scripts/gmat-bridge.mjs';
+import { createBridge, derive, parseContacts, parseEclipse, parseLifetime, parseReport, parseState, validate, validateAnalysis, validateLifetime } from '../scripts/gmat-bridge.mjs';
 import { readFile } from 'node:fs/promises';
 
 const el = (h, i = 28.5) => ({ pe: h, ap: h, i, raan: 0, argp: 0, ma: 0 });
@@ -81,16 +81,29 @@ describe('analysis parsers', () => {
     expect(c.milan.passesDay).toBe(1); expect(c.milan.minDay).toBeCloseTo(7, 5); expect(c.svalbard).toEqual({ passesDay: 0, minDay: 0 });
   });
   it('state: window means, RAAN as a circular mean (polar orbits sit around 0/360)', () => {
-    const rows = ['0 6800 420 359 90', '0 6802 422 1 90', '30 6790 410 359 90', '30 6792 412 1 90'].join('\n');
+    const rows = ['0 6800 0.001 6790 359 90 0', '0 6802 0.001 6792 1 90 0', '30 6790 0.002 6780 359 90 0', '30 6792 0.002 6782 1 90 0'].join('\n');
     const s = parseState(rows);
-    expect(s.a[1]).toBe(6801); expect(s.b[1]).toBe(6791); expect(Math.min(s.a[3], 360 - s.a[3])).toBeLessThan(0.01);
+    expect(s.a[1]).toBe(6801); expect(s.b[3]).toBe(6781); expect(Math.min(s.a[4], 360 - s.a[4])).toBeLessThan(0.01);
+    expect(parseState('0 6800 0.001\n')).toBeNull();
   });
-  it('derive: decay, station-keeping dv, lifetime, node drift and SSO flag', () => {
-    const st = { a: [0, 6971, 600, 10, 97.8], b: [30, 6970, 599, 39.8, 97.8] };
-    const out = derive('leo', { el: { pe: 600, ap: 600 } }, st, { events: 0 }, {}, 30, 398600.4);
+  it('derive: Earth decay, station-keeping dv, node drift and SSO flag', () => {
+    const st = { a: [0, 6971, 0.0001, 6970, 10, 97.8, 0], b: [30, 6970, 0.0001, 6969, 39.8, 97.8, 0] };
+    const out = derive('leo', { el: { pe: 600, ap: 600 } }, st, { events: 0 }, {}, 30, { mu: 398600.4, R: 6371 });
     expect(out.decay.kmMonth).toBeCloseTo(1, 5); expect(out.decay.nodeDegDay).toBeCloseTo(0.9933, 3); expect(out.decay.sso).toBe(true);
-    expect(out.decay.lifeMonths).toBeGreaterThan(50); expect(out.decay.skDvMonth).toBeGreaterThan(0);
-    expect(derive('moon', { el: { pe: 100, ap: 100 } }, null, { events: 3 }, null, 7, 4902.8).decay).toBeNull();
+    expect(out.evolution.skDvMonth).toBeGreaterThan(0); expect(out.earth).toBeNull();
+  });
+  it('state: an orbit that reaches the surface leaves only a stop row after the first window', () => {
+    const rows = ['0 1837 0.0001 1837 0 30 0', '0.001 1837 0.0001 1837 0 30 0', '11.4 1838 0.05 1741 0 30 0'].join('\n');
+    const s = parseState(rows); expect(s.stopDays).toBe(11.4);
+    const out = derive('moon', { el: { pe: 100, ap: 100 } }, s, { events: 3 }, {}, 30, { mu: 4902.8, R: 1737.4 });
+    expect(out.impact).toEqual({ days: 11.4 }); expect(out.evolution.periKmMonth).toBeLessThan(0);
+  });
+  it('derive: Moon, Mars, Venus report eccentricity growth, periapsis drift and the Earth distance', () => {
+    const st = { a: [0, 1837.4, 0.003, 1830, 0, 90, 394e3], b: [30, 1837.4, 0.0098, 1817, 0, 90, 402e3] };
+    const out = derive('moon', { el: { pe: 100, ap: 100 } }, st, { events: 3 }, {}, 30, { mu: 4902.8, R: 1737.4 });
+    expect(out.decay).toBeNull(); expect(out.evolution.eccGrowthMonth).toBeCloseTo(0.0068, 4); expect(out.evolution.periKmMonth).toBeCloseTo(-13, 5); expect(out.evolution.skDvMonth).toBeGreaterThan(3);
+    expect(out.earth.km0).toBe(394e3); expect(out.earth.lightMin1).toBeCloseTo(402e3 / 299792.458 / 60, 6);
+    expect(derive('moon', { el: { pe: 100, ap: 100 } }, null, { events: 3 }, null, 30, { mu: 4902.8, R: 1737.4 }).evolution).toBeNull();
   });
   it('analysis input is validated and never carries script text or stations', () => {
     expect(validateAnalysis({ dest: 'leo', el: { pe: 500, ap: 500, i: 51.6 }, mass: 4, area: 0.03, stations: [{ lat: 1 }], script: 'x' })).toEqual({ dest: 'leo', el: { pe: 500, ap: 500, i: 51.6, raan: 0, argp: 0, ma: 0 }, mass: 4, area: 0.03 });
@@ -102,12 +115,24 @@ describe('analysis parsers', () => {
     const exec = async (bin, args, cwd) => {
       runs++; const s = await readFile(args[1], 'utf8'), f = k => s.match(new RegExp(k + "\\.Filename = '([^']+)'"))[1];
       await writeFile(f('EL'), ECL); await writeFile(f('CL'), CON);
-      await writeFile(f('ST'), ['0 6821 450 10 51.6', '0 6821 450 10 51.6', '30 6811 440 205 51.6', '30 6811 440 205 51.6'].join('\n'));
+      await writeFile(f('ST'), ['0 6821 0.0001 6820 10 51.6 0', '0 6821 0.0001 6820 10 51.6 0', '30 6811 0.0001 6810 205 51.6 0', '30 6811 0.0001 6810 205 51.6 0'].join('\n'));
     };
     const b = createBridge({ gmatConsole: 'x', exec }), req = { dest: 'leo', el: { pe: 450, ap: 450, i: 51.6 }, mass: 4, area: 0.03 };
     const r = await b.analyze(req);
     expect(r.eclipse.maxMin).toBeGreaterThan(30); expect(r.contacts.milan.passesDay).toBeGreaterThan(0); expect(r.decay.kmMonth).toBeCloseTo(10, 3);
     await b.analyze(req); expect(runs).toBe(1);
     expect((await b.analyze({ dest: 'leo', el: { pe: 450, ap: 450, i: 51.6 }, mass: 'x' })).error).toBe('bad-plan');
+  });
+
+  it('lifetime: parser, validation and the (fake) GMAT run', async () => {
+    expect(parseLifetime('88.5 140\n', 1825)).toEqual({ days: 88.5, cap: 1825, alt: 140 });
+    expect(parseLifetime('1825 481.2\n', 1825)).toEqual({ days: null, cap: 1825, alt: 481.2 });
+    expect(parseLifetime('', 1825)).toBeNull();
+    const req = { dest: 'leo', el: { pe: 400, ap: 400, i: 51.6 }, mass: 3.5, area: 0.045, scenario: 'max' };
+    expect(validateLifetime({ ...req, scenario: 'bogus' })).toBe('bad-plan'); expect(validateLifetime({ ...req, sailArea: 1e6 })).toBe('bad-plan'); expect(validateLifetime(req)).toMatchObject({ scenario: 'max', sailArea: 1 });
+    let runs = 0; const exec = async (bin, args, cwd) => { runs++; const s = await readFile(args[1], 'utf8'); await writeFile(s.match(/ST\.Filename = '([^']+)'/)[1], '49.7 140\n'); };
+    const b = createBridge({ gmatConsole: 'x', exec }), r = await b.lifetime(req);
+    expect(r).toEqual({ scenario: 'max', days: 49.7, cap: 1825, alt: 140 }); await b.lifetime(req); expect(runs).toBe(1);
+    expect((await createBridge({ gmatConsole: '' }).lifetime(req)).error).toBe('no-gmat');
   });
 });
