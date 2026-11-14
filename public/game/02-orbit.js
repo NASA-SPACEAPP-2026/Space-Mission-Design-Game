@@ -222,6 +222,7 @@ const O = (function () {
     const stratOk = (!st.cap.length || !!sc) && (!st.tr.length || !!strn);
     const f = orbits[obm ? si : orbits.length - 1].el, inR = (x, r) => x >= r[0] - 0.5 && x <= r[1] + 0.5;
     const noProp = !d.placed.prop, early = ['0', 'A', 'B'].indexOf(M.phase) >= 0, rp = noProp ? (HOOK.refProp ? HOOK.refProp(M) : { isp: 231, propM: 0.5 }) : null, none = !!(rp && rp.none);
+    if (noProp && eol && eol.dv > 0) { after = Math.max(0, after - eol.dv); eol.dv = 0; eol.nat = true; }
     if (!bad && noProp && tot + after > 1 && none) bad = 'Il piano chiede ' + Math.round(tot + after) + ' m/s di manovre, ma al tuo livello non hai ancora un propulsore (il primo si sblocca al livello ' + rp.lvl + '): scegli un’orbita di lavoro dove il razzo ti lascia già, senza manovre';
     else if (!bad && noProp && tot + after > 1 && !early) bad = 'Servono ' + Math.round(tot + after) + ' m/s di manovre: monta un sistema di propulsione';
     const chk = land ? { pe: true, ap: true, i: true } : { pe: inR(f.pe, t.pe), ap: inR(f.ap, t.ap), i: inR(f.i, t.i) }; const ok = !bad && chk.pe && chk.ap && chk.i && (stratOk || tot <= 1);
@@ -322,7 +323,15 @@ const O = (function () {
       'Propagate Prop(Sat) {Sat.ElapsedDays = ' + lf.cap + ', Sat.' + c.b + '.Altitude = ' + lf.thr + '};', 'Report ST Sat.ElapsedDays Sat.' + c.b + '.Altitude', ''];
     return L.join('\n').replace(/[^\x00-\x7f]/g, '-'); }
   const fmt = el => Math.round(el.pe) + ' × ' + (isFinite(el.ap) ? Math.round(el.ap) : '∞') + ' km · i ' + Math.round(el.i) + '°';
+  /* Stima del tempo di rientro naturale in orbita terrestre bassa, quando GMAT non risponde.
+     Atmosfera esponenziale a tratti (densita' per attivita' solare media, tabella di Vallado/CIRA-72) e
+     decadimento quasi circolare da/dt = -rho*(Cd*A/m)*sqrt(mu*a), integrato a passi di 1 km fino a 150 km. Restituisce i giorni (null se > 100 anni). */
+  const RHO = [[150, 2.070e-9, 22.523], [180, 5.464e-10, 29.740], [200, 2.789e-10, 37.105], [250, 7.248e-11, 45.546], [300, 2.418e-11, 53.628], [350, 9.518e-12, 53.298], [400, 3.725e-12, 58.515], [450, 1.585e-12, 60.828], [500, 6.967e-13, 63.822], [600, 1.454e-13, 71.835], [700, 3.614e-14, 88.667], [800, 1.170e-14, 124.64], [900, 5.245e-15, 181.05], [1000, 3.019e-15, 268.00]];
+  const rhoAt = h => { let r = RHO[0]; for (const x of RHO) if (h >= x[0]) r = x; return r[1] * Math.exp(-(h - r[0]) / r[2]); };
+  function decayDays(alt, mass, area) { if (!(alt > 0) || !(mass > 0) || !(area > 0)) return null; const mu = BODY.leo.mu * 1e9, Re = BODY.leo.R, k = 2.2 * area / mass; let t = 0;
+    for (let h = Math.min(alt, 2000); h > 150; h -= 1) { const a = (Re + h) * 1000, rate = rhoAt(h) * k * Math.sqrt(mu * a); t += 1000 / rate; if (t > 36525 * 86400) return null; }
+    return t / 86400; }
   const HOOK = { refProp: null, gmat: null, gmatAn: null, gmatLf: null };
-  return { gmat, gmatAnalysis, gmatLifetime, LIFE, STATIONS, nuFromM, hook: HOOK, ECL, ATMH, atmRisk, transfer, legEl, eMax, tle, kep, pqK, work, workEl, frac, ZONES, LAND, zoneOf, landOf, goal, autoBurns, strategies, stmt, BODY, TYPES, state, elements, burn, plan, target, initial, fmt, D2R };
+  return { decayDays, satArea, gmat, gmatAnalysis, gmatLifetime, LIFE, STATIONS, nuFromM, hook: HOOK, ECL, ATMH, atmRisk, transfer, legEl, eMax, tle, kep, pqK, work, workEl, frac, ZONES, LAND, zoneOf, landOf, goal, autoBurns, strategies, stmt, BODY, TYPES, state, elements, burn, plan, target, initial, fmt, D2R };
 })();
 if (typeof module !== 'undefined') module.exports = O;
