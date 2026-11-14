@@ -519,11 +519,11 @@ window.GNGCLAN = (function () {
   }
   const MAX_STATE = 160000;
 
-  // Chi gioca: un battito ogni 8 s; se qualcuno guarda, la partita ogni 5 s. Gli sticker di chi guarda tornano nella risposta.
+  // Chi gioca: un battito ogni 5 s (piccolo); se qualcuno guarda, con la partita. Gli sticker di chi guarda tornano nella risposta.
   const LIVE = { t: 0, watched: false, since: 0, warned: false };
   async function liveBeat() {
     clearTimeout(LIVE.t);
-    let next = 8000;
+    let next = 5000;
     try {
       const snap = !DEMO && loggedIn() && member() && !W.user && host.liveState ? host.liveState() : null;
       if (snap) {
@@ -539,7 +539,7 @@ window.GNGCLAN = (function () {
           if (LIVE.watched && !was) host.toast(T('Un compagno di consorzio ti sta guardando 👀', 'A teammate is watching you 👀'));
           if (LIVE.watched) next = body.state ? 5000 : 300; // qualcuno ha appena cominciato a guardare: la partita parte subito
         } else if (r.status === 404 || r.status === 401) next = 30000;
-      } else next = 15000;
+      } else next = 5000; // nessuna richiesta in questo caso: si ricontrolla presto (per esempio appena entri in un consorzio)
     } catch (e) { next = 15000; }
     LIVE.t = setTimeout(liveBeat, next);
   }
@@ -600,7 +600,8 @@ window.GNGCLAN = (function () {
         try { if (!json) json = await unpack(st); if (W.user === name && host.spectate.show(JSON.parse(json), W.view)) { W.key = key; W.got = true; } }
         catch (e) { console.warn('spectate: cannot read the game state', e); }
       }
-      spectBar(); W.t = setTimeout(watchTick, 5000); return;
+      // finche' non arriva la prima immagine si chiede piu' spesso: chi gioca la manda appena sa di essere guardato
+      spectBar(); W.t = setTimeout(watchTick, W.got ? 5000 : 1500); return;
     }
     if ((r.status === 0 || r.status >= 500) && ++W.fails < 4) { W.t = setTimeout(watchTick, 5000); return; }
     const e = r.data && r.data.error;
