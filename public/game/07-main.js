@@ -478,7 +478,12 @@ Guarda avanti, evita le nuvole e punta lo strumento dove serve.	Looks ahead, avo
 Guarda le stelle per sapere dove punta	Looks at the stars to know where it points
 Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (pre-fase A), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio, prove e lancio (D), operazioni in volo (E) e chiusura (F).	You went through every phase of a real NASA mission: requirements with the stakeholders (Pre-Phase A), satellite and system requirements (Phase A), orbit and launch plan (B), final design (C), assembly, tests and launch (D), operations (E) and closeout (F).
 Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (fase {n}), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio e prove (D), volo (E) e chiusura (F).	You went through every phase of a real mission: requirements with the stakeholders (phase {n}), satellite and system requirements (A), mission, satellite and orbit (B), design freeze and parts (C), assembly and tests (D), flight (E) and close-out (F).
-Hai i requisiti di missione. Chiudi la riunione: segue la revisione MDR.	You have the mission requirements. Close the meeting: the Mission Concept Review (MCR) follows.
+La NASA vuole che il satellite resti nel budget. Puoi trattare: tocca «Controproposta» per chiedere un tetto un po’ più alto. Il requisito diventa più facile, la NASA è un po’ meno contenta.	NASA wants the satellite to stay within budget. You can negotiate: tap «Counter-proposal» to ask for a slightly higher cap. The requirement gets easier, NASA gets a little less happy.
+Gli scienziati vogliono anche la prova in termovuoto: costa tempo e crediti. Prova a rifiutarla con «Rifiuta»: il requisito sparisce, ma loro saranno meno contenti.	The scientists also want a thermal-vacuum test: it costs time and credits. Try refusing it with «Refuse»: the requirement goes away, but they will be less happy.
+Il regolatore impone che il satellite rientri a fine vita: è una regola, non si rifiuta e non si tratta. Accettala: diventa un requisito di missione (MIS).	The regulator requires the satellite to re-enter at end of life: it is a rule, you can't refuse it or negotiate. Accept it: it becomes a mission requirement (MIS).
+Ogni richiesta accettata diventa un requisito di missione (MIS). Accettala.	Every accepted request becomes a mission requirement (MIS). Accept it.
+Hai i requisiti di missione. Chiudi la riunione: segue la revisione MCR.	You have the mission requirements. Close the meeting: the Mission Concept Review (MCR) follows.
+Hai i requisiti di missione. Chiudi la riunione: segue la revisione MDR.You have the mission requirements. Close the meeting: the Mission Concept Review (MCR) follows.
 Hai scelto «Misura» ({n} scienza	You chose «Measure» ({n} science
 Hai scelto «Reset a freddo» ({n}% torna	You chose «Cold reset» ({n}% comes back
 Hai un campus, {n} cr e nessun satellite. La NASA finanzia il tuo primo CubeSat e ti apre il suo catalogo di tecnologie: si parte con poche carte, le altre si sbloccano salendo di livello.	You have a campus, {n} cr and no satellite. NASA funds your first CubeSat and opens its technology catalogue to you: you start with a few cards, the others unlock as you level up.
@@ -1159,6 +1164,9 @@ orbita obiettivo	target orbit
 orbite intermedie	intermediate orbits
 parcheggiato a {n} km	parked at {n} km
 passo {n} di {n}	step {n} of {n}
+Passo {n}	Step {n}
+Passo {n}: progetta il satellite nell’edificio di costruzione. Tocca l’edificio sulla mappa.	Step {n}: design the satellite in the assembly building. Tap the building on the map.
+Passo {n}: progetta il satellite nell’edificio di costruzione: prima torna al campus con la casetta in basso a destra.	Step {n}: design the satellite in the assembly building: first go back to the campus with the house button at the bottom right.
 più	more
 pochissimo	very little
 possibile	possible
@@ -5029,7 +5037,13 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
     return S('#ov [data-act="closeov"]',ph==='done'?'Ecco la revisione di fine missione (MCR): scienza raccolta, rate e cosa è successo. Chiudila.':'Leggi e chiudi la finestra.',ph==='done'?10:null); }
   if(ph==='0'){ if(st==='partners'){ if(!here('admin')) return go2('admin','Benvenuto! Questa prima missione è guidata. Entra nell’edificio amministrativo: la NASA ti aspetta.',0); return S('[data-act="sit"]','Al tavolo siedono la NASA (finanzia), la tua scienziata e l’ente regolatore. Siediti per ascoltare le loro richieste.',0); }
     if(!here('admin')) return go2('admin','Torna nella sala riunioni.',0);
-    return M.queue.length?S('[data-act="yes"]','Ogni richiesta accettata diventa un requisito di missione (MIS). In questa prova accettale tutte: sono già state scelte per te.',0):S('[data-act="endmeet"]','Hai i requisiti di missione. Chiudi la riunione: segue la revisione MDR.',1); }
+    /* nel tutorial si provano tutte e tre le risposte: controproposta (budget NASA), rifiuto (termovuoto degli scienziati), accetta (regola sui detriti) */
+    if(M.queue.length){ const r=L.R(M.queue[0])||{}, tid=r.tid;
+      if(tid==='cost'&&$('[data-act="soft"]:not([disabled])')) return S('[data-act="soft"]','La NASA vuole che il satellite resti nel budget. Puoi trattare: tocca «Controproposta» per chiedere un tetto un po’ più alto. Il requisito diventa più facile, la NASA è un po’ meno contenta.',0);
+      if(tid==='tvt') return S('[data-act="no"]','Gli scienziati vogliono anche la prova in termovuoto: costa tempo e crediti. Prova a rifiutarla con «Rifiuta»: il requisito sparisce, ma loro saranno meno contenti.',0);
+      if(r.rule) return S('[data-act="yes"]','Il regolatore impone che il satellite rientri a fine vita: è una regola, non si rifiuta e non si tratta. Accettala: diventa un requisito di missione (MIS).',0);
+      return S('[data-act="yes"]','Ogni richiesta accettata diventa un requisito di missione (MIS). Accettala.',0); }
+    return S('[data-act="endmeet"]','Hai i requisiti di missione. Chiudi la riunione: segue la revisione MCR.',1); }
   if(ph==='A'){ if(!here('admin')) return go2('admin','Fase A: rientra nell’edificio amministrativo per scegliere il satellite.',2);
     if(st==='type') return S('[data-act="pickType"][data-k="S3"]','Scegli un CubeSat 3U: tre cubi da 10 cm, al massimo 6 kg.',2);
     return M.queue.length?S('[data-act="yes"]','Adesso parla lo staff tecnico: i suoi sono requisiti di sistema (SYS). Accetta.',2):S('[data-act="endmeet"]','Chiudi la riunione: segue la revisione SRR.',3); }
@@ -5097,11 +5111,19 @@ function sdNext(){ if(SD.cur||!SD.q.length) return; const m=SD.q.shift(); let el
 function sdSay(who,txt,skip){ SD.q.push([who,txt,skip]); sdNext(); }
 function tutKey(){ if(view==='build') return BVIEW==='yard'?'yard':(BROOM==='clean'?'clean':'build'); return view; }
 document.addEventListener('pointerdown',()=>{ SD.last=Date.now(); },true);
+/* solo nel tutorial: Zorty spiega ogni passo in un fumetto leggero in basso a sinistra (non blocca il gioco, si chiude con ✕ e riappare al passo dopo) */
+function tutBub(stp){ let b=$('#tbub'); const txt=stp&&stp.t?String(stp.t):'';
+  if(!b){ if(!txt) return; b=document.createElement('div'); b.id='tbub'; b.setAttribute('role','status'); b.setAttribute('aria-live','polite'); b.hidden=true;
+    b.innerHTML='<img class="tb-z" alt="" src="'+((ZORTY.SPR&&ZORTY.SPR.suggerisce)||'')+'"><div class="tb-t"><b class="tb-n">Zorty</b><span class="tb-s"></span></div><button class="tb-x" type="button" aria-label="'+TX('Chiudi','Close')+'">✕</button>';
+    document.body.appendChild(b); b.querySelector('.tb-x').addEventListener('click',()=>{ tutBub.closed=tutBub.last; b.hidden=true; }); }
+  if(!txt){ b.hidden=true; return; }
+  if(txt!==tutBub.last){ tutBub.last=txt; b.querySelector('.tb-s').textContent=txt; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+  b.hidden=tutBub.closed===txt; }
 function coach(){ const box=$('#coach'), hand=$('#chand'); if(box&&!box.hidden) box.hidden=true; if(hand&&!hand.hidden) hand.hidden=true; const prev=document.querySelector('.coach-hl');
-  if(document.body.classList.contains('ttl-on')||!G||!G.tut){ if(prev) prev.classList.remove('coach-hl'); document.body.classList.toggle('tutmode',!!(G&&G.tut&&!document.body.classList.contains('ttl-on'))); return; }
+  if(document.body.classList.contains('ttl-on')||!G||!G.tut){ if(prev) prev.classList.remove('coach-hl'); tutBub(null); document.body.classList.toggle('tutmode',!!(G&&G.tut&&!document.body.classList.contains('ttl-on'))); return; }
   document.body.classList.add('tutmode'); G.sdSeen=G.sdSeen||{};
   const M=G.missions[0], nw=tutUnlock(); if(nw.length){ nw.forEach(k=>{ if(SD_NEW[k]) sdSay(SD_NEW[k][0],SD_NEW[k][1]); }); if(view==='hub') render(); }
-  const stp=coachStep();
+  const stp=coachStep(); tutBub(stp);
   if(M&&M.phase==='done'&&$('#ov').hidden&&coach.mcr&&!coach.ended){ coach.ended=true; tutEndModal(); return; }
   let el=(stp&&stp.sel)?Array.from(document.querySelectorAll(stp.sel)).find(vis):null;
   { const any=el||(stp&&stp.sel?document.querySelector(stp.sel):null), dk=any&&any.closest&&any.closest('.dockL,.dockR'), vw=$('#view'); if(dk&&vw){ const sd=dk.classList.contains('dockL')?'L':'R', rb=document.querySelector('.rb[data-k="'+sd+'"]'); if(!vw.classList.contains('open'+sd)&&rb&&vis(rb)) el=rb; } }
