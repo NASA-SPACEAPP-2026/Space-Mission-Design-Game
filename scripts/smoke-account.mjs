@@ -1,0 +1,43 @@
+// Optional real-browser account smoke against the production build and embedded PostgreSQL.
+import { PGlite } from '@electric-sql/pglite';
+import { chromium } from 'playwright-core';
+import { readFile } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import { createStaticServer } from '../server.mjs';
+import { createAuth } from '../backend/auth.mjs';
+const db = new PGlite(); await db.waitReady;
+await db.exec(await readFile(new URL('../db/001-auth.sql',import.meta.url),'utf8'));
+let auth;
+const server=createStaticServer({auth:(...args)=>auth(...args)});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const origin=`http://127.0.0.1:${server.address().port}`;
+auth=createAuth({db,origin,secure:false});
+let browser;
+try {
+  browser=await chromium.launch({executablePath:process.env.CHROME_PATH,headless:true});
+  const context=await browser.newContext();const page=await context.newPage();
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.goto(origin);
+  await page.locator('#account-open').click();
+  await page.locator('#account-toggle').click();
+  await page.locator('[name=username]').fill('BrowserPilot');
+  await page.locator('[name=email]').fill('browser@example.com');
+  await page.locator('[name=password]').fill('my unique browser password 123');
+  await page.locator('#account-submit').click();
+  await page.waitForFunction(()=>document.querySelector('#account-open').textContent.includes('BrowserPilot'));
+  await page.locator('#account-close').click();
+  await page.reload();await page.locator('#account-open').click();
+  await page.waitForFunction(()=>document.querySelector('#account-message').textContent.includes('BrowserPilot'));
+  await page.locator('#account-logout').click();
+  await page.locator('#account-form').waitFor({state:'visible'});
+  await page.locator('[name=login]').fill('BrowserPilot');
+  await page.locator('[name=password]').fill('my unique browser password 123');
+  await page.locator('#account-submit').click();
+  await page.waitForFunction(()=>document.querySelector('#account-open').textContent.includes('BrowserPilot'));
+  const cookie=(await context.cookies()).find(c=>c.name==='gng_session');
+  assert.equal(cookie.httpOnly,true);assert.equal(cookie.sameSite,'Lax');
+  await page.setViewportSize({width:844,height:390});
+  assert.ok(await page.locator('#account-dialog').isVisible());
+  assert.deepEqual(errors,[]);
+  console.log('Account browser smoke passed: registration, reload, logout, login, cookie and mobile dialog');
+} finally { if(browser) await browser.close();await new Promise(resolve=>server.close(resolve));await db.close(); }

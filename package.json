@@ -7,7 +7,12 @@
     "node": ">=24"
   },
   "scripts": {
+<<<<<<< HEAD
     "predev": "node scripts/gmat-up.mjs",
+=======
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
+    "dev:api": "node --env-file-if-exists=.env --watch server.mjs",
+>>>>>>> origin/dev
     "dev": "vite",
     "build": "vite build && node scripts/build-game.mjs && node scripts/precompress.mjs",
     "preview": "vite preview",
@@ -19,9 +24,13 @@
     "package:single": "npm run build && node scripts/build-single-file.mjs"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "esbuild": "^0.28.2",
     "playwright-core": "^1.65.0",
     "vite": "^7.2.2",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
   }
 }

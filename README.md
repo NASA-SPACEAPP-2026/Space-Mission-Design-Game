@@ -97,3 +97,7 @@ Work goes into `dev` through pull requests; every push to `dev` deploys to **sta
 - [Deployment](documentation/deployment.md)
 - [Save format](documentation/legacy-save-format.md)
 - [Challenge brief](documentation/challenge.md)
+
+## Account e database
+
+Vedi [mappa concettuale, schema PostgreSQL, API e configurazione Azure](./documentation/authentication.md).
