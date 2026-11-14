@@ -920,6 +920,29 @@ html.big .hxn{font-size:11px}
 .hxn:active,.rhb:active{transform:scale(.93)}
 .hxn:focus-visible,.rhb:focus-visible,.ptabs button:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
 @media (max-height:520px){ .hxn{width:76px;height:84px} .rhb{width:58px;height:58px} .rhb svg{width:26px;height:26px} }
+/* ---- icon-pack plates (batch 8): Honeycomb look rebuilt in CSS (flat-top hexagon, neon-blue rim, dark inner gradient).
+   Honeycomb_Blue = primary/active (NEW MISSION, .on), Honeycomb_Black = secondary/inactive. Colours sampled from the pack PNGs. Glyphs are .gi masks = currentColor (white). ---- */
+:root{--hexf:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+.hx6,.hxn,.rhb{position:relative;color:#fff;background:linear-gradient(160deg,#8A949C,#3C4147 60%,#2B2728)}
+.hx6::before,.hxn::before,.rhb::before{content:"";position:absolute;inset:3px;background:radial-gradient(circle at 50% 50%,#3B3A3C 0,#262425 60%,#1C1A1A 100%)}
+.hx6,.hxn{clip-path:var(--hexf)}.hx6::before,.hxn::before{clip-path:var(--hexf)}
+.hx6{width:56px;height:50px}
+.hx6.on,.hxn,.rhb.on{background:linear-gradient(160deg,#59C6F5,#2A7DA6 55%,#297AA1)}
+.hx6.on::before,.hxn::before,.rhb.on::before{background:radial-gradient(circle at 50% 50%,#0A243D 0,#10344F 60%,#18496B 100%)}
+.rhb.on{color:#fff}
+.rhb.on{background:linear-gradient(160deg,#FF8A7E,#D0413A 55%,#A93226)}.rhb.on::before{background:radial-gradient(circle at 50% 50%,#3A0B0D 0,#4E1114 60%,#6E1A1C 100%)}
+.hx6 .gi,.hxn .gi{position:relative;vertical-align:0;width:26px;height:26px}
+.dock .hx6[data-act="home"]{width:112px;height:100px}.dock .hx6[data-act="home"] .gi{width:52px;height:52px}
+/* NEW MISSION: big flat-top hexagon 140x122. Customize: right triangle (right angle bottom-right) tucked into the notch under the hexagon's lower-right edge;
+   its hypotenuse is parallel to that edge (35:61 slope) with a ~5px gap. Legs a x b = 56 x 97, glyph at the centroid (a/3, b/3 from the right angle). */
+.dkc{gap:0}
+.hxn{width:160px;height:139px;gap:2px;font-size:16px;line-height:1.1;letter-spacing:.07em}html.big .hxn{font-size:17px}
+.hxn .gi{width:54px;height:54px}.hxn span{position:relative}
+.rhb{--ta:80px;--tb:69.5px;width:var(--ta);height:var(--tb);margin-left:-34.2px;clip-path:polygon(0 100%,50% 0,100% 100%);display:block}
+.rhb::before{inset:0;clip-path:polygon(8% 94.7%,50% 10.6%,92% 94.7%)}
+.rhb .gi{position:absolute;width:28px;height:28px;left:calc(50% - 14px);right:auto;bottom:calc(var(--tb)/3 - 14px)}
+@media (max-height:520px){ .hxn{width:130px;height:113px;font-size:14px}html.big .hxn{font-size:14px} .hxn .gi{width:44px;height:44px}
+  .rhb{--ta:65px;--tb:56.5px;margin-left:-26.7px;clip-path:polygon(0 100%,50% 0,100% 100%)} .rhb::before{clip-path:polygon(8.4% 94.4%,50% 11.1%,91.6% 94.4%)} .rhb .gi{width:24px;height:24px;left:calc(50% - 12px);right:auto;bottom:calc(var(--tb)/3 - 12px)} }
 /* sheet Personalizza (riusa .cbar): schede Campus / Bandiera + chiusura */
 .cbar.cust,body.fs .campus3.full .cbar.cust{background:var(--panel);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.4);padding:6px 10px 8px;max-height:calc(100vh - 100px);overflow-y:auto;bottom:calc(10px + var(--sai-b))}
 .ptabs{display:flex;gap:6px;align-items:center;margin-bottom:8px}
@@ -988,11 +1011,10 @@ select option:disabled{-webkit-text-fill-color:#9a9aa6;color:#9a9aa6}
 /* ---- rotaie laterali: esagoni con etichetta ---- */
 .rail{filter:drop-shadow(0 3px 4px rgba(0,0,0,.35))}
 .rb{width:56px;min-height:0;padding:0;background:none!important;box-shadow:none;border-radius:0;color:#fff;gap:1px}
-.rb i{width:44px;height:50px;display:grid;place-items:center;clip-path:var(--hex);background:var(--cream);color:#3B3236;font-size:19px}
-.rb.on i{background:var(--teal)}
+/* rail button plate: see "pack look" block in the icopack style (single flat-top plate; old cream/teal pointy hexagon removed) */
 .rb small{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.95);font:700 9.5px/1.1 var(--f-b)}
 .rb .bd{top:-2px;right:2px}
-@media (max-height:520px){ .rb{width:50px}.rb i{width:38px;height:43px;font-size:16px} .rb small{font-size:8.5px} }
+@media (max-height:520px){ .rb{width:50px} .rb small{font-size:8.5px} }
 /* ---- coach: striscia scura con barra teal ---- */
 .coach{background:rgba(18,16,20,.94);border:1px solid rgba(255,255,255,.12);border-top:0;border-radius:4px;box-shadow:inset 3px 0 0 var(--teal),0 10px 30px rgba(0,0,0,.4)}
 .coach .ch .bar i{background:var(--teal)}
@@ -1155,7 +1177,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .campus3.edit .b3hs{display:none}
 .campus3.c3 .chint{top:calc(var(--hudh,60px) + 6px)}
 
-@media (max-width:1100px){ .campus3 .cbar{left:calc(max(10px,var(--sai-l)) + 176px);right:12px;width:auto;transform:none} }
+@media (max-width:1100px){ .campus3 .cbar{left:calc(max(10px,var(--sai-l)) + 214px);right:12px;width:auto;transform:none} }
+@media (max-height:520px) and (max-width:1100px){ .campus3 .cbar{left:calc(max(10px,var(--sai-l)) + 177px)} }
 
 /* riunione sul telefono: pannello compatto, la scena resta visibile */
 @media (max-height:520px){
@@ -1224,14 +1247,13 @@ body.fs .dock{left:max(10px,var(--sai-l))}
   /* HUD: zoom is compensated so the notch inset is not under-applied */
   body.fs .hud{--hz:.75;zoom:.75;padding-left:max(10px,calc(var(--sai-l) / var(--hz)));padding-right:max(10px,calc(var(--sai-r) / var(--hz)))}
   body.fs .dock{zoom:.85;left:max(10px,calc(var(--sai-l) / .85));bottom:calc(8px + var(--sai-b))}
-  .hud .hx6{width:52px;height:57px}
+  .hud .hx6{width:60px;height:53px}
   body.fs:has(#view.openL) .hud,body.fs:has(#view.openR) .hud,body.fs:has(#view.openL) .dock,body.fs:has(#view.openR) .dock{opacity:0;pointer-events:none}
-  .dock .hx6{width:54px;height:60px}
+  .dock .hx6{width:62px;height:55px} .dock .hx6[data-act="home"]{width:124px;height:110px} .dock .hx6[data-act="home"] .gi{width:50px;height:50px}
   .cface{width:56px}
   .rail.L{left:calc(var(--sai-l) + 8px)}
   .rail.R{right:calc(var(--sai-r) + 8px)}
   .rb{width:56px;min-height:54px}
-  .rb i{width:42px;height:47px}
   .rb .hbg{display:block;position:absolute;left:2px;top:0;width:18px;height:16px;border-radius:4px;background:linear-gradient(#fff,#fff) 3px 4px/12px 2px no-repeat,linear-gradient(#fff,#fff) 3px 7px/12px 2px no-repeat,linear-gradient(#fff,#fff) 3px 10px/12px 2px no-repeat,#2A2125;box-shadow:0 1px 3px rgba(0,0,0,.5);z-index:1;pointer-events:none}
   .acts{padding-left:calc(var(--sai-x) + 64px);padding-right:calc(var(--sai-x) + 64px);bottom:calc(8px + var(--sai-b))}
   body.fs #view.scn>.head{left:calc(var(--sai-l) + 8px)}
@@ -1351,6 +1373,10 @@ g.coach-hl{animation:tutPulseSvg 1.6s ease-in-out infinite!important;box-shadow:
 body.tutmode .ov{padding-top:12px}
 .sdlg{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:min(330px,70vw);display:flex;gap:10px;align-items:flex-start;padding:10px 30px 10px 10px;background:rgba(14,20,28,.94);border:1px solid rgba(235,125,68,.55);border-radius:12px;color:#dfe9ee;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:40;opacity:0;transform:translateY(12px);visibility:hidden;pointer-events:none;transition:opacity .18s ease,transform .18s ease,visibility 0s .18s}
 .sdlg.show{opacity:1;transform:none;visibility:visible;pointer-events:auto;transition-delay:0s}
+/* Centro di dinamica del volo: tasto per andare avanti sempre visibile in basso a destra, accanto al "?" */
+.fdgo{position:fixed!important;right:calc(150px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9;width:auto!important;min-height:44px;padding:10px 18px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.fdgo[disabled]{opacity:.55}.fdgo::after{content:" →"}
+@media (max-height:520px){.fdgo{min-height:38px;padding:7px 14px;font-size:13px;bottom:calc(8px + env(safe-area-inset-bottom,0px))}}
 /* tutorial: fumetto di Zorty che spiega il passo, in basso a sinistra sopra la fila di tasti esagonali (+, casa, bandiera) */
 #tbub{position:fixed;top:auto!important;right:auto!important;height:auto!important;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(98px + env(safe-area-inset-bottom,0px));max-width:min(360px,calc(100vw - 90px));display:flex;gap:8px;align-items:flex-end;padding:8px 30px 8px 6px;background:rgba(14,20,28,.94);border:1px solid rgba(235,125,68,.55);border-radius:12px;color:#dfe9ee;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:60}
 #tbub .tb-z{flex:0 0 auto;width:46px;height:auto;max-height:74px;object-fit:contain}
@@ -1582,7 +1608,10 @@ body.fs .dockR .lvc .kv li{padding:1px 0!important}
 /* sottotitolo sotto il nome della missione: via */
 .hud .mcard em{display:none!important}
 /* satellite da trascinare in basso: via, ora si tocca la postazione o il macchinario */
-.dsat{display:none!important}
+.dsat:not([data-drag="clean"]){display:none!important}
+/* camera bianca: il satellite costruito resta in basso a sinistra, accanto al tasto casa; toccandolo va sul tavolo libero */
+#view .dsat[data-drag="clean"]{left:calc(72px + env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px))}#view .dsat[data-drag="clean"] b{color:#22313B}
+body:has(.dsat[data-drag="clean"]) #tbub{bottom:calc(190px + env(safe-area-inset-bottom,0px))}
 /* finestra aperta: i tasti agli angoli non coprono i bottoni */
 body.ovon #zbtn,body.ovon #dock{visibility:hidden!important}
 /* aiuto di Zorty: sfondo sfocato */
