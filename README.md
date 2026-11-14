@@ -176,7 +176,7 @@ The schema is in [`db/001-auth.sql`](db/001-auth.sql), explicitly applied with `
 | `npm run smoke` | Browser gameplay smoke test; needs a running server and Chromium |
 | `node scripts/smoke-account.mjs` | Browser account smoke with temporary PGlite and an existing build |
 | `npm run package:azure` | Package existing build as `release.zip`; needs Bash, zip, and npm |
-| `npm run package:single` | Build and regenerate `Go No-Go.html` |
+| `npm run package:single` | Build and regenerate `dist/Go No-Go.html` |
 
 ## Repository layout
 
@@ -201,7 +201,7 @@ tests/                        Automated tests
 infra/                        Azure provisioning and teardown
 .github/workflows/            CI/CD and GMAT base image publishing
 documentation/                English and Italian technical guides
-Go No-Go.html                 Generated export; regenerate from source
+dist/Go No-Go.html            Generated export; regenerate from source
 ```
 
 Files under `public/game/` remain classic scripts with ordered dependencies; they are not independent ES modules. The [architecture guide](documentation/architecture.md) documents their actual order.
@@ -228,7 +228,7 @@ npm run package:single
 node scripts/build-single-file.mjs --bundle out/
 ```
 
-The export embeds the game bundle, local fonts, and icon. Audio remains separate. It does not embed Node, PostgreSQL, or GMAT; the script reports remaining absolute paths. Do not treat it as a self-contained account application: remote dependencies and `file://` behavior need separate verification.
+The export embeds the game bundle, local fonts, and icon. Audio remains separate. It does not embed Node, PostgreSQL, or GMAT. The current export retains absolute references to the Vite module under `/assets/` and to `/account.js`; the script reports these remaining paths. Do not treat it as a self-contained account application: remote dependencies and `file://` behavior need separate verification.
 
 ## Graphics and accessibility
 

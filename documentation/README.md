@@ -44,4 +44,4 @@ Registration does not upload a mission. Deploying the Node server does not deplo
 
 When a contract changes, update both language versions of its guide and the README summary. Distinguish implemented behavior, future proposals, and historical measurements. Do not claim a remote environment has been verified without checking it.
 
-`Go No-Go.html` and `dist/` are build outputs, not documentation to edit manually. Font licenses in `public/fonts/` retain their original text.
+`dist/Go No-Go.html` and `dist/` are build outputs, not documentation to edit manually. Font licenses in `public/fonts/` retain their original text.

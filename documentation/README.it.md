@@ -17,7 +17,7 @@ Le guide descrivono il funzionamento presente nei sorgenti del repository. Sono 
 | Eseguire test e verifiche browser | [Verifiche](testing.it.md) |
 | Comprendere gli obiettivi educativi | [Challenge](challenge.it.md) |
 
-I vecchi percorsi [README.it.md](../README.it.md) e [challenge.it.md](challenge.it.md) rimangono disponibili come rimandi alle guide canoniche italiane.
+Ogni guida presenta un collegamento alla versione inglese in apertura. I file `.md` sono in inglese e i file `.it.md` in italiano, compresi il [README principale](../README.it.md) e il [brief della challenge](challenge.it.md).
 
 ## Tre ambiti distinti
 
@@ -42,6 +42,6 @@ La registrazione non carica una partita nel DB. Il deploy del server Node non di
 
 ## Aggiornare queste guide
 
-Quando cambia un contratto, aggiorna la guida specialistica e il riepilogo nel README. Mantieni un solo documento completo per argomento. Distingui funzionalità implementate, proposte future e risultati di prove storiche; non presentare un ambiente remoto come verificato senza averlo controllato.
+Quando cambia un contratto, aggiorna entrambe le versioni linguistiche della guida specialistica e il riepilogo nei README. Distingui funzionalità implementate, proposte future e risultati di prove storiche; non presentare un ambiente remoto come verificato senza averlo controllato.
 
-I file `Go No-Go.html` e `dist/` sono risultati di build, non guide da modificare manualmente. Le licenze dei font in `public/fonts/` conservano il testo originale.
+Il file `dist/Go No-Go.html` e la cartella `dist/` sono risultati di build, non guide da modificare manualmente. Le licenze dei font in `public/fonts/` conservano il testo originale.

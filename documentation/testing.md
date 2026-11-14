@@ -1,42 +1,44 @@
-# Test e verifiche del progetto
+**English** | [Italiano](testing.it.md)
 
-[Indice](README.md) · [Avvio](../README.md) · [Distribuzione](deployment.md)
+# Tests and validation
 
-## Controllo standard
+[Index](README.md) · [Setup](../README.md) · [Deployment](deployment.md)
 
-Con Node.js 24+ e dipendenze installate:
+## Standard check
+
+With Node.js 24+ and dependencies installed:
 
 ```powershell
 npm ci
 npm run check
 ```
 
-`check` esegue in sequenza Vitest, build di produzione e `scripts/verify-build.mjs`. Se una fase fallisce, le successive non vengono eseguite. Non richiede un database PostgreSQL esterno né il vero GMAT per la suite ordinaria.
+`check` runs Vitest, production build, and `scripts/verify-build.mjs` in sequence. A failure prevents later stages from running. The ordinary suite does not require external PostgreSQL or real GMAT.
 
-## Cosa coprono i test
+## Automated coverage
 
-| File | Ambito |
+| File | Scope |
 | --- | --- |
-| `tests/content.test.mjs` | Contratto HTML, ordine degli script, salvataggio, risorse e renderer |
-| `tests/server.test.mjs` | Server file, sonda, cache, compressione, HEAD, fallback e percorsi non validi |
-| `tests/auth.test.mjs` | Schema, password, univocità, sessioni, cookie, origine, limiti ed errori |
-| `tests/gmat.test.mjs` | Generazione script GMAT, validazione e interpretazione risultati |
-| `tests/gmat-bridge.test.mjs` | Bridge con eseguibile simulato, code e gestione risultati |
+| `tests/content.test.mjs` | HTML contract, script order, saves, resources, renderers |
+| `tests/server.test.mjs` | File serving, probe, caching, compression, HEAD, fallback, invalid paths |
+| `tests/auth.test.mjs` | Schema, passwords, uniqueness, sessions, cookies, origin, limits, errors |
+| `tests/gmat.test.mjs` | GMAT script generation, validation, and result parsing |
+| `tests/gmat-bridge.test.mjs` | Bridge with simulated executable, queues, and results |
 
-I test account utilizzano **PGlite**, PostgreSQL incorporato come dipendenza di sviluppo. È temporaneo e distinto da `compose.yaml`. I test con GMAT simulato non certificano che l'immagine Docker scarichi ed esegua il programma NASA nell'ambiente corrente.
+Account tests use **PGlite**, embedded PostgreSQL installed as a development dependency. It is temporary and separate from `compose.yaml`. Simulated GMAT tests do not certify that Docker can download and execute NASA's program in the current environment.
 
-Per eseguire solo la suite automatica usa `npm test`; per la sola compilazione usa `npm run build`.
+Use `npm test` for tests only and `npm run build` for compilation only.
 
-## Smoke browser del gioco
+## Gameplay browser smoke
 
-Occorrono build, server in esecuzione e Chrome/Chromium. In un terminale:
+Requires a build, running server, and Chrome/Chromium. In one terminal:
 
 ```powershell
 npm run build
 node --env-file-if-exists=.env server.mjs
 ```
 
-In un altro terminale:
+In another:
 
 ```powershell
 $env:BASE_URL = 'http://localhost:8080'
@@ -44,44 +46,44 @@ $env:CHROME_PATH = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
 npm run smoke
 ```
 
-Adatta `CHROME_PATH` all'eseguibile realmente installato. `BASE_URL` è facoltativa: il valore predefinito è `http://localhost:8080`. Lo script prova l'avvio dell'interfaccia e segnala errori della pagina o della console. Non equivale a completare tutte le missioni.
+Adapt `CHROME_PATH` to the actual executable. `BASE_URL` defaults to `http://localhost:8080`. The script checks UI startup and reports page/console errors; it does not complete every mission.
 
-## Smoke browser degli account
+## Account browser smoke
 
-Dopo `npm run build`:
+After `npm run build`:
 
 ```powershell
 $env:CHROME_PATH = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
 node scripts/smoke-account.mjs
 ```
 
-Lo script avvia autonomamente un server temporaneo su porta libera e un DB PGlite, crea un account di prova ed esegue registrazione, ricaricamento, logout e login. Controlla cookie `HttpOnly`/`SameSite` e visibilità del dialogo con viewport mobile. Non usa gli utenti del database Docker o Azure e non richiede `BASE_URL`.
+The script starts its own temporary server on an available port and a PGlite DB, creates a test user, and exercises registration, reload, logout, and login. It checks `HttpOnly`/`SameSite` cookies and dialog visibility at a mobile viewport. It does not use Docker or Azure accounts and does not require `BASE_URL`.
 
-## Verifica manuale PostgreSQL locale
+## Manual local PostgreSQL checks
 
-1. Avvia il servizio con `docker compose -f compose.yaml up -d --wait postgres`.
-2. Configura `.env`, applica `npm run db:migrate` e avvia API e Vite.
-3. Registra un utente e prova duplicati di username/email con maiuscole diverse.
-4. Prova una password errata e verifica un errore senza esposizione di dettagli interni.
-5. Ricarica la pagina, apri Account e verifica la sessione.
-6. Esci, poi accedi usando prima username e poi email.
-7. Riavvia il backend e verifica che l'account resti disponibile.
-8. Controlla che il salvataggio locale sia uguale dopo logout o cambio account.
+1. Run `docker compose -f compose.yaml up -d --wait postgres`.
+2. Configure `.env`, run `npm run db:migrate`, and start the API and Vite.
+3. Register and test case-insensitive username/email duplicates.
+4. Try a wrong password and check that the error does not expose internal details.
+5. Reload, open Account, and confirm the session.
+6. Log out, then sign in by username and email.
+7. Restart the backend and verify the account remains available.
+8. Check that logout and account switching preserve the same local game.
 
-Non cancellare il volume per ripetere questi controlli su dati da conservare.
+Do not remove a volume containing data you want to keep just to repeat these checks.
 
-## Verifica manuale GMAT
+## Manual GMAT checks
 
-Avvia il servizio con i file Compose espliciti come nella [guida GMAT](gmat-integration-report.md). Controlla `http://localhost:8787/healthz`, poi usa il gioco tramite Vite.
+Use explicit Compose files as shown in the [GMAT guide](gmat-integration-report.md). Check `http://localhost:8787/healthz`, then play through Vite.
 
-Prova trasferimenti, analisi e durata per Terra, Luna, Marte e Venere. Verifica la fonte mostrata per i risultati, la risposta a modifiche dell'orbita e il recupero dopo un calcolo fallito. Ripeti una prova senza servizio per controllare il modello interno. Un risultato storico nel documento GMAT non sostituisce questa verifica sull'ambiente corrente.
+Try transfers, analysis, and lifetime for Earth, the Moon, Mars, and Venus. Check result sources, orbit edits, and recovery after computation errors. Repeat with the service stopped to verify the internal model. Historical GMAT measurements do not replace checks in the current environment.
 
-## Verifica grafica e salvataggi
+## Graphics and saves
 
-Controlla campus, stanze, editor, minigiochi, tutorial e ricaricamento della partita. Prova viewport mobile, WebGL disponibile e indisponibile, `?q=0`, `?q=3`, `?perf=1` e preferenza di movimento ridotto. Le prove grafiche automatiche attuali non coprono esaustivamente ogni combinazione.
+Check campus, rooms, editors, minigames, tutorial, and save reload. Try mobile viewport, WebGL available/unavailable, `?q=0`, `?q=3`, `?perf=1`, and reduced motion. Current automated graphics checks do not exhaustively cover every combination.
 
-Prima di testare recupero o cancellazione della partita, conserva una copia di `gng32.save`. I reset dell'interfaccia possono eliminare più chiavi del solo salvataggio.
+Back up `gng32.save` before testing recovery or deletion; UI reset flows may remove more keys than the main save alone.
 
-## Cosa resta da provare in staging
+## Staging-only checks
 
-La CI locale non verifica certificati PostgreSQL, firewall Azure, credenziali distribuite, domini personalizzati, persistenza dopo riavvio della Web App o ripristino backup. Lo smoke remoto della pipeline controlla risorse e una query account, ma non completa registrazione/login né prova GMAT. Questi controlli richiedono il vero ambiente destinazione.
+Local CI does not verify PostgreSQL certificates, Azure firewalls, deployed credentials, custom domains, persistence after Web App restart, or backup restoration. Pipeline remote smoke checks cover resources and a users-table query, not complete registration/login or GMAT. These checks require the actual target environment.

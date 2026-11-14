@@ -1,57 +1,59 @@
+**English** | [Italiano](challenge.it.md)
+
 # Challenge: Space Mission Design Game
 
-[Indice](README.md) · [Funzionalità e avvio](../README.md)
+[Index](README.md) · [Features and setup](../README.md)
 
-## Obiettivo educativo
+## Educational objective
 
-Progettare una missione spaziale significa bilanciare obiettivi scientifici, veicolo, strumenti, lanciatore, orbita, massa, potenza, costo, dati, comunicazioni e durata. Migliorare un parametro può peggiorarne altri: uno strumento più potente può aumentare valore scientifico, consumi, massa e dati da trasmettere.
+Space mission design balances scientific goals, spacecraft, instruments, launcher, orbit, mass, power, cost, data, communications, and lifetime. Improving one parameter can worsen others: a more capable instrument may increase science value, consumption, mass, and data to transmit.
 
-La challenge propone un gioco interattivo nel quale una persona o un gruppo possa definire una missione, gestire risorse limitate, simularne l'esecuzione e capire le ragioni del risultato. Il valore didattico è rendere concreti i compromessi fra sottosistemi e consentire di sperimentare, fallire e riprogettare.
+The challenge proposes an interactive game where individuals or groups define a mission, manage limited resources, simulate execution, and understand the outcome. Its educational value is making subsystem trade-offs concrete and allowing experimentation, failure, and redesign.
 
-Questa è una rielaborazione del brief già presente nel repository, non una verifica degli aggiornamenti ufficiali dell'evento. Per materiali e aggiornamenti esterni va consultata la sezione Resources della pagina ufficiale della challenge.
+This is an adaptation of the brief previously stored in the repository, not a verification of official event updates. Consult the official challenge page's Resources section for external materials and updates.
 
-## Percorso atteso
+## Expected journey
 
-1. Definire obiettivi e requisiti prima delle scelte tecniche.
-2. Progettare veicolo e payload scientifico.
-3. Scegliere lanciatore, destinazione e orbita.
-4. Verificare massa, energia, budget, dati, comunicazioni e durata.
-5. Simulare la missione e valutare risultato, efficienza e valore scientifico.
-6. Modificare il progetto sulla base del rapporto finale.
+1. Define objectives and requirements before technical choices.
+2. Design the spacecraft and scientific payload.
+3. Select launcher, destination, and orbit.
+4. Check mass, energy, budget, data, communications, and lifetime.
+5. Simulate and assess outcome, efficiency, and scientific value.
+6. Revise the design using the final report.
 
-Non dovrebbe esistere una sola soluzione perfetta: configurazioni diverse possono soddisfare obiettivi diversi. Il feedback deve spiegare le conseguenze delle decisioni.
+There should not be one perfect answer: different configurations can meet different goals. Feedback should explain the consequences of decisions.
 
-## Considerazioni progettuali
+## Design considerations
 
-| Ambito | Aspettative della challenge |
+| Area | Challenge expectations |
 | --- | --- |
-| Esperienza | Interfaccia chiara, tutorial, difficoltà e scenari progressivi |
-| Requisiti | Obiettivi espliciti e vincoli realistici coerenti |
-| Satellite | Struttura, energia, batterie, comunicazioni, computer, assetto e strumenti |
-| Payload | Massa, costo, potenza, produzione dati e ritorno scientifico |
-| Orbite | Copertura, finestre, contatti e durata dipendenti dalla scelta orbitale |
-| Lancio | Compatibilità fra massa, destinazione e capacità del lanciatore |
-| Risorse | Indicatori comprensibili di massa, potenza, denaro, dati e tempo |
-| Valutazione | Prestazioni, efficienza e qualità delle decisioni, con spiegazioni |
-| Collaborazione | Possibile cooperazione fino a quattro partecipanti con ruoli distinti |
+| Experience | Clear UI, tutorials, progressive difficulty and scenarios |
+| Requirements | Explicit goals and consistent realistic constraints |
+| Satellite | Structure, power, batteries, communications, computer, attitude control, instruments |
+| Payload | Mass, cost, power, generated data, scientific return |
+| Orbits | Coverage, windows, contacts, and lifetime depend on orbit selection |
+| Launch | Compatibility between mass, destination, and launcher capacity |
+| Resources | Understandable indicators for mass, power, money, data, and time |
+| Evaluation | Performance, efficiency, and decision quality, with explanations |
+| Collaboration | Potential cooperation for up to four people with distinct roles |
 
-La collaborazione può distribuire responsabilità di scienza, veicolo, comunicazioni e risorse mantenendo decisioni finali condivise. È un obiettivo del brief, non una garanzia di multiplayer disponibile.
+Collaboration can divide science, spacecraft, communications, and resource responsibilities while retaining shared final decisions. This is an objective in the brief, not a promise of implemented multiplayer.
 
-## Idee aggiuntive del brief
+## Additional ideas in the brief
 
-Scenari multipli, eventi imprevisti, modelli semplificati o realistici, visualizzazioni interattive, pannelli di controllo, rapporti finali, confronto tra progetti, classifiche, cooperazione, competizione fra gruppi, sandbox e analisi post-missione sono possibili estensioni. La loro presenza nel brief non implica che siano tutte implementate.
+Multiple scenarios, unexpected events, simplified or realistic models, interactive views, dashboards, final reports, design comparisons, leaderboards, cooperation, team competition, sandbox, and post-mission analysis are possible extensions. Inclusion in the brief does not mean each feature is implemented.
 
-## Corrispondenza con il progetto attuale
+## Mapping to the current project
 
-| Tema | Stato nel repository |
+| Topic | Repository status |
 | --- | --- |
-| Progettazione e risorse | Dati, regole, configurazione satellite e bilanci nel browser |
-| Esperienza visuale | Campus, stanze, editor 3D e viste 2D/SVG |
-| Progressione | Requisiti, revisioni, test, lancio e rapporti |
-| Tutorial e sperimentazione | Tutorial e modalità sandbox |
-| Orbite approfondite | GMAT opzionale e modello locale alternativo |
-| Identità | Registrazione e login PostgreSQL |
-| Persistenza missione | Salvataggio locale nel browser, senza cloud |
-| Cooperazione online e classifiche | Nessun backend multiplayer o leaderboard implementato |
+| Design and resources | Browser data, rules, satellite configuration, budgets |
+| Visual experience | Campus, rooms, 3D editors, and 2D/SVG views |
+| Progression | Requirements, reviews, tests, launch, reports |
+| Tutorial and experimentation | Tutorial and sandbox modes |
+| Detailed orbital analysis | Optional GMAT with local fallback |
+| Identity | PostgreSQL registration and login |
+| Mission persistence | Browser-local saves, without cloud storage |
+| Online cooperation and rankings | No multiplayer or leaderboard backend implemented |
 
-Account, simulazione GMAT e salvataggio locale sono componenti distinti. Per il funzionamento tecnico leggi [architettura](architecture.md), [database](authentication.md) e [GMAT](gmat-integration-report.md).
+Accounts, GMAT simulation, and local saves are separate components. See [architecture](architecture.md), [database](authentication.md), and [GMAT](gmat-integration-report.md) for technical behavior.

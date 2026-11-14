@@ -9,7 +9,7 @@
 
 Campus e laboratori 3D · Progettazione orbitale · Gestione delle risorse · Analisi NASA GMAT · Account PostgreSQL
 
-[Inizia subito](#avvio-rapido) · [Come funziona il database](documentation/authentication.it.md) · [Documentazione](documentation/README.md) · [Distribuzione Azure](documentation/deployment.it.md)
+[Inizia subito](#avvio-rapido) · [Come funziona il database](documentation/authentication.it.md) · [Documentazione](documentation/README.it.md) · [Distribuzione Azure](documentation/deployment.it.md)
 
 </div>
 
@@ -176,7 +176,7 @@ Lo schema è in [`db/001-auth.sql`](db/001-auth.sql), applicato esplicitamente c
 | `npm run smoke` | Controllo browser del gioco; richiede server attivo e Chromium |
 | `node scripts/smoke-account.mjs` | Controllo browser account con PGlite temporaneo e build esistente |
 | `npm run package:azure` | Crea `release.zip` da build esistente; richiede Bash, zip e npm |
-| `npm run package:single` | Compila e rigenera `Go No-Go.html` |
+| `npm run package:single` | Compila e rigenera `dist/Go No-Go.html` |
 
 ## Struttura del repository
 
@@ -200,8 +200,8 @@ scripts/                      Build, migrazione, GMAT, pacchetti e smoke test
 tests/                        Test automatici
 infra/                        Provisioning e rimozione risorse Azure
 .github/workflows/            CI/CD e pubblicazione immagine base GMAT
-documentation/                Guide tecniche in italiano
-Go No-Go.html                 Esportazione generata, da rigenerare dai sorgenti
+documentation/                Guide tecniche in inglese e italiano
+dist/Go No-Go.html            Esportazione generata, da rigenerare dai sorgenti
 ```
 
 I file in `public/game/` sono script classici con dipendenze nell'ordine di caricamento: non sono ancora moduli ES indipendenti. La [guida architetturale](documentation/architecture.it.md) dettaglia l'ordine effettivo.
@@ -228,7 +228,7 @@ npm run package:single
 node scripts/build-single-file.mjs --bundle out/
 ```
 
-L'esportazione incorpora il bundle del gioco, i font locali e l'icona. L'audio resta separato. Non incorpora Node, PostgreSQL o GMAT; lo script segnala eventuali percorsi assoluti residui. Non considerarla un pacchetto autonomo delle funzioni account: dipendenze remote e comportamento `file://` richiedono una verifica dedicata.
+L'esportazione incorpora il bundle del gioco, i font locali e l'icona. L'audio resta separato. Non incorpora Node, PostgreSQL o GMAT. L'esportazione attuale mantiene riferimenti assoluti al modulo Vite in `/assets/` e a `/account.js`; lo script segnala questi percorsi residui. Non considerarla un pacchetto autonomo delle funzioni account: dipendenze remote e comportamento `file://` richiedono una verifica dedicata.
 
 ## Qualità grafica e accessibilità
 
@@ -267,7 +267,7 @@ Per gli smoke test e i controlli manuali consulta la [guida alle verifiche](docu
 
 | Guida | Contenuto |
 | --- | --- |
-| [Indice documentazione](documentation/README.md) | Percorsi di lettura e fonti nel codice |
+| [Indice documentazione](documentation/README.it.md) | Percorsi di lettura e fonti nel codice |
 | [Architettura](documentation/architecture.it.md) | Componenti, renderer, flussi e build |
 | [Account e database](documentation/authentication.it.md) | Schema PostgreSQL, sessioni, API e gestione operativa |
 | [Salvataggi locali](documentation/legacy-save-format.it.md) | Formato v32, preferenze, backup e compatibilità |

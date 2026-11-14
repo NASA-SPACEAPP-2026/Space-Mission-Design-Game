@@ -1,132 +1,134 @@
-# NASA GMAT: integrazione, avvio e limiti
+**English** | [Italiano](gmat-integration-report.it.md)
 
-[Indice](README.md) · [Architettura](architecture.md) · [Verifiche](testing.md)
+# NASA GMAT: integration, startup, and limitations
 
-## Scopo
+[Index](README.md) · [Architecture](architecture.md) · [Testing](testing.md)
 
-Il servizio esegue NASA GMAT R2025a per verificare e approfondire il modello orbitale del gioco. Supporta Terra (`leo`), Luna (`moon`), Marte (`mars`) e Venere (`venus`). Il modello interno fornisce subito una stima; i risultati GMAT vengono integrati quando disponibili e la fonte resta visibile.
+## Purpose
 
-Il documento sostituisce il precedente resoconto di sviluppo: le misure storiche sono riportate come tali, senza presumere che siano state ripetute sul codice o sull'ambiente attuale. Non certifica la disponibilità del servizio sul sito pubblico.
+The service runs NASA GMAT R2025a to check and extend the game's orbital model. It supports Earth (`leo`), the Moon (`moon`), Mars (`mars`), and Venus (`venus`). The internal model supplies immediate estimates; GMAT results are integrated when available, with the source visible to the player.
 
-## Componenti e flusso
+This guide replaces the earlier development report. Historical measurements remain explicitly historical; they have not been rerun merely to update these documents. This guide does not certify availability on the public website.
 
-| File | Ruolo |
+## Components and flow
+
+| File | Role |
 | --- | --- |
-| `public/game/02-orbit.js` | Calcoli locali e generatori degli script GMAT |
-| `public/game/07-main.js` | Richieste, aggiornamento interfaccia e risultati nelle missioni |
-| `scripts/gmat-server.mjs` | Endpoint HTTP e limite richieste |
-| `scripts/gmat-bridge.mjs` | Validazione, code, cache, esecuzione e parser |
-| `scripts/gmat-up.mjs` | Tentativo automatico di avvio prima di Vite |
-| `docker/gmat/Dockerfile.base` | Ubuntu, distribuzione GMAT R2025a e Node |
-| `docker/gmat/Dockerfile` | Immagine applicativa del bridge |
-| `docker-compose.yml` | Servizio locale su porta 8787 |
+| `public/game/02-orbit.js` | Local calculations and GMAT script generators |
+| `public/game/07-main.js` | Requests, UI updates, and results attached to missions |
+| `scripts/gmat-server.mjs` | HTTP endpoints and request limit |
+| `scripts/gmat-bridge.mjs` | Validation, queues, cache, execution, and parsers |
+| `scripts/gmat-up.mjs` | Automatic startup attempt before Vite |
+| `docker/gmat/Dockerfile.base` | Ubuntu, GMAT R2025a distribution, and Node |
+| `docker/gmat/Dockerfile` | Bridge application image |
+| `docker-compose.yml` | Local service on port 8787 |
 
-Il browser invia dati numerici, non testo di script. Il bridge seleziona e valida i campi, crea file in una directory temporanea, esegue `GmatConsole`, interpreta i rapporti e restituisce JSON. Le directory vengono rimosse dopo l'elaborazione. La cache è in memoria e non usa PostgreSQL.
+The browser sends numeric data rather than script text. The bridge selects and validates fields, writes files to a temporary directory, executes `GmatConsole`, parses reports, and returns JSON. Temporary directories are removed afterward. The cache is in memory, separate from PostgreSQL.
 
-## Avvio riproducibile
+## Predictable startup
 
-Docker Desktop deve essere attivo. `npm run dev` esegue il tentativo automatico: prima cerca la base locale, poi tenta il pull da GHCR, infine una build locale. Gli errori non bloccano Vite.
+Docker Desktop must be running. `npm run dev` first attempts automatic startup: find the local base, pull from GHCR, or build locally. Failures do not stop Vite.
 
-Il repository contiene due file Compose: `compose.yaml` per PostgreSQL e `docker-compose.yml` per GMAT. Lo script automatico non specifica `-f`, quindi non basta assumere che selezioni il servizio corretto. Per preparare la base manualmente:
+Two Compose files coexist: `compose.yaml` for PostgreSQL and `docker-compose.yml` for GMAT. Automatic startup omits `-f`, so do not assume it selects the correct service. To prepare the base manually:
 
 ```powershell
 docker pull --platform linux/amd64 ghcr.io/nasa-spaceapp-2026/smdg-gmat-base:r2025a
 docker tag ghcr.io/nasa-spaceapp-2026/smdg-gmat-base:r2025a smdg-gmat-base:r2025a
 ```
 
-Se il pull non è disponibile, costruisci invece la base dal Dockerfile:
+If pulling is unavailable, build the base instead:
 
 ```powershell
 docker build --platform linux/amd64 -f docker/gmat/Dockerfile.base -t smdg-gmat-base:r2025a .
 ```
 
-Quindi:
+Then start the service:
 
 ```powershell
 docker compose -f compose.yaml -f docker-compose.yml up -d --build gmat
 ```
 
-Il primo download NASA è di circa 420 MB. La piattaforma prevista è `linux/amd64`; su altre architetture può servire emulazione. `GMAT_BASE_REMOTE` permette allo script automatico di cambiare l'immagine remota.
+The initial NASA download is roughly 420 MB. The target platform is `linux/amd64`; other architectures may require emulation. `GMAT_BASE_REMOTE` overrides the automatic startup script's remote image.
 
-Controlla `http://localhost:8787/healthz`, poi usa il gioco su Vite. Dopo modifiche ai file montati:
+Check `http://localhost:8787/healthz`, then play through Vite. After changing mounted files:
 
 ```powershell
 docker compose -f compose.yaml -f docker-compose.yml restart gmat
 docker compose -f compose.yaml -f docker-compose.yml logs --tail 100 gmat
 ```
 
-Una modifica al Dockerfile richiede una ricostruzione, non il solo riavvio.
+Dockerfile changes require rebuilding, rather than just restarting.
 
-## API e gestione del carico
+## API and load handling
 
-| Metodo e percorso | Funzione |
+| Method and path | Purpose |
 | --- | --- |
-| `GET /healthz` | Sonda del servizio HTTP, `{ "ok": true }` |
-| `POST /api/gmat` | ΔV delle tratte e dell'eventuale manovra di fine vita |
-| `POST /api/gmat/analysis` | Eclissi, contatti ed evoluzione dell'orbita |
-| `POST /api/gmat/lifetime` | Durata per scenario `nom`, `max`, `min` o `sail` |
+| `GET /healthz` | HTTP service probe, `{ "ok": true }` |
+| `POST /api/gmat` | Transfer ΔV and optional disposal burn |
+| `POST /api/gmat/analysis` | Eclipses, contacts, and orbit evolution |
+| `POST /api/gmat/lifetime` | Lifetime for `nom`, `max`, `min`, or `sail` scenario |
 
-Il server limita il corpo a 32 KiB e applica 90 richieste al minuto per peer TCP in memoria. I limiti sono distinti da quelli account in PostgreSQL. Risponde `400` a piani non validi, `413` a corpi troppo grandi, `429` al superamento della soglia, `503` a code piene e `502` agli errori di elaborazione.
+The HTTP server limits bodies to 32 KiB and allows 90 requests per minute per TCP peer using memory. These limits are separate from PostgreSQL account limits. Responses include `400` for invalid plans, `413` for oversized bodies, `429` for rate limiting, `503` for full queues, and `502` for computation failures.
 
-Il bridge mantiene tre code separate, una per tipo di lavoro, ciascuna con una sola esecuzione attiva e al massimo cinque in attesa. Timeout: 30 secondi per trasferimenti, 120 per analisi e 240 per durata. I diversi tipi possono essere attivi contemporaneamente. La cache dei risultati è limitata e si perde al riavvio.
+The bridge has three separate queues, one per job type, each with one active job and at most five waiting. Timeouts are 30 seconds for transfers, 120 for analysis, and 240 for lifetime. Different job types may run concurrently. The bounded result cache is lost on restart.
 
-`GMAT_CONSOLE` indica il percorso dell'eseguibile nel bridge; `PORT` controlla la porta del servizio, predefinita 8787. La sonda HTTP non dimostra da sola che un vero calcolo GMAT riesca.
+`GMAT_CONSOLE` selects the executable; `PORT` sets the service port, default 8787. The HTTP probe alone does not prove a real GMAT calculation can finish.
 
-## Modelli e impatto sul gioco
+## Models and gameplay effects
 
-| Corpo | Gravità | Perturbazioni e atmosfera |
+| Body | Gravity | Perturbations and atmosphere |
 | --- | --- | --- |
-| Terra | JGM2 4×4 | Atmosfera Jacchia-Roberts |
-| Luna | LP165P 20×20 | Terra e Sole, senza resistenza atmosferica |
-| Marte | Mars50c 20×20 | Sole e atmosfera esponenziale |
-| Venere | MGNP180U 20×20 | Sole, senza modello atmosferico di resistenza |
+| Earth | JGM2 4×4 | Jacchia-Roberts atmosphere |
+| Moon | LP165P 20×20 | Earth and Sun, no atmospheric drag |
+| Mars | Mars50c 20×20 | Sun and exponential atmosphere |
+| Venus | MGNP180U 20×20 | Sun, no atmospheric drag model |
 
-I trasferimenti usano targeting di manovre impulsive. Le analisi usano localizzatori di eclissi e contatti e propagazione orbitale; il bridge deriva mantenimento orbitale e variazioni degli elementi dai rapporti.
+Transfers use impulsive-burn targeting. Analysis uses eclipse/contact locators and orbit propagation; the bridge derives station-keeping and element changes from reports.
 
-Le stazioni sono Milano, Svalbard e Canberra; l'uso nel gioco dipende anche dalle infrastrutture sbloccate. L'eclissi peggiore entra nel bilancio batteria; il decadimento contribuisce al mantenimento; la durata influenza revisioni e fine vita. La soglia dei cinque anni è una regola implementata nel gioco, non una dichiarazione di conformità normativa della missione.
+Ground stations are Milan, Svalbard, and Canberra, with gameplay availability also depending on unlocked facilities. Worst-case eclipse feeds battery checks; decay contributes to station-keeping; lifetime affects reviews and disposal. The five-year threshold is an implemented game rule, not a claim of regulatory compliance.
 
-I risultati sono mostrati nel bilancio orbitale, nei controlli di progetto, nelle revisioni e nei rapporti. I valori incorporati nella missione possono essere conservati nel salvataggio browser.
+Results appear in orbital budgets, design checks, reviews, and reports. Results attached to missions may persist in the browser save.
 
-## Assunzioni e limiti scientifici
+## Scientific assumptions and limits
 
-- Epoca di riferimento fissa al 1º gennaio 2027: il gioco non dispone di un calendario orbitale completo.
-- Per la Terra, attività solare costante a livelli distinti, non una previsione del ciclo reale.
-- Coefficiente di resistenza, area del satellite e vela sono parametri modellistici semplificati.
-- Marte usa un'atmosfera esponenziale, non Mars-GRAM.
-- Venere non ha resistenza atmosferica nel modello: il fine vita deriva dall'intersezione del pericentro con la soglia atmosferica.
-- Coordinate delle stazioni approssimate e geometria dipendente dall'epoca.
-- Distanze e tempi luce mostrati non sostituiscono automaticamente tutti i modelli locali di comunicazione.
-- L'accordo fra due modelli a due corpi con manovre impulsive verifica coerenza numerica, non accuratezza rispetto a un volo reale.
+- Fixed reference epoch of 1 January 2027; no full orbital calendar in the game.
+- Constant Earth solar activity at separate levels rather than a real-cycle forecast.
+- Simplified drag coefficient, satellite area, and sail parameters.
+- Mars uses an exponential atmosphere rather than Mars-GRAM.
+- Venus has no atmospheric drag; lifetime ends when periapsis reaches the atmosphere threshold.
+- Approximate ground-station coordinates and epoch-dependent geometry.
+- Displayed distances and light times do not automatically replace every local communications model.
+- Agreement between two-body impulsive models checks numerical consistency, not real-flight accuracy.
 
-Queste simulazioni hanno scopo didattico e non costituiscono validazione operativa di una missione.
+These simulations are educational rather than operational mission validation.
 
-## Risultati storici conservati
+## Preserved historical measurements
 
-Il precedente resoconto riportava prove nel container, non ripetute per il solo aggiornamento documentale:
+The previous report recorded container runs that were not repeated for this documentation update:
 
-| Caso storico | Risultato riportato |
+| Historical case | Reported result |
 | --- | --- |
-| Trasferimento LEO–GEO | 3856,5 contro 3856,6 m/s del modello locale |
-| Cambio piano di 45° | Circa 5879 m/s per entrambi |
-| GEO con cambio inclinazione | 4198,6 contro 4198,7 m/s |
-| Trasferimento lunare | 1196,6 contro 1196,5 m/s |
-| Orbita terrestre 400 km, 51,6° | Circa 36 minuti di eclissi massima e 11 km/mese di decadimento |
-| Durata 3U a 400 km | 88 giorni nominali, 50 al massimo solare, 287 al minimo |
-| Orbita eliosincrona a 600 km | Deriva nodale circa +0,99°/giorno |
-| Luna, 100 km e 30° | Impatto dopo circa 11,4 giorni |
-| Contatti da orbite lunari e marziane | Circa 400 minuti/giorno dalle stazioni modellate |
-| Tempi di esecuzione | Trasferimenti circa 0,6 s, analisi circa 10 s, durata da secondi a circa un minuto nell'ambiente storico |
+| LEO–GEO transfer | 3856.5 versus 3856.6 m/s from the local model |
+| 45° plane change | About 5879 m/s in both models |
+| GEO with inclination change | 4198.6 versus 4198.7 m/s |
+| Lunar transfer | 1196.6 versus 1196.5 m/s |
+| Earth orbit at 400 km, 51.6° | About 36 minutes maximum eclipse and 11 km/month decay |
+| 3U lifetime at 400 km | 88 nominal days, 50 at solar maximum, 287 at solar minimum |
+| Sun-synchronous orbit at 600 km | About +0.99°/day nodal drift |
+| Moon at 100 km, 30° | Impact after about 11.4 days |
+| Contacts from lunar and Martian orbits | About 400 minutes/day from modeled stations |
+| Runtime | Transfers about 0.6 s, analysis about 10 s, lifetime seconds to about a minute in the historical environment |
 
-Sono esempi di regressione, non valori universali: massa, area, elementi orbitali, geometria e versione del modello contano. Le precedenti affermazioni sul numero totale di test o su workflow mai eseguiti non sono usate per descrivere lo stato corrente.
+These are regression examples, not universal values: mass, area, orbital elements, geometry, and model version matter. Earlier statements about total test counts or workflows never having run are not used to describe current status.
 
-## Risorse educative e tracciabilità
+## Educational resources and traceability
 
-Il gioco include una scala CML/MDL, i quattro segmenti di missione, un replay e confronti con MinXSS, RAVAN, CIRiS, MarCO, Lunar Flashlight e CAPSTONE. Dati e collegamenti dei confronti sono nella tabella `TWIN` di `public/game/07-main.js`.
+The game includes a CML/MDL ladder, four mission segments, replay, and comparisons with MinXSS, RAVAN, CIRiS, MarCO, Lunar Flashlight, and CAPSTONE. Comparison data and links are in `TWIN` within `public/game/07-main.js`.
 
-La distribuzione NASA e i file dei modelli sono identificati nel Dockerfile base e nei generatori. Le etichette educative CML/MDL sono un adattamento del gioco: prima di citarle come terminologia ufficiale va fatta una verifica delle fonti originali. Le prove correnti sono descritte in [verifiche](testing.md).
+The NASA distribution and model files are identified by the base Dockerfile and generators. CML/MDL educational labels are a game adaptation; verify original sources before citing them as official terminology. Current validation procedures are in [testing](testing.md).
 
-## Pubblicazione
+## Publishing
 
-`.github/workflows/gmat-base-image.yml` costruisce e pubblica la base su GHCR su attivazione manuale o modifiche ai file previsti del workflow. Il repository definisce questo processo, ma non dimostra che una specifica immagine sia già disponibile o pubblica.
+`.github/workflows/gmat-base-image.yml` builds and publishes the GHCR base on manual dispatch or matching file changes. Defining that process does not prove a particular image is currently available or public.
 
-In sviluppo Vite gestisce il proxy. In Azure occorrono hosting del container e instradamento `/api/gmat*` sulla stessa origine; il pacchetto web attuale non li crea. In assenza del servizio il gioco continua con il modello interno.
+Development uses Vite's proxy. Azure requires separate container hosting and same-origin `/api/gmat*` routing; the current web package creates neither. Without the service, gameplay continues with the internal model.
