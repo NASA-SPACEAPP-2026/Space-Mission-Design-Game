@@ -783,6 +783,7 @@ Risorse	Resources
 Risorse di bordo	On-board resources
 Robotica	Robotics
 Ruota	Rotate
+Ruota la stanza	Rotate the room
 Ruote che girano per orientare il satellite con precisione	Spinning wheels to point the satellite precisely
 Ruote di reazione da dischi rigidi	Hard-disk reaction wheels
 Ruote di reazione ricavate da dischi rigidi: assetto a tre assi a bassissimo costo.	Reaction wheels made from hard disks: three-axis attitude at very low cost.
@@ -4414,7 +4415,7 @@ const ACT={
   hire(){ if(G.staff>=spaces()){ toast('Tutti i posti auto sono occupati: costruisci un parcheggio.'); return; } if(G.money<HIRE){ toast('Non hai abbastanza crediti.'); return; } addMoney(-HIRE); G.staff++; sfx.ok(); save(); staffModal(); hud(); if(view==='hub') render(); },
   fire(){ if(G.staff<=staffNeed()) return; G.staff--; sfx.tap(); save(); staffModal(); if(view==='hub') render(); },
   rplant(t){ if(G.money<PLANTC){ toast('Non hai abbastanza crediti.'); return; } RPLACE={room:t.dataset.r,k:'plant'}; RSEL=null; sfx.tap(); render(); },
-  resc(){ RPLACE=null; render(); }, rselx(){ RSEL=null; render(); },
+  resc(){ RPLACE=null; render(); }, rselx(){ RSEL=null; render(); }, rrot(){ sfx.tap(); IR3.turn(1); },
   vcase(t){ VCASE=+t.dataset.i; sfx.tap(); render(); }, vpick(t){ const ok=G.missions.filter(m=>m.result&&m.result.ok), sl=vSlots(ok), i=+t.dataset.i, id=t.dataset.id||null; if(id) for(let j=0;j<5;j++) if(sl[j]===id) sl[j]=null; sl[i]=id; G.showcase=sl; VCASE=null; sfx.tap(); save(); render(); },
   plantsel(t){ RSEL={room:t.dataset.r,i:+t.dataset.i}; sfx.tap(); render(); },
   rplantdel(){ if(!RSEL) return; const R=G.rooms[RSEL.room]; R.plants.splice(RSEL.i,1); RSEL=null; sfx.tap(); toast('Pianta rimossa: squadra al '+morale()+'%.'); save(); render(); },
@@ -4556,7 +4557,7 @@ function labMachines(){ const M=cur(), inLab=M&&M.phase==='D'&&M.stage!=='assemb
 const SF2={teal:'#45A9A3'};
 function roomSt(room,extra){ G.rooms=G.rooms||{}; const R=G.rooms[room]||(G.rooms[room]={plants:[]}); return Object.assign({plants:R.plants,sel:RSEL&&RSEL.room===room?RSEL.i:null,machines:room==='test'?labMachines():[],moveI:(RPLACE&&RPLACE.room===room&&RPLACE.moveI!=null)?RPLACE.moveI:null},extra||{}); }
 function roomBox(room,extra,ovl){ const pl=(G.rooms[room]||{plants:[]}).plants.length, pk=RPLACE&&RPLACE.room===room;
-  const tools='<div class="ctools">'+(room==='clean'||room==='test'?'':'<button data-act="rplant" data-r="'+room+'" title="Le piante rendono più felici i dipendenti">🪴<span class="tl"> Pianta · '+keur(PLANTC)+'</span></button>')+(pk?'<button class="on" data-act="resc">Annulla</button>':'')+'</div>';
+  const tools='<div class="ctools">'+(IR3.can()?'<button data-act="rrot" title="Ruota la stanza" aria-label="Ruota la stanza">⟳</button>':'')+(room==='clean'||room==='test'?'':'<button data-act="rplant" data-r="'+room+'" title="Le piante rendono più felici i dipendenti">🪴<span class="tl"> Pianta · '+keur(PLANTC)+'</span></button>')+(pk?'<button class="on" data-act="resc">Annulla</button>':'')+'</div>';
   const pop=room==='clean'&&PICKST&&!pk?'<div class="cpop"><b>'+TX('Quale satellite assembli qui?','Which satellite do you assemble here?')+'</b><div class="row">'+G.missions.filter(x=>x.phase==='D'&&x.stage==='assembly'&&x.asmWait).map(x=>'<button class="btn small primary" data-act="cleanpick" data-id="'+x.id+'">'+esc(x.name)+'</button>').join('')+'<button class="btn small" data-act="cleanpickx">'+TX('Chiudi','Close')+'</button></div></div>':room==='test'&&MSEL!=null&&!pk&&G.lab[MSEL]?'<div class="cpop mpop"><b>'+esc(L.MACH[G.lab[MSEL]].n)+'</b><div class="row"><button class="btn small" data-act="mmove">✥ Sposta</button><button class="btn small" data-act="mselx">Chiudi</button></div><span class="fine">Puoi cambiare la disposizione del laboratorio quando vuoi.</span></div>':RSEL&&RSEL.room===room&&!pk?'<div class="cpop"><b>Pianta da interno</b><div class="row"><button class="btn small" data-act="rplantdel">Rimuovi</button><button class="btn small" data-act="rselx">Chiudi</button></div><span class="fine">'+plantsN()+' piante in tutto · squadra felice al '+morale()+'%</span></div>':'';
   const hint=false?'<div class="chint" id="rhint">'+(RPLACE.k==='plant'?'Tocca un punto libero per mettere la pianta.':(RPLACE.moveI!=null?'Tocca il nuovo posto per: ':'Tocca un punto libero per posizionare: ')+L.MACH[RPLACE.k].n.toLowerCase()+'.')+' Esc per annullare.</div>':'';
   const st0=roomSt(room,extra), use3=IR3.can(); if(use3){ IR3.pending={room,st:st0}; queueMicrotask(IR3.sync); }
@@ -6061,17 +6062,21 @@ const IR3=(()=>{
     TG.forEach((t,k)=>{ const el=tagEls[k]; if(!el) return; const p=scr(t.x,t.y,t.z); el.style.left=p[0].toFixed(1)+'px'; el.style.top=p[1].toFixed(1)+'px'; });
     const bub=document.getElementById('mbub'); if(bub&&MEET&&bub.dataset.seat!=null&&MSEATP[+bub.dataset.seat]){ const q=MSEATP[+bub.dataset.seat], p=scr(q.x,q.y,2.35), hr=host.getBoundingClientRect(), w=bub.offsetWidth||260, hud=document.getElementById('hud'); bub.style.left=Math.max(hr.left+w/2+8,Math.min(hr.right-w/2-8,hr.left+p[0]))+'px'; bub.style.top=Math.max(((hud&&hud.getBoundingClientRect().bottom)||60)+bub.offsetHeight+8,hr.top+p[1])+'px'; } }
   function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); if(ts-lastT<33) return; const dt=Math.min(.25,(ts-lastT)/1000||.033); lastT=ts; const t=ts/1000;
+    if(yawTo!=null){ const k=Math.min(1,dt*9); CAM.yaw+=(yawTo-CAM.yaw)*k; if(Math.abs(yawTo-CAM.yaw)<.002){ CAM.yaw=yawTo; yawTo=null; } camDirty=true; }
     if(camDirty){ if(SK==='room') placeCam(); layout(); camDirty=false; dirty=true; } anims.forEach(f=>f(t,dt)); stepWalkers(dt,t); if(!anims.length&&!walkers.length&&!dirty) return; dirty=false; R.render(scene,cam); }
 
   /* ---------- controlli della camera: trascina per ruotare, rotella per lo zoom, tasto destro per spostare ---------- */
   const PT=new Map(); let drag=null, moved=false, pinch=null;
   const isPlacing=()=>host&&host.classList.contains('placing');
-  /* stessi gesti del campus: un dito sposta la vista (la stanza resta sotto il dito), due dita zoomano; col mouse tasto destro o Maiusc ruota */
-  function onDown(e){ if(!running||SK!=='room') return; PT.set(e.pointerId,[e.clientX,e.clientY]);
+  /* un dito sposta la vista (la stanza resta sotto il dito); due dita: allargarle o stringerle zooma, girarle come una manopola ruota la stanza (insieme, come nelle mappe); col mouse tasto destro o Maiusc ruota */
+  const fang=a=>Math.atan2(a[1][1]-a[0][1],a[1][0]-a[0][0]);
+  function onDown(e){ if(!running||SK!=='room') return; PT.set(e.pointerId,[e.clientX,e.clientY]); yawTo=null;
     if(PT.size===1){ moved=false; drag={x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,tx:CAM.tx,tz:CAM.tz,rot:e.button===2||e.shiftKey}; }
-    else if(PT.size===2){ const a=Array.from(PT.values()); pinch={d0:Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])),z0:CAM.zoom}; drag=null; moved=true; } }
+    else if(PT.size===2){ const a=Array.from(PT.values()); pinch={d0:Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])),z0:CAM.zoom,a:fang(a)}; drag=null; moved=true; } }
   function onMove(e){ if(!PT.has(e.pointerId)) return; PT.set(e.pointerId,[e.clientX,e.clientY]);
-    if(pinch&&PT.size>=2){ const a=Array.from(PT.values()), d=Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])); CAM.zoom=Math.max(.7,Math.min(3.2,pinch.z0*d/pinch.d0)); camDirty=true; return; }
+    if(pinch&&PT.size>=2){ const a=Array.from(PT.values()), d=Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])); CAM.zoom=Math.max(.7,Math.min(3.2,pinch.z0*d/pinch.d0));
+      /* rotazione libera: si somma il giro fatto dalle dita dall'ultimo movimento (girare in senso orario fa girare la stanza in senso orario) */
+      const an=fang(a); let da=an-pinch.a; if(da>Math.PI) da-=2*Math.PI; else if(da<-Math.PI) da+=2*Math.PI; pinch.a=an; CAM.yaw+=da; camDirty=true; return; }
     if(!drag) return; const dx=e.clientX-drag.x0, dy=e.clientY-drag.y0; if(!moved&&Math.hypot(dx,dy)<7) return; if(isPlacing()&&!drag.rot) return; moved=true;
     if(drag.rot){ CAM.yaw-=(e.clientX-drag.x)*.006; CAM.pit=Math.max(.4,Math.min(1.3,CAM.pit+(e.clientY-drag.y)*.005)); drag.x=e.clientX; drag.y=e.clientY; camDirty=true; return; }
     const hh=(host&&host.clientHeight)||innerHeight, k=2*(CAM.dFit/CAM.zoom)*Math.tan((cam?cam.fov:40)*Math.PI/360)/hh, c=Math.cos(CAM.yaw), sn=Math.sin(CAM.yaw), py=dy/Math.max(.5,Math.sin(CAM.pit));
@@ -6081,7 +6086,9 @@ const IR3=(()=>{
   function onWheel(e){ if(SK!=='room') return; e.preventDefault(); CAM.zoom=Math.max(.7,Math.min(3.2,CAM.zoom*Math.exp(-e.deltaY*.0012))); camDirty=true; }
   /* a livello di window, in cattura: arriva prima del gestore dei data-act e di quello del posizionamento */
   addEventListener('click',e=>{ if(moved&&e.target.closest&&e.target.closest('#roomsvg')){ e.stopPropagation(); e.preventDefault(); moved=false; } },true);
-  function resetCam(){ CAM.yaw=DEF.yaw; CAM.pit=DEF.pit; CAM.zoom=1; CAM.tx=RW/2; CAM.tz=RD/2; camDirty=true; }
+  function resetCam(){ yawTo=null; CAM.yaw=DEF.yaw; CAM.pit=DEF.pit; CAM.zoom=1; CAM.tx=RW/2; CAM.tz=RD/2; camDirty=true; }
+  /* pulsante ⟳: un quarto di giro in senso orario, con una breve animazione (i tocchi ripetuti si sommano) */
+  function turn(dir){ if(!running||SK!=='room') return; yawTo=(yawTo==null?CAM.yaw:yawTo)+(dir||1)*Math.PI/2; dirty=true; }
 
   /* ---------- API ---------- */
   function skey(room,st){ return skey0(room,st)+(room==='meet'||room==='launch'?'':'|s'+STAFFN(room)); }
@@ -6102,7 +6109,7 @@ const IR3=(()=>{
   function clearGhost(){ if(ghostG){ scene.remove(ghostG); ghostG.traverse(o=>{ if(o.material) o.material.dispose(); }); ghostG=null; } ghostK=''; dirty=true; }
   function setGhost(room,gh){ if(!running||room!==curRoom) return; if(!gh){ clearGhost(); return; } const k=gh?gh.k:''; if(k!==ghostK){ if(ghostG){ scene.remove(ghostG); ghostG=null; } ghostK=k; if(k){ const f=k==='plant'?[.6,.6]:(IR.FOOT[k]||[1,1]), h=k==='plant'?1:({vib:.8,tvac:2.5,emc:2.5,mass:.9,func:1.1,shock:2.8}[k]||1.2); ghostG=new THREE.Group(); const fl=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({color:0x37C26A,transparent:true,opacity:.7,depthWrite:false})); fl.rotation.x=-Math.PI/2; fl.scale.set(f[0],f[1],1); fl.position.set(f[0]/2,.05,f[1]/2); const gmod=ghostModel(k); ghostG.add(fl,gmod.g); ghostG.userData.m=[fl.material,gmod.m]; scene.add(ghostG); } }
     if(ghostG&&gh){ ghostG.position.set(gh.x,0,gh.y); const c=gh.ok?0x37C26A:0xE0483C; ghostG.userData.m.forEach(m=>m.color.setHex(c)); } dirty=true; }
-  return { launch:launchCtl, snap:snapMachine, focus:(x,z,zm,yaw,pit)=>{ CAM.tx=x; CAM.tz=z; CAM.zoom=zm; if(yaw!=null) CAM.yaw=yaw; if(pit!=null) CAM.pit=pit; camDirty=true; }, cover:()=>host?cover():null, setView, slam,info:()=>R?{tex:R.info.memory.textures,geo:R.info.memory.geometries,progs:R.info.programs.length,walkers:walkers.length,crowd:CROWD.length,cups:MEET?MEET.seats.map(r=>r&&r.cup?[+r.cup.position.y.toFixed(2),r.cupT==null?null:+r.cupT.toFixed(1)]:null):null,calls:R.info.render.calls,sc:scene.children.length,ghost:!!ghostG,pos:walkers.map(w=>[+w.x.toFixed(1),+w.z.toFixed(1),w.path?1:0])}:null, can, mount, update, sync, toGrid, ghost:setGhost, pending:null, stop:()=>{ running=false; } };
+  return { launch:launchCtl, snap:snapMachine, turn, focus:(x,z,zm,yaw,pit)=>{ CAM.tx=x; CAM.tz=z; CAM.zoom=zm; if(yaw!=null) CAM.yaw=yaw; if(pit!=null) CAM.pit=pit; camDirty=true; }, cover:()=>host?cover():null, setView, slam,info:()=>R?{tex:R.info.memory.textures,geo:R.info.memory.geometries,progs:R.info.programs.length,walkers:walkers.length,crowd:CROWD.length,cups:MEET?MEET.seats.map(r=>r&&r.cup?[+r.cup.position.y.toFixed(2),r.cupT==null?null:+r.cupT.toFixed(1)]:null):null,calls:R.info.render.calls,sc:scene.children.length,ghost:!!ghostG,pos:walkers.map(w=>[+w.x.toFixed(1),+w.z.toFixed(1),w.path?1:0])}:null, can, mount, update, sync, toGrid, ghost:setGhost, pending:null, stop:()=>{ running=false; } };
 })();
 
 /* ==========================================================================
