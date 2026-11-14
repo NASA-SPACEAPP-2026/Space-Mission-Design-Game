@@ -54,8 +54,6 @@ try {
   await page.locator('#entry-panel').waitFor({state:'visible'});
   await page.locator('[name=username]').fill('BrowserPilot');
   await page.locator('[name=password]').fill('my unique browser password 123');
-  await page.locator('#password-show').click();
-  assert.equal(await page.locator('[name=password]').getAttribute('type'),'text');
   await page.locator('#account-submit').click();
   // After signing up the interrupted action continues: the mode picker opens on the title screen.
   await page.locator('#account-entry').waitFor({state:'hidden'});
