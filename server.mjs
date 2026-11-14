@@ -3,7 +3,7 @@
  * Minimal static server for Azure App Service.
  *
  * The game is a static 2D single-page app: this process only serves `dist/`.
- * There is no API, no database and no game state on the server. `/api/health`
+ * Authentication API and PostgreSQL sessions are optional locally. `/api/health`
  * is kept as a tiny liveness probe for the existing deployment smoke test.
  *
  * Text assets are served from build-time `.br`/`.gz` files when available,
@@ -15,6 +15,8 @@ import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createBrotliCompress, createGzip } from "node:zlib";
+import { database } from './backend/database.mjs';
+import { createAuth } from './backend/auth.mjs';
 
 export const DEFAULT_ROOT = resolve(fileURLToPath(new URL("./dist", import.meta.url)));
 
@@ -243,12 +245,22 @@ const sendFile = async (request, response, file, relative) => {
 };
 
 /**
- * @param {{ root?: string, health?: boolean }} [options]
+ * @param {{ root?: string, health?: boolean, auth?: Function }} [options]
  */
 export const createStaticServer = (options = {}) => {
   const root = resolve(options.root ?? DEFAULT_ROOT);
 
   return createServer(async (request, response) => {
+    const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
+    if (pathname.startsWith('/api/auth/')) {
+      if (options.auth) return options.auth(request, response, pathname);
+      sendJson(response, 503, { error: 'Account non configurati' });
+      return;
+    }
+    if (pathname.startsWith('/api/') && pathname !== '/api/health') {
+      sendJson(response, 404, { error: 'Endpoint non trovato' });
+      return;
+    }
     if (request.method !== "GET" && request.method !== "HEAD") {
       response.writeHead(405, { ...SECURITY_HEADERS, Allow: "GET, HEAD" });
       response.end("Method Not Allowed");
@@ -294,11 +306,14 @@ export const createStaticServer = (options = {}) => {
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   const port = Number(process.env.PORT ?? 8080);
-  const server = createStaticServer();
+  const db = process.env.DATABASE_URL ? database() : null;
+  if (process.env.NODE_ENV === 'production' && !db) throw new Error('DATABASE_URL is required in production');
+  const auth = db ? createAuth({ db, origin: process.env.APP_ORIGIN, secure: process.env.NODE_ENV === 'production' }) : null;
+  const server = createStaticServer({ auth });
   server.listen(port, "0.0.0.0", () => {
     console.log(`Go No-Go static server on http://0.0.0.0:${port} (root: ${DEFAULT_ROOT})`);
   });
-  const shutdown = () => server.close(() => process.exit(0));
+  const shutdown = () => server.close(async () => { if (db) await db.end(); process.exit(0); });
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
 }

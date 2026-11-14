@@ -8,7 +8,7 @@
   function ToonStd(p){ p=Object.assign({},p||{}); DROP.forEach(k=>delete p[k]); p.gradientMap=ramp(); const m=new T.MeshToonMaterial(p); m.userData.toon=1; return m; }
   ToonStd.prototype=Std.prototype; T.MeshStandardMaterial=ToonStd;
   /* ---- contorno ---- */
-  const U={uRes:{value:new T.Vector2(1280,800)},uW:{value:1.4},uRef:{value:40}}; let ON=true, WIDTH=1.6;
+  const U={uRes:{value:new T.Vector2(1280,800)},uW:{value:1.4},uRef:{value:40}}; let ON=true, WIDTH=0.88;
   const fogU=Object.assign(T.UniformsUtils.clone(T.UniformsLib.fog),U);
   const OUTM=new T.ShaderMaterial({uniforms:fogU,side:T.BackSide,fog:true,toneMapped:false,
     vertexShader:'attribute vec3 onrm; uniform vec2 uRes; uniform float uW; uniform float uRef;\n#include <fog_pars_vertex>\nvoid main(){ vec3 n=onrm; vec4 p=vec4(position,1.0);\n#ifdef USE_INSTANCING\n n=mat3(instanceMatrix)*n; p=instanceMatrix*p;\n#endif\n vec4 mvPosition=modelViewMatrix*p; vec4 cp=projectionMatrix*mvPosition; vec3 vn=normalize(normalMatrix*n); vec2 d=(projectionMatrix*vec4(vn,0.0)).xy; float l=length(d); d=l>1e-5?d/l:vec2(0.0); float k=clamp(uRef/max(cp.w,0.001),0.3,1.0); cp.xy+=d*uW*k*2.0/uRes*cp.w; gl_Position=cp;\n#include <fog_vertex>\n}',

@@ -2,10 +2,16 @@
 'use strict';
 const $=(q,el)=>(el||document).querySelector(q), $$=(q,el)=>Array.from((el||document).querySelectorAll(q));
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* scrivono nel DOM solo se il valore e' cambiato (il browser normalizza innerHTML: si confronta con l'ultimo valore scritto) */
+const setT=(e,v)=>{ if(e&&e.textContent!==v) e.textContent=v; }, setH=(e,h)=>{ if(e&&e._h!==h){ e._h=h; e.innerHTML=h; } };
 const nf=(x,d)=>Number(x).toLocaleString('it-IT',{maximumFractionDigits:d==null?1:d}), keur=x=>nf(Math.round(x),0)+' cr', pct=x=>Math.round(x*100)+'%';
 const P=E.PARTS, PEO=L.PEOPLE, CELL=64, ACC=E.ACC;
-const phn=m=>PHN[m&&m.phase==='D'&&m.ready?'E':m&&m.phase]||'';
-const PHN={'0':'Fase 0','A':'Fase A','B':'Fase B','C':'Fase C','D':'Fase D','E':'Fase E','F':'Fase F','done':'Completata'};
+const phn=m=>PHN[m&&m.phase]||'';
+const PHN={'0':'Pre-fase A','A':'Fase A','B':'Fase B','C':'Fase C','D':'Fase D','E':'Fase E','F':'Fase F','done':'Completata'};
+/* NASA JPL Concept Maturity Levels + livelli di studio del Mission Design Lab (MDL), legati alle fasi del gioco */
+const CMLN=['','Cocktail Napkin','Initial Feasibility','Trade Space','Point Design','Beyond concept study','Beyond concept study'], MDLN={1:'Office Hours',2:'Concept Development',3:'Trade Studies',4:'Point Design'};
+function cmlOf(M){ if(!M) return null; const p=M.phase, n=p==='0'?(M.stage==='partners'?1:2):p==='A'?3:p==='B'?4:p==='C'||p==='D'?5:6; return {n, name:CMLN[n], mdl:MDLN[n]||null}; }
+const cmlTag=M=>{ const c=cmlOf(M); return c?'CML '+c.n+' · '+c.name+(c.mdl?' · MDL '+c.mdl:''):''; };
 let G=null, view='hub', sel=null, raf=0, teleTick=0; const evShown={};
 
 /* ---------- salvataggio ---------- */
@@ -26,6 +32,94 @@ const LANG='en';
 const I18N=(()=>{ const RAW=`Particelle solari in arrivo: il satellite è passato da solo in safe mode per proteggersi. Riaccendi gli strumenti per misurare la tempesta?	Solar particles incoming: the satellite switched to safe mode by itself to protect itself. Switch the instruments back on to measure the storm?
 Riaccendi e misura	Switch on and measure
 Resta in safe mode	Stay in safe mode
+Rientro nell’atmosfera	Atmospheric re-entry
+Ingresso nell’atmosfera	Atmosphere entry
+Impatto sulla superficie	Impact on the surface
+dopo {n} giorni	after {n} days
+Senza propulsione l’orbita cade: GMAT prevede il contatto con la superficie o l’atmosfera dopo {n} giorni, ne servono almeno {n}.	Without propulsion the orbit falls: GMAT predicts contact with the surface or atmosphere after {n} days, at least {n} are needed.
+{n} giorni	{n} days
+oltre 5 anni	over 5 years
+oltre 1 anno	over 1 year
+Vita in orbita (sole medio)	Orbit lifetime (average Sun)
+Vita con il massimo solare	Lifetime at solar maximum
+Vita con il minimo solare	Lifetime at solar minimum
+Vita con la vela di rientro	Lifetime with the drag sail
+Regola dei 5 anni	5-year rule
+rispettata ✓	met ✓
+non rispettata ✕: serve la vela o una manovra di fine vita	not met ✕: needs the sail or an end-of-life manoeuvre
+Vita prima dell’impatto	Lifetime before impact
+Vita prima dell’atmosfera	Lifetime before the atmosphere
+Crescita dell’eccentricità	Eccentricity growth
+{n} al mese	{n} a month
+Deriva del pericentro	Periapsis drift
+Precessione del nodo	Node precession
+Distanza dalla Terra	Distance from Earth
+{n} – {n} milioni di km	{n} – {n} million km
+Tempo luce (solo andata)	Light time (one way)
+{n} – {n} min	{n} – {n} min
+Vita dell’orbita (GMAT)	Orbit lifetime (GMAT)
+Senza propulsione l’orbita decade: GMAT stima circa {n} giorni di vita (caso peggiore), ne servono almeno {n}.	Without propulsion the orbit decays: GMAT estimates about {n} days of life (worst case), at least {n} are needed.
+Analisi GMAT (NASA)	GMAT analysis (NASA)
+GMAT sta analizzando l’orbita…	GMAT is analysing the orbit…
+GMAT non raggiungibile: valori del modello	GMAT unreachable: game model values
+Periodo orbitale	Orbital period
+Ombra per orbita	Shadow per orbit
+media {n} min · massima {n} min · al sole {n}%	average {n} min · maximum {n} min · in sunlight {n}%
+nessuna: orbita al crepuscolo, sempre al sole	none: dawn-dusk orbit, always in sunlight
+Contatti	Contacts
+Milano	Milan
+{n} passaggi al giorno · {n} min al giorno	{n} passes a day · {n} min a day
+serve l’edificio di terra	needs the ground building
+serve una parabola nel centro di terra	needs a dish at the ground station
+Contatti totali	Total contact
+{n} min al giorno	{n} min a day
+Contatti con la terra	Ground contact
+Perdita di quota	Altitude loss
+{n} km al mese	{n} km a month
+trascurabile	negligible
+Vita stimata dell’orbita	Estimated orbit lifetime
+{n} mesi	{n} months
+{n} anni	{n} years
+oltre 10 anni	over 10 years
+ΔV di mantenimento	Station-keeping ΔV
+{n} m/s al mese	{n} m/s a month
+Deriva del nodo (J2)	Node drift (J2)
+{n} °/giorno	{n} °/day
+eliosincrona ✓	Sun-synchronous ✓
+Perdita di quota e vita	Altitude loss and lifetime
+modello del gioco (GMAT solo per l’orbita terrestre)	game model (GMAT only for Earth orbit)
+modello	model
+ombra {n} min	shadow {n} min
+Dato GMAT.	GMAT data.
+Ombra massima per orbita (GMAT)	Maximum shadow per orbit (GMAT)
+Contatti con la terra (GMAT)	Ground contact (GMAT)
+Vita stimata dell’orbita (GMAT)	Estimated orbit lifetime (GMAT)
+Senza propulsione l’orbita decade: GMAT stima circa {n} mesi di vita, ne servono almeno {n}.	Without propulsion the orbit decays: GMAT estimates about {n} months of life, at least {n} are needed.
+▶ Rivedi la missione	▶ Replay the mission
+ΔV: calcolato con GMAT (NASA)	ΔV: computed with GMAT (NASA)
+ΔV: GMAT sta calcolando…	ΔV: GMAT is calculating…
+ΔV: modello del gioco (GMAT non raggiungibile)	ΔV: game model (GMAT unreachable)
+Fonte del ΔV	ΔV source
+GMAT (NASA)	GMAT (NASA)
+Modello del gioco	Game model
+⏸ Pausa	⏸ Pause
+Posizione nella missione	Position in the mission
+Trasferimento verso	Transfer to
+In orbita:	In orbit:
+In orbita: Rilascio	In orbit: Release
+In orbita: Fine vita	In orbit: End of life
+Trasferimento verso Orbita {n}	Transfer to Orbit {n}
+In orbita: Orbita {n}	In orbit: Orbit {n}
+Trasferimento verso Fine vita	Transfer to End of life
+I quattro segmenti	The four segments
+Missioni NASA simili	Similar NASA missions
+Segmento di lancio	Launch segment
+Segmento spaziale	Space segment
+Segmento di terra	Ground segment
+Segmento utenti	User segment
+{n} / {n} stakeholder soddisfatti	{n} / {n} stakeholders satisfied
+Maturità del concetto (NASA): 	Concept maturity (NASA): 
+Maturità (NASA CML)	Maturity (NASA CML)
 SAFE MODE AUTOMATICO	AUTOMATIC SAFE MODE
 Entra nell’edificio di costruzione.	Enter the assembly building.
 Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM).	Phase B: go to the Flight Dynamics Centre to draw the mission (DRM).
@@ -184,6 +278,8 @@ Cerca un pezzo	Search for a part
 Cerca un pezzo…	Search for a part…
 Che missione vuoi fare?	What mission do you want to fly?
 Che satellite costruisci?	What satellite will you build?
+Costruzione libera	Free build
+Un satellite senza i vincoli del CubeSat: niente taglia, niente griglia.	A satellite without CubeSat constraints: no size class, no grid.
 Chi lancia	Launch provider
 Chi siede al tavolo?	Who sits at the table?
 Chiede: 	Asks: 
@@ -268,6 +364,17 @@ Destinazioni su Luna	Destinations at the Moon
 Destinazioni su Marte	Destinations at Mars
 Destinazioni su Terra	Destinations at Earth
 Destinazioni su Venere	Destinations at Venus
+Destinazioni su Mercurio	Destinations at Mercury
+Destinazioni su Giove	Destinations at Jupiter
+Destinazioni su Saturno	Destinations at Saturn
+Destinazioni su Urano	Destinations at Uranus
+Destinazioni su Nettuno	Destinations at Neptune
+Destinazioni su Sole	Destinations at the Sun
+Catalogo	Catalogue
+Tutti i corpi celesti	All celestial bodies
+Il Sole e tutti i pianeti del Sistema Solare. Distanze, tempi e costi sono stime di gioco.	The Sun and all the planets of the Solar System. Distances, times and costs are game estimates.
+volabile ora	flyable now
+anteprima	preview
 Detriti	Debris
 Dettagli	Details
 Detumbling completato con le bobine magnetiche.	Detumbling completed with the magnetic coils.
@@ -290,7 +397,7 @@ Due radio: una di riserva	Two radios: one spare
 Durata totale	Total duration
 Durata ≥ {n} mesi	Duration ≥ {n} months
 E se…?	What if…?
-Ecco la revisione di fine missione (MCR): scienza raccolta, rate e cosa è successo. Chiudila.	Here is the mission close-out review (MCR): science collected, instalments and what happened. Close it.
+Ecco la revisione di fine missione (MCR): scienza raccolta, rate e cosa è successo. Chiudila.	Here is the Decommissioning Review (DR): science collected, instalments and what happened. Close it.
 Eclisse	Eclipse
 Eclisse di {n} minuti: Eclisse passata senza danni.	{n}-minute eclipse: Eclipse passed without damage.
 Edifici	Buildings
@@ -324,6 +431,7 @@ Fase A	Phase A
 Fase B	Phase B
 Fase B, passo {n}: nel Centro di dinamica del volo disegna la missione (DRM).	Phase B, step {n}: in the flight dynamics centre draw the mission (DRM).
 Fase B: esci e vai al Centro di dinamica del volo per disegnare la missione (DRM).	Phase B: go out to the flight dynamics centre to draw the mission (DRM).
+Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM).	Phase B: go to the flight dynamics centre to draw the mission (DRM).
 Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM). Tocca l’edificio sulla mappa.	Phase B: go to the flight dynamics centre to draw the mission (DRM). Tap the building on the map.
 Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM): prima torna al campus con la casetta in basso a destra.	Phase B: go to the flight dynamics centre to draw the mission (DRM): first go back to the campus with the house button at the bottom right.
 Fase C	Phase C
@@ -333,6 +441,8 @@ Fase C: progetto congelato. Con la revisione CDR compri i pezzi.	Phase C: design
 Fase C: puoi ancora ritoccare la quota e la strategia; il lancio è già prenotato.	Phase C: you can still tweak the altitude and the strategy; the launch is already booked.
 Fase D	Phase D
 Fase E	Phase E
+Pre-fase A	Pre-Phase A
+Fine della pre-fase A	End of Pre-Phase A
 Fase F: la missione ha raggiunto la durata promessa. Il controllo missione chiude le operazioni e prepara il rientro.	Phase F: the mission has reached the promised duration. Mission control closes operations and prepares the re-entry.
 Fase {n}	Phase {n}
 Fasi E e F	Phases E and F
@@ -366,8 +476,14 @@ Gli stakeholder. Quello che accetti diventa un requisito di missione. Tocca lo s
 Griglia	Grid
 Guarda avanti, evita le nuvole e punta lo strumento dove serve.	Looks ahead, avoids clouds and points the instrument where needed.
 Guarda le stelle per sapere dove punta	Looks at the stars to know where it points
+Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (pre-fase A), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio, prove e lancio (D), operazioni in volo (E) e chiusura (F).	You went through every phase of a real NASA mission: requirements with the stakeholders (Pre-Phase A), satellite and system requirements (Phase A), orbit and launch plan (B), final design (C), assembly, tests and launch (D), operations (E) and closeout (F).
 Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (fase {n}), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio e prove (D), volo (E) e chiusura (F).	You went through every phase of a real mission: requirements with the stakeholders (phase {n}), satellite and system requirements (A), mission, satellite and orbit (B), design freeze and parts (C), assembly and tests (D), flight (E) and close-out (F).
-Hai i requisiti di missione. Chiudi la riunione: segue la revisione MDR.	You have the mission requirements. Close the meeting: the MDR review follows.
+La NASA vuole che il satellite resti nel budget. Puoi trattare: tocca «Controproposta» per chiedere un tetto un po’ più alto. Il requisito diventa più facile, la NASA è un po’ meno contenta.	NASA wants the satellite to stay within budget. You can negotiate: tap «Counter-proposal» to ask for a slightly higher cap. The requirement gets easier, NASA gets a little less happy.
+Gli scienziati vogliono anche la prova in termovuoto: costa tempo e crediti. Prova a rifiutarla con «Rifiuta»: il requisito sparisce, ma loro saranno meno contenti.	The scientists also want a thermal-vacuum test: it costs time and credits. Try refusing it with «Refuse»: the requirement goes away, but they will be less happy.
+Il regolatore impone che il satellite rientri a fine vita: è una regola, non si rifiuta e non si tratta. Accettala: diventa un requisito di missione (MIS).	The regulator requires the satellite to re-enter at end of life: it is a rule, you can't refuse it or negotiate. Accept it: it becomes a mission requirement (MIS).
+Ogni richiesta accettata diventa un requisito di missione (MIS). Accettala.	Every accepted request becomes a mission requirement (MIS). Accept it.
+Hai i requisiti di missione. Chiudi la riunione: segue la revisione MCR.	You have the mission requirements. Close the meeting: the Mission Concept Review (MCR) follows.
+Hai i requisiti di missione. Chiudi la riunione: segue la revisione MDR.You have the mission requirements. Close the meeting: the Mission Concept Review (MCR) follows.
 Hai scelto «Misura» ({n} scienza	You chose «Measure» ({n} science
 Hai scelto «Reset a freddo» ({n}% torna	You chose «Cold reset» ({n}% comes back
 Hai un campus, {n} cr e nessun satellite. La NASA finanzia il tuo primo CubeSat e ti apre il suo catalogo di tecnologie: si parte con poche carte, le altre si sbloccano salendo di livello.	You have a campus, {n} cr and no satellite. NASA funds your first CubeSat and opens its technology catalogue to you: you start with a few cards, the others unlock as you level up.
@@ -519,6 +635,7 @@ Microscopio a fluorescenza robusto	Rugged fluorescence microscope
 Microscopio robusto a fluorescenza per la biologia nello spazio.	Rugged fluorescence microscope for biology in space.
 Microscopio senza lenti	Lensless microscope
 Microscopio senza lenti per osservare campioni biologici in volo.	Lensless microscope to observe biological samples in flight.
+Mission Concept Review: i requisiti di missione sono approvati. Premi per chiudere la pre-fase A e incassare la prima rata.	Mission Concept Review: the mission requirements are approved. Press to close Pre-Phase A and collect the first instalment.
 Mission Definition Review: i requisiti di missione sono approvati. Premi per chiudere la fase {n} e incassare la prima rata.	Mission Definition Review: the mission requirements are approved. Press to close phase {n} and collect the first instalment.
 Missione	Mission
 Missione disegnata. Ora progetta il satellite che deve farla.	Mission drawn. Now design the satellite that has to fly it.
@@ -609,6 +726,7 @@ Pannelli srotolabili LISA-T	LISA-T roll-out panels
 Parcheggio	Car park
 Parete video della sala controllo	Control-room video wall
 Particelle solari in arrivo: i dati più rari della missione.	Solar particles incoming: the rarest data of the mission.
+Fase B: prima scegli la finestra di lancio (tocca il Centro di dinamica del volo), poi crea la MDR.	Phase B: first choose the launch window (tap the Flight Dynamics Centre), then create the MDR.
 Passaggi della DRM	DRM legs
 Passaggi ripetuti nell’alta atmosfera abbassano l’orbita quasi gratis. Due mesi senza scienza e qualche rischio.	Repeated passes through the upper atmosphere lower the orbit almost for free. Two months without science and some risk.
 Passo {n}: le orbite in dettaglio, con il satellite vero. Qui compaiono i Δv di ogni passaggio della DRM.	Step {n}: the detailed orbits, with the real satellite. Here the Δv of every DRM leg appears.
@@ -627,6 +745,7 @@ Personale	Staff
 Perturbazioni orbitali	Orbital perturbations
 Perturbazioni orbitali: Orbita a {n} × {n} km.	Orbital perturbations: Orbit at {n} × {n} km.
 Pezzi comprati. Ora porta il satellite su una postazione della camera bianca.	Parts bought. Now take the satellite to a clean-room station.
+Pezzi comprati. Fase D: entra nell’edificio di costruzione e porta il satellite in camera bianca.	Parts bought. Phase D: enter the assembly building and take the satellite to the clean room.
 Pezzi comprati: {n} cr. Fase D: assemblaggio in camera bianca.	Parts bought: {n} cr. Phase D: assembly in the clean room.
 Piano di volo	Flight plan
 Pianta	Plant
@@ -754,9 +873,9 @@ Revisione CDR	CDR review
 Revisione PDR	PDR review
 Revisione di volo	Flight review
 Revisione di volo superata.	Flight review passed.
-Revisione di volo superata: comincia la fase E.	Flight review passed: phase E begins.
-Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio. Tocca l’edificio sulla mappa.	Flight review passed: phase E begins. Go to the administration building for the launch. Tap the building on the map.
-Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio: prima torna al campus con la casetta in basso a destra.	Flight review passed: phase E begins. Go to the administration building for the launch: first go back to the campus with the house button at the bottom right.
+Revisione di volo superata: comincia la fase E.	Flight review passed: Phase D continues with launch & checkout.
+Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio. Tocca l’edificio sulla mappa.	Flight review passed: Phase D continues with launch & checkout. Go to the administration building for the launch. Tap the building on the map.
+Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio: prima torna al campus con la casetta in basso a destra.	Flight review passed: Phase D continues with launch & checkout. Go to the administration building for the launch: first go back to the campus with the house button at the bottom right.
 Ricerca	Research
 Ricevitore GPS	GPS receiver
 Richiesta di un partner: Richiesta declinata.	Partner request: Request declined.
@@ -783,6 +902,7 @@ Risorse	Resources
 Risorse di bordo	On-board resources
 Robotica	Robotics
 Ruota	Rotate
+Ruota la stanza	Rotate the room
 Ruote che girano per orientare il satellite con precisione	Spinning wheels to point the satellite precisely
 Ruote di reazione da dischi rigidi	Hard-disk reaction wheels
 Ruote di reazione ricavate da dischi rigidi: assetto a tre assi a bassissimo costo.	Reaction wheels made from hard disks: three-axis attitude at very low cost.
@@ -899,7 +1019,15 @@ Tocca un punto libero per mettere la pianta. Esc per annullare.	Tap a free spot 
 Tocca un punto libero per posizionare: tavola vibrante. Esc per annullare.	Tap a free spot to place: shaker table. Esc to cancel.
 Togli	Remove
 Torna al campus	Back to campus
-Torna alla fase B	Back to phase B
+Torna alla fase B	Back to Phase B
+Torna alla pre-fase A	Back to Pre-Phase A
+Torna alla fase A	Back to Phase A
+Torna alla fase C	Back to Phase C
+studi di concetto	Concept Studies
+concetto e sviluppo tecnologico	Concept & Technology Development
+progetto preliminare	Preliminary Design & Technology Completion
+progetto finale e fabbricazione	Final Design & Fabrication
+assemblaggio, integrazione, prove e lancio	System Assembly, Integration & Test, Launch & Checkout
 Totale	Total
 Totale ({n}% di margine sul piano)	Total ({n}% margin on the plan)
 Tra {n} e {n} km: osservazione, costellazioni, prove.	Between {n} and {n} km: observation, constellations, tests.
@@ -922,7 +1050,7 @@ Tutti i dati arrivano a terra.	All the data reach the ground.
 Tutti i pezzi	All parts
 Tutto sbloccato, nessun vincolo di budget	Everything unlocked, no budget constraints
 Ufficio partnership	Partnership office
-Ultima rata (MCR)	Last instalment (MCR)
+Ultima rata (MCR)	Last instalment (DR)
 Un broker di lancio ti mette in un dispenser insieme ad altri satelliti	A launch broker puts you in a dispenser with other satellites
 Un lander commerciale ti porta giù: ingresso, paracadute, retrorazzi.	A commercial lander takes you down: entry, parachute, retro-rockets.
 Un solo propulsore che lavora sia chimico (spinta forte) sia ionico (efficiente).	A single thruster that works both chemically (strong thrust) and as an ion engine (efficient).
@@ -932,6 +1060,30 @@ Vale per i satelliti che superano la CDR da ora in poi.	Applies to satellites th
 Vedi la classifica	See the ranking
 Vela di resistenza aerodinamica che fa rientrare il satellite a fine missione.	Drag sail that brings the satellite down at end of mission.
 Vela di rientro	De-orbit sail
+Mercurio	Mercury
+Saturno	Saturn
+Urano	Uranus
+Nettuno	Neptune
+Sole	Sun
+orbita attorno a Mercurio	orbit around Mercury
+orbita attorno a Giove	orbit around Jupiter
+orbita attorno a Saturno	orbit around Saturn
+orbita attorno a Urano	orbit around Uranus
+orbita attorno a Nettuno	orbit around Neptune
+orbita attorno al Sole	orbit around the Sun
+Sorvolo ravvicinato	Close flyby
+Sorvolo del perielio	Perihelion flyby
+Orbita eliocentrica interna	Inner heliocentric orbit
+Un passaggio veloce vicino al corpo: la frenata costa poco, ma si osserva per poco tempo.	A fast pass close to the body: braking costs little, but you observe for a short time.
+Un’orbita di cattura stretta attorno al corpo: dati di dettaglio, ma servono molti ΔV per arrivarci.	A tight capture orbit around the body: detailed data, but it takes a lot of ΔV to get there.
+Un’orbita larga e stabile: lenta da percorrere, comoda per misure a lungo termine.	A wide, stable orbit: slow to fly, good for long-term measurements.
+Un passaggio ravvicinato nella corona solare: tutto dipende dallo scudo termico.	A close pass through the solar corona: everything depends on the heat shield.
+Un’orbita attorno al Sole, dentro quella di Mercurio: osservazione quasi continua.	An orbit around the Sun, inside Mercury’s: almost continuous observation.
+Passaggio verso Mercurio o Giove	Ride to Mercury or Jupiter
+Un posto su una sonda di classe media: ti rilascia in un’orbita circolare di lavoro dopo la frenata	A seat on a mid-class probe: it releases you in a circular working orbit after braking
+Passaggio su una sonda Flagship (lanciatore pesante)	Ride on a Flagship probe (heavy-lift launcher)
+Un posto su una grande sonda lanciata con un razzo pesante: serve per i pianeti esterni e per il Sole	A seat on a large probe launched on a heavy rocket: needed for the outer planets and the Sun
+La sonda che ti porta frena per te e ti lascia in un’orbita circolare di lavoro: la frenata di cattura costa {n} m/s ed è già nel conto.	The probe that carries you brakes for you and leaves you in a circular working orbit: the capture burn costs {n} m/s and is already counted.
 Venere	Venus
 Verifica {s}	Check {s}
 Verso l’orbita cimitero	To the graveyard orbit
@@ -976,6 +1128,7 @@ lancio, viaggio e discesa con il lander	launch, trip and descent with the lander
 manovra di discesa	descent manoeuvre
 manovra di salita	climb manoeuvre
 lancio prenotato {n} cr. Fase C: costruisci il satellite nell’edificio di costruzione.	launch booked {n} cr. Phase C: freeze the design in the assembly building.
+lancio prenotato {n} cr. Fase C: revisione CDR e acquisto dei pezzi.	launch booked {n} cr. Phase C: CDR review and parts purchase.
 lato opposto, trascinabile	opposite side, draggable
 livello {n}	level {n}
 lo metti dove vuoi	put it where you like
@@ -1011,6 +1164,9 @@ orbita obiettivo	target orbit
 orbite intermedie	intermediate orbits
 parcheggiato a {n} km	parked at {n} km
 passo {n} di {n}	step {n} of {n}
+Passo {n}	Step {n}
+Passo {n}: progetta il satellite nell’edificio di costruzione. Tocca l’edificio sulla mappa.	Step {n}: design the satellite in the assembly building. Tap the building on the map.
+Passo {n}: progetta il satellite nell’edificio di costruzione: prima torna al campus con la casetta in basso a destra.	Step {n}: design the satellite in the assembly building: first go back to the campus with the house button at the bottom right.
 più	more
 pochissimo	very little
 possibile	possible
@@ -1103,8 +1259,9 @@ vibrazione superata	vibration passed
 {s} creata. Entra nell’edificio amministrativo: la NASA ti aspetta al tavolo.	{s} created. Enter the administration building: NASA is waiting for you at the table.
 {s} pronto al lancio	{s} ready for launch
 {s} è assemblato: esci e portalo all’edificio di testing per le prove.	{s} is assembled: go out and take it to the test building for the tests.
+{s} è assemblato: portalo all’edificio di testing per le prove.	{s} is assembled: take it to the test building for the tests.
 {s} è in orbita: esci e vai al Mission Control Center per seguirlo.	{s} is in orbit: go out to the Mission Control Center to follow it.
-{s} è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.	{s} is ready: phase E begins. Go to the administration building for the launch.
+{s} è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.	{s} is ready for launch & checkout (Phase D). Go to the administration building for the launch.
 {s} è sulla postazione: i tecnici iniziano l’assemblaggio.	{s} is on the station: the technicians start assembly.
 {s}: assemblaggio completato. Portalo al laboratorio prove.	{s}: assembly completed. Take it to the test lab.
 {s}: prova di vibrazione con problemi.	{s}: vibration test with problems.
@@ -1140,7 +1297,6 @@ Campus più grande ({n}% dell’area iniziale)	Larger campus ({n}% of the initia
 Agenzie partner della NASA Space Apps Challenge	NASA Space Apps Challenge partner agencies
 Sponsor da reclutare nell’Ufficio partnership	Sponsors to recruit in the partnership office
 in arrivo	coming soon
-non ancora possibile	not possible yet
 serve la propulsione ionica a bordo	needs on-board ion propulsion
 serve solo per abbassare l’orbita	only needed to lower the orbit
 È una regola: non si può rifiutare.	It is a rule: it cannot be refused.
@@ -1223,7 +1379,7 @@ Sposta	Move
 ✥ Sposta	✥ Move
 Puoi cambiare la disposizione del laboratorio quando vuoi.	You can rearrange the lab whenever you like.
 Prova già fatta per {s}.	Test already done for {s}.
-Revisione di volo superata: comincia la fase E.	Flight review passed: phase E begins.
+Revisione di volo superata: comincia la fase E.	Flight review passed: Phase D continues with launch & checkout.
 Esci dal laboratorio e vai	Leave the lab and go
 alla rampa di lancio	to the launch pad
 del campus	on campus
@@ -1513,7 +1669,7 @@ satellite in assemblaggio.	satellite in assembly.
 Tocca una postazione per vedere a che punto è; quando è pronto, toccalo per portarlo al laboratorio.	Tap a station to see its progress; when it is ready, tap it to take it to the lab.
 Satellite in integrazione	Satellite in integration
 deroga, il difetto vola:	waiver, the defect flies:
-Revisione di volo superata: comincia la fase E. Esci dal laboratorio e vai	Flight review passed: phase E begins. Leave the lab and go
+Revisione di volo superata: comincia la fase E. Esci dal laboratorio e vai	Flight review passed: Phase D continues with launch & checkout. Leave the lab and go
 alla rampa di lancio del campus	to the campus launch pad
 all’ edificio amministrativo : da lì segui il lancio con l’ente terzo	to the administration building: from there follow the third-party launch
 all’	to the
@@ -1575,6 +1731,7 @@ e studiarne il suolo da vicino.	and study its soil up close.
 e studiare il suolo di una luna di Marte.	and study the soil of a moon of Mars.
 stadio di discesa	descent stage
 non sul suolo	not on the ground
+non per questo corpo	not for this body
 I tipi con il lucchetto non hanno ancora un payload o un propulsore adatto al tuo livello: si sbloccano salendo.	Locked types do not yet have a payload or thruster suited to your level: they unlock as you level up.
 Sul suolo il payload è un	On the ground the payload is a
 lander con trivella	lander with a drill
@@ -1635,6 +1792,7 @@ I requisiti di base non si derogano.	Basic requirements cannot be waived.
 Il piano di volo si progetta nel Centro di dinamica del volo.	The flight plan is designed in the flight dynamics centre.
 Le regole non si derogano.	Rules cannot be waived.
 è assemblato: esci e portalo all’edificio di testing per le prove.	is assembled: go out and take it to the test building for the tests.
+è assemblato: portalo all’edificio di testing per le prove.	is assembled: take it to the test building for the tests.
 Non hai abbastanza soldi.	You do not have enough money.
 Tocca un punto libero del laboratorio per posizionare	Tap a free spot in the lab to place
 Le antenne si collegano alla stazione di terra: costruiscila prima (Edifici).	Antennas connect to the ground station: build it first (Buildings).
@@ -1650,8 +1808,8 @@ Torna alle prove	Back to the tests
 Senza prova superata:	Without a passed test:
 Eventuali difetti voleranno con il satellite.	Any defects will fly with the satellite.
 Tutte le prove superate.	All tests passed.
-è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.	is ready: phase E begins. Go to the administration building for the launch.
-è sulla rampa di lancio: comincia la fase E.	is on the launch pad: phase E begins.
+è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.	is ready for launch & checkout (Phase D). Go to the administration building for the launch.
+è sulla rampa di lancio: comincia la fase E.	is on the launch pad: launch & checkout (Phase D).
 è in orbita: esci e vai al Mission Control Center per seguirlo.	is in orbit: go out to the Mission Control Center to follow it.
 Rampa di lancio costruita: da ora puoi lanciare in casa, con il 40% in meno.	Launch pad built: from now on you can launch at home, 40% cheaper.
 in volo: segui la telemetria dal Mission Control Center.	in flight: follow the telemetry from the Mission Control Center.
@@ -1673,6 +1831,7 @@ Prova in corso: lo sposti quando ha finito.	Test in progress: move it when it ha
 Trascina il satellite sul macchinario per avviare la prova.	Drag the satellite onto the machine to start the test.
 prova già fatta per	test already done for
 scegli un satellite dal magazzino a sinistra.	choose a satellite from the store on the left.
+Scegli il satellite da provare: la prova parte subito.	Choose the satellite to test: the test starts right away.
 Banco libero: crea una nuova missione con il tasto + e portala in fase C.	Free bench: create a new mission with the + button and take it to phase C.
 Lancio con un ente terzo	Third-party launch
 da un sito di lancio esterno. Il servizio è già pagato.	from an external launch site. The service is already paid.
@@ -1725,8 +1884,12 @@ Tutti i posti auto sono occupati: per assumere costruisci un parcheggio nel camp
 Nessuna agenzia in classifica: chiudi una missione e sarai la prima.	No agencies in the ranking: close a mission and you will be the first.
 punti per la Lega	points for the League
 punti scienza ed entra nella Lega	science points and join the League
+A · concetto e sviluppo tecnologico	A · Concept & Technology Development
+pre-fase A · studi di concetto	Pre-Phase A · Concept Studies
 A · fattibilità	A · feasibility
+C · progetto finale e fabbricazione	C · Final Design & Fabrication
 C · progetto di dettaglio	C · detailed design
+D · assemblaggio, integrazione, prove e lancio	D · System Assembly, Integration & Test, Launch & Checkout
 D · assemblaggio e prove	D · assembly and tests
 Si riapre il tavolo con gli stakeholder: i requisiti di missione e di sistema accettati vengono cancellati e si rinegoziano.	The table with the stakeholders reopens: accepted mission and system requirements are cancelled and renegotiated.
 La prima rata è già incassata: non arriva una seconda volta.	The first instalment is already collected: it does not come a second time.
@@ -1741,7 +1904,7 @@ Le prove fatte vanno rifatte. I macchinari del laboratorio restano.	Tests done m
 La revisione FRR va ripetuta: la rata è già incassata.	The FRR review must be repeated: the instalment is already collected.
 Da questa fase non si torna indietro.	There is no going back from this phase.
 Ritorno di fase	Phase rollback
-Torna alla fase	Go back to phase
+Torna alla fase	Go back to
 Tornare indietro è possibile, ma costa: tempo, soldi e fiducia degli stakeholder. È quello che succede in un progetto vero quando una revisione scopre un problema.	Going back is possible, but it costs: time, money and stakeholder trust. That is what happens in a real project when a review uncovers a problem.
 Costo della revisione straordinaria	Cost of the extraordinary review
 Rimborso della prenotazione +	Booking refund +
@@ -1767,7 +1930,7 @@ Servono pannelli solari: scegli le ali dispiegabili, danno più potenza di quell
 Apri la scheda dei pannelli solari.	Open the solar panels tab.
 Passo 3: torna al Centro di dinamica del volo	Step 3: go back to the flight dynamics centre
 Tocca il banco di	Tap the bench of
-Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio	Flight review passed: phase E begins. Go to the administration building for the launch
+Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio	Flight review passed: Phase D continues with launch & checkout. Go to the administration building for the launch
 Al laboratorio prove: i requisiti chiedono la prova di vibrazione.	To the test lab: the requirements ask for the vibration test.
 Prova di vibrazione	Vibration test
 in corso…	in progress…
@@ -2460,6 +2623,7 @@ Rata PDR	PDR instalment
 Nessuna nuova rata	No new instalment
 · lancio prenotato −	· launch booked −
 . Fase C: costruisci il satellite nell’edificio di costruzione.	. Phase C: build the satellite in the assembly building.
+. Fase C: revisione CDR e acquisto dei pezzi.	. Phase C: CDR review and parts purchase.
 Responsabile programmi ·	Programme manager ·
 al tavolo	at the table
 missioni insieme	missions together
@@ -2474,7 +2638,7 @@ spazio occupato	space already taken
 cr a testa). Se le missioni sono ferme non paghi nulla.	cr each). If missions are paused you pay nothing.
 · lega massima	· top league
 · sei	· you are
-B · progetto preliminare	B · preliminary design
+B · progetto preliminare	B · Preliminary Design & Technology Completion
 Rimborso della prenotazione	Booking refund
 Soddisfazione della NASA	NASA satisfaction
 Tutorial finito: torni alla tua partita.	Tutorial finished: you are back to your game.
@@ -2809,6 +2973,12 @@ cambia:	changes:
 cambia: 	changes: 
 Senza prova superata: 	Without a passed test: 
 BATTERIA	BATTERY
+TELEMETRIA	TELEMETRY
+TEMPERATURA	TEMPERATURE
+POTENZA	POWER
+SISTEMI	SYSTEMS
+TEMPO	TIME
++ altri	+ more
 GAS FREDDO	COLD GAS
 SCORTE	SPARES
 STATO	STATUS
@@ -2887,6 +3057,11 @@ DataRelay Europa	DataRelay Europe
 v38 · NASA Space Apps 2026 · Torino	v38 · NASA Space Apps 2026 · Turin
 NASA Space Apps Challenge 2026 · Torino · «Space Mission Design Game»	NASA Space Apps Challenge 2026 · Turin · «Space Mission Design Game»
 ΔV corto	ΔV short
+Mobilità	Mobility
+affidabilità	reliability
+sostenibilità	sustainability
+visibilità	visibility
+Sostenibilità	Sustainability
 {s} soddisfatto ({n} cr)	{s} satisfied ({n} cr)`, ex=new Map(); RAW.split('\n').forEach(l=>{ const i=l.indexOf('\t'); if(i>0) ex.set(l.slice(0,i),l.slice(i+1)); }); const exl=new Map(); ex.forEach((v,k)=>{ if(!exl.has(k.toLowerCase())) exl.set(k.toLowerCase(),k); });
   const NUM=/[−+\-]?\d[\d.,]*\d|[−+\-]?\d/g, enNum=x=>/^[−+\-]?\d{1,3}(\.\d{3})+(,\d+)?$|^[−+\-]?\d+,\d+$/.test(x)?x.replace(/[.,]/g,c=>c==='.'?',':'.'):x;
   let NM=[]; const setNames=()=>{ let ex2=[]; try{ ex2=Object.values(E.LV).map(o=>o.n).concat(Object.values(L.PEOPLE).map(o=>o.n),Object.values(L.PEOPLE).map(o=>o.org)); }catch(e){} NM=(G?[G.co].concat(G.missions.map(m=>m.name)):[]).concat(ex2).filter(x=>x&&String(x).length>2).map(String).filter((x,i,a)=>a.indexOf(x)===i).sort((a,b)=>b.length-a.length); };
@@ -2943,7 +3118,7 @@ async function musStart(){ if(!musOn()||MUS.src||MUS.loading) return; try{ AC=AC
 function musStop(){ if(!MUS.src||!AC) return; const s=MUS.src, g=MUS.gain, n=AC.currentTime; g.gain.cancelScheduledValues(n); g.gain.setValueAtTime(g.gain.value,n); g.gain.linearRampToValueAtTime(0,n+.6); setTimeout(()=>{ try{ s.stop(); }catch(e){} },700); MUS.src=null; }
 ['pointerdown','keydown','touchstart'].forEach(ev=>window.addEventListener(ev,e=>{ if(e.target&&e.target.closest&&e.target.closest('[data-act="music"]')) return; musStart(); },true));
 document.addEventListener('visibilitychange',()=>{ if(!AC) return; if(document.hidden) AC.suspend(); else AC.resume(); });
-const TOAST_NO=/installat|costruit|rimoss|spostat|Musica (accesa|spenta)|nel tuo roster|creata\.|Modalità libera|Sandbox|prima missione|first mission|Tutorial saltato|Tutorial skipped|Partita cancellata|Saved game deleted|Tutorial finito|Tutorial done|Pianta (aggiunta|rimossa)|Pubblicata in bacheca|rimossa dalla bacheca|Sei tornato alla fase|Stipendi della|Pezzi comprati|accetta la controproposta|è sulla postazione|è sulla rampa|Rata PDR|Nessuna nuova rata|Prima rata|Fase A: rientra|finanzia la missione|assemblaggio completato|Fase B: esci|è assemblato: esci|comincia la fase E|è in orbita: esci|in volo: segui la telemetria|Fase C: costruisci/;
+const TOAST_NO=/installat|costruit|rimoss|spostat|Musica (accesa|spenta)|nel tuo roster|creata\.|Modalità libera|Sandbox|prima missione|first mission|Tutorial saltato|Tutorial skipped|Partita cancellata|Saved game deleted|Tutorial finito|Tutorial done|Pianta (aggiunta|rimossa)|Pubblicata in bacheca|rimossa dalla bacheca|Sei tornato alla fase|Stipendi della|Pezzi comprati|accetta la controproposta|è sulla postazione|è sulla rampa|Rata PDR|Nessuna nuova rata|Prima rata|Fase A: rientra|finanzia la missione|assemblaggio completato|Fase B: (esci|vai al)|è assemblato: esci|comincia la fase E|è in orbita: esci|in volo: segui la telemetria|Fase C: costruisci/;
 // schermi della sala controllo: tocchi uno schermo e si apre in grande (come il taccuino); quello di stato porta con sé le risorse di bordo
 const MZOOM=(()=>{ let el=null, home=null, dash=null, dashHome=null;
   function close(){ if(!el) return; if(home&&home.parent&&home.parent.isConnected) home.parent.insertBefore(el,home.next&&home.next.parentNode===home.parent?home.next:null); if(dash&&dashHome&&dashHome.isConnected) dashHome.appendChild(dash); ['#mzoomBg','#mzoomBox'].forEach(q=>{ const x=$(q); if(x) x.remove(); }); el=null; home=null; dash=null; dashHome=null; }
@@ -3085,6 +3260,10 @@ const padPending=()=>G.pad?G.missions.filter(m=>['B','C','D'].indexOf(m.phase)>=
 function padMission(){ const p=padPending(), M=cur(); if(!p.length) return null; return p.find(m=>m.phase==='D'&&m.ready)||(p.indexOf(M)>=0?M:null)||p.find(m=>m.phase==='D')||p[0]; }
 const hasB=k=>G.plots.indexOf(k)>=0, maxStake=()=>E.MAXSTAKE+(hasB('office')?1:0);
 let CBAR=false, CPLACE=null, CDRAG=null, CSWALLOW=false, CTAB='Edifici', CSEL=null;
+/* Pannello Personalizza (rombo nel dock): null | 'campus' | 'flag'. Ogni chiusura azzera anche G.cedit. */
+let CUST=null, FLDRAFT=null;
+function custSet(t){ CUST=t||null; CPLACE=null; CSEL=null; FLDRAFT=null; G.cedit=t==='campus'; CBAR=t==='campus'; }
+function custOpen(t){ custSet(t); sfx.tap(); render(); const b=t?$('.ptabs [aria-selected="true"]'):$('#dock [data-act="cust"]'); if(b) b.focus(); }
 const CMENU={Edifici:['factory','ground','rnd','office','visit','pad'],Natura:['tree','pine','poplar','pond'],Infrastrutture:['parking','dish']};
 function cKind(k){ const d=CAM.K[k], up=L.BUILD[k]; return { n:d.n, c:up?up.c:(d.c||0), lvl:up?up.lvl:(d.lvl||1), s:up?up.s:(k==='pad'?'Lanci in casa i tuoi CubeSat: −40% a ogni lancio.':d.deco?'Decorazione: rende il campus più bello.':'') }; }
 function cBuilt(k){ return k==='pad'?!!G.pad:L.BUILD[k]?hasB(k):false; }
@@ -3144,7 +3323,7 @@ function wkScene(scene,st){ let key, n, free, box, kind=[], sc, Pf;
   const t=performance.now()/1000; return ws.map(w=>{ WK.map[w.id]=w; const p=wkPos(w,t); return {d:p.x+p.y+.05, svg:wkSVG(w,p,t)}; }); }
 function wkFace(w,p){ const sx=p.dx-p.dy, sy=p.dx+p.dy; if(Math.abs(sx)+Math.abs(sy)>1e-6){ w.mir=sx<0?-1:1; w.bk=sy<0; } }
 function wkSVG(w,p,t){ wkFace(w,p); const g=w.Pf(p.x,p.y); return '<g class="dzw'+(p.mv?' mv':'')+(w.bk?' bk':'')+'" data-w="'+w.id+'" style="--wd:-'+(t%1.28).toFixed(2)+'s" transform="translate('+g[0].toFixed(1)+' '+g[1].toFixed(1)+') scale('+(w.sc*w.mir)+' '+w.sc+')">'+wkFig(w.sty)+'</g>'; }
-function wkFrame(now){ WK.raf=requestAnimationFrame(wkFrame); if(now-WK.last<40) return; WK.last=now; const els=document.querySelectorAll('.dzw'); if(!els.length) return; const t=now/1000;
+function wkFrame(now){ WK.raf=requestAnimationFrame(wkFrame); if(now-WK.last<30) return; WK.last=now; const els=document.querySelectorAll('.dzw'); if(!els.length) return; const t=now/1000;
   els.forEach(el=>{ const w=WK.map[el.dataset.w]; if(!w) return; const p=wkPos(w,t); wkFace(w,p); const g=w.Pf(p.x,p.y); el.setAttribute('transform','translate('+g[0].toFixed(1)+' '+g[1].toFixed(1)+') scale('+(w.sc*w.mir)+' '+w.sc+')');
     el.classList.toggle('mv',!!p.mv); el.classList.toggle('bk',!!w.bk); wkSlot(el,p.x+p.y+.05); }); }
 function wkSlot(el,d){ const par=el.parentNode; if(!par) return; let arr=par._dz; if(arr&&arr.length&&arr[0][1].parentNode!==par){ arr=null; par._dzEnd=null; } if(!arr){ arr=par._dz=Array.from(par.children).filter(c=>c.classList.contains('dz')).map(c=>[+c.dataset.d,c]); }
@@ -3156,7 +3335,7 @@ function cCtx(){ const M=cur(), next=nextPlace(M), labels={}; ['admin','mcc','fd
   const pm=padMission(); return { walkers:wkScene('campus'), labels, flag:G.flag||null, pad:{ rocket:!!pm, rocketH:pm?.85*(E.LV[pm.sat.lv]||{h:1}).h:1, ready:!!(pm&&pm.phase==='D'&&pm.ready), name:pm?pm.name:'' } }; }
 /* anteprima 3D dell'edificio (stesso modello del campus); se il 3D non c'e', resta il disegno 2D */
 function tileImg(k){ let u=null; try{ u=C3.can()&&C3.snap?C3.snap(k):null; }catch(e){ u=null; } return u?'<img class="timg" alt="" src="'+u+'">':'<svg viewBox="-48 -44 96 66" aria-hidden="true">'+CAM.mini(k)+'</svg>'; }
-function vHub(v){ const W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(G.xp), M=cur(), next=nextPlace(M);
+function vHub(v){ { const oc=document.getElementById('flc'); if(oc&&CUST==='flag') FLDRAFT=oc.toDataURL(); } const sh=CUST&&!CPLACE, W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(G.xp), M=cur(), next=nextPlace(M);
   const st={items:W.items,mode:G.cedit?'edit':'',sel:CSEL,moving:CPLACE&&CPLACE.moveId};
   const tiles=CMENU[CTAB].map(k=>{ const ki=cKind(k), lock=lv<ki.lvl, built=cBuilt(k); return '<button class="ctile'+(CPLACE&&CPLACE.k===k&&!CPLACE.moveId?' on':'')+(lock||built?' lock':'')+'" data-act="cplace" data-k="'+k+'"'+(lock||built?' disabled':'')+' title="'+esc(ki.s)+'">'+tileImg(k)+'<b>'+esc(ki.n)+'</b><small>'+(built?'costruito':k==='dish'&&!hasB('ground')?'serve la stazione di terra':lock?'livello '+ki.lvl:keur(ki.c)+(SREQ[k]?' · 👥'+SREQ[k]:'')+(k==='parking'?' · 🚗14':''))+'</small>'+(lock?'<span class="lk">🔒</span>':'')+'</button>'; }).join('');
   const pop=CSEL&&G.cedit&&!CPLACE?(()=>{ const it=W.items.find(i=>i.id===CSEL); if(!it) return ''; const d=CAM.K[it.k], ki=cKind(it.k), canDel=!d.core; return '<div class="cpop"><b>'+esc(d.n)+'</b><div class="row"><button class="btn small primary" data-act="cmove">Sposta</button>'+(canDel?'<button class="btn small" data-act="cdel">Rimuovi'+(ki.c?' · +'+keur(Math.round(ki.c/2)):'')+'</button>':'')+(it.k==='build'?'<button class="btn small" data-act="flagedit">Bandiera</button>':'')+'</div><span class="fine">'+(d.core?'Gli edifici principali si spostano ma non si demoliscono.':'Rimuovendolo recuperi metà del costo.')+'</span></div>'; })():'';
@@ -3164,9 +3343,10 @@ function vHub(v){ const W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(
   scn(v,{bg:'#A9BF77'}); v.innerHTML='<div class="stage0"><section class="campus3 full" id="cam"><svg id="camsvg" class="'+(CPLACE?'placing':'')+(G.cedit?' editing':'')+'" viewBox="0 0 1280 800" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Il campus della tua agenzia">'+CAM.DEFS+'<g id="camg" transform="translate('+cam.x.toFixed(1)+' '+cam.y.toFixed(1)+') scale('+cam.z.toFixed(3)+')">'+(C3.can()?'':CAM.world(st,cCtx()))+'<g id="cghost"></g></g></svg>'+
     '<div class="ctools"><button data-act="staff" title="Dipendenti / posti auto">👥 '+G.staff+'/'+spaces()+'</button><button class="'+(G.cedit?'on':'')+'" data-act="cedit" title="'+(G.cedit?'Fine modifica':'Modifica campus')+'">'+(G.cedit?'✔️<span class="tl"> Fine modifica</span>':'✏️<span class="tl"> Modifica campus</span>')+'</button><button data-act="flagedit" title="Bandiera">🚩<span class="tl"> Bandiera</span></button></div>'+
     (hintT?'<div class="chint">'+esc(hintT)+'</div>':'')+pop+
-    ((CBAR||CPLACE)?'<div class="cbar"><div class="ctabs">'+Object.keys(CMENU).map(t=>'<button class="'+(t===CTAB?'on':'')+'" data-act="ctab" data-k="'+t+'">'+t+'</button>').join('')+(CPLACE?'<button data-act="cesc" style="margin-left:auto">Annulla</button>':'')+'<button data-act="cbar" style="'+(CPLACE?'':'margin-left:auto')+'">Chiudi</button></div>'+(CPLACE?'':'<div class="ctiles">'+tiles+'</div>')+'</div>':'')+'</section></div>'+
+    ((CBAR||CPLACE||CUST)?'<div class="cbar'+(sh?' cust" id="cust-sheet" role="region" aria-label="'+TX('Personalizza','Customize')+'">'+custTabs()+'<div role="tabpanel" id="cust-panel" aria-labelledby="ptab-'+CUST+'">':'">')+(sh&&CUST==='flag'?flagPanelHTML():'<div class="ctabs">'+Object.keys(CMENU).map(t=>'<button class="'+(t===CTAB?'on':'')+'" data-act="ctab" data-k="'+t+'">'+t+'</button>').join('')+(CPLACE?'<button data-act="cesc" style="margin-left:auto">Annulla</button>':'')+(sh?'':'<button data-act="cbar" style="'+(CPLACE?'':'margin-left:auto')+'">Chiudi</button>')+'</div>'+(CPLACE?'':'<div class="ctiles">'+tiles+'</div>'))+(sh?'</div>':'')+'</div>':'')+'</section></div>'+
     '<div class="bgrid" hidden>'+['admin','fd','build','test','mcc'].concat(G.pad?['pad']:[]).map(k=>{ const w=waitOf(k); return '<button class="btn" data-act="enter" data-k="'+k+'">'+CAM.K[k].n+(next===k?'<span class="bdg">!</span>':w?'<span class="bdg wait">'+w+'</span>':'')+'</button>'; }).join('')+G.plots.filter(Boolean).map(k=>'<button class="btn" data-act="binfo" data-k="'+k+'">'+L.BUILD[k].n+'</button>').join('')+'</div>'+
     '';
+  if(sh&&CUST==='flag') flagBind();
   if(!C3.can()&&CPLACE&&CPLACE.last) cGhost(CPLACE.last[0],CPLACE.last[1]);
   { const c3=v.querySelector('#cam'); if(c3) C3.mount(c3,tutItems(W.items),cCtx()); }
 }
@@ -3208,20 +3388,25 @@ document.addEventListener('pointermove',e=>{ if(!PTR.has(e.pointerId)) return; P
 ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,e=>{ if(PTR.delete(e.pointerId)&&PTR.size<2){ if(PINCH){ CSWALLOW=true; save(); } PINCH=null; } },true));
 document.addEventListener('wheel',e=>{ const svg=e.target.closest&&e.target.closest('#camsvg'); if(!svg||view!=='hub') return; e.preventDefault(); cZoom(e.deltaY<0?1.12:1/1.12,cSvgPt(e)); },{passive:false});
 function cZoom(f,at){ const c=G.world.cam, z=Math.max(.3,Math.min(2.4,c.z*f)); at=at||[640,400]; const wx=(at[0]-c.x)/c.z, wy=(at[1]-c.y)/c.z; c.z=z; c.x=at[0]-wx*z; c.y=at[1]-wy*z; cApplyCam(); }
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&CPLACE&&view==='hub'){ CPLACE=null; render(); } });
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||view!=='hub') return; if(CPLACE){ CPLACE=null; render(); } else if(CUST) custOpen(null); });
 // ---------- editor della bandiera ----------
 const FLC=['#FFFFFF','#22313B','#45A9A3','#EB7D44','#CF5E4C','#3F6FB0','#F2C14E','#5E9E4A','#8E5BB0','#E98AB0','#9AA09A','#000000'];
 let FLST={col:'#EB7D44',size:10};
-function flagModal(){ const el=$('#ov'); el.innerHTML='<div class="rv wide" role="dialog" aria-modal="true"><h3>Edificio di costruzione</h3><h2>Disegna la tua bandiera</h2><p class="fine">Comparirà sulla facciata dell’edificio di costruzione, come la grande bandiera sul Vehicle Assembly Building della NASA.</p>'+
-  '<div class="fled"><canvas id="flc" width="300" height="180" aria-label="Tela della bandiera"></canvas><div><div class="pal">'+FLC.map(c=>'<button style="background:'+c+'" class="'+(FLST.col===c?'on':'')+'" data-act="flcol" data-k="'+c+'" aria-label="Colour '+c+'"></button>').join('')+'</div>'+
-  '<div class="row" style="margin-top:10px"><button class="btn small" data-act="flsize" data-k="4">Fine</button><button class="btn small" data-act="flsize" data-k="10">Medio</button><button class="btn small" data-act="flsize" data-k="22">Grosso</button></div>'+
-  '<div class="row" style="margin-top:8px"><button class="btn small" data-act="flfill">Riempi tutto</button><button class="btn small" data-act="fltpl" data-k="v">Tre bande verticali</button><button class="btn small" data-act="fltpl" data-k="h">Tre bande orizzontali</button><button class="btn small" data-act="fltpl" data-k="o">Orbita</button></div></div></div>'+
-  '<div class="row" style="margin-top:14px"><button class="btn primary" data-act="flsave">Salva bandiera</button><button class="btn" data-act="flreset">Torna alle strisce</button><button class="btn" data-act="closeov">Annulla</button></div></div>'; el.hidden=false;
-  const cv=$('#flc'), cx=cv.getContext('2d'); cx.fillStyle='#FFFFFF'; cx.fillRect(0,0,300,180); if(G.flag){ const im=new Image(); im.onload=()=>cx.drawImage(im,0,0,300,180); im.src=G.flag; }
+/** HTML del pannello bandiera (scheda Bandiera dello sheet Personalizza). */
+function flagPanelHTML(){ return '<div class="fled"><div><canvas id="flc" width="300" height="180" aria-label="Tela della bandiera"></canvas><div class="row" style="margin-top:8px"><button class="btn primary small" data-act="flsave">Salva bandiera</button><button class="btn small" data-act="flreset">Torna alle strisce</button></div></div><div><div class="pal">'+FLC.map(c=>'<button style="background:'+c+'" class="'+(FLST.col===c?'on':'')+'" data-act="flcol" data-k="'+c+'" aria-label="Colour '+c+'"></button>').join('')+'</div>'+
+  '<div class="row" style="margin-top:10px"><button class="btn small" data-act="flsize" data-k="4">'+TX('Fine','Thin')+'</button><button class="btn small" data-act="flsize" data-k="10">'+TX('Medio','Medium')+'</button><button class="btn small" data-act="flsize" data-k="22">'+TX('Grosso','Thick')+'</button></div>'+
+  '<div class="row" style="margin-top:8px"><button class="btn small" data-act="flfill">Riempi tutto</button><button class="btn small" data-act="fltpl" data-k="v">Tre bande verticali</button><button class="btn small" data-act="fltpl" data-k="h">Tre bande orizzontali</button><button class="btn small" data-act="fltpl" data-k="o">Orbita</button></div>'+
+  '</div></div>'; }
+/** Collega il disegno sulla tela #flc (dopo ogni render della scheda Bandiera); riparte dalla bozza non salvata, poi dalla bandiera salvata. */
+function flagBind(){ const cv=$('#flc'); if(!cv) return; const cx=cv.getContext('2d'); cx.fillStyle='#FFFFFF'; cx.fillRect(0,0,300,180); const src=FLDRAFT||G.flag; if(src){ const im=new Image(); im.onload=()=>cx.drawImage(im,0,0,300,180); im.src=src; }
   let down=false, last=null; const at=e=>{ const r=cv.getBoundingClientRect(); return [(e.clientX-r.left)*300/r.width,(e.clientY-r.top)*180/r.height]; };
   cv.addEventListener('pointerdown',e=>{ down=true; last=at(e); cv.setPointerCapture(e.pointerId); cx.fillStyle=FLST.col; cx.beginPath(); cx.arc(last[0],last[1],FLST.size/2,0,7); cx.fill(); });
   cv.addEventListener('pointermove',e=>{ if(!down) return; const p=at(e); cx.strokeStyle=FLST.col; cx.lineWidth=FLST.size; cx.lineCap='round'; cx.beginPath(); cx.moveTo(last[0],last[1]); cx.lineTo(p[0],p[1]); cx.stroke(); last=p; });
   cv.addEventListener('pointerup',()=>{ down=false; }); }
+/** Barra schede (Campus / Bandiera) + chiusura dello sheet Personalizza. */
+function custTabs(){ const tb=(k,t)=>'<button role="tab" id="ptab-'+k+'" class="'+(CUST===k?'on':'')+'" aria-selected="'+(CUST===k)+'" aria-controls="cust-panel" tabindex="'+(CUST===k?0:-1)+'" data-act="custtab" data-k="'+k+'">'+t+'</button>';
+  return '<div class="ptabs" role="tablist" aria-label="'+TX('Personalizza','Customize')+'">'+tb('campus',TX('Campus','Campus'))+tb('flag',TX('Bandiera','Flag'))+'<button class="pclose" data-act="custclose" aria-label="'+TX('Chiudi','Close')+'"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg></button></div>'; }
+document.addEventListener('keydown',e=>{ const t=e.target.closest&&e.target.closest('.ptabs [role=tab]'); if(!t||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) return; e.preventDefault(); const to=(e.key==='ArrowLeft'||e.key==='Home')?'campus':'flag'; if(to!==CUST) custOpen(to); });
 function flagTpl(k){ const cv=$('#flc'); if(!cv) return; const cx=cv.getContext('2d'), c=FLST.col;
   if(k==='v'){ ['#45A9A3','#FFFFFF','#EB7D44'].forEach((col,i)=>{ cx.fillStyle=col; cx.fillRect(i*100,0,100,180); }); }
   if(k==='h'){ ['#22313B','#FFFFFF','#45A9A3'].forEach((col,i)=>{ cx.fillStyle=col; cx.fillRect(0,i*60,300,60); }); }
@@ -3232,29 +3417,34 @@ function nextPlace(M){ if(!M) return null; if(M.phase==='0'||M.phase==='A') retu
   if(M.phase==='D') return M.ready?(M.sat.lv==='HOME'?'pad':'admin'):'test'; if(M.phase==='E'||M.phase==='F') return 'mcc'; return null; }
 function waitOf(k){ const n=G.missions.filter(M=>(k==='build'&&M.phase==='D'&&M.stage==='assembly'&&now()<M.buildEnd)||(k==='test'&&Object.keys(M.tr).some(t=>M.tr[t].res==='run'))||(k==='mcc'&&(M.phase==='E'||M.phase==='F'))||(k==='pad'&&M.phase==='D'&&M.ready&&M!==cur())).length; return n?'⏳'+n:''; }
 function hint(M){ if(!M) return 'Crea la tua prima missione con il tasto + in alto a sinistra.'; const p=M.phase;
-  return p==='0'||p==='A'?(p==='A'?(M.stage==='type'?'Fase A: nell’edificio amministrativo scegli il satellite, poi senti lo staff tecnico.':'Il tuo staff tecnico ha delle richieste: sala riunioni.'):M.stage==='partners'?'Entra nell’edificio amministrativo e scegli gli stakeholder.':'Al tavolo ti aspettano gli stakeholder.'):p==='A'?'Il tuo staff tecnico ha delle richieste: sala riunioni.':p==='B'?(M.stage==='sat'?'Fase B, passo 2: progetta il satellite nell’edificio di costruzione.':M.stage==='orb'?'Fase B, passo 3: orbite in dettaglio, poi la revisione PDR.':'Fase B, passo 1: nel Centro di dinamica del volo disegna la missione (DRM).'):
+  return p==='0'||p==='A'?(p==='A'?(M.stage==='type'?'Fase A: nell’edificio amministrativo scegli il satellite, poi senti lo staff tecnico.':'Il tuo staff tecnico ha delle richieste: sala riunioni.'):M.stage==='partners'?'Entra nell’edificio amministrativo e scegli gli stakeholder.':'Al tavolo ti aspettano gli stakeholder.'):p==='A'?'Il tuo staff tecnico ha delle richieste: sala riunioni.':p==='B'?(M.stage==='sat'?'Fase B, passo 2: progetta il satellite nell’edificio di costruzione.':M.stage==='orb'?'Fase B, passo 3: orbite in dettaglio, poi la revisione PDR.':lwPending(M)?'Fase B: prima scegli la finestra di lancio (tocca il Centro di dinamica del volo), poi crea la MDR.':'Fase B, passo 1: nel Centro di dinamica del volo disegna la missione (DRM).'):
     p==='C'?'Fase C: progetto congelato. Ultimi ritocchi, poi la revisione CDR in cui compri i pezzi.':p==='D'&&M.stage==='assembly'?(now()>=M.buildEnd?'Assemblaggio completato: portalo al laboratorio prove.':'Assemblaggio in camera bianca. Intanto puoi lavorare a un’altra missione.'):p==='D'?(M.ready?(M.sat.lv==='HOME'?'Pronto al lancio: vai alla rampa.':'Fase E: vai all’edificio amministrativo per il lancio con l’ente terzo.'):'Porta il satellite al laboratorio prove.'):p==='E'||p==='F'?(M.pauseAt?'Il tempo è fermo: in sala controllo ti aspetta una decisione.':'In volo. Segui la telemetria dal Mission Control Center: gli eventi li decidi tu.'):'Missione completata. Guarda il bilancio nella cartella.'; }
 function plotModal(i){ if(i<0||G.plots[i]){ toast('Nessun lotto libero.'); return; } const lv=L.level(G.xp), el=$('#ov');
   el.innerHTML='<div class="rv wide"><h3>Lotto libero</h3><h2>Cosa costruisci qui?</h2><p class="fine">Ogni edificio si costruisce una volta e vale per tutte le missioni. Livello attuale: '+lv+'.</p><div class="cat">'+Object.keys(L.BUILD).map(k=>{ const b=L.BUILD[k], built=hasB(k), lock=lv<b.lvl;
     return '<button class="ccard'+(lock||built?' lock':'')+'" data-act="buildb" data-k="'+k+'" data-i="'+i+'"'+(lock||built?' disabled':'')+'><svg viewBox="'+(ip(0,0,0)[0]-80)+' '+(ip(0,0,0)[1]-130)+' 160 170">'+BDRAW[k](0,0)+'</svg><b>'+b.n+'</b><span>'+b.s+'</span><small>'+(built?'già costruito':lock?'🔒 livello '+b.lvl:keur(b.c))+'</small></button>'; }).join('')+'</div><div class="row"><button class="btn" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; }
 
 /* ---------- HUD ---------- */
-function riskMini(M){ const R=L.risks(M,G.lab.filter(Boolean)).list, col=(p,i)=>p*i>=6?'#F2B8AE':p*i>=3?'#F6DFA4':'#CDEBD6'; let s='<svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="7" fill="#22313B"/>';
+/* mini matrice dei rischi del pulsante in alto a sinistra; senza missione e' vuota */
+function riskList(M){ if(!M) return []; try{ return L.risks(M,G.lab.filter(Boolean)).list||[]; }catch(e){ return []; } }
+function riskMini(M){ const R=riskList(M), col=(p,i)=>p*i>=6?'#F2B8AE':p*i>=3?'#F6DFA4':'#CDEBD6'; let s='<svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="7" fill="#22313B"/>';
   for(let i=3;i>=1;i--) for(let p=1;p<=3;p++){ const x=3+(p-1)*10.5, y=3+(3-i)*10.5, n=R.filter(r=>r.p===p&&r.i===i).length; s+='<rect x="'+x+'" y="'+y+'" width="9.5" height="9.5" rx="2" fill="'+col(p,i)+'"/>'+(n?'<circle cx="'+(x+4.75)+'" cy="'+(y+4.75)+'" r="2.9" fill="#22313B"/>':''); }
   return s+'</svg>'; }
 function hud(){ try{ staffPlan(); }catch(e){} document.documentElement.classList.toggle('big',!!G.big); const M0=cur(), M=M0&&M0.phase==='done'&&view==='hub'?null:M0;
   const al=G.missions.some(m=>m.alert||m.pauseAt), cl=crewList(), mo=Math.round(morale());
   $('#hud').innerHTML='<div class="hud-l"><div class="crew">'+cl.map((c,i)=>'<button class="cface" data-act="crewinfo" data-i="'+i+'" title="'+esc(c.n)+'" aria-label="'+esc(c.n)+'">'+faceSVG(c)+'<small>'+esc(c.n.split(' ')[0])+'</small><i><u style="width:'+mo+'%"></u></i></button>').join('')+'</div>'+
     '<button class="mcard msn'+(al?' alert':'')+'" data-act="switch" aria-label="'+TX('Cambia missione','Switch mission')+'">'+(al?'<span class="abdg" title="Problema in volo">!</span>':'')+'<small>'+(M?TX('Missione','Mission')+' · '+phn(M):TX('Campus','Campus'))+'</small><b>'+esc(M?M.name:(G.co||TX('La tua agenzia','Your agency')))+'</b><em>'+esc(hudObjective(M))+'</em></button>'+
-    (M&&M.phase!=='0'&&M.phase!=='done'?'<button class="rmx evt" data-act="risks" title="Matrice dei rischi di '+esc(M.name)+'">'+riskMini(M)+'<span>'+TX('Rischi','Risks')+'</span></button>':'')+'</div>'+
+    /* matrice dei rischi sempre visibile, per tutta la partita: col numero dei rischi aperti; toccandola si apre la tabella completa */
+    (()=>{ const rn=riskList(M).length; return '<button class="rmx evt" data-act="risks" title="'+(M?TX('Matrice dei rischi di ','Risk matrix of ')+esc(M.name):TX('Matrice dei rischi','Risk matrix'))+'">'+riskMini(M)+'<span>'+TX('Rischi','Risks')+'</span>'+(rn?'<b class="rn">'+rn+'</b>':'')+'</button>'; })()+'</div>'+
     '<div class="hud-r"><div class="res"><button class="rs" data-act="rank" title="'+TX('Punti scienza · lega ','Science points · league ')+LEAGUES[leagueOf(G.sciTotal||0)][1]+'"><b>'+(G.sciTotal||0)+'</b>'+RICO.sci+'</button><button class="rs" data-act="staff" title="'+TX('Dipendenti / posti auto','Staff / parking')+'"><b>'+G.staff+'/'+spaces()+'</b>'+RICO.stf+'</button><div class="rs money'+(G.money<0?' neg':'')+'"><b>'+(G.sandbox?'∞':nf(Math.round(G.money),0))+'</b>'+RICO.cr+'</div></div>'+hexB('pause','Menu','menu')+lvlRing()+'</div>';
   $('#dock').innerHTML=dockHTML();
   }
-const dockHTML=()=>'<div class="hexs">'+(view!=='hub'?hexB('home',TX('Torna al campus','Back to campus'),'home'):hexB('newm',TX('Nuova missione','New mission'),'plus')+hexB('cedit',TX('Costruisci e modifica il campus','Build and edit the campus'),'build',G.cedit)+hexB('flagedit',TX('Bandiera dell’agenzia','Agency flag'),'flag')+(G.cedit?'<button class="xcirc" data-act="cedit" aria-label="'+TX('Esci dalla modifica','Leave edit mode')+'"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg></button>':''))+'</div>';
+const dockHTML=()=>view!=='hub'?'<div class="hexs">'+hexB('home',TX('Torna al campus','Back to campus'),'home')+'</div>':
+  '<div class="hexs dkc"><button class="hxn" data-act="newm" aria-label="'+TX('NUOVA MISSIONE','NEW MISSION')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">'+HEXI.plus+'</svg><span>'+TX('NUOVA','NEW')+'<br>'+TX('MISSIONE','MISSION')+'</span></button>'+
+  '<button class="rhb'+(CUST?' on':'')+'" data-act="cust" aria-label="'+TX('Personalizza','Customize')+'" aria-expanded="'+!!CUST+'" aria-controls="cust-sheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+HEXI.cust+'</svg></button></div>';
 function lvlChip(){ const lv=L.level(G.xp), a=L.LEVELS[lv-1], b=L.LEVELS[lv]; return '<div class="lvl" data-act="road" role="button" title="'+G.xp+' XP · tocca per la roadmap"><b>Liv '+lv+'</b><i><u style="width:'+(b?Math.round((G.xp-a)/(b-a)*100):100)+'%"></u></i></div>'; }
 function gainXP(n){ if(G.tut) return; const l0=L.level(G.xp); G.xp+=Math.round(n*perk('xp')); const l1=L.level(G.xp); hud(); if(l1>l0){ G.fresh=E.DBX.filter(x=>x.lvl>l0&&x.lvl<=l1).map(x=>x.code); const un=Object.keys(L.BUILD).filter(k=>L.BUILD[k].lvl===l1).map(k=>L.BUILD[k].n).concat(L.TESTS.filter(k=>L.MACH[k].lvl===l1).map(k=>L.MACH[k].n)).concat(Object.keys(E.DEST).filter(k=>E.DEST[k].lvl===l1).map(k=>'destinazione '+E.DEST[k].n)).concat(Object.keys(E.LV).filter(k=>E.LV[k].lvl===l1&&l1>1).map(k=>E.LV[k].n.toLowerCase())).concat(Object.keys(E.RIDES).filter(k=>E.RIDES[k].lvl===l1&&l1>1).map(k=>E.RIDES[k].n)).concat([E.DBX.filter(x=>x.lvl===l1).length+' nuove tecnologie']).concat(l1>=3&&hasB('office')?['un nuovo sponsor nell’Ufficio partnership']:[]);
   const el=$('#lvup'); el.innerHTML='<b>Livello '+l1+'!</b>'+(un.length?'<span>Sbloccati: '+un.join(', ')+'</span>':''); el.hidden=false; clearTimeout(gainXP.t); gainXP.t=setTimeout(()=>{el.hidden=true;},5200); setTimeout(()=>sfx.stamp(),200); } }
-function go(v){ cancelAnimationFrame(raf); if(v!==view){ BROOM=null; BVIEW='room'; MCCV=null; RSEL=null; if(!(RPLACE&&RPLACE.room===v)) RPLACE=null; } view=v; sel=null; render(); window.scrollTo(0,0); }
+function go(v){ if(typeof zdClose==='function') zdClose(); cancelAnimationFrame(raf); if(v!=='hub'&&CUST) custSet(null); if(v!==view){ BROOM=null; BVIEW='room'; MCCV=null; RSEL=null; if(!(RPLACE&&RPLACE.room===v)) RPLACE=null; } view=v; sel=null; render(); window.scrollTo(0,0); }
 const stage=(inner,cls)=>'<div class="stage0"><div class="sbox'+(cls?' '+cls:'')+'">'+inner+'</div></div>';
 const dcl=s=>'<button class="dclose" data-act="drw" data-k="'+s+'" aria-label="Close panel">&times;</button>';
 const docks=(Lh,Rh)=>'<div class="docks">'+(Lh?'<aside class="dockL">'+dcl('L')+Lh+'</aside>':'')+(Rh?'<aside class="dockR">'+dcl('R')+Rh+'</aside>':'')+'</div>';
@@ -3291,13 +3481,17 @@ function vAdmin(v){ let M=cur(); const rdy=G.missions.find(m=>m.phase==='D'&&m.r
 const RIDEC={};
 function rideFeas(M,k){ const acc=M.reqs.filter(x=>M.waived.indexOf(x.id)<0).map(x=>x.id), key=M.id+'|'+k+'|'+acc.join(','); if(key in RIDEC) return RIDEC[key];
   const Mx=Object.assign({},M,{rideFixed:true,sat:Object.assign({},M.sat,{ride:k})}); let ok=!!(M.wit&&M.wit.ride===k&&L.satOK(Mx,M.wit,acc)); if(!ok) try{ ok=!!(L.anySat(Mx,acc,400,0x77)||L.anySat(Mx,acc,800,0x78)); }catch(e){ ok=true; } return RIDEC[key]=ok; }
-function vSatType(v,M){ const lvN=L.level(G.xp), dest=M.sat.dest||'leo', why=k=>{ const R=E.RIDES[k]; if(lvN<R.lvl) return '🔒 livello '+R.lvl; if(!Object.keys(E.LV).some(l=>E.LV[l].fits.indexOf(k)>=0&&E.LV[l].dest.indexOf(dest)>=0&&!!E.LV[l].surf===L.landing(M))) return 'nessun lancio per '+E.DEST[dest].n+' accetta questa taglia'; if(!M.tut&&!rideFeas(M,k)) return '⚠ con i requisiti accettati non basta'; return ''; };
+function vSatType(v,M){ const lvN=L.level(G.xp), dest=M.sat.dest||'leo', why=k=>{ const R=E.RIDES[k]; if(lvN<R.lvl) return '🔒 livello '+R.lvl; if(!Object.keys(E.LV).some(l=>E.LV[l].fits.indexOf(k)>=0&&E.LV[l].dest.indexOf(dest)>=0&&!!E.LV[l].surf===L.landing(M))) return TX('nessun lanciatore per '+I18N.tr(E.DEST[dest].n)+' accetta questa taglia','no launcher to '+I18N.tr(E.DEST[dest].n)+' accepts this size'); if(!M.tut&&!rideFeas(M,k)) return '⚠ con i requisiti accettati non basta'; return ''; };
   v.innerHTML=meetBg(M)+'<div class="head"><div><h3>Edificio amministrativo · Fase A</h3><h1>Che satellite costruisci?</h1></div></div>'+
     '<h3 style="margin:4px 0 8px">CubeSat</h3><div class="sts">'+Object.keys(E.RIDES).map(k=>{ const R=E.RIDES[k], w=why(k); return '<button class="stc'+(M.sat.ride===k&&M.rideFixed?' sel':'')+(w?' lock':'')+'" data-act="pickType" data-k="'+k+'"'+(w?' disabled':'')+'>'+structIcon(k)+'<b>'+R.n+'</b><span class="fine">'+R.s+'</span><ul class="kv"><li><span>Struttura</span><b>'+keur(R.c)+'</b></li><li><span>Massa massima</span><b>'+R.massLim+' kg</b></li><li><span>Griglia</span><b>'+R.cols+' × '+R.rows+' caselle</b></li></ul>'+(w?'<small class="lk">'+w+'</small>':'')+'</button>'; }).join('')+'</div>'+
-    '<h3 style="margin:18px 0 8px">Altre classi</h3><div class="sts"><div class="stc lock"><b>Microsatellite</b><span class="fine">Classe ESPA, fino a circa 180 kg</span><small class="lk">🔒 in arrivo</small></div></div>'; }
+    '<h3 style="margin:18px 0 8px">Altre classi</h3><div class="sts"><div class="stc lock"><b>Microsatellite</b><span class="fine">Classe ESPA, fino a circa 180 kg</span><small class="lk">🔒 in arrivo</small></div>'+
+    '<button class="stc'+(freeBuildOpen()?'':' lock')+'" data-act="pickFree"'+(freeBuildOpen()?'':' disabled aria-disabled="true"')+'><b>'+(freeBuildOpen()?'':'🔒 ')+'Costruzione libera</b><span class="fine">Un satellite senza i vincoli del CubeSat: niente taglia, niente griglia.</span>'+(freeBuildOpen()?'':'<small class="lk">🔒 si sblocca al livello '+FREE_LVL+' (livello massimo), non in modalità creativa</small>')+'</button></div>'; }
+/* Costruzione libera: bloccata fino al livello massimo, anche in modalità creativa (sandbox). */
+const FREE_LVL=L.LEVELS.length;
+function freeBuildOpen(){ return !!G&&!G.sandbox&&!G.tut&&L.level(G.xp)>=FREE_LVL; }
 function vPartners(v,M){ const lv=L.level(G.xp), ini=(t,c)=>{ const ag=AGENCIES.find(a=>a[1]===t); return FLAGS(ag?ag[0]:String(t),c,'ini'); }, ini0=(t,c)=>'<span class="ini" style="background:'+c+'">'+esc(String(t).replace(/[^A-Za-zÀ-ú ]/g,'').split(' ').map(w=>w[0]||'').join('').slice(0,3).toUpperCase())+'</span>';
   const lockedAg=AGENCIES.filter(a=>a[4]>lv), lockedSp=L.SPONSORS.filter(x=>!E.stk(x.id));
-  v.innerHTML=meetBg(M)+'<div class="head"><div><h3>Edificio amministrativo · Fase 0</h3><h1>Stakeholders</h1></div></div>'+
+  v.innerHTML=meetBg(M)+'<div class="head"><div><h3>Edificio amministrativo · Pre-fase A</h3><h1>Stakeholders</h1></div></div>'+
     '<div class="pgrid" id="stks">'+E.STAKE.map(k=>'<button class="pt pstk" data-act="stk" data-id="'+k.id+'">'+emb(k.id)+'<span><b>'+esc(k.n.split(' · ')[0])+'</b><small>'+esc(k.k)+'</small><span class="fund">+'+keur(L.fund(k.id,M))+'</span></span><span class="pinfo" data-act="pinfo" data-id="'+k.id+'" title="Dettagli">i</span></button>').join('')+'</div>'+
     '<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn primary" id="p0go" data-act="sit">Convoca la riunione</button></div>'+
     (lockedAg.length?'<div class="pgh">🔒 Agenzie partner della NASA Space Apps Challenge</div><div class="pgrid">'+lockedAg.map(a=>'<div class="pt lock">'+ini(a[1],a[6])+'<span><b>'+esc(a[1])+'</b><small>'+esc(a[3])+'</small><small>livello '+a[4]+'</small></span></div>').join('')+'</div>':'')+
@@ -3352,7 +3546,7 @@ function priceHTML(M,r){ const p=PRC[prKey(M,r)]; if(!p){ setTimeout(()=>pricePa
   return h+ch(p.dc>0?'r':'g','+'+keur(p.dc))+ch(p.dm>0?'r':'g','+'+nf(p.dm)+' kg')+p.forced.map(f=>ch('o','cambia: '+esc(f))).join('')+'</div>'; }
 function refuseHTML(M,r){ const who=PEO[r.who]; if(r.rule) return '<div class="nocon"><span>🔒 È una regola: non si può rifiutare.</span></div>';
   const j=M.joy[r.who]==null?60:M.joy[r.who], aft=Math.max(0,j-(r.core?L.JOY.noCore:L.JOY.no)), st=E.stk(r.who);
-  return '<div class="nocon"><span>Se rifiuti, <b>'+esc(who.n)+'</b></span><div class="jbar" title="Soddisfazione"><i style="width:'+aft+'%"></i><u style="left:'+aft+'%;width:'+(j-aft)+'%"></u></div><span class="num">'+j+'% → <b class="'+(aft<=0?'bad':aft<35?'bad':'')+'">'+aft+'%</b></span>'+(aft<=0?'<span class="bad" style="grid-column:1/-1"><b>Lascia il tavolo</b>'+(st?' e porta via '+keur(st.fund)+' di fondi.':'.')+'</span>':'')+'</div>'; }
+  return '<div class="nocon"><span class="jexp" style="grid-column:1/-1">'+TX('Soddisfazione di '+who.n+': scende se rifiuti; a zero se ne va con i suoi fondi.',who.n+'’s happiness: drops if you refuse; at zero they leave with their funding.')+'</span><span>Se rifiuti, <b>'+esc(who.n)+'</b></span><div class="jbar" title="Soddisfazione"><i style="width:'+aft+'%"></i><u style="left:'+aft+'%;width:'+(j-aft)+'%"></u></div><span class="num">'+j+'% → <b class="'+(aft<=0?'bad':aft<35?'bad':'')+'">'+aft+'%</b></span>'+(aft<=0?'<span class="bad" style="grid-column:1/-1"><b>Lascia il tavolo</b>'+(st?' e porta via '+keur(st.fund)+' di fondi.':'.')+'</span>':'')+'</div>'; }
 function pricePaint(M,r){ const k=prKey(M,r); if(!PRC[k]) PRC[k]=L.priceOf(M,r.id); const el=$('#price'); if(el&&cur()===M&&M.queue[0]===r.id) el.innerHTML=priceHTML(M,r); }
 function softBtn(M,r){ const sf=L.softOf(r.id,M), j=M.joy[r.who]==null?60:M.joy[r.who];
   if(!sf) return '<button class="btn" disabled title="Su questa richiesta non si tratta">Controproposta</button>';
@@ -3381,7 +3575,7 @@ function cleanPanel(){ const A=G.missions.filter(m=>m.phase==='D'&&m.stage==='as
     return '<div class="mli'+(m===cur()?' on':'')+'" data-act="pick" data-id="'+m.id+'"><span><b>'+esc(m.name)+'</b><div class="fine" id="cl-t-'+m.id+'">'+(done?'integrazione completata':'integrazione '+pct(Math.max(0,p))+' · '+Math.ceil((m.buildEnd-now())/1000/G.speed)+' s')+'</div></span><span id="cl-a-'+m.id+'" data-s="'+(done?'d':'w')+'">'+(done?'<button class="btn small primary" data-act="cdrm" data-id="'+m.id+'">Al laboratorio →</button>':'')+'</span><div class="prog"><i id="cl-b-'+m.id+'" style="width:'+Math.max(0,p)*100+'%"></i></div></div>'; }).join(''):'<p class="fine">Nessun satellite in assemblaggio. Ci arrivano dopo la CDR, in fase D. Più satelliti possono essere assemblati insieme.</p>')+'</div></div>'; }
 function lvLock(k,M){ const o=E.LV[k], lv=L.level(G.xp); if(lv<o.lvl) return '🔒 livello '+o.lvl; if(o.pad&&!G.pad) return '🔒 costruisci la tua rampa di lancio'; return ''; }
 const lvShown=(k,M)=>{ const o=E.LV[k]; return o.dest.indexOf(M.sat.dest||'leo')>=0&&!!o.surf===L.landing(M); };
-function lvCostTxt(o){ if(o.surf) return '1.200 cr per kg'; return typeof o.c==='number'?keur(o.c):'da '+keur(Math.min.apply(null,Object.keys(o.c).map(k=>o.c[k]))); }
+function lvCostTxt(o){ if(o.surf) return TX('1.200 cr per kg','1,200 cr per kg'); return typeof o.c==='number'?keur(o.c):TX('da ','from ')+keur(Math.min.apply(null,Object.keys(o.c).map(k=>o.c[k]))); }
 function vLaunchers(v,M){ const D=E.DEST[M.sat.dest||'leo'];
   v.innerHTML='<div class="head"><div><h3>Edificio di costruzione · Fase B · 1 di 3</h3><h1>Come vai nello spazio</h1></div></div>'+
     '<div class="lvs">'+Object.keys(E.LV).filter(k=>lvShown(k,M)).map(k=>{ const o=E.LV[k], lock=lvLock(k,M), need=E.dvNeed({lv:k,dest:M.sat.dest});
@@ -3435,7 +3629,7 @@ function vYard3(v,M){ const cats=['ray','avi','bat','com','adcs','nav','prop','p
     '<div class="stage0"><div class="sbox ybx"><div id="sat3w" class="s3w fill full"></div></div><div class="ycon"><div class="why3d" id="why3d"></div><div class="info" id="info"></div>'+
     '<div class="row assist">'+(M.tut?'':'<button class="btn small" data-act="suggest" title="Ti dice dove sta il conflitto, non come risolverlo">Suggerimento</button>')+(M.phase==='C'?'<button class="btn small primary" data-act="pdr">Revisione CDR · compra i pezzi</button>':M.phase==='B'?'<button class="btn small primary" data-act="bstep" data-k="orb">'+TX('Conferma il progetto · torna al campus','Confirm the design · back to the campus')+'</button>':'')+'</div><div class="sugg" id="sugg" hidden></div></div></div>'+
     '<div class="rotate-hint">↻ Gira il telefono in orizzontale per costruire meglio</div>'+
-    docks(shelfFrame(),'<div class="panel"><h3 style="margin:0">'+TX('Requisiti','Requirements')+' <small class="fine" id="reqc"></small></h3><ul class="reqs" id="breq"></ul></div><div class="panel"><div class="gauges" id="gauges"></div></div><div id="riskw"></div>'); scn(v,{L:1,R:1,bg:'#EEF2F6',railL:[{ic:'🧩',t:'Componenti',side:'L'}],railR:[{ic:'📏',t:'Misure',side:'R'}]});
+    docks(shelfFrame(),'<div class="panel"><h3 style="margin:0">'+TX('Requisiti','Requirements')+' <small class="fine" id="reqc"></small></h3><ul class="reqs" id="breq"></ul></div><div class="panel"><div class="gauges" id="gauges"></div></div>'); scn(v,{L:1,R:1,bg:'#EEF2F6',railL:[{ic:'🧩',t:'Componenti',side:'L'}],railR:[{ic:'📏',t:'Misure',side:'R'}]});
   S3.mount($('#sat3w'),{live:true,onPart:partDown,ratio:.82,maxH:560}); S3.update(d,{live:true,sel}); renderShelf(); bRefresh(); }
 function autoRun(mode){ const M=cur(), d=M.sat; if(!M.first){ toast('Dalla seconda missione il satellite lo progetti tu.'); return; } if(mode==='arrange'&&Object.keys(d.placed).length<3){ toast('Prima scegli i pezzi dal magazzino, poi li dispongo io.'); return; }
   const best=L.autoDesign(M,mode,G.money,mode==='propose'?700:450); if(!best){ toast('Non ci stanno: prova una struttura più grande.'); sfx.bad(); return; }
@@ -3462,6 +3656,7 @@ const fdLocked=M=>!M||['0','A','D','E','F','done'].indexOf(M.phase)>=0;
 /* ---------- Design Reference Mission (fase B, passo 1) ---------- */
 let DRMADD=false, DRMG=null, DRMH=600;
 const DRMN={leo:'Terra',moon:'Luna',mars:'Marte',venus:'Venere'}, DRMDEL={leo:'nella',moon:'sulla',mars:'su',venus:'su'};
+Object.keys(E.EXT).forEach(k=>{ DRMN[k]=E.EXT[k].n; DRMDEL[k]='su'; });
 const drmNice=h=>h<1000?Math.round(h/10)*10:h<10000?Math.round(h/100)*100:Math.round(h/500)*500;
 const drmKm=h=>nf(Math.round(h))+' km';
 function drmRel(M){ const e=O.initial(M).el, pe=e.pe, ap=isFinite(e.ap)?e.ap:e.pe; return {pe,ap,h:Math.sqrt(Math.max(1,pe)*Math.max(1,ap)),circ:ap/Math.max(1,pe)<1.3}; }
@@ -3503,7 +3698,7 @@ function drmPlanet(kind,edge,top,o){ const R=2400, cx=500, cy=top?edge-R:edge+R,
     [[-350,140],[150,90],[620,170],[1150,120]].forEach(([x,w],i)=>{ s+='<path d="M'+(x-w)+' '+near(20)+'q'+(w*.5)+' '+((top?1:-1)*0)+' '+w+' '+(top?-14:14)*k+'t'+w+' '+(top?8:-8)*k+'l0 '+(top?-30:30)*k+'z" fill="#7E3A22" opacity=".45"/>'; });
     for(let i=0;i<14;i++){ const x=-500+i*150+rnd(i,8)*80, y=near(14+rnd(i,9)*50), r=5+rnd(i,10)*14; s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+r+'" ry="'+(r*.4*k)+'" fill="#8E3F24" opacity=".6"/>'; }
     s+='<rect x="-1500" y="'+(top?edge-400*k:edge)+'" width="4000" height="'+(400*k)+'" fill="url(#'+id+'sh)"/></g>'; return s; }
-  /* venus */ s+=G2('g','#F1DFA8','#C9A55C')+sh+'</defs>'; for(let i=0;i<6;i++) s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+(R+(i+1)*6*k)+'" fill="#F5E2A8" opacity=".14"/>';
+  /* venus + corpi esterni */ const XP=E.EXT[kind]; s+=(XP?G2('g',XP.pal[0],XP.pal[1]):G2('g','#F1DFA8','#C9A55C'))+sh+'</defs>'; for(let i=0;i<6;i++) s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+(R+(i+1)*6*k)+'" fill="#F5E2A8" opacity=".14"/>';
   s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="url(#'+id+'g)"/><g clip-path="url(#'+id+'c)">';
   for(let i=0;i<7;i++){ const y=near(8+i*11); s+='<path d="M-1500 '+y+'Q-800 '+(y+(i%2?8:-8)*k)+' -200 '+y+'T1100 '+y+'T2400 '+y+'" stroke="'+(i%2?'#E9CF8A':'#FFF2C9')+'" stroke-width="'+(5*k)+'" fill="none" opacity=".7"/>'; }
   s+='<rect x="-1500" y="'+(top?edge-400*k:edge)+'" width="4000" height="'+(400*k)+'" fill="url(#'+id+'sh)"/></g>'; return s; }
@@ -3514,13 +3709,13 @@ function drmSVG(M,o){ o=o||{}; const H=o.H||600, mini=!!o.mini, dest=M.sat.dest|
   // fasce: obiettivo e bloccate
   const b=drmBand(M), lv=L.level(G.xp); O.ZONES[dest].filter(z=>z.band).forEach(z=>{ const y1=S.y(z.band[1]), y0=S.y(z.band[0]), lock=z.lvl>lv, tgt=b&&z.band===b;
     if(lock) s+='<rect x="-1500" y="'+Math.min(y0,y1)+'" width="4000" height="'+Math.abs(y0-y1)+'" fill="#E9EDF1" opacity=".8"/>'+(mini?'':T(16,Math.min(y0,y1)+16,'🔒 '+z.n.toLowerCase()+' · livello '+z.lvl,11,'start','#8D99A6',700));
-    else if(tgt) s+='<rect x="-1500" y="'+Math.min(y0,y1)+'" width="4000" height="'+Math.abs(y0-y1)+'" fill="#3FA86B" opacity=".08"/>'+(mini?'':T(16,Math.min(y0,y1)+16,'FASCIA OBIETTIVO · '+z.n.toUpperCase()+' '+nf(z.band[0])+'–'+nf(z.band[1])+' km',11,'start','#2F7D4E',700)); });
+    else if(tgt) s+='<rect x="-1500" y="'+Math.min(y0,y1)+'" width="4000" height="'+Math.abs(y0-y1)+'" fill="#3FA86B" opacity=".08"/>'+(mini?'':T(16,Math.min(y0,y1)+16,''+TX('FASCIA OBIETTIVO','TARGET BAND')+' · '+I18N.tr(z.n).toUpperCase()+' '+nf(z.band[0])+'–'+nf(z.band[1])+' km',11,'start','#2F7D4E',700)); });
   if(!mini){ const out=O.ZONES[dest].filter(z=>z.band&&(S.leo?z.band[0]>S.max:(z.band[0]>S.max||z.band[1]<S.min))); const up=out.filter(z=>z.band[0]>S.max), dn=out.filter(z=>z.band[1]<S.min);
     if(up.length) s+=T(976,S.leo?150*k:S.y(S.max)+16*k,(S.leo?'↑ ':'↓ ')+up.map(z=>z.n.toLowerCase()+(z.lvl>lv?' 🔒 liv. '+z.lvl:'')).join(' · '),11,'end','#8D99A6',600);
     if(dn.length) s+=T(976,S.y(S.min)-8*k,'↑ '+dn.map(z=>z.n.toLowerCase()+(z.lvl>lv?' 🔒 liv. '+z.lvl:'')).join(' · '),11,'end','#8D99A6',600); }
   // pianeti
   if(S.leo){ s+=drmPlanet('leo',S.ySurf,false,{atm:S.ySurf-S.yAtm,k}); if(!mini) s+=T(24,S.yAtm+20*k,'ATMOSFERA TERRESTRE',11,'start','#2C6E9E',700)+T(24,S.ySurf+34*k,'TERRA',13,'start','#fff',800); }
-  else { s+=drmPlanet(dest,S.yTop,true,{k})+drmPlanet('leo',S.yEarth,false,{atm:10*k,k}); if(!mini) s+=T(976,S.yTop-12*k,DRMN[dest].toUpperCase(),13,'end',dest==='venus'?'#7A5A1E':'#fff',800)+T(24,S.yEarth+30*k,'TERRA',13,'start','#fff',800)+'<path d="M-1500 '+S.yGap+'H2500" stroke="#D5DCE3" stroke-dasharray="3 5"/>'+T(976,S.yGap+18*k,'↓ spazio tra la Terra e '+(dest==='moon'?'la Luna':dest==='mars'?'Marte':'Venere')+' (non in scala)',11,'end','#8D99A6',500); }
+  else { s+=drmPlanet(dest,S.yTop,true,{k})+drmPlanet('leo',S.yEarth,false,{atm:10*k,k}); if(!mini) s+=T(976,S.yTop-12*k,DRMN[dest].toUpperCase(),13,'end',dest==='venus'?'#7A5A1E':'#fff',800)+T(24,S.yEarth+30*k,'TERRA',13,'start','#fff',800)+'<path d="M-1500 '+S.yGap+'H2500" stroke="#D5DCE3" stroke-dasharray="3 5"/>'+T(976,S.yGap+18*k,'↓ space between Earth and '+(dest==='moon'?'the Moon':dest==='sun'?'the Sun':I18N.tr(DRMN[dest]))+' (not to scale)',11,'end','#8D99A6',500); }
   // asse quote
   if(!mini){ const ticks=S.leo?[100,300,1000,3000,10000,36000]:[10,30,100,300,1000,3000,10000,30000]; ticks.forEach(h=>{ if(h<S.min*.9||h>S.max*1.05) return; const y=S.y(h); s+='<path d="M984 '+y+'h10" stroke="#AAB4BE" stroke-width="1.5"/>'+T(980,y+4,nf(h),10,'end','#9AA6B2',500); }); }
   const lanes=[], rel=drmRel(M), land=drmLand(M);
@@ -3545,9 +3740,9 @@ function drmSVG(M,o){ o=o||{}; const H=o.H||600, mini=!!o.mini, dest=M.sat.dest|
   hs.forEach((h,i)=>{ const mo=i===0?(D.star<0?D.relMo:0):D.orbits[i-1].mo, xm=(X(i)+X(i+1))/2, y=ys[i], star=(i===0&&D.star<0)||(i>0&&D.star===i-1); if(!mo&&!star) return;
     s+=drmSat(xm,y,mini?1.8:1)+(star?'<g transform="translate('+(xm-(mini?42:28))+' '+(y-(mini?30:22))+')"><circle r="'+(mini?17:10)+'" fill="#F07B3F"/><text y="'+(mini?7:4.5)+'" font-size="'+(mini?20:12)+'" text-anchor="middle" fill="#fff" font-weight="800">★</text></g>':'')+drmPill(xm,y+(mini?34:22),mo+(mini?' m':' mesi'),mini); });
   if(!mini){ const note=(x,y,t)=>T(x+12,y,t,11.5,'start','#3A4856',500,1);
-    s+=note(X(0),(yE+ys[0])/2,S.leo?'lancio e rilascio':'lancio e viaggio verso '+(dest==='moon'?'la Luna':DRMN[dest]));
-    for(let i=1;i<hs.length;i++) s+=note(X(i),(ys[i-1]+ys[i])/2+4,(S.leo?hs[i]>hs[i-1]:hs[i]>hs[i-1])?'manovra di salita':'manovra di discesa');
-    if(eolY!=null) s+=note(X(hs.length),(ys[hs.length-1]+eolY)/2+4,eolK==='reentry'?'rientro in atmosfera':eolK==='impact'?'impatto controllato':'verso l’orbita cimitero'); }
+    s+=note(X(0),(yE+ys[0])/2,S.leo?'launch and release':'launch and trip to '+(dest==='moon'?'the Moon':dest==='sun'?'the Sun':I18N.tr(DRMN[dest])));
+    for(let i=1;i<hs.length;i++) s+=note(X(i),(ys[i-1]+ys[i])/2+4,(S.leo?hs[i]>hs[i-1]:hs[i]>hs[i-1])?'climb manoeuvre':'descent manoeuvre');
+    if(eolY!=null) s+=note(X(hs.length),(ys[hs.length-1]+eolY)/2+4,eolK==='reentry'?'re-entry into the atmosphere':eolK==='impact'?'controlled impact':'to the graveyard orbit'); }
   if(eolK==='reentry') s+=drmFire(X(hs.length),eolY+(S.leo?14:8)*k,mini?1.8:1); if(eolK==='impact') s+=drmBurst(X(hs.length),eolY,mini?1.8:1); if(eolK==='grave') s+='<circle cx="'+(X(hs.length)+step*.6+6)+'" cy="'+eolY+'" r="'+(mini?8:5)+'" fill="#22313B"/>';
   // riga fantasma (aggiunta)
   if(!mini&&DRMG){ const y=lineY(DRMG.h); s+='<path d="M-1500 '+y+'H2500" stroke="'+(DRMG.ok?'#F07B3F':'#CF5E4C')+'" stroke-width="2" stroke-dasharray="7 6"/><g transform="translate('+Math.max(140,Math.min(860,DRMG.x))+' '+y+')"><rect x="-120" y="-40" width="240" height="26" rx="13" fill="#22313B"/><text y="-22" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff" font-family="Inter,sans-serif">'+esc(DRMG.ok?'Rilascia: nuova orbita a '+drmKm(DRMG.h):DRMG.why)+'</text><circle r="7" fill="'+(DRMG.ok?'#F07B3F':'#CF5E4C')+'" stroke="#fff" stroke-width="3"/></g>'; }
@@ -3579,17 +3774,17 @@ function drmPanel(M){ const D=M.drm, dest=M.sat.dest||'leo', land=drmLand(M), re
     if(D.eol) h+=row(String(D.orbits.length+2),{reentry:'🔥 Rientro in atmosfera',impact:'💥 Impatto controllato',grave:'🪦 Orbita cimitero'}[D.eol.k],{reentry:'fine vita senza detriti',impact:'fine vita sulla superficie',grave:'parcheggiato a '+drmKm(drmGrave(M))}[D.eol.k],{extra:'<button class="dx" data-act="drmeolx" aria-label="Cancella">✕</button>'}); }
   else h+=row('2','🛬 Sulla superficie','il satellite lavora a terra',{hl:1});
   h+='</div>';
-  if(!land) h+='<button class="btn primary dadd'+(DRMADD?' on':'')+'" data-act="drmadd">'+(DRMADD?'✕ Annulla':'＋ Aggiungi orbita')+'</button>'+(DRMADD?'<p class="fine">Muovi il puntatore (o il dito) sullo schema e rilascia alla quota che vuoi.</p>':'')+
-    '<h3 style="margin-top:12px">Fine vita (fase F)</h3><div class="deol">'+[['reentry','🔥 Rientro',atm?'in atmosfera':'niente atmosfera',!atm],['impact','💥 Impatto','sulla superficie',dest==='leo'],['grave','🪦 Cimitero',dest==='leo'?'sopra la geostazionaria':'orbita molto alta',false]].map(([k,n,sub,dis])=>'<button class="'+(D.eol&&D.eol.k===k?'on':'')+'" data-act="drmeol" data-k="'+k+'"'+(dis?' disabled':'')+'><b>'+n+'</b><small>'+sub+'</small></button>').join('')+'</div>';
+  const ed=mdrState(M)==='edit';
+  if(!land&&ed) h+='<button class="btn primary dadd'+(DRMADD?' on':'')+'" data-act="drmadd">'+(DRMADD?'✕ Annulla':'＋ Aggiungi orbita')+'</button>'+(DRMADD?'<p class="fine">Muovi il puntatore (o il dito) sullo schema e rilascia alla quota che vuoi.</p>':'')+
+    '';
   h+='<div class="dtot"><span>Durata totale</span><b class="num">'+(land?D.relMo:drmMonths(M))+' mesi</b></div>';
-  { const k0=winMode(M), lc0=M.sat.lv?E.lvCost(M.sat):0, rx=rushExtra({drm:{win:'rush'}},lc0);
-    h+='<h3 style="margin-top:12px">'+TX('Finestra di lancio','Launch window')+'</h3><div class="deol">'+[['rush','⚡ Rush',TX('subito · extra '+keur(rx)+' sul lancio','right away · extra '+keur(rx)+' on the launch')],['ontime','🎯 On time',TX('richiesta dagli stakeholder · attesa breve','what the stakeholders asked · short wait')],['relaxed','🌿 Relaxed',TX('nessun extra · attesa lunga · gli stakeholder si lamentano','no extra · long wait · stakeholders will be unhappy')]].map(([k,n,sub])=>'<button class="'+(k0===k?'on':'')+'" data-act="drmwin" data-k="'+k+'"><b>'+n+'</b><small>'+sub+'</small></button>').join('')+'</div>'; }
-  const ready=land||(D.eol&&drmStarH(M)!=null); h+='<button class="btn primary" style="width:100%" data-act="bstep" data-k="sat"'+(ready?'':' disabled')+'>'+TX('Conferma la DRM · torna al campus','Confirm the DRM · back to the campus')+'</button>'+'</div>';
+  if(ed) h+='<button class="btn primary" style="width:100%" data-act="mdredone"'+(drmStarH(M)!=null?'':' disabled')+'>'+TX('Fatto · continua','Done · continue')+'</button>';
+  h+='</div>';
   return h; }
 function vDRM(v,M){ const D=drmInit(M); DRMH=Math.round(Math.max(400,Math.min(600,1000/(innerWidth/Math.max(1,innerHeight))*1.05))); if(drmLand(M)){ D.eol={k:'surf'}; D.orbits=[]; }
   v.innerHTML='<div class="head"><div><h3>Centro di dinamica del volo · Fase B · passo 1 di 3</h3><h1>Design Reference Mission</h1>'+bSteps(M)+'</div></div>'+
     stage('<section class="drm3 fsc" style="--ar:1000/'+DRMH+'"><svg id="drmsvg" class="'+(DRMADD?'adding':'')+'" viewBox="0 0 1000 '+DRMH+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schema della missione">'+drmSVG(M,{H:DRMH})+'</svg></section>','rbx')+
-    docks(drmPanel(M),null); scn(v,{L:1,bg:'#FBFCFD',railL:[{ic:'🧭',t:'Sequenza',side:'L'}]}); }
+    docks(drmPanel(M),null); scn(v,{L:1,bg:'#FBFCFD',railL:[{ic:'🧭',t:'Sequenza',side:'L'}]}); setTimeout(()=>mdrShow(cur()),0); }
 function drmRedraw(){ const M=cur(), sv=$('#drmsvg'); if(!sv||!M) return; sv.innerHTML=drmSVG(M,{H:DRMH}); }
 function drmPt(e){ const sv=$('#drmsvg'); if(!sv) return null; const pt=sv.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const m=sv.getScreenCTM(); if(!m) return null; const p=pt.matrixTransform(m.inverse()); return p; }
 function drmGhost(e){ const M=cur(); if(!DRMADD||!M||!M.drm) return; const p=drmPt(e); if(!p) return; const S=drmScale(M,DRMH), h=drmNice(S.h(p.y)); let why='', ok=true;
@@ -3618,12 +3813,89 @@ function drmStrip(M){ if(!M.drm) return ''; return '<div class="panel drmt"><h3>
 
 /* ---------- v33 · Orbit Budget nel Centro di dinamica del volo: la DRM dà il semiasse, qui si scelgono gli altri elementi ---------- */
 const OBC=['#5B8DEF','#3CC796','#C9A0FF','#F06EAA','#F2C84B','#6CC3F5'], OBREL='#9AA6B4', OBFIN='#FF7A6B', OBMID='#FFC2B5';
-let OBSEL=1, OBV={tilt:28,az:35,sc:0,raf:0,t0:0};
+let OBSEL=1, OBV={tilt:28,az:35,sc:0,raf:0,t0:0,pos:0,on:false,last:0,drag:false};
 const obCol=k=>k===0?OBREL:OBC[(k-1)%OBC.length];
 const obOn=M=>{ if(!M||!M.drm||M.drm.v!==1||drmLand(M)) return false; const p=O.plan(M); return !!p.ob; };
 function obBody(M){ return O.BODY[M.sat.dest||'leo']; }
 function obSum(el){ return Math.abs(el.ap-el.pe)<1?nf(el.pe,0)+' km':nf(el.pe,0)+' × '+nf(el.ap,0)+' km'; }
-function obKepler(Mn,e){ let E2=Mn; for(let k=0;k<12;k++) E2=E2-(E2-e*Math.sin(E2)-Mn)/(1-e*Math.cos(E2)); return 2*Math.atan2(Math.sqrt(1+e)*Math.sin(E2/2),Math.sqrt(1-e)*Math.cos(E2/2)); }
+const obKepler=(Mn,e)=>O.nuFromM(Mn,e);
+/* Replay della missione (stile Mission Viz): rilascio → trasferimenti → orbita di lavoro → fine vita, con il tempo vero */
+/* GMAT (NASA): il servizio /api/gmat calcola il ΔV di ogni tratta; il piano lo usa appena arriva, senza che il giocatore faccia nulla. Senza servizio resta il modello del gioco. */
+const GMX={ cache:{}, want:'', timer:0, ctl:null, st:'model', off:0 };
+const gmxKey=pl=>JSON.stringify(pl,(k,v)=>typeof v==='number'?Math.round(v*1e5)/1e5:v);
+function gmxRefresh(){ if(view!=='fd') return; const m=cur(); if(m&&obOn(m)) obLive(m); }
+function gmxAsk(M,pl,k){ if(view!=='fd'||GMX.want===k||Date.now()<GMX.off) return; GMX.want=k; GMX.st='wait'; clearTimeout(GMX.timer); if(GMX.ctl) GMX.ctl.abort();
+  GMX.timer=setTimeout(()=>{ const ctl=GMX.ctl=new AbortController();
+    fetch('/api/gmat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(pl),signal:ctl.signal}).then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+      if(ok&&j&&j.legs){ GMX.cache[k]=j; const ks=Object.keys(M.gmat||(M.gmat={})); if(ks.length>=6) delete M.gmat[ks[0]]; M.gmat[k]=j; GMX.st='gmat'; save(); }
+      else { GMX.off=Date.now()+(j&&j.error==='busy'?3000:30000); GMX.st='model'; } GMX.want=''; gmxRefresh(); })
+    .catch(e=>{ if(e&&e.name==='AbortError') return; GMX.off=Date.now()+30000; GMX.st='model'; GMX.want=''; gmxRefresh(); }); },600); }
+O.hook.gmat=(M,pl)=>{ const k=gmxKey(pl), hit=GMX.cache[k]||(M.gmat&&M.gmat[k]); if(hit){ GMX.cache[k]=hit; return hit; } gmxAsk(M,pl,k); return null; };
+/* Analisi GMAT dell'orbita di lavoro (eclisse, contatti con le stazioni, decadimento). Un'unica richiesta alla volta; chiede sempre il piano corrente. */
+const GMA={ cache:{}, timer:0, busy:false, st:'model', off:0, capture:false, req:null, key:'' };
+function gmaRefresh(){ if(view==='fd') gmxRefresh(); else if(view==='build'&&typeof bRefresh==='function'){ try{ bRefresh(); }catch(e){} } }
+function gmaAsk(){ if(GMA.timer||GMA.busy||Date.now()<GMA.off||(view!=='fd'&&view!=='build')) return; GMA.st='wait';
+  GMA.timer=setTimeout(()=>{ GMA.timer=0; const M=cur(); if(!M) return; GMA.capture=true; GMA.req=null; try{ O.plan(M); }finally{ GMA.capture=false; }
+    const req=GMA.req, k=GMA.key; if(!req||GMA.cache[k]||(M.gmatA&&M.gmatA[k])){ GMA.st=GMA.cache[k]||(M.gmatA&&M.gmatA[k])?'gmat':'model'; return; }
+    GMA.busy=true;
+    fetch('/api/gmat/analysis',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(req)}).then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+      if(ok&&j&&j.eclipse){ GMA.cache[k]=j; const ks=Object.keys(M.gmatA||(M.gmatA={})); if(ks.length>=6) delete M.gmatA[ks[0]]; M.gmatA[k]=j; GMA.st='gmat'; save(); }
+      else { GMA.off=Date.now()+(j&&j.error==='busy'?4000:30000); GMA.st='model'; } GMA.busy=false; gmaRefresh(); })
+    .catch(()=>{ GMA.off=Date.now()+30000; GMA.st='model'; GMA.busy=false; gmaRefresh(); }); },800); }
+O.hook.gmatAn=(M,req)=>{ const k=gmxKey(req)+'|a3', hit=GMA.cache[k]||(M.gmatA&&M.gmatA[k]);
+  if(GMA.capture){ GMA.req=req; GMA.key=k; return hit||null; }
+  if(hit){ GMA.cache[k]=hit; return hit; } gmaAsk(); return null; };
+const stOwn=k=>k==='milan'||(k==='svalbard'&&hasB('ground'))||(k==='canberra'&&dishN()>0);
+/* Vita dell'orbita (GMAT): una richiesta per scenario (sole medio, massimo, minimo, con la vela), una alla volta, sempre per il piano corrente. Ogni risposta si salva con la missione. */
+const GML={ cache:{}, timer:0, busy:false, off:0, capture:false, req:null, miss:[], base:'' }, LF_SAIL_M2=1.0;
+const lfScenarios=req=>{ const s=['nom']; if(req.sail&&(req.dest==='leo'||req.dest==='mars')) s.push('sail'); if(req.dest==='leo') s.push('max','min'); return s; }; // l'ordine conta: prima i valori che decidono la regola dei 5 anni
+function gmlAsk(){ if(GML.timer||GML.busy||Date.now()<GML.off||(view!=='fd'&&view!=='build')) return;
+  GML.timer=setTimeout(()=>{ GML.timer=0; const M=cur(); if(!M) return; GML.capture=true; GML.req=null; try{ O.plan(M); }finally{ GML.capture=false; }
+    const req=GML.req, miss=GML.miss||[]; if(!req||!miss.length) return; const s=miss[0], k=GML.base+'|'+s+'|l1'; GML.busy=true;
+    fetch('/api/gmat/lifetime',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.assign({},req,{sail:undefined,scenario:s,sailArea:LF_SAIL_M2}))}).then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+      if(ok&&j&&j.scenario){ GML.cache[k]=j; const ks=Object.keys(M.gmatL||(M.gmatL={})); if(ks.length>=12) delete M.gmatL[ks[0]]; M.gmatL[k]=j; save(); } else GML.off=Date.now()+(j&&j.error==='busy'?5000:30000);
+      GML.busy=false; gmaRefresh(); if(ok) gmlAsk(); })
+    .catch(()=>{ GML.off=Date.now()+30000; GML.busy=false; gmaRefresh(); }); },1500); }
+O.hook.gmatLf=(M,req)=>{ const r=Object.assign({},req); delete r.sail; const base=gmxKey(r)+'|a3', out={}, miss=[];
+  lfScenarios(req).forEach(s=>{ const k=base+'|'+s+'|l1', hit=GML.cache[k]||(M.gmatL&&M.gmatL[k]); if(hit){ GML.cache[k]=hit; out[s]=hit; } else miss.push(s); });
+  if(GML.capture){ GML.req=req; GML.miss=miss; GML.base=base; return out; }
+  if(miss.length) gmlAsk(); return out; };
+const fmtLife=(r,over)=>!r?'GMAT sta calcolando…':r.days==null?over:r.days<60?nf(r.days,0)+' giorni':r.days<730?nf(r.days/30.4,0)+' mesi':nf(r.days/365,1)+' anni';
+function anRows(M,p){ const an=p.an, lf=p.lf||{}, rows=[], dest=M.sat.dest||'leo', ev=an&&an.evolution; if(!an) return rows; const e=an.eclipse;
+  rows.push(['Periodo orbitale',nf(an.period/60,0)+' min','gmat']);
+  rows.push(['Ombra per orbita',e.events?'media '+nf(e.avgMin,0)+' min · massima '+nf(e.maxMin,0)+' min · al sole '+nf(e.sunlitPct,0)+'%':'nessuna: orbita al crepuscolo, sempre al sole','gmat']);
+  if(an.contacts){ O.STATIONS.forEach(s=>{ const c=an.contacts[s.k]||{passesDay:0,minDay:0}, own=stOwn(s.k); rows.push(['Contatti · '+s.n,own?nf(c.passesDay,1)+' passaggi al giorno · '+nf(c.minDay,0)+' min al giorno':(s.k==='svalbard'?'serve l’edificio di terra':'serve una parabola nel centro di terra'),'gmat',!own]); }); rows.push(['Contatti totali',nf(contactMin(M),0)+' min al giorno','gmat']); }
+  else rows.push(['Contatti con la terra',nf(contactMin(M),0)+' min al giorno','model']);
+  if(an.impact) rows.push([dest==='leo'||dest==='mars'?'Rientro nell’atmosfera':dest==='venus'?'Ingresso nell’atmosfera':'Impatto sulla superficie','dopo '+nf(an.impact.days,0)+' giorni','gmat']);
+  if(an.earth){ const x=an.earth; rows.push(['Distanza dalla Terra',nf(Math.min(x.km0,x.km1)/1e6,2)+' – '+nf(Math.max(x.km0,x.km1)/1e6,2)+' milioni di km','gmat']); rows.push(['Tempo luce (solo andata)',nf(Math.min(x.lightMin0,x.lightMin1),x.lightMin0<1?2:1)+' – '+nf(Math.max(x.lightMin0,x.lightMin1),x.lightMin0<1?2:1)+' min','gmat']); }
+  if(an.decay){ const d=an.decay; rows.push(['Perdita di quota',d.measurable?nf(d.kmMonth,1)+' km al mese':'trascurabile','gmat']); }
+  if(ev&&dest!=='leo'){ rows.push(['Crescita dell’eccentricità','+'+nf(ev.eccGrowthMonth,4)+' al mese','gmat']); rows.push(['Deriva del pericentro',(ev.periKmMonth>=0?'+':'−')+nf(Math.abs(ev.periKmMonth),1)+' km al mese','gmat']); }
+  if(ev) rows.push(['ΔV di mantenimento',nf(ev.skDvMonth,1)+' m/s al mese','gmat']);
+  if(an.decay) rows.push(['Deriva del nodo (J2)',(an.decay.nodeDegDay>=0?'+':'−')+nf(Math.abs(an.decay.nodeDegDay),2)+' °/giorno'+(an.decay.sso?' · eliosincrona ✓':''),'gmat']);
+  else if(ev) rows.push(['Precessione del nodo',(ev.nodeDegDay>=0?'+':'−')+nf(Math.abs(ev.nodeDegDay),2)+' °/giorno','gmat']);
+  // vita: propagazione GMAT fino al rientro (Terra, Marte), all'impatto (Luna) o all'atmosfera (Venere)
+  if(dest==='leo'||dest==='mars'){ rows.push(['Vita in orbita (sole medio)',fmtLife(lf.nom,'oltre 5 anni'),'gmat']);
+    if(dest==='leo'){ rows.push(['Vita con il massimo solare',fmtLife(lf.max,'oltre 5 anni'),'gmat']); rows.push(['Vita con il minimo solare',fmtLife(lf.min,'oltre 5 anni'),'gmat']); }
+    if(M.sat.placed&&M.sat.placed.eol) rows.push(['Vita con la vela di rientro',fmtLife(lf.sail,'oltre 5 anni'),'gmat']);
+    const r5=M.sat.placed&&M.sat.placed.eol?lf.sail:lf.nom; if(r5) rows.push(['Regola dei 5 anni',r5.days!=null&&r5.days<=1825?'rispettata ✓':'non rispettata ✕: serve la vela o una manovra di fine vita','gmat']); }
+  else rows.push([dest==='moon'?'Vita prima dell’impatto':'Vita prima dell’atmosfera',fmtLife(lf.nom,'oltre 1 anno'),'gmat']);
+  return rows; }
+function obAn(M,p){ const rows=anRows(M,p), st=p.an?'':'<p class="fine">'+(GMA.st==='wait'?'GMAT sta analizzando l’orbita…':'GMAT non raggiungibile: valori del modello')+'</p>';
+  return '<div class="gmaan"><h3>Analisi GMAT (NASA)</h3>'+st+(rows.length?'<ul class="tgl">'+rows.map(r=>'<li style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px;padding:5px 0'+(r[3]?';opacity:.55':'')+'"><span>'+esc(r[0])+' <small class="fine">'+(r[2]==='gmat'?'GMAT':'modello')+'</small></span><span class="num" style="flex:1 1 55%;text-align:right">'+esc(r[1])+'</span></li>').join('')+'</ul>':'')+'</div>'; }
+function anTable(M){ const p=O.plan(M), rows=anRows(M,p); return rows.length?'<h3>Analisi GMAT (NASA)</h3><table class="pay">'+rows.filter(r=>!r[3]).map(r=>'<tr><td>'+esc(r[0])+'</td><td class="num">'+esc(r[1])+'</td></tr>').join('')+'</table>':''; }
+const OBSEG=3.5; // secondi di schermo per tratto
+function obTL(p,B){ const tl=[], D=Math.PI/180, TWO=2*Math.PI; let t=0;
+  const T=el=>{ const k=O.kep(el,B); return TWO*Math.sqrt(k.a**3/B.mu); };
+  const add=(el,m0,m1,lab,dv)=>{ const dt=T(el)*(m1-m0)/TWO; tl.push({el,m0,m1,lab,dv,t0:t,dt}); t+=dt; };
+  const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+  // ponytail: il tratto di trasferimento parte dall'apside più vicino all'orbita precedente; con cambi di piano il satellite può saltare un po' al burn. Upgrade: propagare con O.state/O.burn.
+  const xfer=(prev,mid,lab,dv)=>{ const pa=[obPos(prev,B,0),obPos(prev,B,Math.PI)], near=x=>Math.min(dist(x,pa[0]),dist(x,pa[1])); if(near(obPos(mid,B,0))<=near(obPos(mid,B,Math.PI))) add(mid,0,Math.PI,lab,dv); else add(mid,Math.PI,TWO,lab,dv); };
+  p.orbits.forEach((o,k)=>{ if(k&&o.mid) xfer(p.orbits[k-1].el,o.mid,'Trasferimento verso '+o.name,o.dv); const m=(o.el.ma||0)*D; add(o.el,m,m+TWO,'In orbita: '+(o.name||'Rilascio'),0); });
+  const e=p.eol, last=p.orbits[p.orbits.length-1].el;
+  if(e&&e.el&&e.el!==last){ if(e.mid) xfer(last,e.mid,'Trasferimento verso Fine vita',e.dv); add(e.el,0,TWO,'In orbita: Fine vita',0); }
+  return {tl,total:t}; }
+const fmtT=s=>s<7200?nf(s/60,0)+' min':s<172800?nf(s/3600,1)+' h':nf(s/86400,1)+' d';
+function obPlayStep(n){ const now=performance.now(), dt=OBV.last?(now-OBV.last)/1000:0; OBV.last=now; if(OBV.on&&n>0){ OBV.pos=Math.min(1,OBV.pos+dt/(n*OBSEG)); if(OBV.pos>=1) OBV.on=false; const s=$('#obscr'); if(s&&!OBV.drag) s.value=Math.round(OBV.pos*1000); const b=$('#obplay'); if(b&&!OBV.on) b.textContent='▶ Rivedi la missione'; } }
 function obPos(el,B,nu){ const k=O.kep(el,B), [P,Q]=O.pqK(k), p=k.a*(1-k.e*k.e), r=p/(1+k.e*Math.cos(nu)), c=Math.cos(nu)*r, s=Math.sin(nu)*r; return [P[0]*c+Q[0]*s,P[1]*c+Q[1]*s,P[2]*c+Q[2]*s,r]; }
 function obItems(M,p){ const it=[]; p.orbits.forEach((o,k)=>{ if(o.mid) it.push({el:o.mid,col:OBMID,dash:[3,5],w:1.3,tag:''}); it.push({el:o.el,col:obCol(k),dash:[],w:k===OBSEL?3.2:k===p.si?2.4:1.7,tag:k===0?'R':String(k+1),star:k===p.si,k}); });
   if(p.eol){ if(p.eol.mid) it.push({el:p.eol.mid,col:OBMID,dash:[3,5],w:1.3,tag:''}); if(p.eol.el&&p.eol.el!==p.orbits[p.orbits.length-1].el) it.push({el:p.eol.el,col:OBFIN,dash:[7,5],w:1.7,tag:'F'}); } return it; }
@@ -3634,7 +3906,7 @@ function obDraw(){ const cv=$('#obcv'), M=cur(); if(!cv||!M||!document.body.cont
   OBV.sc=OBV.sc?OBV.sc+(want-OBV.sc)*0.25:want; const sc=OBV.sc, cx=W/2, cy=H/2+(H>500?40:8), Rp=B.R*sc, D=Math.PI/180, ct=Math.cos(OBV.tilt*D), st=Math.sin(OBV.tilt*D), ca=Math.cos(OBV.az*D), sa=Math.sin(OBV.az*D);
   const proj=q=>{ const x=q[0]*ca-q[1]*sa, y=q[0]*sa+q[1]*ca, yy=y*ct-q[2]*st, z=y*st+q[2]*ct; return {x:cx+x*sc,y:cy-yy*sc,z}; }, hid=s=>s.z<0&&Math.hypot(s.x-cx,s.y-cy)<Rp;
   const A=O.ATMH[dest], atmR=A?(B.R+A[1])*sc:0;
-  const pal={leo:['#4b8fd1','#14416f'],moon:['#c4c4ca','#5e5e66'],mars:['#d9744a','#7a2a0c'],venus:['#ecd08e','#9c7a3c']}[dest]||['#888','#444'];
+  const pal={leo:['#4b8fd1','#14416f'],moon:['#c4c4ca','#5e5e66'],mars:['#d9744a','#7a2a0c'],venus:['#ecd08e','#9c7a3c']}[dest]||(E.EXT[dest]&&E.EXT[dest].pal)||['#888','#444'];
   if(A){ const ga=g.createRadialGradient(cx,cy,Rp,cx,cy,atmR); ga.addColorStop(0,'rgba(120,190,255,.35)'); ga.addColorStop(1,'rgba(120,190,255,0)'); if(dest!=='leo'){ ga.addColorStop(0,'rgba(255,170,110,.35)'); } g.fillStyle=ga; g.beginPath(); g.arc(cx,cy,atmR,0,7); g.fill(); }
   const gr=g.createRadialGradient(cx-Rp*.35,cy-Rp*.35,Rp*.1,cx,cy,Rp); gr.addColorStop(0,pal[0]); gr.addColorStop(1,pal[1]); g.fillStyle=gr; g.beginPath(); g.arc(cx,cy,Rp,0,7); g.fill();
   g.strokeStyle='rgba(255,255,255,.22)'; g.lineWidth=1; g.beginPath(); g.ellipse(cx,cy,Rp,Math.max(.5,Rp*ct),0,0,7); g.stroke();
@@ -3647,7 +3919,10 @@ function obDraw(){ const cv=$('#obcv'), M=cur(); if(!cv||!M||!document.body.cont
   g.font='600 10px "IBM Plex Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
   items.forEach((it,j)=>{ if(!it.tag) return; const q0=obPos(it.el,B,(40+57*j)*D); if(q0[3]<B.R*1.01) return; const q=proj(q0); if(hid(q)) return; g.fillStyle=it.col; g.beginPath(); g.arc(q.x,q.y,8,0,7); g.fill(); g.fillStyle='#050912'; g.fillText(it.star?'★':it.tag,q.x,q.y+.5); });
   // il satellite corre sull'orbita selezionata, a partire dall'anomalia media scelta
-  const so=p.orbits[Math.min(OBSEL,p.orbits.length-1)]; if(so){ const el=so.el, k=O.kep(el,B), T=2*Math.PI*Math.sqrt(k.a**3/B.mu), Mn=((el.ma||0)*D+((performance.now()-OBV.t0)/1000)*2*Math.PI/8)%(2*Math.PI), nu=obKepler(Mn,k.e), q0=obPos(el,B,nu), q=proj(q0);
+  const rp=OBV.on||OBV.pos>0, TLN=rp?obTL(p,B):null; if(rp){ obPlayStep(TLN.tl.length); const n=TLN.tl.length, x=Math.min(n-1e-9,OBV.pos*n), sg=TLN.tl[Math.floor(x)], f=x-Math.floor(x), k=O.kep(sg.el,B), Mn=(sg.m0+(sg.m1-sg.m0)*f)%(2*Math.PI), q0=obPos(sg.el,B,obKepler(Mn,k.e)), q=proj(q0);
+    if(q0[3]>B.R&&!hid(q)){ g.fillStyle='#fff'; g.beginPath(); g.arc(q.x,q.y,5,0,7); g.fill(); g.strokeStyle='#FFC24B'; g.lineWidth=2.5; g.stroke(); }
+    const lab=sg.lab+(sg.dv>0.5?' · ΔV '+nf(sg.dv,0)+' m/s':''), tx2='T+ '+fmtT(sg.t0+sg.dt*f); g.textAlign='left'; g.textBaseline='top'; g.font='11px "IBM Plex Mono",monospace'; g.fillStyle='#FFC24B'; g.fillText(window.GNG&&GNG.tr?GNG.tr(lab):lab,12,H-52); g.fillStyle='#9FB0C2'; g.fillText(tx2,12,H-34); }
+  const so=rp?null:p.orbits[Math.min(OBSEL,p.orbits.length-1)]; if(so){ const el=so.el, k=O.kep(el,B), T=2*Math.PI*Math.sqrt(k.a**3/B.mu), Mn=((el.ma||0)*D+((performance.now()-OBV.t0)/1000)*2*Math.PI/8)%(2*Math.PI), nu=obKepler(Mn,k.e), q0=obPos(el,B,nu), q=proj(q0);
     if(q0[3]>B.R&&!hid(q)){ g.fillStyle='#fff'; g.beginPath(); g.arc(q.x,q.y,4.5,0,7); g.fill(); g.strokeStyle=obCol(OBSEL); g.lineWidth=2; g.stroke(); }
     if(H<420) return true; g.textAlign='left'; g.textBaseline='top'; g.fillStyle='#9FB0C2'; g.font='11px "IBM Plex Mono",monospace'; const tx=(so.name||'')+' · periodo '+(T<7200?nf(T/60,0)+' min':nf(T/3600,1)+' h'); g.fillText(window.GNG&&GNG.tr?GNG.tr(tx):tx,12,H-34); }
   const raw=90/sc, p10=Math.pow(10,Math.floor(Math.log10(raw))), nice=[1,2,5,10].map(x=>x*p10).reduce((a,x)=>Math.abs(x-raw)<Math.abs(a-raw)?x:a);
@@ -3659,14 +3934,14 @@ function obBind(){ const cv=$('#obcv'); if(!cv) return; let dr=null; const turn=
   cv.addEventListener('pointermove',e=>{ if(!dr) return; turn(-(e.clientX-dr.x)*.4,(e.clientY-dr.y)*.4); dr={x:e.clientX,y:e.clientY}; });
   ['pointerup','pointercancel','lostpointercapture'].forEach(t=>cv.addEventListener(t,()=>{ dr=null; })); cv.addEventListener('dblclick',()=>{ OBV.az=35; OBV.tilt=28; }); }
 function obMeter(M,p){ const need=(p.tot+p.after)*1.05, av=p.dvAvail, over=need>av+1, segs=p.orbits.map((o,k)=>[k&&k<=p.si?o.dv:0,obCol(k)]).concat(p.orbits.map((o,k)=>[k>p.si?o.dv:0,obCol(k)])).filter(s=>s[0]>0.5); if(p.eol&&p.eol.dv>0.5) segs.push([p.eol.dv,OBFIN]); const base=Math.max(av,need,1);
-  return '<div class="lbl">ΔV del piano (+5%)</div><div class="big num">'+nf(need,0)+'<small>m/s</small></div><div class="bar'+(over?' over':'')+'">'+segs.map(([d,c])=>'<i style="width:'+(d/base*100)+'%;background:'+c+'"></i>').join('')+'</div><div class="lbl">'+(over?'oltre il satellite di '+nf(need-av,0)+' m/s':'il satellite ne ha '+nf(av,0)+' m/s')+'</div>'+(p.atm&&p.atm.p>0.005?'<div class="atmw">⚠ '+pct(p.atm.p)+' di rientro anticipato</div>':''); }
+  return '<div class="lbl">ΔV del piano (+5%)</div><div class="big num">'+nf(need,0)+'<small>m/s</small></div><div class="bar'+(over?' over':'')+'">'+segs.map(([d,c])=>'<i style="width:'+(d/base*100)+'%;background:'+c+'"></i>').join('')+'</div><div class="lbl">'+(over?'oltre il satellite di '+nf(need-av,0)+' m/s':'il satellite ne ha '+nf(av,0)+' m/s')+'</div><div class="lbl">'+(p.gmat?'ΔV: calcolato con GMAT (NASA)':GMX.st==='wait'?'ΔV: GMAT sta calcolando…':'ΔV: modello del gioco (GMAT non raggiungibile)')+'</div>'+(p.atm&&p.atm.p>0.005?'<div class="atmw">⚠ '+pct(p.atm.p)+' di rientro anticipato</div>':''); }
 function obStatus(M,p){ const t=p.t, f=p.final, chk=(l,x,r)=>'<li><span class="mk '+(x?'y':'n')+'">'+(x?'✓':'✕')+'</span><span>'+l+'</span><span class="num">'+r+'</span></li>';
   const need=(p.tot+p.after)*1.05, sk=E.skOf(M.sat), rest=p.dvAvail-need, mo=sk>0?Math.floor(rest/sk):Infinity, mm=L.minMonths(M), noMan=need<=1&&!M.sat.placed.prop;
   let h='<h3>Orbita di lavoro ★ · '+esc(O.TYPES[M.type||'sci'].n)+'</h3><ul class="tgl">'+chk('Pericentro',p.chk.pe,t.pe[0]+'–'+t.pe[1]+' km · ora '+nf(f.pe,0))+chk('Apocentro',p.chk.ap,t.ap[0]+'–'+t.ap[1]+' km · ora '+nf(f.ap,0))+chk('Inclinazione',p.chk.i,(t.i[1]>=180?'qualsiasi':t.i[0]+'–'+t.i[1]+'°')+' · ora '+nf(f.i,1)+'°')+'</ul>';
   if(p.bad) h+='<p class="why">'+esc(p.bad)+'</p>';
   h+='<ul class="tgl"><li><span></span><span>ΔV del piano (+5% di margine)</span><span class="num">'+nf(need,0)+' m/s</span></li><li><span></span><span>ΔV del satellite</span><span class="num">'+nf(p.dvAvail,0)+' m/s</span></li>'+(noMan?'':chk('Dopo il piano: mantenimento d’orbita',rest>=0&&mo>=mm,(rest>0?'~'+Math.max(0,Math.min(999,mo))+' mesi':'non basta')+' · servono '+mm))+'</ul>';
   if(p.atm&&p.atm.rows.length){ h+='<div class="atmbox"><b>⚠ Orbite dentro l’atmosfera</b><ul>'+p.atm.rows.map(x=>'<li>'+esc(x.n)+': pericentro '+nf(x.pe,0)+' km'+(x.crash?' · <b>tocca la superficie</b>':' · '+pct(x.r)+' di rientro')+'</li>').join('')+'</ul><p class="fine">Sotto i '+O.ATMH[M.sat.dest||'leo'][1]+' km l’aria frena il satellite a ogni passaggio al pericentro: rischia di rientrare e bruciare prima della fine della missione.</p></div>'; }
-  return h; }
+  h+=obAn(M,p); return h; }
 function obTLE(M,el,k){ const t=O.tle(el,obBody(M),(M.seed||1)%90000+10000+k); return '<details class="tlebox"><summary>Elementi in formato TLE</summary><pre class="tle">'+esc((M.name||'SAT').toUpperCase().slice(0,24))+'\n'+t[0]+'\n'+t[1]+'</pre><p class="fine">Riga 2: inclinazione, Ω (nodo ascendente), eccentricità (senza «0.»), ω (argomento del pericentro), anomalia media, moto medio in giri al giorno ('+nf(t[2],3)+').</p></details>'; }
 function obSlider(k,key,lab,min,max,step,val,dis,fmtv){ return '<div class="fdrow obrow"><label for="ob'+key+k+'">'+lab+'</label><input type="range" id="ob'+key+k+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'" data-ob="'+key+'" data-k="'+k+'"'+dis+'><input type="number" class="num" id="obn'+key+k+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+(fmtv?fmtv(val):val)+'" data-ob="'+key+'" data-k="'+k+'"'+dis+'></div>'; }
 function obEditor(M,p,k){ const o=p.orbits[k], B=obBody(M), Lg=M.ob.legs[o.leg], dis=fdLocked(M)?' disabled':'', a=B.R+o.h, em=Math.floor(O.eMax(o.h,B)*1000)/1000, ss=a<=12352*1.5?Math.acos(Math.max(-1,-Math.pow(a/12352,3.5)))*180/Math.PI:null;
@@ -3688,7 +3963,7 @@ function obPanel(M,p){ const lk=fdLocked(M); let h='<div id="obst">'+obStatus(M,
 
   if(M.phase==='B') h+='<button class="btn primary" data-act="pdrB" style="margin-top:10px;width:100%">Revisione PDR</button>';
   return h; }
-function obLive(M){ const p=O.plan(M), s=(id,t,html)=>{ const e=$('#'+id); if(e){ if(html) e.innerHTML=t; else e.textContent=t; } };
+function obLive(M){ const p=O.plan(M), s=(id,t,html)=>{ const e=$('#'+id); if(e){ if(html) setH(e,t); else setT(e,t); } };
   s('obst',obStatus(M,p),1); s('obmeter',obMeter(M,p),1);
   p.orbits.forEach((o,k)=>{ s('obs'+k,obSum(o.el)+' · i '+nf(o.el.i,1)+'°'); if(k){ s('obdv'+k,nf(o.dv,0)+' m/s'); s('obvia'+k,o.mid?'via '+obSum(o.mid):''); } });
   if(p.eol){ s('obdvF',nf(p.eol.dv,0)+' m/s'); s('obsF',p.eol.t); }
@@ -3698,11 +3973,12 @@ function obLive(M){ const p=O.plan(M), s=(id,t,html)=>{ const e=$('#'+id); if(e)
 function obView(v,M){ const p=O.plan(M); OBSEL=Math.max(1,Math.min(OBSEL,p.orbits.length-1)); if(p.orbits.length<2) OBSEL=0;
   v.innerHTML='<div class="head"><div><h3>Centro di dinamica del volo · '+phn(M)+'</h3><h1>Orbite in dettaglio · '+esc(M.name)+'</h1>'+(M.phase==='B'?bSteps(M):'')+'</div></div>'+
     stage('<div id="obw" class="s3w fdw fill full obw"><canvas id="obcv" aria-label="Vista orbitale: trascina per ruotarla"></canvas><div class="obmeter" id="obmeter">'+obMeter(M,p)+'</div><div class="obhint">Trascina per ruotare · doppio clic per riportare la vista</div></div>'+
+      '<div class="fdleg obplay"><button class="btn small" id="obplay" data-act="obplay">▶ Rivedi la missione</button> <input type="range" id="obscr" min="0" max="1000" value="'+Math.round(OBV.pos*1000)+'" aria-label="Posizione nella missione" style="width:min(60%,420px);vertical-align:middle"></div>'+
       '<div class="fdleg"><div class="legend"><span><i style="background:'+OBREL+'"></i>rilascio</span><span><i style="background:'+OBC[0]+'"></i>orbite della DRM</span><span><i style="background:'+OBMID+'"></i>trasferimenti</span><span><i style="background:'+OBFIN+'"></i>fine vita</span><span><i style="background:#FF4D3D"></i>dentro l’atmosfera</span></div></div>')+
     docks(null,fdLaunch(M)+'<div class="panel" id="fdp">'+obPanel(M,p)+'</div>'); scn(v,{R:1,bg:'#0B1626',railR:[{ic:'🛰',t:'Orbite',side:'R'}]});
   obBind(); obLive(M); obLoop(); }
 function obSet(k,key,val){ const M=cur(); if(!M||!M.ob||fdLocked(M)) return; const p=O.plan(M), o=p.orbits[k]; if(!o||o.leg==null) return; const Lg=M.ob.legs[o.leg]; if(key==='e') val=Math.max(0,Math.min(O.eMax(o.h,obBody(M)),val)); if(key==='i') val=Math.max(0,Math.min(180,val)); if(key!=='e'&&key!=='i') val=((val%360)+360)%360; Lg[key]=Math.round(val*1000)/1000; obLive(M); }
-document.addEventListener('input',e=>{ const t=e.target; if(!t.dataset||!t.dataset.ob) return; const x=+t.value; if(!isFinite(x)) return; obSet(+t.dataset.k,t.dataset.ob,x); });
+document.addEventListener('input',e=>{ const t=e.target; if(t.id==='obscr'){ OBV.pos=(+t.value)/1000; OBV.on=false; const b=$('#obplay'); if(b) b.textContent='▶ Rivedi la missione'; return; } if(!t.dataset||!t.dataset.ob) return; const x=+t.value; if(!isFinite(x)) return; obSet(+t.dataset.k,t.dataset.ob,x); });
 document.addEventListener('change',e=>{ if(e.target.dataset&&e.target.dataset.ob){ const M=cur(); if(M) save(); } });
 function vFD(v){ const M=cur(); if(M&&M.phase==='B'&&M.stage!=='orb') return vDRM(v,M);
   if(!M){ v.innerHTML='<div class="head"><div><h3>Centro di dinamica del volo</h3><h1>Piano di volo</h1></div></div><div class="empty">Nessuna missione. Creane una con il tasto +.</div>'; return; }
@@ -3813,7 +4089,7 @@ function vYard(v,M){ const cats=['ray','avi','bat','com','adcs','nav','prop','pw
   v.innerHTML='<div class="head"><div><h3>Edificio di costruzione · Fase B</h3><h1>Progetta '+esc(M.name)+'</h1></div></div>'+
     '<div class="yard"><aside class="panel shelf"><h2>Magazzino pezzi</h2>'+cats.filter(c=>Object.keys(P).some(id=>P[id].cat===c&&vis(id))).map(c=>'<div><h3 style="margin-bottom:6px">'+E.CATS[c].n+'</h3><div class="tiles">'+Object.keys(P).filter(id=>P[id].cat===c&&vis(id)).map(id=>tileHTML(id,P[id],d)).join('')+'</div></div>').join('')+'</aside>'+
     '<section class="stage"><div id="satw" style="width:100%;display:grid;place-items:center"></div><div class="chips" id="sols"></div><div class="info" id="info"></div></section>'+
-    '<aside class="panel"><div class="gauges" id="gauges"></div><div><h3 style="margin-bottom:6px">Requisiti</h3><ul class="reqs" id="breq"></ul></div><button class="btn primary" data-act="pdr">Revisione CDR</button></aside></div><div id="riskw" style="margin-top:14px"></div>';
+    '<aside class="panel"><div class="gauges" id="gauges"></div><div><h3 style="margin-bottom:6px">Requisiti</h3><ul class="reqs" id="breq"></ul></div><button class="btn primary" data-act="pdr">Revisione CDR</button></aside></div>';
   bRefresh(); }
 function gauge(icon,label,have,lim,txt,soft){ const r=lim?have/lim:0, ok=have<=lim+1e-9, cls=ok?(r>.92?'tight':'ok'):(soft?'tight':'bad');
   return '<div class="gauge '+cls+'"><div class="g-top"><span class="g-l">'+ico(icon)+label+'</span><span class="g-v">'+txt+'</span></div><div class="g-bar"><s></s><i style="width:'+Math.max(.02,Math.min(1.25,r))*80+'%"></i><b></b></div></div>'; }
@@ -3823,8 +4099,9 @@ const GPREV={};
 const DATAG={Scientifica:[0.3,1],Osservazione:[1.5,1.6],Telescopio:[1.2,1.6],Superficie:[0.8,1],Dimostrazione:[0.2,1],Telecomunicazioni:[0,1]};
 function payData(id){ const t=P[id]&&P[id].db; if(!t) return 0; const m=String(t.mis||'').split(';')[0].trim(), g=DATAG[m]||[0.5,1]; return g[0]*Math.pow(Math.max(1,+t.sv||1),g[1]); }
 function radioRef(t){ const s=(t.n||'')+' '+(t.code||''); if(/profondo|Vulcan|DSTX/i.test(s)) return 4e8; if(/Ka\b|banda X|XBAND/i.test(s)) return 4e6; return (+t.sv||0)<=20?3000:40000; }
-function linkDist(M){ const dest=M.sat.dest||'leo'; if(dest==='moon') return 384400; if(dest==='mars') return 2.25e8; if(dest==='venus') return 1.6e8; const h=(M.drm&&typeof drmStarH==='function'&&drmStarH(M))||null, b=O.zoneOf(M).band; return h||(b?Math.sqrt(b[0]*b[1]):550); }
-function contactMin(M){ const dest=M.sat.dest||'leo', z=(O.zoneOf(M)||{}).k; const base=dest!=='leo'?480:z==='high'?1200:z==='med'?300:30; return base*(hasB('ground')?1.5:1)*(1+.1*dishN()); }
+function linkDist(M){ const dest=M.sat.dest||'leo'; if(dest==='moon') return 384400; if(dest==='mars') return 2.25e8; if(dest==='venus') return 1.6e8; if(E.EXT[dest]) return E.EXT[dest].d*1.5e6; const h=(M.drm&&typeof drmStarH==='function'&&drmStarH(M))||null, b=O.zoneOf(M).band; return h||(b?Math.sqrt(b[0]*b[1]):550); }
+function contactMin(M){ const dest=M.sat.dest||'leo', z=(O.zoneOf(M)||{}).k; const an=O.plan(M).an; if(an&&an.contacts) return O.STATIONS.filter(s=>stOwn(s.k)).reduce((a,s)=>a+((an.contacts[s.k]||{}).minDay||0),0); // somma delle stazioni sbloccate (sovrapposizioni ignorate)
+   const base=dest!=='leo'?480:z==='high'?1200:z==='med'?300:30; return base*(hasB('ground')?1.5:1)*(1+.1*dishN()); }
 function dataBud(M,d){ d=d||M.sat; const pid=d.placed.ray&&d.placed.ray.id, rid=d.placed.com&&d.placed.com.id, t=rid&&P[rid]?P[rid].db:null, gen=pid?payData(pid):0, dist=linkDist(M), ref=t?radioRef(t):1, rate=t?(+t.sv||0)*Math.min(1,Math.pow(ref/Math.max(dist,1),2)):0, cmin=contactMin(M), down=rate*cmin*60/8/1000;
   return {gen,down,rate,cmin,dist,ok:down>=gen-1e-9,k:gen>0?Math.min(1,down/gen):1}; }
 const mbf=x=>x>=1000?nf(x/1000,1)+' GB':x>=10?nf(x)+' MB':nf(x,x<1?2:1)+' MB';
@@ -3842,11 +4119,26 @@ function trDoc(html){ if(typeof LANG==='undefined'||LANG!=='en') return html; tr
     d.querySelectorAll('[title],[aria-label],[alt],[placeholder]').forEach(e=>['title','aria-label','alt','placeholder'].forEach(a=>{ const v=e.getAttribute(a); if(v){ const r=I18N.tr(v); if(r!==v) e.setAttribute(a,r); } })); d.documentElement.setAttribute('lang','en'); return '<!doctype html>'+d.documentElement.outerHTML; }catch(e){ return html; } }
 async function saveFile(name,text){ if(/\.html?$/i.test(name)) text=trDoc(text); let d=null; try{ if(window.claude&&window.claude.use) d=await Promise.race([window.claude.use('downloads'),new Promise(r=>setTimeout(()=>r(null),3000))]); }catch(e){ d=null; }
   if(d){ try{ await d.save({filename:name,data:text}); toast('File pronto: '+name); }catch(e){ if(!e||e.code!=='declined') toast('Il download non è disponibile in questa vista.'); } return; }
-  try{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/html'})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); toast('File scaricato: '+name); }catch(e){ toast('Il download non è disponibile qui.'); } }
+  try{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:/\.html?$/i.test(name)?'text/html':'text/plain'})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); toast('File scaricato: '+name); }catch(e){ toast('Il download non è disponibile qui.'); } }
+/* I quattro segmenti di una missione NASA (Launch / Space / Ground / User): riuniti da numeri che il gioco calcola già */
+function segView(M){ const d=M.sat, b=E.budget(d), db=dataBud(M), lv=E.LV[d.lv], p=O.plan(M), r=M.result, q=r?r.quests:[];
+  const rows=[['Segmento di lancio',(lv?lv.n:'—')+' · '+nf(b.wet,1)+' / '+Math.min(b.massLim,lvCap(M))+' kg'],
+    ['Segmento spaziale',nf(b.wet,1)+' kg · '+nf(b.demand,1)+' / '+nf(b.gen,1)+' W · ΔV '+Math.round(p.tot)+' / '+Math.round(p.dvAvail)+' m/s'],
+    ['Segmento di terra',mbf(db.gen)+' prodotti · '+mbf(db.down)+' scaricati al giorno'],
+    ['Segmento utenti',r?'Scienza '+r.sci+' · '+q.filter(x=>x.ok).length+' / '+q.length+' stakeholder soddisfatti':'—']];
+  return '<h3>I quattro segmenti</h3><table class="pay">'+rows.map(x=>'<tr><td>'+esc(x[0])+'</td><td class="num">'+esc(x[1])+'</td></tr>').join('')+'</table>'; }
+/* Missioni NASA reali simili (solo quelle verificate su pagine NASA/JPL ufficiali). Chiave: tipo:destinazione */
+const TWIN={'sci:leo':[['MinXSS','3U · 2015–16','Measured solar soft X-rays from Earth orbit; NASA says it exceeded expectations.','https://www.nasa.gov/centers-and-facilities/goddard/minxss-cubesat-deployed-from-iss-to-study-suns-soft-x-rays/']],
+  'obs:leo':[['RAVAN','3U · 2016','Carbon-nanotube radiometers measuring Earth’s outgoing energy; met its mission objectives.','https://science.nasa.gov/science-research/earth-science/ravan-cubesat-measures-earths-outgoing-energy/'],['CIRiS','6U','Uncooled infrared radiometer demonstrated on a CubeSat in Earth orbit.','https://esto.nasa.gov/ciris-cubesat-demonstration-paves-the-way-for-future-infrared-imaging-missions/']],
+  'com:mars':[['MarCO','Mars Cube One · 2018','Two CubeSats relayed InSight’s landing in near real time: “a spectacular success”.','https://www.jpl.nasa.gov/missions/mars-cube-one-marco']],
+  'obs:moon':[['Lunar Flashlight','2022','Laser search for water ice in shadowed craters. Its thruster could not reach lunar orbit, but the avionics and radio exceeded expectations.','https://www.jpl.nasa.gov/news/nasa-calls-end-to-lunar-flashlight-after-some-tech-successes/']],
+  'demo:moon':[['CAPSTONE','2022','Tested the lunar NRHO orbit and navigation for Artemis/Gateway.','https://www.nasa.gov/?p=94253']]};
+TWIN['sci:moon']=TWIN['obs:moon'];
+function twinView(M){ const l=TWIN[(M.type||'sci')+':'+(M.sat.dest||'leo')]; if(!l) return ''; return '<h3>Missioni NASA simili</h3><table class="pay">'+l.map(x=>'<tr><td><a href="'+esc(x[3])+'" target="_blank" rel="noopener">'+esc(x[0])+'</a> <small>'+esc(x[1])+'</small></td><td>'+esc(x[2])+'</td></tr>').join('')+'</table>'; }
 function missionFacts(m){ const d=m.sat, b=E.budget(d), db=dataBud(m), lv=E.LV[d.lv], r=m.result, p=O.plan(m);
   return [['Tipo',O.TYPES[m.type||'sci'].n],['Destinazione',zoneName(m)],['Satellite',E.RIDES[d.ride]?E.RIDES[d.ride].n:'—'],['Lanciatore',lv?lv.n:'—'],['Orbita di lavoro',m.drm&&!drmLand(m)?drmKm(drmStarH(m)||0):p.land?'sul suolo':O.fmt(p.final)],
     ['Massa',nf(b.wet,1)+' / '+Math.min(b.massLim,lvCap(m))+' kg'],['Potenza',nf(b.demand,1)+' / '+nf(b.gen,1)+' W'],['Costo',keur(b.cost)],['Dati',mbf(db.gen)+' prodotti · '+mbf(db.down)+' scaricati al giorno'],['ΔV del piano',Math.round(p.tot)+' / '+Math.round(p.dvAvail)+' m/s'],
-    ['Durata',(r?r.months:m.duration||'—')+' mesi'],['Scienza',r?String(r.sci):'—'],['Esito',r?(r.ok?'Riuscita':'Non riuscita'):phn(m)]]; }
+    ['Durata',(r?r.months:m.duration||'—')+' mesi'],['Scienza',r?String(r.sci):'—'],['Esito',r?(r.ok?'Riuscita':'Non riuscita'):phn(m)],['Maturità (NASA CML)',cmlTag(m)],['Fonte del ΔV',p.gmat?'GMAT (NASA)':'Modello del gioco']].concat(p.an?[['Ombra massima per orbita (GMAT)',nf(p.an.eclipse.maxMin,0)+' min'],['Contatti con la terra (GMAT)',nf(contactMin(m),0)+' min al giorno']].concat(p.lf&&p.lf.nom?[['Vita dell’orbita (GMAT)',fmtLife(p.lf.nom,(m.sat.dest||'leo')==='moon'||(m.sat.dest||'leo')==='venus'?'oltre 1 anno':'oltre 5 anni')]]:[]):[]); }
 function reportHTML(M){ const f=missionFacts(M), mp=M.result?mcrParts(M):null, parts=Object.keys(M.sat.placed).map(c=>P[M.sat.placed[c].id]).filter(Boolean);
   const css='body{font:15px/1.5 system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#1E2A3A;background:#F3F6F9;margin:0;padding:24px}main{max-width:900px;margin:auto;background:#fff;border-radius:16px;padding:28px;box-shadow:0 4px 20px rgba(0,0,0,.08)}h1{font-size:28px;margin:0}h2{font-size:16px;text-transform:uppercase;letter-spacing:.08em;color:#5F6E80;margin:24px 0 8px}table{border-collapse:collapse;width:100%}td{padding:6px 8px;border-bottom:1px solid #E3E8ED;vertical-align:top}td:first-child{color:#5F6E80;width:38%}.num{font-family:ui-monospace,Menlo,monospace}.chain{display:grid;gap:8px}.chn{display:grid;grid-template-columns:1fr 20px 1.3fr 20px 1fr;gap:4px}.chn>div{border:1px solid #E3E8ED;border-radius:8px;padding:6px 8px;font-size:13px}.chn small{display:block;color:#5F6E80;font-size:11px;text-transform:uppercase}.bad{color:#B23A2C}.good{color:#1F7A44}.drm{border:1px solid #E3E8ED;border-radius:10px;overflow:hidden}.drm svg{display:block;width:100%;height:auto}table.pay td:last-child{text-align:right}footer{margin-top:24px;color:#8D99A6;font-size:12px}';
   return '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Resoconto '+esc(M.name)+'</title><style>'+css+'</style></head><body><main><p style="color:#5F6E80;margin:0">Go No-Go · resoconto di missione · '+esc(G.co||'')+'</p><h1>'+esc(M.name)+'</h1>'+(M.statement?'<p><i>'+esc(M.statement)+'</i></p>':'')+
@@ -3854,7 +4146,7 @@ function reportHTML(M){ const f=missionFacts(M), mp=M.result?mcrParts(M):null, p
     '<h2>Numeri chiave</h2><table>'+f.map(x=>'<tr><td>'+esc(x[0])+'</td><td class="num">'+esc(x[1])+'</td></tr>').join('')+'</table>'+
     '<h2>Satellite</h2><table>'+parts.map(o=>'<tr><td>'+esc(o.n)+'</td><td class="num">'+nf(o.m||0,2)+' kg · '+nf(o.p||0,1)+' W · '+keur(o.c||0)+' · TRL '+o.trl+'</td></tr>').join('')+'</table>'+
     '<h2>Requisiti</h2><table>'+M.reqs.map(x=>{ const q=L.R(x.id); return '<tr><td>'+esc(x.code)+'</td><td>'+esc(q?q.t:'')+(M.waived.indexOf(x.id)>=0?' <span class="bad">(deroga)</span>':'')+'</td></tr>'; }).join('')+'</table>'+
-    (mp?'<h2>Risultato</h2><p>'+mp.head+' Scienza '+M.result.sci+'.</p>'+mp.money+mp.why:'<h2>Risultato</h2><p>Missione non ancora conclusa ('+phn(M)+').</p>')+'<footer>Creato con Go No-Go · NASA Space Apps Challenge 2026 Torino</footer></main></body></html>'; }
+    (mp?'<h2>Risultato</h2><p>'+mp.head+' Scienza '+M.result.sci+'.</p>'+mp.money+segView(M)+anTable(M)+twinView(M)+mp.why:'<h2>Risultato</h2><p>Missione non ancora conclusa ('+phn(M)+').</p>')+'<footer>Creato con Go No-Go · NASA Space Apps Challenge 2026 Torino</footer></main></body></html>'; }
 function cmpModal(a,b){ const ms=G.missions; if(ms.length<2){ toast('Servono almeno due missioni da confrontare.'); return; } a=a==null?0:a; b=b==null?Math.min(1,ms.length-1):b;
   const opt=sel=>ms.map((m,i)=>'<option value="'+i+'"'+(i===sel?' selected':'')+'>'+esc(m.name)+'</option>').join(''), fa=missionFacts(ms[a]), fb=missionFacts(ms[b]), el=$('#ov');
   el.innerHTML='<div class="rv wide" role="dialog" aria-modal="true"><h3>Confronto</h3><h2>Due progetti a confronto</h2><p class="fine">Missioni diverse possono raggiungere lo stesso obiettivo con scelte diverse.</p><div class="cmp"><div></div><select id="cmpa">'+opt(a)+'</select><select id="cmpb">'+opt(b)+'</select>'+
@@ -3865,7 +4157,7 @@ function spark(vals,o){ const W=260,H=64, mx=o.max!=null?o.max:Math.max(1e-9,...
   let d=vals.map((v,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)).join('');
   return '<svg viewBox="0 0 '+W+' '+H+'" class="spk" aria-hidden="true"><path d="M4 '+(H-6)+'H'+(W-4)+'" stroke="#2E4152"/>'+(o.lim!=null?'<path d="M4 '+Y(o.lim).toFixed(1)+'H'+(W-4)+'" stroke="#CF5E4C" stroke-dasharray="4 4"/>':'')+'<path d="'+d+'" fill="none" stroke="'+(o.col||'#7FD3EA')+'" stroke-width="2.2"/>'+(o.mark!=null?'<circle cx="'+X(o.mark).toFixed(1)+'" cy="'+Y(vals[Math.max(0,Math.min(vals.length-1,Math.round(o.mark)))]).toFixed(1)+'" r="4" fill="#F07B3F" stroke="#fff"/>':'')+'</svg>'; }
 function dashHTML(M,fl){ if(!M||!M.launchAt) return '<p class="fine">Le risorse si vedono dal lancio in poi.</p>'; const b=E.budget(M.sat), db=dataBud(M), p=O.plan(M), dur=Math.max(1,M.duration||12), mo=Math.min(dur,fl?fl.mo:0);
-  const T=now()/1000, ph=(T/20)%1, ecl=.36, dod=Math.max(0,Math.min(1,b.dod||0)), soc=[]; for(let i=0;i<=60;i++){ const t=(i/20)%1; soc.push(t<ecl?100-dod*100*(t/ecl):100-dod*100*Math.max(0,1-(t-ecl)/(1-ecl)*1.6)); }
+  const T=now()/1000, ph=(T/20)%1, ecl=(()=>{ const a=O.plan(M).an; return a&&a.eclipse?Math.max(0,Math.min(.6,1-a.eclipse.sunlitPct/100)):.36; })(), dod=Math.max(0,Math.min(1,b.dod||0)), soc=[]; for(let i=0;i<=60;i++){ const t=(i/20)%1; soc.push(t<ecl?100-dod*100*(t/ecl):100-dod*100*Math.max(0,1-(t-ecl)/(1-ecl)*1.6)); }
   const sk=E.skOf(M.sat), kgpm=p.isp?p.wet*(1-Math.exp(-sk/(p.isp*9.81))):0, k0=Math.max(0,(p.propKg||0)-(p.usedKg||0)), prop=[]; for(let m=0;m<=dur;m++) prop.push(Math.max(0,k0-kgpm*m));
   const back=[]; let acc=0; for(let m=0;m<=dur;m++){ back.push(acc); acc+=Math.max(0,db.gen-db.down)*30; }
   return '<div class="panel dash"><h3>Risorse di bordo</h3>'+
@@ -3905,7 +4197,7 @@ function bRefresh(){ const M=cur(), d=M.sat; d.stake=M.stake; const cash=G.money
   if($('#sols')) $('#sols').innerHTML=L.availSol(M,d.ride).map(k=>{ const o=E.SOLAR[k]; return '<button class="chip'+(d.sol===k?' on':'')+'" data-act="sol" data-k="'+k+'" title="TRL '+o.trl+' · '+esc(o.db.ente)+'">'+esc(o.n)+' <small>'+nf(o.gen)+' W · '+keur(o.c)+'</small></button>'; }).join('');
   if($('#ptiles')) shelfMarks(); else $$('.tile').forEach(t=>{ const id=t.dataset.id, pl=P[id]&&d.placed[P[id].cat]; t.classList.toggle('on',!!pl&&pl.id===id); });
   $$('#accs .chip').forEach(c=>c.classList.toggle('on',!!d.acc[c.dataset.k]));
-  $('#gauges').innerHTML=gauge('mass','Massa',b.wet,b.massLim,nf(b.wet)+' / '+b.massLim+' kg')+gauge('pow','Potenza',b.demand,b.gen,nf(b.demand)+' / '+b.gen+' W')+gauge('bat','Eclisse',b.dod,1,b.wh?'scarica al '+pct(b.dod)+' · max 100%':'manca la batteria')+
+  $('#gauges').innerHTML=gauge('mass','Massa',b.wet,b.massLim,nf(b.wet)+' / '+b.massLim+' kg')+gauge('pow','Potenza',b.demand,b.gen,nf(b.demand)+' / '+b.gen+' W')+gauge('bat','Eclisse',b.dod,1,b.wh?'scarica al '+pct(b.dod)+' · max 100% · ombra '+nf(E.eclOf(d)*60,0)+' min'+(d.eclSrc==='gmat'?' · GMAT':''):'manca la batteria')+
     (!d.placed.prop&&(d.planDv||0)<=1?gauge('fuel','ΔV',0,1,'nessuna manovra: non serve propulsione',true):gauge('fuel','ΔV',need,Math.max(1,b.fuel),nf(b.fuel,0)+' m/s · servono '+nf(need,0),true))+gauge('coin','Costo',costDue(M),Math.max(1,G.money),keur(costDue(M))+' / '+keur(G.money)+(M.lvPaid?' (lancio già pagato)':'')+(M.partsCredit?' (pezzi già comprati: −'+keur(M.partsCredit)+')':''));
   RQL=st.list.filter(x=>!x.base||!x.ok); RQST=st; closeReqHelp(); const isOk=x=>x.waived||x.ok||x.kind==='tests'||x.kind==='months';
   $('#breq').innerHTML=RQL.map((x,i)=>'<li'+(isOk(x)?'':' class="rq bad" data-act="reqx" data-i="'+i+'" tabindex="0" role="button" title="'+TX('Tocca: Zorty ti spiega cosa non va','Tap: Zorty explains what is wrong')+'"')+'><span class="c">'+(x.base?'BASE':x.code)+'</span><span>'+esc(x.t)+(x.kind==='tests'?' <span class="fine">(in fase D)</span>':'')+'</span><span class="mk '+(x.waived?'w':isOk(x)?'y':'n')+'">'+(x.waived?'D':isOk(x)?'✓':'✕')+'</span></li>').join('')||'<li><span></span><span>Tutto in regola.</span><span class="mk y">✓</span></li>';
@@ -3917,7 +4209,7 @@ function bRefresh(){ const M=cur(), d=M.sat; d.stake=M.stake; const cash=G.money
   const cu=culprits(M,st); $$('#ptiles .tile.culprit').forEach(t=>t.classList.remove('culprit')); cu.forEach(c=>{ const t=$('#ptiles .tile[data-id="'+d.placed[c.cat].id+'"]'); if(t) t.classList.add('culprit'); });
   if($('#sat3w')&&!drag) S3.highlight([].concat(...cu.map(c=>E.cellsOf(d.placed[c.cat],d.ride))),false);
   const wy=$('#why3d'); if(wy) wy.innerHTML=cu.slice(0,2).map(c=>'<span>✕ '+esc(P[d.placed[c.cat].id].n)+' → '+esc(c.why)+'</span>').join('');
-  $('#riskw').innerHTML=riskBtn(M); infoLine(Lx); }
+  infoLine(Lx); }
 function culprits(M,st){ const d=M.sat, out=[], seen={}; if(M.tut) return out;
   st.list.filter(x=>!x.ok&&x.id&&x.kind==='design').forEach(x=>{ const r=L.R(x.id); if(!r||!r.chk) return;
     Object.keys(d.placed).forEach(c=>{ if(seen[c]) return; const cur0=d.placed[c]; const alts=L.availCat(M,c,d.ride).filter(id=>id!==cur0.id).slice(0,8);
@@ -3959,7 +4251,7 @@ function vCleanroom(v,M){ const A=G.missions.filter(m=>m.phase==='D'&&m.stage===
   v.innerHTML='<div class="head"><div><h3>Edificio di costruzione · Fase D</h3><h1>Camera bianca</h1><div class="rtabs"><button class="btn small" data-act="broom" data-k="build">Officina</button><button class="btn small on" data-act="broom" data-k="clean">Camera bianca</button></div></div></div>'+
     stage(roomBox('clean',{stations:cleanStations()},(()=>{ const W=G.missions.filter(m=>m.phase==='D'&&m.stage==='assembly'&&m.asmWait), m=W.indexOf(cur())>=0?cur():W[0]; return m?dsatHTML('clean',m,'Trascinalo su una postazione'):''; })()),'rbx'); scn(v,{}); }
 function cleanSat(M,only){ if(!S3.ok) return satSVG(M.sat,{only}); return '<img src="'+S3.snap(M.sat,420,{only,png:true})+'" alt="Satellite in integrazione" style="width:100%;display:block">'; }
-function cleanUpdate(){ if(view!=='build') return; { const h3=$('#roomsvg'); if(h3&&h3.hasAttribute('data-3d')){ if(h3.dataset.room==='clean'&&!RPLACE) IR3.update('clean',roomSt('clean',{stations:cleanStations()})); return; } } const st=cleanStations(), key=st.map(x=>x?x.label+(x.img?'i':''):'-').join(','), svg=$('#roomsvg'); if(svg&&svg.dataset.room==='clean'&&svg.dataset.k!==key&&!RPLACE){ svg.dataset.k=key; svg.innerHTML=(()=>{ const st0=roomSt('clean',{stations:st}); IR.setWalkers(wkScene('clean',st0)); return IR.clean(st0); })()+'<g id="rghost"></g>'; } }
+function cleanUpdate(){ if(view!=='build') return; { const h3=$('#roomsvg'); if(h3&&h3.hasAttribute('data-3d')){ if(h3.dataset.room==='clean'&&!RPLACE){ const st3=cleanStations(), k3=st3.map(x=>x?x.label+(x.img?'i':''):'-').join(','); if(h3.dataset.k3!==k3){ h3.dataset.k3=k3; IR3.update('clean',roomSt('clean',{stations:st3})); } } return; } } const st=cleanStations(), key=st.map(x=>x?x.label+(x.img?'i':''):'-').join(','), svg=$('#roomsvg'); if(svg&&svg.dataset.room==='clean'&&svg.dataset.k!==key&&!RPLACE){ svg.dataset.k=key; svg.innerHTML=(()=>{ const st0=roomSt('clean',{stations:st}); IR.setWalkers(wkScene('clean',st0)); return IR.clean(st0); })()+'<g id="rghost"></g>'; } }
 
 /* ---------- edificio di testing: una camera vuota con sei baie ---------- */
 const BAYS=[[215,300,.52],[500,300,.52],[785,300,.52],[180,488,.74],[500,488,.74],[820,488,.74]];
@@ -3998,18 +4290,16 @@ function vTest(v){ const M=cur(), ready=G.missions.filter(m=>m.phase==='D'&&m.st
   const pend=inLab&&Object.keys(inLab.tr).some(t=>['run','defect','struct'].indexOf(inLab.tr[t].res)>=0), own=G.lab.filter(Boolean);
   const resBad=res.split(/(?=<div class="result )/).filter(x=>x.indexOf('result bad')>=0).join('');
   const labActs=inLab?'<div class="acts">'+(resBad?'<div class="panel">'+resBad+'</div>':'')+(inLab.ready?'':'<button class="btn primary" data-act="frr" '+(pend?'disabled':'')+'>Revisione di volo</button>')+'</div>':'';
-  v.innerHTML='<div class="head"><div><h3>Edificio di testing · '+(cur()&&cur().ready&&cur().phase==='D'?'Fase E':'Fase D')+'</h3><h1>Laboratorio prove</h1></div></div>'+
-    stage(roomBox('test',null,inLab&&!inLab.ready&&!Object.keys(inLab.tr).some(t=>inLab.tr[t].res==='run')&&G.lab.some(k=>!inLab.tr[k])?dsatHTML('test',inLab,'Trascinalo su un macchinario · '+testC(inLab)+' cr'):''),'rbx')+'<div class="docks"><aside class="dockL"><div class="panel"><h2 style="margin:0;font-size:16px">Magazzino</h2><div class="ware">'+(ready.length?ready.map(m=>{ const ts=testState(m); return '<button class="wcard'+(m===M?' on':'')+'" data-act="pick" data-id="'+m.id+'"><div>'+satThumb(m)+'</div><div><b>'+esc(m.name)+'</b><div class="tchips">'+(own.length?own.map(t=>'<span class="tchip '+(ts[t]==='pass'||ts[t]==='fixed'?'ok':ts[t]==='defect'||ts[t]==='struct'?'bad':ts[t]==='waived'?'w':'')+'">'+L.MACH[t].short+'</span>').join(''):'<span class="tchip">nessun macchinario</span>')+'</div>'+(m.ready?'<div class="fine">sulla rampa</div>':'')+'</div></button>'; }).join(''):'<p class="fine">Nessun satellite assemblato. Costruiscilo in fase C e assemblalo in camera bianca.</p>')+'</div></div></aside>'+
+  v.innerHTML='<div class="head"><div><h3>Edificio di testing · '+'Fase D'+'</h3><h1>Laboratorio prove</h1></div></div>'+
+    stage(roomBox('test',null,inLab&&!inLab.ready&&!Object.keys(inLab.tr).some(t=>inLab.tr[t].res==='run')&&G.lab.some(k=>!inLab.tr[k])?dsatHTML('test',inLab,'Trascinalo su un macchinario · '+testC(inLab)+' cr'):''),'rbx')+'<div class="docks">'+
     '</div>'+labActs+'<div hidden><div class="bays3">'+G.lab.map((k,i)=>btn(k,i).replace(/ style="[^"]*"/,'')).join('')+(G.lab.length<LABMAX?'<button class="mbtn buy" data-act="labadd">+ Installa macchinario<small>'+G.lab.length+' di '+LABMAX+' · lo metti dove vuoi</small></button>':'')+'</div>'+
-    (inLab?'<div class="panel">'+(res||'<p class="fine">Scegli quali prove fare su '+esc(inLab.name)+'. Ogni prova saltata resta un rischio nel registro dei rischi.</p>')+(inLab.ready?(inLab.sat.lv==='HOME'?'<p><b>Revisione di volo superata.</b> Il satellite è sulla tua rampa di lancio.</p>':'<div class="row" style="justify-content:space-between"><p><b>Revisione di volo superata.</b> Il lancio è affidato a un ente terzo.</p><button class="btn primary" data-act="xopen">Lancia</button></div>'):'<div class="row"><button class="btn primary" data-act="frr" '+(pend?'disabled':'')+'>Revisione di volo</button></div>')+'</div>'+riskBtn(inLab):'')+'</div>'; scn(v,{L:1,bg:'#E9EDE6',railL:[{ic:'🛰',t:'Satelliti',side:'L',bd:ready.length||''}],railR:[{ic:'＋',t:'Macchinario',act:'labadd'}]}); }
+    (inLab?'<div class="panel">'+(res||'<p class="fine">Scegli quali prove fare su '+esc(inLab.name)+'. Ogni prova saltata resta un rischio nel registro dei rischi.</p>')+(inLab.ready?(inLab.sat.lv==='HOME'?'<p><b>Revisione di volo superata.</b> Il satellite è sulla tua rampa di lancio.</p>':'<div class="row" style="justify-content:space-between"><p><b>Revisione di volo superata.</b> Il lancio è affidato a un ente terzo.</p><button class="btn primary" data-act="xopen">Lancia</button></div>'):'<div class="row"><button class="btn primary" data-act="frr" '+(pend?'disabled':'')+'>Revisione di volo</button></div>')+'</div>':'')+'</div>'; scn(v,{bg:'#E9EDE6',railR:[{ic:'＋',t:'Macchinario',act:'labadd'}]}); }
 function bayModal(i){ const lv=L.level(G.xp), el=$('#ov');
   el.innerHTML='<div class="rv wide"><h3>Laboratorio · '+G.lab.length+' di '+LABMAX+' macchinari</h3><h2>Installa un macchinario</h2><p class="fine">Livello attuale: '+lv+'. I macchinari più avanzati si sbloccano salendo di livello.</p><div class="cat">'+L.TESTS.map(k=>{ const m=L.MACH[k], have=G.lab.indexOf(k)>=0, lock=lv<m.lvl;
     return '<button class="ccard'+(lock||have?' lock':'')+'" data-act="install" data-k="'+k+'" data-i="'+i+'"'+(lock||have?' disabled':'')+'>'+(IR3.can()&&IR3.snap(k)?'<img class="mimg" src="'+IR3.snap(k)+'" alt="">':'<svg viewBox="-190 -230 380 270">'+machineSVG(k,false)+'</svg>')+'<b>'+m.n+'</b><span>'+m.s+'. Se il difetto vola: '+m.fly+'.</span><small>'+(have?'già installato':lock?'🔒 livello '+m.lvl:keur(m.c))+'</small></button>'; }).join('')+'</div><div class="row"><button class="btn" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; }
 
 /* ---------- registro dei rischi ---------- */
-function riskBtn(M){ const R=L.risks(M,G.lab.filter(Boolean)), hi=R.list.filter(x=>x.p*x.i>=6).length, mid=R.list.filter(x=>x.p*x.i>=3&&x.p*x.i<6).length, lo=R.list.length-hi-mid;
-  return '<button class="riskb" data-act="risks"><span>⚠ Registro dei rischi</span><span class="rdots">'+'<i style="background:#E2786A"></i>'.repeat(Math.min(hi,6))+'<i style="background:#F3C24F"></i>'.repeat(Math.min(mid,6))+'<i style="background:#8FD3A6"></i>'.repeat(Math.min(lo,6))+'</span><span class="fine">'+R.list.length+' aperti</span></button>'; }
-function riskModal(){ const M=cur(); if(!M) return; const el=$('#ov'); el.innerHTML='<div class="rv wide rvfix rvrisk" role="dialog" aria-modal="true">'+riskPanel(M)+'<div class="row" style="margin-top:12px"><button class="btn primary" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; }
+function riskModal(){ const M=cur(); if(!M){ toast(TX('Crea una missione per vedere i suoi rischi.','Create a mission to see its risks.')); return; } const el=$('#ov'); el.innerHTML='<div class="rv wide rvfix rvrisk" role="dialog" aria-modal="true">'+riskPanel(M)+'<div class="row" style="margin-top:12px"><button class="btn primary" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; }
 function riskPanel(M,compact){ const R=L.risks(M,G.lab.filter(Boolean)), cls=(p,i)=>p*i>=6?'r':p*i>=3?'y':'g';
   let mx='<div class="mx" aria-label="Matrice dei rischi"><span class="ax ay">Impatto</span>';
   for(let i=3;i>=1;i--){ mx+='<span class="al">'+['','basso','serio','fatale'][i]+'</span>'; for(let p=1;p<=3;p++) mx+='<span class="c '+cls(p,i)+'">'+R.list.map((x,n)=>x.p===p&&x.i===i?'<b class="rd">'+(n+1)+'</b>':'').join('')+'</span>'; }
@@ -4033,7 +4323,7 @@ function vPad(v){ { const r0=G.missions.filter(m=>m.phase==='D'&&m.ready&&m.sat.
     stage('<section class="scene fsc" id="padscene" style="--ar:1000/560">'+s+'<div class="ov-lay"><div class="cnt" id="cnt" hidden></div></div></section>','rbx')+
     '<div class="docks"><aside class="dockR"><div class="panel">'+(on?'<div class="row" style="justify-content:space-between"><div><b>Pronto al lancio.</b><div class="fine">Durata minima promessa: '+L.minMonths(on)+' mesi. La durata che dichiari è un impegno: ogni mese promesso e non volato costa '+L.MISSED+' cr di penale. Ogni mese di operazioni costa '+L.OPS+' cr. Un mese dura '+(L.TIME.month/1000)+' s, e il tempo si ferma quando devi decidere.'+fuelMonths(on)+(hasB('ground')?' La stazione di terra dà +20% di scienza.':'')+'</div></div><div class="row"><label for="dur" style="margin:0">Durata</label><select id="dur" style="width:auto">'+durOptions(on)+'</select><button class="btn primary" data-act="launch">Lancia</button></div></div>'
       :stand?'<p><b>Il '+esc(E.LV[stand.sat.lv].n)+' di '+esc(stand.name)+' è in preparazione.</b> <span class="fine">Il satellite arriva sulla rampa dopo la revisione di volo (FRR). '+hint(stand)+'</span></p>'
-      :(pend.length?'<div class="row"><span>Razzi in preparazione:</span>'+pend.map(m=>'<button class="chip" data-act="pick" data-id="'+m.id+'">'+esc(m.name)+' <small>'+esc(E.LV[m.sat.lv].n)+'</small></button>').join('')+'</div>':'')+(ready.length?'<div class="row"><span>Satelliti pronti:</span>'+ready.map(m=>'<button class="chip" data-act="pick" data-id="'+m.id+'">'+esc(m.name)+'</button>').join('')+'</div>':(pend.length?'':'<p class="fine">La rampa è vuota: il razzo arriva quando scegli il lanciatore nell’edificio di costruzione.</p>')))+(on?'<div style="margin-top:8px">'+riskBtn(on)+'</div>':'')+'</div></aside></div>'; scn(v,{R:1,bg:'#BFDCEF'}); }
+      :(pend.length?'<div class="row"><span>Razzi in preparazione:</span>'+pend.map(m=>'<button class="chip" data-act="pick" data-id="'+m.id+'">'+esc(m.name)+' <small>'+esc(E.LV[m.sat.lv].n)+'</small></button>').join('')+'</div>':'')+(ready.length?'<div class="row"><span>Satelliti pronti:</span>'+ready.map(m=>'<button class="chip" data-act="pick" data-id="'+m.id+'">'+esc(m.name)+'</button>').join('')+'</div>':(pend.length?'':'<p class="fine">La rampa è vuota: il razzo arriva quando scegli il lanciatore nell’edificio di costruzione.</p>')))+'</div></aside></div>'; scn(v,{R:1,bg:'#BFDCEF'}); }
 
 /* ---------- bunker di lancio ---------- */
 /* La scena e' in 3D (IR3) con la consolle in HTML: stessi pulsanti e stesso contatore di prima (data-act xlaunch, abort, durm, durp, #lcnt). Senza WebGL resta la vecchia scena SVG. */
@@ -4042,7 +4332,37 @@ function launchScene3(st,port,wide,vw){ const T=v=>String(v).replace(/&/g,'&amp;
   IR3.pending={room:'launch',st}; queueMicrotask(IR3.sync); const dis=st.busy?' dis':'';
   return '<div id="lsvg" class="full r3host r3fixed" data-3d="1" data-room="launch" role="img" aria-label="Launch pad seen from the bunker"></div><div class="lframe"></div><div class="lsub">'+T(st.sub||'')+'</div>'+
     '<div class="lcon"><button class="lbtn lgo'+dis+'" data-act="xlaunch">LAUNCH</button><div class="ldisp"><div class="lname">'+T(String(st.name).slice(0,18))+'</div><div id="lcnt">'+T(st.cnt||'T-10')+'</div><div class="ldur'+dis+'"><button class="lpm" data-act="durm" aria-label="Fewer months">−</button><span>'+T(st.dur)+' months</span><button class="lpm" data-act="durp" aria-label="More months">+</button></div></div><button class="lbtn lab'+dis+'" data-act="abort">ABORT</button></div>'; }
-/* ---------- finestra di lancio: Rush (subito, con un extra) · On time (quella chiesta dagli stakeholder, attesa breve) · Relaxed (nessun extra, attesa lunga, gli stakeholder si lamentano) ---------- */
+/* ---------- v35 · Finestra di lancio (passo A) + MDR semplificata (passo B): dialoghi di Zorty ----------
+   M.lw = {s:'pending'|'done', k:'ontime'|'relaxed'} nasce in toB; senza M.lw (vecchi salvataggi) la finestra e' gia' risolta.
+   M.mdr = 'ask' | 'edit' | 'eol' | 'final' | 'done' scandisce i passi della MDR. La penale (L.LW) si applica una sola volta, in lwResolve. */
+let ZD=null;
+function zdClose(){ const e=document.getElementById('zdlg'); if(e) e.remove(); ZD=null; }
+function zdOpen(o){ if(ZD&&ZD.id===o.id&&document.getElementById('zdlg')) return; zdClose(); ZD=o; const sp=ZORTY.SPR, img=sp[o.pose]||sp.benvenuto||'', el=document.createElement('div'); el.id='zdlg'; el.className='zdlg'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','Zorty');
+  el.innerHTML='<img class="zds" alt="" src="'+img+'"><div class="zdb"><b>Zorty</b><p>'+esc(o.text)+'</p>'+(o.note?'<p class="zdn">'+esc(o.note)+'</p>':'')+'<div class="zdbt">'+o.btns.map(b=>'<button class="btn'+(b.cls?' '+b.cls:'')+'" data-act="'+b.act+'"'+(b.k?' data-k="'+b.k+'"':'')+'>'+esc(b.t)+'</button>').join('')+'</div></div>'; document.body.appendChild(el); }
+function lwPending(M){ return !!(M&&M.phase==='B'&&M.stage==='drm'&&M.lw&&M.lw.s==='pending'); }
+function lwWaitTxt(ms){ const s=Math.round(ms/1000); return s>=90?TX('circa '+Math.round(s/60)+' min','about '+Math.round(s/60)+' min'):TX('circa '+s+' s','about '+s+' s'); }
+function lwOpen(M){ if(!lwPending(M)) return; const P=L.LW, pp=Math.round(P.pay*100);
+  zdOpen({id:'lw',pose:'benvenuto',sel:'#zdlg [data-act="lwacc"]',tt:'Gli stakeholder chiedono questa finestra di lancio: accettala.',
+    text:TX('Gli stakeholder vorrebbero questa finestra di lancio: attesa '+lwWaitTxt(L.TIME.win)+' dopo il via libera. La accetti o ne scegli una più rilassata (attesa '+lwWaitTxt(L.TIME.win*3)+')?','The stakeholders would like this launch window: a wait of '+lwWaitTxt(L.TIME.win)+' after the Go. Do you accept it, or pick a more relaxed one (a wait of '+lwWaitTxt(L.TIME.win*3)+')?'),
+    note:TX('Rifiutare costa: soddisfazione degli stakeholder −'+P.joy+' e −'+pp+'% dei soldi che ti versano.','Refusing has a cost: stakeholder happiness −'+P.joy+' and −'+pp+'% of the money they pay you.'),
+    btns:[{act:'lwacc',cls:'primary',t:TX('Accetta la finestra degli stakeholder','Accept the stakeholders’ window')},{act:'lwrel',t:TX('Finestra rilassata (−'+P.joy+' soddisfazione, −'+pp+'% pagamenti)','Relaxed window (−'+P.joy+' happiness, −'+pp+'% payments)')}].concat(G.tut?[]:[{act:'lwlater',t:TX('Più tardi','Later')}])}); }
+function lwResolve(M,k){ if(!lwPending(M)) return false; const P=L.LW; M.lw.s='done'; M.lw.k=k; drmInit(M).win=k;
+  if(k==='relaxed'){ M.joy=M.joy||{}; (M.stake||[]).forEach(id=>{ const j=M.joy[id]==null?60:M.joy[id]; M.joy[id]=Math.max(0,j-P.joy); }); if(M.payK==null) M.payK=1-P.pay; }
+  zdClose(); sfx.ok(); save(); go('hub'); toast(k==='relaxed'?TX('Finestra rilassata scelta: gli stakeholder non sono contenti.','Relaxed window chosen: the stakeholders are not happy.'):TX('Finestra degli stakeholder accettata. Ora puoi creare la MDR.','Stakeholders’ window accepted. You can now create the MDR.')); return true; }
+function mdrState(M){ return M&&M.mdr&&M.mdr!=='done'?M.mdr:'ask'; }
+function mdrShow(M){ if(!M||M.phase!=='B'||M.stage!=='drm'||view!=='fd') return; if(lwPending(M)){ go('hub'); lwOpen(M); return; }
+  const land=drmLand(M), D=drmInit(M), s=land?'final':mdrState(M), rel=drmRel(M), lvO=E.LV[M.sat.lv], at=rel.circ?drmKm((rel.pe+rel.ap)/2):nf(rel.pe)+' × '+nf(rel.ap)+' km';
+  if(s==='edit') { zdClose(); return; }
+  if(s==='ask') zdOpen({id:'mdr-ask',pose:'attento',sel:'#zdlg [data-act="mdrno"]',tt:'Il razzo ti lascia a '+at+': nessun’altra orbita serve, rispondi No.',
+    text:TX('Il razzo ('+(lvO?lvO.n:'lanciatore')+') ti lascia in orbita a '+at+' per questa missione. Vuoi aggiungere altre orbite o modificare quelle della missione?','The rocket ('+(lvO?lvO.n:'launcher')+') leaves you in orbit at '+at+' for this mission. Do you want to add other orbits or change the mission orbits?'),
+    btns:[{act:'mdryes',t:TX('Sì, modifica','Yes, edit')},{act:'mdrno',cls:'primary',t:TX('No, va bene così','No, it is fine')}]});
+  else if(s==='eol') zdOpen({id:'mdr-eol',pose:'dubbio',sel:'#zdlg [data-act="mdreol"][data-k="deorbit"]',tt:'Fine missione: entro 5 anni l’orbita va liberata. Scegli il rientro.',
+    text:TX('Resta da decidere la fase finale: entro 5 anni dalla fine della missione l’orbita deve essere liberata. Cosa scegli?','One choice is left for the final phase: within 5 years of the mission end the orbit must be cleared. What do you choose?'),
+    btns:[{act:'mdreol',k:'deorbit',cls:'primary',t:TX('Deorbita','Deorbit')},{act:'mdreol',k:'grave',t:TX('Orbita cimitero','Graveyard orbit')}]});
+  else zdOpen({id:'mdr-final',pose:'benvenuto',sel:'#zdlg [data-act="mdrok"]',tt:'Questo è lo schema base della tua missione. Premi OK.',
+    text:TX('Questo è lo schema base dell’architettura della tua missione.','This is the basic scheme of your mission architecture.'),btns:[{act:'mdrok',cls:'primary',t:'OK'}]}); }
+
+/* ---------- Finestra di lancio: le scelte guidate regolano attesa e penalità. ---------- */
 const WINK=['rush','ontime','relaxed'];
 const winMode=M=>{ const k=M&&M.drm&&M.drm.win; return WINK.indexOf(k)>=0?k:'ontime'; };
 const winName=k=>({rush:'Rush',ontime:'On time',relaxed:'Relaxed'})[k]||'On time';
@@ -4052,7 +4372,7 @@ function winLeft(M){ if(!M||!M.ready) return 0; if(M.winAt==null) M.winAt=now();
 function winText(M){ const s=Math.ceil(winLeft(M)/1000); return s>0?TX('FINESTRA ','WINDOW ')+Math.floor(s/60)+':'+String(s%60).padStart(2,'0'):'T-10'; }
 function winLabel(M){ return TX('Finestra ','Window ')+winName(winMode(M)); }
 /* aggiorna il conto alla rovescia sulla consolle del bunker e sblocca LAUNCH quando la finestra si apre */
-function winRefresh(){ const M=cur(), c=$('#lcnt'); if(!c||LBUSY||!M||M.phase!=='D'||!M.ready) return; const g=$('.lgo'); if(winLeft(M)>0){ c.textContent=winText(M); if(g) g.classList.add('dis'); } else if(c.textContent!=='T-10'){ c.textContent='T-10'; if(g) g.classList.remove('dis'); sfx.ok(); toast(TX('Finestra di lancio aperta: puoi lanciare.','Launch window open: you can launch.')); } }
+function winRefresh(){ const M=cur(), c=$('#lcnt'); if(!c||LBUSY||!M||M.phase!=='D'||!M.ready) return; const g=$('.lgo'); if(winLeft(M)>0){ setT(c,winText(M)); if(g&&!g.classList.contains('dis')) g.classList.add('dis'); } else if(c.textContent!=='T-10'){ c.textContent='T-10'; if(g) g.classList.remove('dis'); sfx.ok(); toast(TX('Finestra di lancio aperta: puoi lanciare.','Launch window open: you can launch.')); } }
 function vLaunch(v,M,own){ const ok=M&&M.phase==='D'&&M.ready, lv=ok?(E.LV[M.sat.lv]||E.LV.RS):null; if(ok){ const o=durList(M); if(o.indexOf(LDUR)<0) LDUR=o[0]; }
   const port=innerWidth<innerHeight, A=innerWidth/Math.max(1,innerHeight), wide=A>1.6, vw=wide?800*A:1280;
   const st={name:ok?M.name:'Rampa vuota',lvn:String(G.co||'').toUpperCase().slice(0,13),dur:ok?LDUR:'—',cnt:ok?winText(M):'—',flag:G.flag||null,sub:ok?((own?'Rampa di lancio della tua agenzia':esc(lv.n)+' · sito di lancio esterno')+' · '+winLabel(M)):'Nessun satellite pronto',busy:LBUSY||!ok||winLeft(M)>0,empty:!ok,rocket:ok||(own&&padPending().length>0),h:ok?(lv.h||1):1};
@@ -4099,12 +4419,12 @@ function teleUpTo(M){ const c=TELE[M.id]||(TELE[M.id]={s:-1,lines:[],fl:{},end:f
   return c; }
 function paintCode(el,c){ if(!el) return; const n=+(el.dataset.n||0), same=el.dataset.m===c.id; if(!same){ el.innerHTML=''; el.dataset.m=c.id; el.dataset.n=0; }
   const atEnd=el.scrollTop+el.clientHeight>=el.scrollHeight-24, from=same?n:0; if(c.lines.length>from){ el.insertAdjacentHTML('beforeend',c.lines.slice(from).map(t=>'<div>'+t+'</div>').join('')); el.dataset.n=c.lines.length; if(atEnd||!same) el.scrollTop=el.scrollHeight; } }
-function mccRefresh(full){ const M=cur(); if(view!=='mcc') return; const fl=M&&M.launchAt?flightNow(M):null; if(fl&&M.alert){ M.alert=false; M.seenBad=fl.log.filter(l=>l.tone==='bad').length; hud(); } const vit=$('#vit'), code=$('#code'), all=null, log=$('#mlog'); if(!vit) return; { const dw=$('#dashw'); if(dw&&(!mccRefresh.t||Date.now()-mccRefresh.t>900)){ mccRefresh.t=Date.now(); dw.innerHTML=dashHTML(M,fl); } }
-  if(!fl){ vit.innerHTML='<div>NESSUN SEGNALE</div><div style="opacity:.6">'+(M?esc(M.name)+' · '+phn(M):'')+'</div>'; code.innerHTML='<div class="c">// in attesa del lancio</div>'; code.dataset.m=''; if(all){ all.innerHTML='<div class="c">// la telemetria comincia quando il satellite lascia la rampa</div>'; all.dataset.m=''; } if(log) log.innerHTML='<li>Nessun evento.</li>'; return; }
+function mccRefresh(full){ const M=cur(); if(view!=='mcc') return; const fl=M&&M.launchAt?flightNow(M):null; if(fl&&M.alert){ M.alert=false; M.seenBad=fl.log.filter(l=>l.tone==='bad').length; hud(); } const vit=$('#vit'), code=$('#code'), all=null, log=$('#mlog'); if(!vit) return; { const dw=$('#dashw'); if(dw&&(!mccRefresh.t||Date.now()-mccRefresh.t>900)){ mccRefresh.t=Date.now(); setH(dw,dashHTML(M,fl)); } }
+  if(!fl){ setH(vit,'<div>NESSUN SEGNALE</div><div style="opacity:.6">'+(M?esc(M.name)+' · '+phn(M):'')+'</div>'); code.innerHTML='<div class="c">// in attesa del lancio</div>'; code.dataset.m=''; if(all){ all.innerHTML='<div class="c">// la telemetria comincia quando il satellite lascia la rampa</div>'; all.dataset.m=''; } if(log) log.innerHTML='<li>Nessun evento.</li>'; return; }
   const f=fl.f, b=E.budget(M.sat), endM=f.endMonth||M.duration+1;
   const bar=(l,v2,t)=>'<div>'+l+' <span style="float:right">'+t+'</span><div class="vb"><i style="width:'+Math.max(0,Math.min(100,v2*100))+'%"></i></div></div>';
-  vit.innerHTML=bar('MISSIONE',Math.min(1,fl.mo/endM),'mese '+f.month+' / '+M.duration)+bar('ΔV',f.fuel/Math.max(1,b.fuel),nf(Math.max(0,f.fuel),0)+' m/s')+bar('BATTERIA',f.bat/Math.max(1,b.wh),pct(f.bat/Math.max(1,b.wh)))+bar('GAS FREDDO',f.gas/100,Math.round(f.gas)+'%')+
-    '<div>SCIENZA <span style="float:right">'+nf(f.sci,0)+'</span></div><div>SCORTE <span style="float:right">OBC '+(f.spare.obc?'+1':'—')+' · RADIO '+(f.spare.com?'+1':'—')+' · RUOTE '+(f.spare.rw?'+1':'—')+'</span></div><div>STATO <span style="float:right;color:'+(!f.alive?'#FF7466':fl.pending?'#FFB454':'#4ED6A4')+'">'+(!f.alive?'PERSO':M.phase==='done'?'CHIUSA':fl.pending?'SAFE MODE':M.phase==='F'?'DISPOSAL':'NOMINALE')+'</span></div>';
+  setH(vit,bar('MISSIONE',Math.min(1,fl.mo/endM),'mese '+f.month+' / '+M.duration)+bar('ΔV',f.fuel/Math.max(1,b.fuel),nf(Math.max(0,f.fuel),0)+' m/s')+bar('BATTERIA',f.bat/Math.max(1,b.wh),pct(f.bat/Math.max(1,b.wh)))+bar('GAS FREDDO',f.gas/100,Math.round(f.gas)+'%')+
+    '<div>SCIENZA <span style="float:right">'+nf(f.sci,0)+'</span></div><div>SCORTE <span style="float:right">OBC '+(f.spare.obc?'+1':'—')+' · RADIO '+(f.spare.com?'+1':'—')+' · RUOTE '+(f.spare.rw?'+1':'—')+'</span></div><div>STATO <span style="float:right;color:'+(!f.alive?'#FF7466':fl.pending?'#FFB454':'#4ED6A4')+'">'+(!f.alive?'PERSO':M.phase==='done'?'CHIUSA':fl.pending?'SAFE MODE':M.phase==='F'?'DISPOSAL':'NOMINALE')+'</span></div>');
   if(full&&log) log.innerHTML=fl.log.slice().reverse().map(l=>'<li class="'+l.tone+'">'+(l.m?'M'+l.m+' · ':'')+esc(l.t)+'</li>').join('');
   const c=teleUpTo(M); c.id=M.id; paintCode(code,c); paintCode(all,c); decCard(M,fl); }
 // Il giocatore al posto dell'autopilota: ogni evento con più strade si ferma qui
@@ -4116,7 +4436,7 @@ function decCard(M,fl){ const el=$('#dec'); if(!el){ document.body.classList.rem
 const PLAN={};
 function planetCanvas(k){ if(PLAN[k]) return PLAN[k]; const S=256, cv=document.createElement('canvas'); cv.width=cv.height=S; const g=cv.getContext('2d'), r=E.rng(k.length*31+7), R=S/2-6;
   g.save(); g.beginPath(); g.arc(S/2,S/2,R,0,7); g.clip();
-  const base={moon:['#C9CED6','#6F7682'],leo:['#4A8FE0','#16346F'],mars:['#D9774C','#6E2A16'],venus:['#F0D79A','#9C7A36']}[k], gr=g.createRadialGradient(S*.38,S*.36,10,S/2,S/2,R); gr.addColorStop(0,base[0]); gr.addColorStop(1,base[1]); g.fillStyle=gr; g.fillRect(0,0,S,S);
+  const base={moon:['#C9CED6','#6F7682'],leo:['#4A8FE0','#16346F'],mars:['#D9774C','#6E2A16'],venus:['#F0D79A','#9C7A36']}[k]||E.EXT[k].pal, gr=g.createRadialGradient(S*.38,S*.36,10,S/2,S/2,R); gr.addColorStop(0,base[0]); gr.addColorStop(1,base[1]); g.fillStyle=gr; g.fillRect(0,0,S,S);
   if(k==='moon') for(let i=0;i<34;i++){ const x=r()*S, y=r()*S, rr=4+r()*20; g.fillStyle='rgba(60,64,72,'+(.12+r()*.2)+')'; g.beginPath(); g.arc(x,y,rr,0,7); g.fill(); g.strokeStyle='rgba(235,238,242,.25)'; g.beginPath(); g.arc(x-1,y-1,rr,3.4,5.6); g.stroke(); }
   if(k==='leo'){ for(let i=0;i<9;i++){ g.fillStyle=['#4E9A43','#7C8B4A','#A98D5B'][i%3]; g.beginPath(); g.ellipse(r()*S,40+r()*(S-80),18+r()*40,10+r()*26,r()*3,0,7); g.fill(); } g.fillStyle='rgba(255,255,255,.75)'; g.beginPath(); g.ellipse(S/2,10,R,22,0,0,7); g.fill(); for(let i=0;i<14;i++){ g.fillStyle='rgba(255,255,255,.4)'; g.beginPath(); g.ellipse(r()*S,r()*S,16+r()*30,3+r()*5,r(),0,7); g.fill(); } }
   if(k==='mars'){ for(let i=0;i<14;i++){ g.fillStyle='rgba(90,35,20,'+(.2+r()*.3)+')'; g.beginPath(); g.ellipse(r()*S,r()*S,14+r()*40,6+r()*16,r()*3,0,7); g.fill(); } g.fillStyle='#F6EFE8'; g.beginPath(); g.ellipse(S/2,12,46,14,0,0,7); g.fill(); }
@@ -4142,9 +4462,9 @@ function mccLoop(){ mccStop(); const cv=$('#orb'); if(!cv) return; let last=0, a
     c.fillStyle='rgba(207,227,255,.85)'; c.font='600 11px IBM Plex Mono, monospace'; c.fillText(GNG.tr(E.DEST[dest].n).toUpperCase()+(lnd?' · '+GNG.tr(zz.n).toUpperCase():fly||M.phase==='done'?' · '+O.fmt(el):''),8,h-8); })(0); }
 
 /* ---------- revisioni ---------- */
-function review(o){ const el=$('#ov'); let body=o.body||'';
-  if(o.short){ const warn=(body.match(/<p class="bad">[\s\S]*?<\/p>/g)||[]).join(''); body='<p class="rv-short">'+o.short+'</p>'+warn+'<details class="why"><summary>Perché?</summary>'+body.replace(/<p class="bad">[\s\S]*?<\/p>/g,'')+'<p class="rv-code"><span>ECSS: '+o.code+'</span><span>NASA: '+o.nasa+'</span></p></details>'; }
-  else if(o.code&&o.code!=='—') body+='<p class="rv-code"><span>ECSS: '+o.code+'</span><span>NASA: '+o.nasa+'</span></p>';
+function review(o){ const el=$('#ov'); let body=o.body||''; if(o.code&&o.code!=='—'&&typeof G!=='undefined'&&G&&cur()){ const c=cmlTag(cur()); if(c) body+='<p class="fine">Maturità del concetto (NASA): '+c+'</p>'; }
+  if(o.short){ const warn=(body.match(/<p class="bad">[\s\S]*?<\/p>/g)||[]).join(''); body='<p class="rv-short">'+o.short+'</p>'+warn+'<details class="why"><summary>Perché?</summary>'+body.replace(/<p class="bad">[\s\S]*?<\/p>/g,'')+'<p class="rv-code"><span>NASA: '+(o.nc?o.nc+' · ':'')+o.nasa+'</span></p></details>'; }
+  else if(o.code&&o.code!=='—') body+='<p class="rv-code"><span>NASA: '+(o.nc?o.nc+' · ':'')+o.nasa+'</span></p>';
   el.innerHTML='<div class="rv'+(o.stamp?' hasst':'')+'" role="dialog" aria-modal="true"><div class="rv-top"><div><h3>'+o.eb+'</h3><h2>'+o.name+'</h2></div>'+(o.stamp?'<div class="stamp'+(o.no?' no':'')+'">'+o.stamp+'</div>':'')+'</div>'+body+'<div class="row">'+o.actions+'</div></div>'; el.hidden=false; if(o.stamp) (o.no?sfx.bad:sfx.stamp)(); }
 const closeOv=()=>{ rankModal.open=false; $('#ov').hidden=true; };
 function pdrList(M){ return L.status(M,M.sat,G.money+(M.lvPaid||0)+(M.partsCredit||0)).list.filter(x=>!x.ok&&x.kind!=='tests'); }
@@ -4155,27 +4475,81 @@ function switcher(){ const el=$('#pop'); if(!el.hidden){ el.hidden=true; return;
 function statusLine(m){ if(m.phase==='D'&&m.stage==='assembly'&&m.asmWait) return 'da portare in camera bianca'; if(m.phase==='D'&&m.stage==='assembly') return now()>=m.buildEnd?'assemblaggio completato':'assemblaggio in corso'; if(m.phase==='B') return m.stage==='sat'?'progetto del satellite':m.stage==='orb'?'orbite in dettaglio':'design reference mission'; if(m.phase==='C') return 'costruzione'; if(m.phase==='E'||m.phase==='F'){ const fl=flightNow(m); return fl.pending?'decisione in attesa · mese '+fl.pending.m:'mese '+fl.f.month+' di '+m.duration; } if(m.phase==='done') return m.result&&m.result.ok?'missione riuscita':'missione chiusa'; if(m.phase==='D') return m.ready?'pronta al lancio':'in laboratorio'; return m.reqs.length+' requisiti'; }
 const STMT={moon:'Misurare la radiazione attorno alla Luna per proteggere i futuri equipaggi.',leo:'Osservare la Terra dall’orbita bassa e provare nuove tecnologie a basso costo.',mars:'Mappare la radiazione nell’orbita di Marte prima dell’arrivo dei primi esploratori.',venus:'Studiare l’atmosfera di Venere dall’orbita e capire perché è diventata un inferno.'};
 let PGN=0;
-function planet(k,r){ const D=E.DEST[k], gid='pg'+k+(++PGN); return '<svg viewBox="-40 -40 80 80" aria-hidden="true"><defs><radialGradient id="'+gid+'" cx=".35" cy=".35"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".25" stop-color="'+D.col+'"/><stop offset="1" stop-color="#1E2A3A"/></radialGradient></defs><circle r="'+(r||30)+'" fill="url(#'+gid+')"/>'+(k==='leo'?'<path d="M-14-8q8-10 18-4t10 12q-6 4-14 0z" fill="#4E9A43" opacity=".8"/>':'')+'</svg>'; }
+/* ---------- corpi celesti: sfere vettoriali 3D (SVG inline, nessuna immagine) ----------
+   bodyArt(k,R,cy,id) disegna il corpo k con raggio R centrato in (0,cy). Tutto è in uno spazio "unitario" di raggio 17 (scalato da R/17):
+   gradiente radiale (luce in alto a sinistra), dettagli ritagliati sulla sfera, terminatore scuro in basso a destra, riflesso, bagliore atmosferico.
+   `id` rende unici gradienti e clipPath, cosi' più icone nella stessa pagina non si sovrappongono. */
+const BODYC={leo:['#7CC0F5','#2F6FC9','#0A2050'],moon:['#F0F1F4','#A9AEB7','#474D58'],venus:['#FCEDC4','#E3BE72','#85591F'],mars:['#F0976B','#C5532C','#4A180C'],mercury:['#D6CCC2','#8F847B','#3A3430'],jupiter:['#F3E1BD','#CFA06C','#633E25'],saturn:['#FAEDC8','#DDC48A','#786234'],uranus:['#DDF9FB','#86D0DA','#2B6D7B'],neptune:['#94B4FF','#3F65D0','#10246A'],sun:['#FFF7C4','#FFC83D','#F07018']};
+const BODYX={leo:1.12,moon:1.08,venus:1.15,mars:1.1,mercury:1.07,jupiter:1.08,saturn:1.32,uranus:1.25,neptune:1.12,sun:1.32};
+const BODYGLOW={leo:'#8FCBFF',venus:'#FFE2A0',mars:'#FFB38A',neptune:'#7FA0FF',uranus:'#B9F2F6',sun:'#FFC83D'};
+const bdCr=(x,y,r,o)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="#000" opacity="'+(o||.22)+'"/><path d="M'+(x-r)+' '+y+'A'+r+' '+r+' 0 0 1 '+x+' '+(y-r)+'" fill="none" stroke="#fff" stroke-width=".45" opacity=".32"/>';
+const bdRing=(rot,ry,half,bands)=>'<g transform="rotate('+rot+')">'+bands.map(b=>'<path d="M'+(-b[0])+' 0A'+b[0]+' '+(b[0]*ry).toFixed(2)+' 0 0 '+(half==='f'?0:1)+' '+b[0]+' 0" fill="none" stroke="'+b[2]+'" stroke-width="'+b[1]+'" opacity="'+b[3]+'"/>').join('')+'</g>';
+const BODYD=(()=>{ const sw=(y,c,o,w)=>'<path d="M-17 '+y+'q4.25-1.4 8.5 0t8.5 0t8.5 0t8.5 0" fill="none" stroke="'+c+'" stroke-width="'+(w||.5)+'" opacity="'+o+'"/>', bands=a=>a.map(b=>'<rect x="-18" y="'+b[0]+'" width="36" height="'+b[1]+'" fill="'+b[2]+'" opacity="'+b[3]+'"/>').join('');
+  const satR=[[21,1.4,'#A8946A',.95],[19.4,1.9,'#E8D8A8',.97],[18,.55,'#5E4E2E',.55]], uraR=[[21,.9,'#D6F2F4',.6],[19.6,.5,'#D6F2F4',.4]];
+  let corona=''; for(let i=0;i<32;i++){ const a=i*Math.PI/16, rr=i%2?19:23.5; corona+=(i?'L':'M')+(Math.cos(a)*rr).toFixed(1)+' '+(Math.sin(a)*rr).toFixed(1); }
+  return {
+  leo:{art:'<path d="M-13-7q2-6 8-6t5 3q1 3-2 4t-3 5q-3 4-5 1t-3-7z" fill="#4F9D4A"/><path d="M-9-4q2-2 4 0t-1 4q-2 0-3-4z" fill="#A98D5B" opacity=".85"/><path d="M4-9q5-4 9 1 1 4-2 6t-1 5q-3 3-4-1t-2-6q-1-3 0-5z" fill="#5BA64B"/><path d="M6-3q3-1 4 2t-2 3q-2-1-2-5z" fill="#B59A62" opacity=".85"/><path d="M-5 6q3-2 6 0t0 6q-3 4-5 1t-1-7z" fill="#4A9547"/><ellipse cx="0" cy="-16" rx="7" ry="2.6" fill="#fff" opacity=".88"/><ellipse cx="0" cy="16.4" rx="6" ry="2" fill="#fff" opacity=".8"/><path d="M-15 1q4-3 9-1t8-1" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" opacity=".78"/><path d="M-3-12q6 2 13-1" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".7"/><path d="M1 10q6 3 12-2" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".72"/><path d="M-13 9q3-2 6 0" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity=".6"/><path d="M8 0q3 1 6-1" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity=".6"/>',rim:'<circle r="16.7" fill="none" stroke="#9FD3FF" stroke-width=".9" opacity=".4"/>'},
+  moon:{art:'<path d="M-9-6q2-5 8-3t2 6q-3 4-8 2z" fill="#6B717D" opacity=".5"/><path d="M3 1q4-3 8 0t-2 6q-5 0-6-6z" fill="#6B717D" opacity=".45"/><path d="M-6 6q3-2 6 1t-3 4q-4 0-3-5z" fill="#6B717D" opacity=".4"/>'+bdCr(-5,-10,1.8)+bdCr(8,-8,1.3)+bdCr(-11,2,2.2)+bdCr(12,6,1.7)+bdCr(0,12,2)+bdCr(-8,10,1.2)+bdCr(5,-2,1)+bdCr(-2,-4,1.4,.18)},
+  venus:{art:'<path d="M-18-9q5-4 10 0t10 0t10 0t6-1" fill="none" stroke="#FFF4D8" stroke-width="2.2" opacity=".5"/><path d="M-18-2q5 4 10 0t10 0t10 0t6 1" fill="none" stroke="#C98B3C" stroke-width="2.4" opacity=".45"/><path d="M-18 5q5-4 10 0t10 0t10 0t6-1" fill="none" stroke="#FFF1CC" stroke-width="2.4" opacity=".5"/><path d="M-18 11q5 3 10 0t10 0t10 0t6 1" fill="none" stroke="#B97A30" stroke-width="2" opacity=".4"/><path d="M-18-14q6 2 12-1t12 0" fill="none" stroke="#fff" stroke-width="1.6" opacity=".35"/>',rim:'<circle r="16.7" fill="none" stroke="#FFE9B0" stroke-width=".9" opacity=".4"/>'},
+  mars:{art:'<path d="M-11-2q3-6 9-3t5 5q-3 5-9 2z" fill="#6B2A18" opacity=".55"/><path d="M3 4q4-3 8 0t-3 5q-4 0-5-5z" fill="#6B2A18" opacity=".5"/><path d="M-4 10q4-2 8 0t-4 4q-4 0-4-4z" fill="#7A3320" opacity=".4"/><path d="M-13 3q2-2 4 0" fill="none" stroke="#E8A070" stroke-width="1.4" opacity=".4"/><ellipse cx="0" cy="-15.8" rx="6" ry="2.4" fill="#fff" opacity=".92"/><ellipse cx="2" cy="16.6" rx="3.5" ry="1.2" fill="#fff" opacity=".7"/>'+bdCr(6,-8,1.3,.3)+bdCr(-9,8,1.1,.3)+bdCr(11,-1,.9,.3)},
+  mercury:{art:'<path d="M-8-3q3-5 8-2t0 6q-5 2-8-4z" fill="#5B534D" opacity=".28"/>'+bdCr(-6,-9,2.2,.28)+bdCr(7,-7,1.6,.28)+bdCr(-11,0,1.8,.28)+bdCr(3,3,2.6,.3)+bdCr(11,5,1.4,.28)+bdCr(-5,9,2,.28)+bdCr(5,12,1.2,.28)+bdCr(-13,9,1.2,.28)+bdCr(0,-1,1,.25)+bdCr(-1,-13,1.2,.25)+bdCr(12,-1,1.1,.25)},
+  jupiter:{art:bands([[-17,5,'#D8B58A',.9],[-12,3.6,'#A8693F',.75],[-8.4,3.2,'#F3E2C0',.9],[-5.2,3.4,'#C07A48',.8],[-1.8,3,'#F0DDB8',.9],[1.2,3.2,'#B26E44',.8],[4.4,3,'#EED8B0',.9],[7.4,3.4,'#B98458',.75],[10.8,7,'#D9B98F',.85]])+sw(-8.4,'#fff',.4)+sw(-1.8,'#fff',.35)+sw(7.4,'#7A4528',.4)+'<ellipse cx="5.5" cy="5.3" rx="4.2" ry="2.5" fill="#C4492C" stroke="#F0B08A" stroke-width=".6"/><ellipse cx="5.5" cy="5.3" rx="2" ry="1.1" fill="#8E2B18" opacity=".6"/>'},
+  saturn:{art:bands([[-17,4,'#E8D3A0',.7],[-12,3,'#B59A66',.55],[-8.5,3.6,'#F4E6BC',.7],[-4.5,3,'#C2A76F',.55],[-1.2,3.4,'#EFDDAA',.7],[2.5,3,'#B89E68',.5],[6,3.6,'#EBD8A4',.65],[10,7,'#C9B07A',.6]]),back:bdRing(-16,.26,'b',satR),front:bdRing(-16,.26,'f',satR)},
+  uranus:{art:'<rect x="-18" y="-4.5" width="36" height="2" fill="#fff" opacity=".18"/><rect x="-18" y="3" width="36" height="1.4" fill="#2B6D7B" opacity=".18"/><ellipse cx="-4" cy="-9" rx="7" ry="2" fill="#fff" opacity=".14"/>',back:bdRing(-62,.2,'b',uraR),front:bdRing(-62,.2,'f',uraR)},
+  neptune:{art:'<path d="M-18-8q6-2 12 0t12-1t12 1" fill="none" stroke="#7FA0FF" stroke-width="1.6" opacity=".4"/><path d="M-18 8q6 2 12 0t12 1t12-1" fill="none" stroke="#1B3290" stroke-width="2" opacity=".35"/><ellipse cx="-4" cy="2" rx="4.2" ry="2.5" fill="#081650" opacity=".7"/><path d="M-1 0q4-3 8-1M-9-5q5-3 10-1M3 8q5 2 10-1" fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" opacity=".6"/>',rim:'<circle r="16.7" fill="none" stroke="#9DB8FF" stroke-width=".8" opacity=".35"/>'},
+  sun:{corona:'<path d="'+corona+'Z" fill="#FFB52E" opacity=".4"/>',art:'<ellipse cx="-5" cy="-3" rx="2.4" ry="1.5" fill="#9A3A0B" opacity=".7"/><ellipse cx="-5" cy="-3" rx="3.6" ry="2.4" fill="#D9601A" opacity=".35"/><ellipse cx="6" cy="4" rx="1.6" ry="1" fill="#9A3A0B" opacity=".65"/><ellipse cx="6" cy="4" rx="2.6" ry="1.8" fill="#D9601A" opacity=".3"/><ellipse cx="2" cy="-9" rx="1.2" ry=".8" fill="#9A3A0B" opacity=".55"/><circle cx="-10" cy="6" r="1.8" fill="#FFF3A8" opacity=".35"/><circle cx="9" cy="-6" r="2" fill="#FFF3A8" opacity=".3"/><circle cx="-2" cy="10" r="1.5" fill="#FFF3A8" opacity=".3"/><circle cx="-12" cy="-7" r="1.3" fill="#FF9A1F" opacity=".35"/><circle cx="12" cy="6" r="1.4" fill="#FF9A1F" opacity=".35"/><circle cx="1" cy="1" r="1.2" fill="#FFF3A8" opacity=".3"/>'}
+  }; })();
+/** Corpo celeste 3D vettoriale (raggio R, centro (0,cy), id univoco per gradienti e clipPath). */
+function bodyArt(k,R,cy,id){ const c=BODYC[k]; if(!c) return '<circle r="'+R+'" cy="'+cy+'" fill="'+((E.DEST[k]||{}).col||'#888')+'"/>';
+  const A=BODYD[k]||{}, ex=BODYX[k]||1.1, sun=k==='sun', e1=(1/ex).toFixed(3), glow=BODYGLOW[k]||c[1];
+  const defs='<defs><radialGradient id="'+id+'g" cx=".34" cy=".3" r=".82"><stop offset="0" stop-color="'+c[0]+'"/><stop offset=".5" stop-color="'+c[1]+'"/><stop offset="1" stop-color="'+c[2]+'"/></radialGradient>'+
+    '<radialGradient id="'+id+'t" cx=".32" cy=".28" r=".8"><stop offset=".38" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="'+(sun?.25:.6)+'"/></radialGradient>'+
+    '<radialGradient id="'+id+'h" cx=".3" cy=".24" r=".42"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>'+
+    '<radialGradient id="'+id+'a" r=".5"><stop offset="'+e1+'" stop-color="'+glow+'" stop-opacity="'+(sun?.85:.5)+'"/><stop offset="1" stop-color="'+glow+'" stop-opacity="0"/></radialGradient>'+
+    '<clipPath id="'+id+'c"><circle r="17"/></clipPath></defs>';
+  return '<g transform="translate(0 '+cy+') scale('+(R/17).toFixed(4)+')">'+defs+'<circle r="'+(17*ex).toFixed(2)+'" fill="url(#'+id+'a)"/>'+(A.corona||'')+(A.back||'')+
+    '<circle r="17" fill="url(#'+id+'g)"/><g clip-path="url(#'+id+'c)">'+(A.art||'')+'<circle r="17" fill="url(#'+id+'t)"/><circle r="17" fill="url(#'+id+'h)"/></g>'+(A.rim||'')+
+    '<path d="M-15.7-5.8A16.7 16.7 0 0 1-5.7-15.7" fill="none" stroke="#fff" stroke-width=".8" stroke-linecap="round" opacity="'+(sun?.5:.4)+'"/>'+(A.front||'')+'</g>'; }
+function planet(k,r){ const ex=BODYX[k]||1, R=ex>1.2?Math.min(r||30,38/ex):(r||30), gid='pg'+k+(++PGN);
+  return '<svg viewBox="-40 -40 80 80" aria-hidden="true">'+bodyArt(k,R,0,gid)+'</svg>'; }
 const fmtKm=n=>nf(n,0);
 function zoneBand(z){ return z.band?fmtKm(z.band[0])+'–'+fmtKm(z.band[1])+' km':z.alt?'a '+fmtKm(z.alt)+' km da Marte':z.surf?'sul suolo':'atterraggio'; }
 function zoneIcon(body,z){ const col=E.DEST[body].col, id='zi'+body+(z.k||'')+Math.random().toString(36).slice(2,6);
   let st=''; for(let i=0;i<60;i++){ st+='<circle cx="'+(((i*53)%400)-200)+'" cy="'+(((i*37)%80)-40)+'" r="'+(i%3?.5:.9)+'" fill="#fff" opacity="'+(.35+(i%4)*.15)+'"/>'; }
   const surf=z.surf, R=surf?60:17, cy=surf?66:0;
-  const deco={leo:'<path d="M-9 -8q6-5 12 0t4 9q-6 4-11-1zM4 6q5-2 8 2-3 5-8 2z" fill="#4FA35B" opacity=".9"/>',moon:'<circle cx="-6" cy="-5" r="3.2" fill="#000" opacity=".15"/><circle cx="6" cy="4" r="4" fill="#000" opacity=".13"/><circle cx="-3" cy="8" r="2" fill="#000" opacity=".15"/>',mars:'<path d="M-12 -4q8-4 14 1t10 2" stroke="#8C3A22" stroke-width="3" fill="none" opacity=".5"/><ellipse cx="0" cy="-15" rx="5" ry="1.6" fill="#fff" opacity=".8"/>',venus:'<path d="M-16 -6q16-4 32 0M-16 2q16 4 32 0M-14 9q14-3 28 0" stroke="#fff" stroke-width="2.2" fill="none" opacity=".35"/>'}[body]||'';
+  const deco={leo:'<path d="M-9 -8q6-5 12 0t4 9q-6 4-11-1zM4 6q5-2 8 2-3 5-8 2z" fill="#4FA35B" opacity=".9"/>',moon:'<circle cx="-6" cy="-5" r="3.2" fill="#000" opacity=".15"/><circle cx="6" cy="4" r="4" fill="#000" opacity=".13"/><circle cx="-3" cy="8" r="2" fill="#000" opacity=".15"/>',mars:'<path d="M-12 -4q8-4 14 1t10 2" stroke="#8C3A22" stroke-width="3" fill="none" opacity=".5"/><ellipse cx="0" cy="-15" rx="5" ry="1.6" fill="#fff" opacity=".8"/>',venus:'<path d="M-16 -6q16-4 32 0M-16 2q16 4 32 0M-14 9q14-3 28 0" stroke="#fff" stroke-width="2.2" fill="none" opacity=".35"/>'}[body]||(E.EXT[body]?E.EXT[body].deco:'');
   let s='<svg viewBox="-60 -36 120 72" aria-hidden="true" style="overflow:hidden"><defs><radialGradient id="'+id+'g" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="'+col+'" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient><radialGradient id="'+id+'a" r=".5"><stop offset=".72" stop-color="'+col+'" stop-opacity=".45"/><stop offset="1" stop-color="'+col+'" stop-opacity="0"/></radialGradient><linearGradient id="'+id+'s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0A1226"/><stop offset="1" stop-color="#16244A"/></linearGradient><clipPath id="'+id+'c"><circle r="'+R+'" cy="'+cy+'"/></clipPath></defs><rect x="-200" y="-40" width="400" height="80" fill="url(#'+id+'s)"/>'+st;
   const sat=(x,y,a)=>'<g transform="translate('+x.toFixed(1)+' '+y.toFixed(1)+') rotate('+(a||-20)+')"><rect x="-8" y="-1.6" width="5.5" height="3.2" fill="#3A78D8" stroke="#BFD6FF" stroke-width=".4"/><rect x="2.5" y="-1.6" width="5.5" height="3.2" fill="#3A78D8" stroke="#BFD6FF" stroke-width=".4"/><rect x="-2.4" y="-2.2" width="4.8" height="4.4" rx=".8" fill="#F2EDE6"/><circle r=".9" fill="#F0B43A"/></g>';
-  const planet='<circle r="'+(R*1.22)+'" cy="'+cy+'" fill="url(#'+id+'a)"/><circle r="'+R+'" cy="'+cy+'" fill="'+col+'"/><g clip-path="url(#'+id+'c)"><g transform="translate(0 '+cy+') scale('+(R/17)+')">'+deco+'</g><circle r="'+R+'" cy="'+cy+'" fill="url(#'+id+'g)"/></g>';
+  const planet=BODYC[body]?bodyArt(body,R,cy,id+'b'):'<circle r="'+(R*1.22)+'" cy="'+cy+'" fill="url(#'+id+'a)"/><circle r="'+R+'" cy="'+cy+'" fill="'+col+'"/><g clip-path="url(#'+id+'c)"><g transform="translate(0 '+cy+') scale('+(R/17)+')">'+deco+'</g><circle r="'+R+'" cy="'+cy+'" fill="url(#'+id+'g)"/></g>';
   if(z.band){ const r=z.k==='low'?24:z.k==='med'?34:47, ry=r*.32, w=z.k==='low'?3:z.k==='med'?6:3;
     const arc=(sw,front,stl)=>'<path d="M'+(-r)+' 0A'+r+' '+ry+' 0 0 '+(front?0:1)+' '+r+' 0" fill="none" '+stl+' stroke-width="'+sw+'" stroke-linecap="round"/>';
     s+=arc(w*2.4,0,'stroke="#F07B3F" stroke-opacity=".18"')+arc(1.4,0,'stroke="#F07B3F" stroke-opacity=".55" stroke-dasharray="3 3"')+planet+arc(w*2.4,1,'stroke="#F07B3F" stroke-opacity=".18"')+arc(2.2,1,'stroke="#F07B3F"')+sat(r*.62,ry*.78,-15); }
   else if(surf){ s+=planet+'<g transform="translate(-4 -1)"><rect x="-9" y="-9" width="18" height="6" rx="2" fill="#F2EDE6"/><rect x="-2" y="-14" width="7" height="5" rx="1" fill="#F2EDE6"/><path d="M3 -14v-5" stroke="#F2EDE6" stroke-width="1.4"/><circle cx="3" cy="-20" r="1.8" fill="#F07B3F"/>'+[-7,0,7].map(x=>'<circle cx="'+x+'" cy="-2" r="2.6" fill="#1E2024" stroke="#888" stroke-width=".6"/>').join('')+'</g>'; }
   else { const mc=z.to?'#C9CED6':'#8B7D6B'; s+=planet+'<ellipse cx="22" cy="-4" rx="26" ry="9" fill="none" stroke="#F07B3F" stroke-opacity=".5" stroke-dasharray="3 3"/><circle cx="44" cy="-6" r="'+(z.to?9:6)+'" fill="'+mc+'"/><circle cx="44" cy="-6" r="'+(z.to?9:6)+'" fill="url(#'+id+'g)"/>'+sat(30,-14,10); }
   return s+'</svg>'; }
+/* Catalogo "Tutti i corpi celesti". Dati (valori inventati, plausibili): d = distanza media dalla Terra in milioni di km, days = viaggio di sola andata,
+   dv = delta-v dalla LEO in m/s, c = costo base in crediti, lvl = livello richiesto, types = tipi di missione consentiti (chiavi O.TYPES), play = 1 se gia' volabile nel gioco.
+   Mercurio, Giove, Saturno, Urano, Nettuno e Sole NON hanno ancora zone/lanciatori/DRM: si vedono e si scelgono (anteprima), ma la missione non si crea. */
+const BODIES={
+  leo:{n:'Terra',col:'#3E7BD6',d:0,days:0,dv:0,c:90,lvl:1,types:['sci','obs','tel','com','deb','demo'],play:1},
+  moon:{n:'Luna',col:'#C9CED6',d:0.38,days:4,dv:300,c:1200,lvl:5,types:['sci','obs','tel','com','deb','demo'],play:1},
+  venus:{n:'Venere',col:'#E2C27A',d:41,days:150,dv:700,c:3000,lvl:15,types:['sci','obs','demo'],play:1},
+  mars:{n:'Marte',col:'#C8603A',d:78,days:210,dv:650,c:3000,lvl:10,types:['sci','obs','tel','com','demo'],play:1}
+};
+/* batch 4: i sei corpi esterni derivano da E.EXT (fonte unica) e sono volabili */
+Object.keys(E.EXT).forEach(k=>{ const x=E.EXT[k]; BODIES[k]={n:x.n,col:x.col,d:x.d,days:x.days,dv:x.dv,c:x.c,lvl:x.lvl,types:x.types,ext:x.ext,play:1}; });
+function nmAll(){ const lv=L.level(G.xp);
+  $('#nmZone').innerHTML='<h3>Catalogo</h3><h2>Tutti i corpi celesti</h2><p class="fine">Il Sole e tutti i pianeti del Sistema Solare. Distanze, tempi e costi sono stime di gioco.</p><div class="dests">'+Object.keys(BODIES).map(k=>{ const B=BODIES[k], lock=lv<B.lvl;
+    return '<button class="dcard'+(lock?' lock':'')+'" data-act="extpick" data-k="'+k+'"'+(lock?' disabled':'')+'>'+planet(k)+'<b>'+B.n+'</b><small>'+(lock?'🔒 livello '+B.lvl:(B.play?'volabile ora':'anteprima'))+' · '+B.d+' Mkm · '+B.days+' g · Δv '+B.dv+' m/s · '+keur(B.c)+'</small></button>'; }).join('')+'</div><div class="row"><button class="btn" data-act="nmback">← Indietro</button></div>';
+  $('#nmMain').hidden=true; $('#nmZone').hidden=false; }
 const nmState={dest:'leo',zone:'low'};
-function nmStmt(){ const z=O.ZONES[nmState.dest].find(x=>x.k===nmState.zone)||{}, art={moon:['alla Luna','della Luna'],leo:['alla Terra','della Terra'],mars:['a Marte','di Marte'],venus:['a Venere','di Venere']}[nmState.dest], t=$('#mt')?$('#mt').value:'sci';
-  if(z.surf) return 'Portare un rover sulla superficie '+art[1]+' e studiarne il suolo da vicino.';
-  if(z.moon) return 'Atterrare su '+z.n.split(' ·')[0]+' e studiare il suolo di una luna di Marte.';
-  return O.stmt(t,nmState.dest); }
+const STE={sci:'Measure the radiation environment around {A}, near and far.',obs:'Map {A} from a low polar orbit, as completely as possible.',tel:'Take a small telescope to a high, stable orbit around {A}.',com:'Put a relay into orbit around {A} to link future missions.',deb:'Reach an old abandoned stage around {A} and take it away.',demo:'Test in flight, around {A}, a technology that has never flown.'};
+function nmStmt(){ const z=O.ZONES[nmState.dest].find(x=>x.k===nmState.zone)||{}, art={moon:['alla Luna','della Luna'],leo:['alla Terra','della Terra'],mars:['a Marte','di Marte'],venus:['a Venere','di Venere']}[nmState.dest]||E.EXT[nmState.dest].gen, t=$('#mt')?$('#mt').value:'sci';
+  const en=LANG==='en', artE=({moon:'the Moon',leo:'Earth',mars:'Mars',venus:'Venus'}[nmState.dest])||E.EXT[nmState.dest].en;
+  if(E.EXT[nmState.dest]&&en) return (STE[t]||STE.sci).replace('{A}',artE);
+  if(z.surf) return en?'Take a rover to the surface of '+artE+' and study its soil up close.':'Portare un rover sulla superficie '+art[1]+' e studiarne il suolo da vicino.';
+  if(z.moon) return en?'Land on '+z.n.split(' ·')[0]+' and study the soil of a moon of Mars.':'Atterrare su '+z.n.split(' ·')[0]+' e studiare il suolo di una luna di Marte.';
+  return en?I18N.tr(O.stmt(t,nmState.dest)):O.stmt(t,nmState.dest); }
 function nmLanding(){ const z=O.ZONES[nmState.dest].find(x=>x.k===nmState.zone)||{}; return !!(z.surf||z.moon); }
 const TYPEC={};
 function typeAvail(t){ const lv=L.level(G.xp), key=[lv,nmState.dest,nmState.zone,t,G.pad?1:0,(E.STAKE.length)].join('|'); if(key in TYPEC) return TYPEC[key];
@@ -4183,15 +4557,15 @@ function typeAvail(t){ const lv=L.level(G.xp), key=[lv,nmState.dest,nmState.zone
   let ok=false; try{ ok=L.typeOK(Mx); }catch(e){ ok=true; } return TYPEC[key]=ok; }
 function nmSync(){ const z=O.ZONES[nmState.dest].find(x=>x.k===nmState.zone), lnd=nmLanding(), sel=$('#mt');
   $('#nmSum').innerHTML=planet(nmState.dest,26)+'<div><b>'+esc(E.DEST[nmState.dest].n)+' · '+esc(z.n)+'</b><span class="fine">'+esc(zoneBand(z))+(lnd?' · stadio di discesa '+keur((O.LAND[nmState.dest]&&z.surf?O.LAND[nmState.dest]:O.LAND[z.k]||{}).cost||0):'')+'</span></div><button class="btn small" data-act="nmplanet">Cambia</button>';
-  Array.from(sel.options).forEach(o=>{ const base=O.TYPES[o.value].n, land=lnd&&['tel','com','deb'].indexOf(o.value)>=0, ok=!land&&typeAvail(o.value); o.disabled=!ok; o.textContent=base+(ok?'':' · 🔒 '+(land?'non sul suolo':'non ancora possibile')); }); if(sel.selectedOptions[0].disabled){ const f=Array.from(sel.options).find(o=>!o.disabled); if(f) sel.value=f.value; }
-  $('#mtd').textContent=Array.from(sel.options).some(o=>o.disabled&&!(lnd&&['tel','com','deb'].indexOf(o.value)>=0))?O.TYPES[sel.value].s+' I tipi con il lucchetto non hanno ancora un payload o un propulsore adatto al tuo livello: si sbloccano salendo.':lnd?'Sul suolo il payload è un '+(z.surf?'rover':'lander con trivella')+': servono missioni scientifiche, di osservazione o dimostrative.':O.TYPES[sel.value].s;
+  Array.from(sel.options).forEach(o=>{ const base=O.TYPES[o.value].n, land=lnd&&['tel','com','deb'].indexOf(o.value)>=0, xt=!!E.EXT[nmState.dest]&&E.EXT[nmState.dest].types.indexOf(o.value)<0, ok=!land&&!xt&&typeAvail(o.value); o.disabled=!ok; o.textContent=base+(ok?'':' · 🔒 '+(land?'non sul suolo':xt?'non per questo corpo':'')); }); if(sel.selectedOptions[0].disabled){ const f=Array.from(sel.options).find(o=>!o.disabled); if(f) sel.value=f.value; }
+  $('#mtd').textContent=Array.from(sel.options).some(o=>o.disabled&&!(lnd&&['tel','com','deb'].indexOf(o.value)>=0))?O.TYPES[sel.value].s+' I tipi con il lucchetto non hanno ancora un payload o un propulsore adatto al tuo livello: si sbloccano salendo.':lnd?'On the surface the payload is a '+(z.surf?'rover':'lander with a drill')+': you need science, observation or demonstration missions.':O.TYPES[sel.value].s;
   const ms=$('#ms'); if(ms.dataset.auto==='1') ms.value=nmStmt(); }
 const maxActive=()=>L.maxActiveAt(L.level(G.xp)), activeN=()=>G.missions.filter(m=>m.phase!=='done').length;
 function newMission(){ if(activeN()>=maxActive()){ toast('Al livello '+L.level(G.xp)+' puoi gestire al massimo '+maxActive()+' missioni aperte. Chiudine una o sali di livello.'); sfx.bad(); return; } const el=$('#ov'), lv=L.level(G.xp); nmState.dest='leo'; nmState.zone='low';
   el.innerHTML='<div class="rv wide" role="dialog" aria-modal="true"><div id="nmMain"><h3>Nuova missione</h3><h2>Che missione vuoi fare?</h2><div class="nm"><div><label for="mn">Titolo</label><input type="text" id="mn" maxlength="18" value="'+esc(['AURASAT','SELENE-1','LUX','ORBIS','ARTEMIDE','HERMES'][G.missions.length%6])+'">'+
     '<label for="mt" style="margin-top:14px">Tipo di missione</label><select id="mt">'+Object.keys(O.TYPES).map(k=>'<option value="'+k+'">'+O.TYPES[k].n+'</option>').join('')+'</select><p class="fine" id="mtd" hidden></p>'+
     '<label for="ms" style="margin-top:14px">Mission statement</label><textarea id="ms" rows="3" maxlength="280" data-auto="1"></textarea></div>'+
-    '<div><label>Destinazione</label><div class="nmsum" id="nmSum"></div><label style="margin-top:12px">Scegli il corpo</label><div class="dests">'+Object.keys(E.DEST).map(k=>{ const D=E.DEST[k], lock=lv<D.lvl; return '<button class="dcard'+(k===nmState.dest?' sel':'')+(lock?' lock':'')+'" data-act="dest" data-k="'+k+'"'+(lock?' disabled':'')+'>'+planet(k)+'<b>'+D.n+'</b><small>'+(lock?'🔒 livello '+D.lvl:O.ZONES[k].length+' destinazioni')+'</small></button>'; }).join('')+'</div></div></div>'+
+    '<div><label>Destinazione</label><div class="nmsum" id="nmSum"></div><label style="margin-top:12px">Scegli il corpo</label><div class="dests">'+Object.keys(E.DEST).filter(k=>k==='leo'||k==='moon').map(k=>{ const D=E.DEST[k], lock=lv<D.lvl; return '<button class="dcard'+(k===nmState.dest?' sel':'')+(lock?' lock':'')+'" data-act="dest" data-k="'+k+'"'+(lock?' disabled':'')+'>'+planet(k)+'<b>'+D.n+'</b><small>'+(lock?'🔒 livello '+D.lvl:O.ZONES[k].length+' destinazioni')+'</small></button>'; }).join('')+'</div><button class="btn small" style="margin-top:8px" data-act="nmall">🪐 '+TX('Altri corpi celesti','Other celestial bodies')+'</button></div></div>'+
     '<div class="row"><button class="btn primary" data-act="mkm">Crea la missione</button><button class="btn" data-act="closeov">Annulla</button></div></div><div id="nmZone" hidden></div></div>'; el.hidden=false; $('#pop').hidden=true;
   $('#ms').addEventListener('input',e=>{ e.target.dataset.auto='0'; }); $('#mt').addEventListener('change',()=>nmSync()); nmSync(); }
 function nmZones(k){ const lv=L.level(G.xp), D=E.DEST[k], Z=O.ZONES[k];
@@ -4211,7 +4585,7 @@ function folder(tab){ folder.tab=tab=tab||folder.tab||'mine'; const el=$('#drawe
     (tab==='mine'?(mine||'<div class="empty">Nessuna missione.</div>'):(board.length?board.map(m=>'<article class="entry"><div>'+m.stake.map(emb).join('')+'</div><div><b>'+esc(m.name)+'</b><div class="fine">'+esc(m.co)+' · '+esc(O.TYPES[m.ty].n)+' · '+esc(E.DEST[m.dest].n)+' · '+m.months+' mesi · '+m.reqs+' requisiti</div>'+(m.st?'<p class="stmt">'+esc(m.st)+'</p>':'')+'<div class="num">'+m.sci+' scienza</div>'+(m.mine||ISOWN?'<div class="row" style="margin-top:6px"><button class="btn small no" data-act="unpub" data-id="'+esc(m._id)+'">'+(m.mine?'Rimuovi la mia missione':'Rimuovi (moderazione)')+'</button></div>':'')+'</div></article>').join(''):'<div class="empty">'+(shared?'Nessuna missione pubblicata. Completa una missione e pubblicala: sarà la prima.':'La bacheca online si vede dalla pagina pubblicata.')+'</div>'))+'</div>'; el.hidden=false; }
 
 /* ---------- tempo che scorre ---------- */
-function tick(){ if(!G) return; clock(); let dirty=false;
+let TVS=0; function tick(){ if(!G) return; clock(); let dirty=false;
   G.missions.forEach(M=>{
     if(M.phase==='D'&&M.stage==='assembly'&&M.buildEnd&&now()>=M.buildEnd&&!M.buildNote){ M.buildNote=true; dirty=true; toast(M.name+': assemblaggio completato. Portalo al laboratorio prove.'); sfx.ok(); }
     Object.keys(M.tr).forEach(t=>{ const r=M.tr[t]; if(r.res==='run'&&now()>=r.end){ dirty=true; const Lx=E.layout(M.sat); if(t==='vib'&&Lx.topHeavy&&!M.stiff) r.res='struct'; else if(M.defects[t]) r.res='defect'; else { r.res='pass'; M.tests[t]=true; } (r.res==='pass'?sfx.ok:sfx.bad)(); toast(M.name+': prova '+L.MACH[t].tn+(r.res==='pass'?' superata.':' con problemi.')); } });
@@ -4224,7 +4598,7 @@ function tick(){ if(!G) return; clock(); let dirty=false;
   });
   const C=cur();
   if(dirty){ if(view==='mcc') mccRefresh(true); else if(view!=='build'||!yardOn(C)) render(); else hud(); save(); }
-  else { if(view==='build') cleanUpdate(); if(view==='test'&&!DSAT&&cur()&&cur().phase==='D'&&Object.keys(cur().tr).some(t=>cur().tr[t].res==='run')) vTest($('#view')); if(view==='mcc') mccRefresh(false); }
+  else { if(view==='build') cleanUpdate(); if(view==='test'&&!DSAT&&cur()&&cur().phase==='D'&&Object.keys(cur().tr).some(t=>cur().tr[t].res==='run')&&(TVS!==(TVS=Math.floor(Date.now()/1000)))) vTest($('#view')); if(view==='mcc') mccRefresh(false); }
   winRefresh(); if(Math.random()<.1) save(); }
 function finish(M,fl){ if(M.phase==='done') return; const x=L.closeOut(M,fl,hasB('visit'));
   M.joy=x.joy; gainXP(x.ok?L.XP.win:L.XP.lose); M.result=Object.assign({},x,{joy:undefined}); M.phase='done'; M.got=(M.got||0)+x.inst;
@@ -4236,7 +4610,7 @@ function causeOf(M,l){ const c=l.c||''; if(!c) return '';
   if(c.indexOf('choice:')===0){ const x=(M.choiceL||{})[c.slice(7)]; return x?(x.auto?'L’autopilota, su tua delega, ha scelto «':'Hai scelto «')+esc(x.l)+'»'+(x.h?' ('+esc(x.h)+')':'')+'.':'Una tua scelta.'; }
   if(c.indexOf('auto:')===0) return 'Ha deciso l’autopilota.';
   const pl=O.plan(M);
-  return ({'part:avi':'Il computer di bordo: senza scorta, o non resistente alle radiazioni.','part:adcs':'Assetto senza ruota di scorta.','part:com':'La radio scelta in progetto.','part:bat':'Batteria piccola per un’eclisse di '+Math.round(E.eclOf(M.sat)*60)+' minuti.',
+  return ({'part:avi':'Il computer di bordo: senza scorta, o non resistente alle radiazioni.','part:adcs':'Assetto senza ruota di scorta.','part:com':'La radio scelta in progetto.','part:bat':'Batteria piccola per un’eclisse di '+Math.round(E.eclOf(M.sat)*60)+' minuti.'+(M.sat.eclSrc==='gmat'?' Dato GMAT.':''),
     dur:'Il ΔV rimasto non bastava per i '+M.duration+' mesi che hai dichiarato.',strat:'La strategia «'+esc((pl.strn&&pl.strn.n)||(pl.sc&&pl.sc.n)||'')+'» scelta nel Centro di dinamica del volo.',land:'Il rischio dell’atterraggio: lo accetti scegliendo il suolo.',
     plan:'Il piano di volo non arrivava all’orbita obiettivo.',work:'La quota di lavoro scelta nella fascia.',random:'Il caso: nessuna scelta l’avrebbe evitato del tutto.'})[c]||''; }
 function whatIfOpts(M,fl){ const o=[], r=M.result, cz=fl.log.map(l=>l.c||'');
@@ -4254,14 +4628,14 @@ function mcrParts(M){ const r=M.result, fl=L.flight(M,M.duration+2,true);
   return {r,fl,rows,head,money,why}; }
 function mcrReview(M){ const r=M.result; if(!r) return; const X=mcrParts(M), fl=X.fl, head=X.head, money=X.money, why=X.why; MCRM=M; WIO=whatIfOpts(M,fl);
   const wi=WIO.length?'<h3>E se…?</h3><p class="fine">Rigioca il volo cambiando una sola cosa.</p><div class="wis">'+WIO.map((o,i)=>'<button class="btn small" data-act="whatif" data-i="'+i+'">'+esc(o.l)+'</button>').join('')+'</div><div class="result w" id="wires" hidden></div>':'';
-  review({eb:'Fine fase F',name:'Mission Close-out Review',code:'MCR',nasa:'Decommissioning Review',stamp:r.ok?'CHIUSA':'NON RIUSCITA',no:!r.ok,short:head+(LANG==='en'?' Science ':' Scienza ')+'<b class="num">'+r.sci+'</b>.',
-    body:money+(r.quests.length?'<p class="fine">'+r.quests.map(q=>esc(E.stk(q.id).n)+(q.ok?' soddisfatto (+'+q.bonus+' cr)':' deluso')).join(' · ')+'</p>':'')+why+wi,
+  review({eb:'Fine fase F',name:'Decommissioning Review',code:'MCR',nc:'DR',nasa:'Decommissioning Review',stamp:r.ok?'CHIUSA':'NON RIUSCITA',no:!r.ok,short:head+(LANG==='en'?' Science ':' Scienza ')+'<b class="num">'+r.sci+'</b>.',
+    body:money+segView(M)+anTable(M)+twinView(M)+(r.quests.length?'<p class="fine">'+r.quests.map(q=>esc(E.stk(q.id).n)+(q.ok?' soddisfatto (+'+q.bonus+' cr)':' deluso')).join(' · ')+'</p>':'')+why+wi,
     actions:'<button class="btn primary" data-act="closeov">Chiudi</button>'+(!M.tut?'<button class="btn" data-act="report" data-id="'+M.id+'">⬇ Resoconto</button>':'')+(r.ok&&!M.published&&!M.tut?'<button class="btn" data-act="folder">Pubblica</button>':'')});
   $('#ov .rv').classList.add('wide'); }
 
 /* ---------- azioni ---------- */
 const ACT={
-  enter(t){ $('#pop').hidden=true; if(t.dataset.k==='pad'&&!G.pad){ padModal(); return; } sfx.tap(); go(t.dataset.k); }, home(){ go('hub'); },
+  enter(t){ $('#pop').hidden=true; if(t.dataset.k==='pad'&&!G.pad){ padModal(); return; } if(t.dataset.k==='fd'&&lwPending(cur())){ sfx.tap(); lwOpen(cur()); toast(TX('Prima scegli la finestra di lancio.','First choose the launch window.')); return; } sfx.tap(); go(t.dataset.k); }, home(){ go('hub'); },
   switch(){ if(!G.missions.length){ newMission(); return; } switcher(); },
   setcur(t){ G.cur=+t.dataset.i; $('#pop').hidden=true; $('#drawer').hidden=true; sfx.tap(); render(); },
   newm(){ if(G.tut){ toast('Prima finisci il tutorial, oppure saltalo.'); sfx.bad(); return; } newMission(); }, closeov(){ closeOv(); }, closedr(){ $('#drawer').hidden=true; },
@@ -4269,7 +4643,10 @@ const ACT={
     if(activeN()>=maxActive()){ toast('Troppe missioni aperte.'); return; } const first=!G.missions.length, M=L.newMission(n,'m'+Date.now().toString(36)); M.first=first; M.statement=($('#ms').value||'').trim().slice(0,280); M.sat.dest=D; M.zone=nmState.zone; M.stake=['nasa']; M.sat.stake=M.stake; M.type=$('#mt').value; if($('#mt').selectedOptions[0].disabled){ toast('Questo tipo di missione non è ancora possibile al tuo livello.'); return; } M.lvl=L.level(G.xp); G.missions.push(M); G.cur=G.missions.length-1; closeOv(); sfx.ok(); render(); toast(M.name+' creata. Entra nell’edificio amministrativo: la NASA ti aspetta al tavolo.'); },
   dest(t){ sfx.tap(); nmZones(t.dataset.k); },
   nmplanet(){ sfx.tap(); nmZones(nmState.dest); },
-  nmback(){ $('#nmZone').hidden=true; $('#nmMain').hidden=false; },
+  nmall(){ sfx.tap(); nmAll(); },
+extpick(t){ const k=t.dataset.k, B=BODIES[k]; if(!B) return; if(B.play&&E.DEST[k]){ sfx.tap(); nmZones(k); return; }
+  const ty=B.types.map(x=>O.TYPES[x]?O.TYPES[x].n:x).join(', '); toast(B.n+': '+B.ext+'. Missioni consentite: '+ty+'. Il viaggio fin lì non è ancora volabile (anteprima).'); sfx.bad(); },
+nmback(){ $('#nmZone').hidden=true; $('#nmMain').hidden=false; },
   zone(t){ let b=t.dataset.b, k=t.dataset.k; const z=O.ZONES[b].find(x=>x.k===k); if(z.to){ b=z.to.dest; k=z.to.zone; } nmState.dest=b; nmState.zone=k; $$('.dcard').forEach(x=>x.classList.toggle('sel',x.dataset.k===b)); $('#nmZone').hidden=true; $('#nmMain').hidden=false; sfx.ok(); nmSync(); },
   pickLV(t){ const M=cur(); if(M.phase!=='B') return; if(M.sat.lv===t.dataset.k){ closeOv(); return; } M.sat.lv=t.dataset.k; sfx.tap(); if(M.drm){ const keep=M.drm.eol, was=M.drm.done; M.drm=null; drmInit(M); if(keep&&!drmLand(M)) M.drm.eol=keep; if(was) M.drm.done=true; /* cambiare razzo non annulla il passo del satellite */ } closeOv(); render(); },
   drmlv(){ const M=cur(); const el=$('#ov'); el.innerHTML='<div class="rv wide" role="dialog" aria-modal="true"><h3>Design Reference Mission</h3><h2>Come vai nello spazio</h2><p class="fine">Il lanciatore decide l’orbita di rilascio: il primo passaggio della tua missione.</p>'+fdLaunch(M)+'<div class="row"><button class="btn" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; },
@@ -4291,6 +4668,7 @@ const ACT={
   fddel(t){ const M=cur(), k=+t.dataset.k; M.fd.burns.splice(k-1,1); fdSel=Math.max(1,Math.min(fdSel,M.fd.burns.length)); sfx.tap(); fdRefresh(true); },
   fdsel(t){ fdSel=+t.dataset.k; sfx.tap(); fdRefresh(true); },
   obsel(t){ OBSEL=+t.dataset.k; sfx.tap(); fdRefresh(true); },
+  obplay(t){ if(OBV.pos>=1) OBV.pos=0; OBV.on=!OBV.on; OBV.last=0; t.textContent=OBV.on?'⏸ Pausa':'▶ Rivedi la missione'; sfx.tap(); },
   obpre(t){ const M=cur(); if(!M||!M.ob||fdLocked(M)) return; const p=O.plan(M), k=+t.dataset.k, o=p.orbits[k]; if(!o||o.leg==null) return; const Lg=M.ob.legs[o.leg], q=t.dataset.p, B=obBody(M), a=B.R+o.h;
     if(q==='circ') Lg.e=0; else if(q==='pol') Lg.i=90; else if(q==='eq') Lg.i=0; else if(q==='sso') Lg.i=Math.round(Math.acos(Math.max(-1,-Math.pow(a/12352,3.5)))*1800/Math.PI)/10; else if(q==='same'){ const pr=p.orbits[k-1].el; Lg.i=Math.round(pr.i*10)/10; Lg.raan=Math.round((pr.raan||0)*10)/10; }
     sfx.put(); save(); fdRefresh(true); },
@@ -4299,7 +4677,7 @@ const ACT={
   sec(t){ offSec=t.dataset.k; $$('[data-act="sec"]').forEach(b=>b.classList.toggle('on',b.dataset.k===offSec)); renderSponsors(); },
   recruit(t){ const id=t.dataset.k, lv=L.level(G.xp), picks=L.sponsorSlots(lv)-G.recruited.length; if(picks<=0){ toast('Un nuovo sponsor si sblocca al prossimo livello.'); return; } G.recruited.push(id); L.addSponsor(id); sfx.stamp(); toast(E.stk(id).n+' è nel tuo roster: lo trovi nell’edificio amministrativo.'); render(); },
   askreset(){ $('#drawer').hidden=true; review({eb:'Attenzione',name:'Ricominciare da capo?',code:'—',nasa:'—',body:'<p>Cancelli agenzia, missioni, edifici, macchinari, sponsor e livello. Non si torna indietro.</p>',actions:'<button class="btn no" data-act="reset">Sì, ricomincia</button><button class="btn" data-act="closeov">Annulla</button>'}); },
-  reset(){ try{ localStorage.removeItem('gng32.save'); }catch(e){} for(let i=E.STAKE.length-1;i>=0;i--) if(E.STAKE[i].sponsor||E.STAKE[i].ag) E.STAKE.splice(i,1); G=newG(); closeOv(); view='hub'; render(); welcome(); },
+  reset(){ try{ localStorage.removeItem('gng32.save'); }catch(e){} for(let i=E.STAKE.length-1;i>=0;i--) if(E.STAKE[i].sponsor||E.STAKE[i].ag) E.STAKE.splice(i,1); G=newG(); CUST=null; CBAR=false; closeOv(); view='hub'; render(); welcome(); },
   speed(){ G.speed=1; },
   lang(){ try{ localStorage.setItem('gngLang',LANG==='en'?'it':'en'); }catch(e){} save(); location.reload(); },
   hmenu(){ document.body.classList.toggle('hmo'); sfx.tap(); hud(); },
@@ -4319,11 +4697,18 @@ const ACT={
   no(){ const M=cur(); if(L.R(M.queue[0]).rule) return; let ci=-1; try{ ci=(M.table||L.cast(M,M.meetPh||M.phase)).indexOf(L.R(M.queue[0]).who); }catch(e){} const lv=L.answer(M,M.queue[0],false); sfx.bad(); if(lv) gone(M,lv); render(); if(ci>=0) setTimeout(()=>{ try{ IR3.slam(ci); }catch(e){} },80); },
   endmeet(){ const M=cur();
     if(M.meetPh==='0'){ const fund=L.pledged(M); M.funded=fund; M.stage='done'; const inst=L.installment(M,'MDR');
-      review({eb:'Fine fase 0',name:'Mission Definition Review',code:'MDR',nasa:'Mission Concept Review',stamp:'GO',short:LANG==='en'?'Mission requirements approved. <b class="num">'+keur(fund)+'</b> promised, paid in instalments.':'Requisiti di missione approvati. Promessi <b class="num">'+keur(fund)+'</b>, pagati a rate.',body:'<p>'+M.reqs.length+' requisiti di missione. Gli stakeholder promettono <b class="num">'+keur(fund)+'</b>, ma pagano a rate, alle revisioni.</p>'+payPlan(M,'MDR'),actions:'<button class="btn primary" data-act="toA">Incassa la prima rata e vai avanti</button>'}); }
-    else { M.stage='done'; review({eb:'Fine fase A',name:'System Requirements Review',code:'PRR',nasa:'System Requirements Review',stamp:'GO',short:LANG==='en'?'System requirements set. Now you draw the orbit.':'Requisiti di sistema fissati. Ora si disegna l’orbita.',body:'<p>'+esc(E.RIDES[M.sat.ride].n)+' · '+M.reqs.filter(x=>x.kind==='SYS').length+' requisiti di sistema. In fase B si fa l’analisi orbitale nel Centro di dinamica del volo.</p>',actions:'<button class="btn primary" data-act="toB">Avanti</button>'}); } },
+      review({eb:'Fine della pre-fase A',name:'Mission Concept Review',code:'MDR',nc:'MCR',nasa:'Mission Concept Review',stamp:'GO',short:LANG==='en'?'Mission requirements approved. <b class="num">'+keur(fund)+'</b> promised, paid in instalments.':'Requisiti di missione approvati. Promessi <b class="num">'+keur(fund)+'</b>, pagati a rate.',body:'<p>'+M.reqs.length+' requisiti di missione. Gli stakeholder promettono <b class="num">'+keur(fund)+'</b>, ma pagano a rate, alle revisioni.</p>'+payPlan(M,'MDR'),actions:'<button class="btn primary" data-act="toA">Incassa la prima rata e vai avanti</button>'}); }
+    else { M.stage='done'; review({eb:'Fine fase A',name:'System Requirements Review',code:'PRR',nc:'SRR',nasa:'System Requirements Review',stamp:'GO',short:LANG==='en'?'System requirements set. Now you draw the orbit.':'Requisiti di sistema fissati. Ora si disegna l’orbita.',body:'<p>'+esc(E.RIDES[M.sat.ride].n)+' · '+M.reqs.filter(x=>x.kind==='SYS').length+' requisiti di sistema. In fase B si fa l’analisi orbitale nel Centro di dinamica del volo.</p>',actions:'<button class="btn primary" data-act="toB">Avanti</button>'}); } },
   toA(){ const M=cur(); closeOv(); const first=once(M,'MDR'), inst=first?L.installment(M,'MDR'):0; M.got=(M.got||0)+inst; if(inst) addMoney(inst); if(first) gainXP(L.XP.MDR); M.phase='A'; M.stage='type'; render(); toast((inst?'Prima rata: '+keur(inst)+'. ':'')+'Fase A: rientra nell’edificio amministrativo per scegliere il satellite e sentire lo staff tecnico.'); },
-  pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.stake=M.stake; d.acc=d.acc||{}; E.prune(d); d.sol=L.availSol(M,d.ride)[0]||d.sol; L.startMeeting(M,'A'); sfx.ok(); render(); },
-  toB(){ const M=cur(); closeOv(); if(once(M,'SRR')) gainXP(L.XP.PRR); M.phase='B'; M.stage='drm'; if(!M.sat.lv){ const ks=Object.keys(E.LV).filter(k=>lvShown(k,M)&&!lvLock(k,M)&&E.LV[k].fits.indexOf(M.sat.ride)>=0); if(ks.length) M.sat.lv=ks[0]; } render(); toast('Fase B: esci e vai al Centro di dinamica del volo per disegnare la missione (DRM).'); },
+  pickFree(){ if(!freeBuildOpen()){ toast('Costruzione libera: si sblocca al livello '+FREE_LVL+' (non in modalità creativa).'); sfx.bad(); return; } toast('Costruzione libera: in arrivo (nessun satellite creato).'); },
+pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.stake=M.stake; d.acc=d.acc||{}; E.prune(d); d.sol=L.availSol(M,d.ride)[0]||d.sol; L.startMeeting(M,'A'); sfx.ok(); render(); },
+  toB(){ const M=cur(); closeOv(); if(once(M,'SRR')) gainXP(L.XP.PRR); M.phase='B'; M.stage='drm'; if(!M.sat.lv){ const ks=Object.keys(E.LV).filter(k=>lvShown(k,M)&&!lvLock(k,M)&&E.LV[k].fits.indexOf(M.sat.ride)>=0); if(ks.length) M.sat.lv=ks[0]; } if(!M.lw){ M.lw={s:'pending'}; M.mdr='ask'; } go('hub'); lwOpen(M); toast('Fase B: scegli la finestra di lancio, poi vai al Centro di dinamica del volo per la MDR.'); },
+  lwacc(){ lwResolve(cur(),'ontime'); }, lwrel(){ lwResolve(cur(),'relaxed'); }, lwlater(){ zdClose(); sfx.tap(); },
+  mdryes(){ const M=cur(); zdClose(); M.mdr='edit'; sfx.tap(); render(); const vw=$('#view'); if(vw) vw.classList.add('openL'); },
+  mdrno(){ const M=cur(); zdClose(); if(!drmLand(M)&&drmStarH(M)==null){ toast(TX('Nessuna orbita nella fascia obiettivo: aggiungine una.','No orbit in the target band: add one.')); M.mdr='edit'; } else M.mdr='eol'; sfx.tap(); render(); },
+  mdredone(){ const M=cur(); if(drmStarH(M)==null){ sfx.bad(); return; } M.mdr='eol'; sfx.tap(); render(); },
+  mdreol(t){ const M=cur(), k=t.dataset.k; drmInit(M).eol={k:k==='grave'?'grave':(M.sat.dest||'leo')==='moon'?'impact':'reentry'}; zdClose(); M.mdr='final'; sfx.put(); save(); render(); },
+  mdrok(){ const M=cur(); zdClose(); ACT.bstep({dataset:{k:'sat'}}); if(M.stage==='sat') M.mdr='done'; else { M.mdr='edit'; render(); } },
   ride(t){ const d=cur().sat, k=t.dataset.k; d.ride=k; E.prune(d); sel=null; sfx.tap(); bRefresh(); },
   stab(t){ shelfTab=t.dataset.k; sfx.tap(); renderShelf(); },
   ssort(t){ shelfSort=t.dataset.k; sfx.tap(); renderShelf(); },
@@ -4340,24 +4725,25 @@ const ACT={
     review({eb:'Fine fase C',name:'Critical Design Review',code:'CDR',nasa:'Critical Design Review',stamp:'NO-GO',no:true,body:'<ul class="reqs">'+bad.map(x=>'<li><span class="c">'+(x.base?'BASE':x.code)+'</span><span>'+esc(x.t)+(x.who?' <span class="fine">· '+esc(PEO[x.who].n)+'</span>':'')+'</span><span>'+(x.base?'':L.R(x.id).rule?'<span class="fine">regola</span>':'<button class="btn small no" data-act="waive" data-id="'+x.id+'">Deroga</button>')+'</span></li>').join('')+'</ul>'+
       (soft.length?'<p class="fine">Una deroga chiude il requisito, ma è una promessa rotta: chi lo ha chiesto perde '+L.JOY.waive+' punti di soddisfazione, e con loro una parte delle rate.</p>':'')+(base.length?'<p class="fine">I requisiti di base non si derogano.'+(base.some(x=>x.fd)?' Il piano di volo si progetta nel Centro di dinamica del volo.':'')+'</p>':''),actions:'<button class="btn primary" data-act="closeov">Torna al progetto</button>'}); },
   waive(t){ const M=cur(); if(t.dataset.t){ M.tr[t.dataset.t].res='waived'; sfx.bad(); render(); return; } if(L.R(t.dataset.id).rule){ toast('Le regole non si derogano.'); return; } const lv=L.waive(M,t.dataset.id); sfx.bad(); if(lv) gone(M,lv); closeOv(); if(M.phase==='D') ACT.frr(); else ACT.pdr(); },
-  toD(){ const M=cur(), cost=costDue(M); if(G.money<cost){ toast('Non hai abbastanza crediti.'); return; } closeOv(); if(M.capC&&!M.overrun){ const tot=cost+(M.lvPaid||0), pct=Math.round((tot/M.capC-1)*100); if(pct>0){ M.overrun=pct; M.stake.forEach(id=>{ M.joy[id]=Math.max(1,(M.joy[id]==null?60:M.joy[id])-Math.min(45,10+pct)); }); setTimeout(()=>toast('Over budget by '+pct+'%: the stakeholders are unhappy, later instalments will shrink.'),400); } } addMoney(-cost,'Pezzi comprati: −'+keur(cost)+'. Fase D: assemblaggio in camera bianca.'); if(once(M,'CDR')) gainXP(L.XP.CDR); M.paid=(M.paid||0); M.partsCredit=0; if(S3.ok){ try{ M.snap=S3.snap(M.sat,240); }catch(e){} } M.paid=(M.paid||0)+cost; M.partsVal=E.budget(M.sat).cost-(M.lvPaid||0); M.phase='D'; M.stage='assembly'; M.tests={}; M.tr={}; M.ready=false; M.buildDur=L.TIME.build*(hasB('factory')?.5:1)*(M.tut?.15:1)*workK()*perk('build'); M.buildEnd=9e15; M.asmWait=true; M.station=null; M.buildNote=false; render(); toast('Pezzi comprati. Ora porta il satellite su una postazione della camera bianca.'); },
-  cdr(){ const M=cur(); M.rnd=hasB('rnd'); M.defects=M.tut?{}:L.defects(M); M.stage='test'; M.tests={}; M.tr={}; M.ready=false; sfx.ok(); render(); toast(M.name+' è assemblato: esci e portalo all’edificio di testing per le prove.'); },
+  toD(){ const M=cur(), cost=costDue(M); if(G.money<cost){ toast('Non hai abbastanza crediti.'); return; } closeOv(); if(M.capC&&!M.overrun){ const tot=cost+(M.lvPaid||0), pct=Math.round((tot/M.capC-1)*100); if(pct>0){ M.overrun=pct; M.stake.forEach(id=>{ M.joy[id]=Math.max(1,(M.joy[id]==null?60:M.joy[id])-Math.min(45,10+pct)); }); setTimeout(()=>toast('Over budget by '+pct+'%: the stakeholders are unhappy, later instalments will shrink.'),400); } } addMoney(-cost,'Pezzi comprati: −'+keur(cost)+'. Fase D: assemblaggio in camera bianca.'); if(once(M,'CDR')) gainXP(L.XP.CDR); M.paid=(M.paid||0); M.partsCredit=0; if(S3.ok){ try{ M.snap=S3.snap(M.sat,240); }catch(e){} } M.paid=(M.paid||0)+cost; M.partsVal=E.budget(M.sat).cost-(M.lvPaid||0); M.phase='D'; M.stage='assembly'; M.tests={}; M.tr={}; M.ready=false; M.buildDur=L.TIME.build*(hasB('factory')?.5:1)*(M.tut?.15:1)*workK()*perk('build'); M.buildEnd=9e15; M.asmWait=true; M.station=null; M.buildNote=false; go('hub'); toast('Pezzi comprati. Fase D: entra nell’edificio di costruzione e porta il satellite in camera bianca.'); },
+  cdr(){ const M=cur(); M.rnd=hasB('rnd'); M.defects=M.tut?{}:L.defects(M); M.stage='test'; M.tests={}; M.tr={}; M.ready=false; sfx.ok(); go('hub'); toast(M.name+' è assemblato: portalo all’edificio di testing per le prove.'); },
   tolab(){ closeOv(); go('test'); },
   pick(t){ const i=G.missions.findIndex(m=>m.id===t.dataset.id); if(i>=0){ G.cur=i; sfx.tap(); render(); } },
   bay(t){ bayModal(+t.dataset.i); },
   install(t){ const k0=t.dataset.k, m0=L.MACH[k0]; if(G.money<m0.c){ toast('Non hai abbastanza soldi.'); sfx.bad(); return; } if(G.lab.length>=LABMAX){ toast('Laboratorio pieno.'); return; } closeOv(); RPLACE={room:'test',k:k0}; RSEL=null; go('test'); toast('Tocca un punto libero del laboratorio per posizionare '+m0.n.toLowerCase()+'.'); },
   installOld(t){ const k=t.dataset.k, m=L.MACH[k]; if(G.money<m.c){ toast('Non hai abbastanza soldi.'); sfx.bad(); return; } addMoney(-m.c); G.lab[+t.dataset.i]=k; closeOv(); sfx.put(); toast(m.n+' installato.'); render(); },
-  plot(t){ CTAB='Edifici'; CBAR=true; G.cedit=true; go('hub'); },
+  plot(t){ CTAB='Edifici'; CBAR=true; G.cedit=true; CUST='campus'; go('hub'); },
   cplace(t){ const k=t.dataset.k, ki=cKind(k); if(k==='dish'&&!hasB('ground')){ toast('Le antenne si collegano alla stazione di terra: costruiscila prima (Edifici).'); sfx.bad(); return; } if(L.level(G.xp)<ki.lvl){ toast('Si sblocca al livello '+ki.lvl+'.'); return; } if(cBuilt(k)){ toast('Già costruito.'); return; } if(G.money<ki.c){ toast('Non hai abbastanza crediti.'); sfx.bad(); return; } if(SREQ[k]&&G.staff-staffNeed()<SREQ[k]){ toast(ki.n+': servono '+SREQ[k]+' dipendenti liberi, ne hai '+Math.max(0,G.staff-staffNeed())+'. Assumili (ognuno vuole un posto auto).'); sfx.bad(); staffModal(); return; } CPLACE={k}; CSEL=null; if(innerWidth<640&&G.world.cam.z>.7){ cZoom(.7/G.world.cam.z); } sfx.tap(); render(); },
-  ctab(t){ CTAB=t.dataset.k; sfx.tap(); render(); }, cbar(){ CBAR=!CBAR; G.cedit=CBAR; CSEL=null; if(!CBAR) CPLACE=null; sfx.tap(); render(); }, cesc(){ CPLACE=null; render(); },
+  ctab(t){ CTAB=t.dataset.k; sfx.tap(); render(); }, cbar(){ custOpen(null); }, cesc(){ CPLACE=null; render(); },
   czoom(t){ cZoom(+t.dataset.k>0?1.2:1/1.2); save(); },
-  cedit(){ G.cedit=!G.cedit; CBAR=G.cedit; CSEL=null; CPLACE=null; sfx.tap(); render(); },
+  cedit(){ custOpen(CUST==='campus'?null:'campus'); },
+  cust(){ custOpen(CUST?null:'campus'); }, custclose(){ custOpen(null); }, custtab(t){ if(t.dataset.k!==CUST) custOpen(t.dataset.k); },
   cmove(){ const it=G.world.items.find(i=>i.id===CSEL); if(!it) return; CPLACE={k:it.k,moveId:it.id}; sfx.tap(); render(); },
   cdel(){ const W=G.world, it=W.items.find(i=>i.id===CSEL); if(!it||CAM.K[it.k].core) return; if(it.k==='parking'&&spaces()-SPACES<G.staff){ toast('Senza questo parcheggio '+(G.staff-(spaces()-SPACES))+' dipendenti resterebbero senza posto auto.'); sfx.bad(); return; } if(SREQ[it.k]){ /* l'edificio libera i suoi dipendenti */ } const ki=cKind(it.k); W.items=W.items.filter(i=>i!==it); if(L.BUILD[it.k]) G.plots=G.plots.filter(k=>k!==it.k); addMoney(Math.round(ki.c/2)); CSEL=null; sfx.tap(); toast(ki.n+' rimosso.'); save(); render(); },
-  flagedit(){ flagModal(); }, flcol(t){ FLST.col=t.dataset.k; $$('.fled .pal button').forEach(b=>b.classList.toggle('on',b.dataset.k===FLST.col)); },
+  flagedit(){ if(view!=='hub'){ custSet('flag'); go('hub'); } else custOpen('flag'); }, flcol(t){ FLST.col=t.dataset.k; $$('.fled .pal button').forEach(b=>b.classList.toggle('on',b.dataset.k===FLST.col)); },
   flsize(t){ FLST.size=+t.dataset.k; }, flfill(){ const cv=$('#flc'); if(!cv) return; const cx=cv.getContext('2d'); cx.fillStyle=FLST.col; cx.fillRect(0,0,300,180); }, fltpl(t){ flagTpl(t.dataset.k); },
-  flsave(){ const cv=$('#flc'); if(!cv) return; const c2=document.createElement('canvas'); c2.width=150; c2.height=90; c2.getContext('2d').drawImage(cv,0,0,150,90); G.flag=c2.toDataURL('image/png'); closeOv(); sfx.stamp(); toast('Bandiera dipinta sull’edificio di costruzione.'); save(); render(); },
-  flreset(){ G.flag=null; closeOv(); save(); render(); },
+  flsave(){ const cv=$('#flc'); if(!cv) return; const c2=document.createElement('canvas'); c2.width=150; c2.height=90; c2.getContext('2d').drawImage(cv,0,0,150,90); G.flag=c2.toDataURL('image/png'); sfx.stamp(); toast('Bandiera dipinta sull’edificio di costruzione.'); save(); render(); },
+  flreset(){ G.flag=null; FLDRAFT=null; const cv0=$('#flc'); if(cv0) cv0.remove(); save(); render(); },
   buildb(t){ const k=t.dataset.k, b=L.BUILD[k]; if(G.money<b.c){ toast('Non hai abbastanza soldi.'); sfx.bad(); return; } addMoney(-b.c); G.plots[+t.dataset.i]=k; closeOv(); sfx.stamp(); toast(b.n+' costruito: '+b.s); render(); },
   binfo(t){ facK=t.dataset.k||G.plots[+t.dataset.i]; sfx.tap(); go('fac'); },
   binfoOld(t){ const k=G.plots[+t.dataset.i], b=L.BUILD[k]; review({eb:'Edificio',name:b.n,code:'—',nasa:'—',body:'<p>'+b.s+'</p><p class="fine">Effetto attivo su tutte le missioni.</p>',actions:'<button class="btn primary" data-act="closeov">Chiudi</button>'}); },
@@ -4366,17 +4752,17 @@ const ACT={
   fix(t){ const M=cur(); if(G.money<L.FIXC){ toast('Non hai abbastanza soldi.'); return; } addMoney(-L.FIXC); M.tr[t.dataset.t].res='fixed'; M.tests[t.dataset.t]=true; sfx.ok(); render(); },
   stiff(){ const M=cur(); if(G.money<L.STIFFC){ toast('Non hai abbastanza soldi.'); return; } addMoney(-L.STIFFC); M.stiff=true; if(M.defects.vib) M.tr.vib.res='defect'; else { M.tr.vib.res='pass'; M.tests.vib=true; } sfx.ok(); render(); },
   frr(){ const M=cur(), miss=L.status(M,M.sat).list.filter(x=>x.kind==='tests'&&!x.ok).sort((a,b)=>(L.R(a.id).rule?1:0)-(L.R(b.id).rule?1:0)), un=L.TESTS.filter(t=>!M.tests[t]), RK=L.risks(M,G.lab.filter(Boolean)).list, hi=RK.filter(x=>x.p*x.i>=6);
-    if(miss.length){ review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nasa:'Flight Readiness Review',stamp:'NO-GO',no:true,body:'<p>'+miss.map(x=>x.code+' · '+esc(x.t)).join('<br>')+'</p><p class="fine">'+(L.R(miss[0].id).rule?'L’ente regolatore non autorizza il lancio senza queste prove: niente deroghe.':esc(PEO.pa.n)+' non firma senza queste prove.')+'</p>',actions:'<button class="btn primary" data-act="closeov">Torna alle prove</button>'+(L.R(miss[0].id).rule?'':'<button class="btn no" data-act="waive" data-id="'+miss[0].id+'">Deroga</button>')}); return; }
-    review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nasa:'Flight Readiness Review',short:(LANG==='en'?'Open risks: ':'Rischi aperti: ')+'<b>'+RK.length+'</b>'+(hi.length?', <b class="bad">'+hi.length+(LANG==='en'?' high':' alti')+'</b>':'')+(LANG==='en'?'. The Go is your call.':'. Il Go lo decidi tu.'),body:(un.length?'<p>Senza prova superata: '+un.map(t=>L.MACH[t].n).join(', ')+'. Eventuali difetti voleranno con il satellite.</p>':'<p>Tutte le prove superate.</p>')+'<p><b>Rischi aperti: '+RK.length+'</b>, di cui <b>'+hi.length+' alti</b>'+(hi.length?': '+hi.map(x=>esc(x.t)).join(', '):'')+'.</p><p>Con il Go gli stakeholder versano la terza rata: <b class="num">'+keur(L.installment(M,'FRR'))+'</b>.</p><p>La decisione è tua.</p>',actions:'<button class="btn primary" data-act="go">Go</button><button class="btn" data-act="closeov">No-go</button>'}); },
-  go(){ const M=cur(); M.ready=true; M.winAt=now()+winWait(M); closeOv(); sfx.stamp(); const first=once(M,'FRR'); if(first) gainXP(L.XP.FRR); const inst=first?L.installment(M,'FRR'):0; M.got=(M.got||0)+inst; addMoney(inst); if(M.sat.lv!=='HOME'){ render(); toast(M.name+' è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.'); return; } toast(M.name+' è sulla rampa di lancio: comincia la fase E.'); render(); },
+    if(miss.length){ review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nc:'FRR',nasa:'Flight Readiness Review',stamp:'NO-GO',no:true,body:'<p>'+miss.map(x=>x.code+' · '+esc(x.t)).join('<br>')+'</p><p class="fine">'+(L.R(miss[0].id).rule?'L’ente regolatore non autorizza il lancio senza queste prove: niente deroghe.':esc(PEO.pa.n)+' non firma senza queste prove.')+'</p>',actions:'<button class="btn primary" data-act="closeov">Torna alle prove</button>'+(L.R(miss[0].id).rule?'':'<button class="btn no" data-act="waive" data-id="'+miss[0].id+'">Deroga</button>')}); return; }
+    review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nc:'FRR',nasa:'Flight Readiness Review',short:(LANG==='en'?'Open risks: ':'Rischi aperti: ')+'<b>'+RK.length+'</b>'+(hi.length?', <b class="bad">'+hi.length+(LANG==='en'?' high':' alti')+'</b>':'')+(LANG==='en'?'. The Go is your call.':'. Il Go lo decidi tu.'),body:(un.length?'<p>Senza prova superata: '+un.map(t=>L.MACH[t].n).join(', ')+'. Eventuali difetti voleranno con il satellite.</p>':'<p>Tutte le prove superate.</p>')+'<p><b>Rischi aperti: '+RK.length+'</b>, di cui <b>'+hi.length+' alti</b>'+(hi.length?': '+hi.map(x=>esc(x.t)).join(', '):'')+'.</p><p>Con il Go gli stakeholder versano la terza rata: <b class="num">'+keur(L.installment(M,'FRR'))+'</b>.</p><p>La decisione è tua.</p>',actions:'<button class="btn primary" data-act="go">Go</button><button class="btn" data-act="closeov">No-go</button>'}); },
+  go(){ const M=cur(); M.ready=true; M.winAt=now()+winWait(M); closeOv(); sfx.stamp(); const first=once(M,'FRR'); if(first) gainXP(L.XP.FRR); const inst=first?L.installment(M,'FRR'):0; M.got=(M.got||0)+inst; addMoney(inst); /* dopo il Go si torna al campus (go qui e' la funzione di navigazione, non questo metodo) */ go('hub'); if(M.sat.lv!=='HOME'){ toast(M.name+' è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.'); return; } toast(M.name+' è sulla rampa di lancio: comincia la fase E.'); },
   xopen(){ xLaunchModal(cur()); },
   xlaunch(){ const M=cur(); if(!M||M.phase!=='D'||!M.ready||LBUSY) return; if(winLeft(M)>0){ sfx.bad(); toast(TX('La finestra di lancio non è ancora aperta.','The launch window is not open yet.')); return; } LBUSY=true; document.body.classList.add('lfly'); M.duration=LDUR||M.duration; const rk=$('#lrk'), cnt=$('#lcnt'); $$('.lbtn,.ldur').forEach(b=>b.classList.add('dis')); let n=10; sfx.tap();
     const iv=setInterval(()=>{ n--; if(cnt) cnt.textContent=n>0?'T-'+n:'DECOLLO'; if(n===3){ if(rk) rk.classList.add('ign'); IR3.launch('ign'); } if(n>0){ sfx.tap(); return; } clearInterval(iv); sfx.stamp(); tone(60,1.8,'sawtooth',.06);
       const sm=$('#lsmk'); if(sm) sm.innerHTML=[-150,-90,-40,40,90,150,-200,200].map((x,i)=>'<circle class="puff" cx="'+(640+x)+'" cy="'+(540-Math.abs(x)*.08)+'" r="'+(34+i*4)+'" fill="#fff" style="animation-delay:'+(i*.07)+'s"/>').join('');
       IR3.launch('go'); document.body.classList.add('lgone'); if(rk){ rk.classList.remove('ign'); rk.classList.add('go'); rk.querySelector('.lfl').setAttribute('opacity','1'); }
       setTimeout(()=>{ document.body.classList.remove('lfly','lgone'); startFlight(M); LBUSY=false; MCCV=null; go('hub'); },4600); },420); },
-  padsite(){ if(L.level(G.xp)<E.LV.HOME.lvl){ toast('The launch pad unlocks at level '+E.LV.HOME.lvl+'.'); return; } CTAB='Edifici'; CBAR=true; G.cedit=true; go('hub'); ACT.cplace({dataset:{k:'pad'}}); },
-  buypad(){ closeOv(); CTAB='Edifici'; CBAR=true; G.cedit=true; go('hub'); ACT.cplace({dataset:{k:'pad'}}); },
+  padsite(){ if(L.level(G.xp)<E.LV.HOME.lvl){ toast('The launch pad unlocks at level '+E.LV.HOME.lvl+'.'); return; } CTAB='Edifici'; custSet('campus'); go('hub'); ACT.cplace({dataset:{k:'pad'}}); },
+  buypad(){ closeOv(); CTAB='Edifici'; custSet('campus'); go('hub'); ACT.cplace({dataset:{k:'pad'}}); },
   buypadOld(){ const c=600; if(L.level(G.xp)<E.LV.HOME.lvl){ toast('The launch pad unlocks at level '+E.LV.HOME.lvl+'.'); return; } if(G.money<c){ toast('Non hai abbastanza crediti.'); sfx.bad(); return; } addMoney(-c); G.pad=true; closeOv(); sfx.stamp(); toast('Rampa di lancio costruita: da ora puoi lanciare in casa, con il 40% in meno.'); render(); },
   launch(){ const M=cur(); if(!M||M.phase!=='D'||!M.ready) return; if(winLeft(M)>0){ sfx.bad(); toast(TX('La finestra di lancio non è ancora aperta.','The launch window is not open yet.')); return; } M.duration=+$('#dur').value; const el=$('#cnt'), rk=$('#rk'); el.hidden=false; let n=5; el.textContent='T-'+n; sfx.tap(); $$('[data-act="launch"]').forEach(b=>b.disabled=true);
     const iv=setInterval(()=>{ n--; if(n===1) rk.classList.add('ign'); if(n>0){ el.textContent='T-'+n; sfx.tap(); } else { clearInterval(iv); el.textContent='Decollo!'; sfx.stamp(); tone(60,1.6,'sawtooth',.06); rk.classList.add('go');
@@ -4414,13 +4800,15 @@ const ACT={
   hire(){ if(G.staff>=spaces()){ toast('Tutti i posti auto sono occupati: costruisci un parcheggio.'); return; } if(G.money<HIRE){ toast('Non hai abbastanza crediti.'); return; } addMoney(-HIRE); G.staff++; sfx.ok(); save(); staffModal(); hud(); if(view==='hub') render(); },
   fire(){ if(G.staff<=staffNeed()) return; G.staff--; sfx.tap(); save(); staffModal(); if(view==='hub') render(); },
   rplant(t){ if(G.money<PLANTC){ toast('Non hai abbastanza crediti.'); return; } RPLACE={room:t.dataset.r,k:'plant'}; RSEL=null; sfx.tap(); render(); },
-  resc(){ RPLACE=null; render(); }, rselx(){ RSEL=null; render(); },
+  resc(){ RPLACE=null; render(); }, rselx(){ RSEL=null; render(); }, rrot(){ sfx.tap(); IR3.turn(1); },
   vcase(t){ VCASE=+t.dataset.i; sfx.tap(); render(); }, vpick(t){ const ok=G.missions.filter(m=>m.result&&m.result.ok), sl=vSlots(ok), i=+t.dataset.i, id=t.dataset.id||null; if(id) for(let j=0;j<5;j++) if(sl[j]===id) sl[j]=null; sl[i]=id; G.showcase=sl; VCASE=null; sfx.tap(); save(); render(); },
   plantsel(t){ RSEL={room:t.dataset.r,i:+t.dataset.i}; sfx.tap(); render(); },
   rplantdel(){ if(!RSEL) return; const R=G.rooms[RSEL.room]; R.plants.splice(RSEL.i,1); RSEL=null; sfx.tap(); toast('Pianta rimossa: squadra al '+morale()+'%.'); save(); render(); },
   labadd(){ if(G.lab.length>=LABMAX){ toast('Il laboratorio ha posto per '+LABMAX+' macchinari.'); return; } bayModal(G.lab.length); },
   mmove(){ if(MSEL==null) return; const k=G.lab[MSEL], M=cur(), r=M&&M.tr&&M.tr[k]; if(r&&r.res==='run'){ toast('Prova in corso: lo sposti quando ha finito.'); return; } G.lab.forEach((_,j)=>{ if(!G.labPos[j]) G.labPos[j]={x:1+j*2,y:9}; }); RPLACE={room:'test',k,moveI:MSEL}; MSEL=null; sfx.tap(); render(); }, mselx(){ MSEL=null; render(); },
-  mach(t){ MSEL=G.lab.indexOf(t.dataset.k); if(MSEL<0) MSEL=null; const M=cur(), k=t.dataset.k, inLab=M&&M.phase==='D'&&M.stage!=='assembly'?M:null; if(inLab&&!inLab.ready&&!inLab.tr[k]&&!Object.keys(inLab.tr).some(x=>inLab.tr[x].res==='run')){ MSEL=null; ACT.runtest({dataset:{k}}); return; } toast(L.MACH[k].n+(inLab&&inLab.tr[k]?': prova già fatta per '+inLab.name+'.':inLab?'':': scegli un satellite dal magazzino a sinistra.')); render(); },
+  /* toccare un macchinario apre il suo menu: lì si sceglie il satellite da provare (labPop) */
+  mach(t){ MSEL=G.lab.indexOf(t.dataset.k); if(MSEL<0) MSEL=null; sfx.tap(); render(); },
+  mtest(t){ const i=G.missions.findIndex(m=>m.id===t.dataset.id); if(i<0) return; G.cur=i; MSEL=null; ACT.runtest({dataset:{k:t.dataset.k}}); },
   openyard(t){ const id=t.dataset.id; const i=G.missions.findIndex(m=>m.id===id); if(i>=0) G.cur=i; BVIEW='yard'; sfx.tap(); render(); },
   benchfree(){ toast('Banco libero: crea una nuova missione con il tasto + e portala in fase C.'); },
   broom(t){ BROOM=t.dataset.k; BVIEW='room'; sfx.tap(); render(); }, toroom(){ BVIEW='room'; sfx.tap(); render(); },
@@ -4445,15 +4833,18 @@ O.hook.refProp=M=>{ const ride=M.sat.ride, ids=L.availCat(M,'prop',ride);
 function pdrB(){ const M=cur(), p=O.plan(M), bad=[]; if(!M.drm||!(drmLand(M)||(M.drm.eol&&drmStarH(M)!=null))) bad.push('Completa la Design Reference Mission (passo 1): orbita di lavoro ★ e fine vita.'); else if(!M.drm.done) bad.push('Progetta il satellite (passo 2).'); else { const ck=E.checks(M.sat).list.filter(x=>!x.ok&&['parts','place','mass','pow','bat','point'].indexOf(x.k)>=0); ck.forEach(x=>bad.push('Satellite: '+esc(x.t)+'.')); const dd=drmDv(M,p); if(!ck.length&&!p.bad&&p.tot*1.05+dd.extra>p.dvAvail+1) bad.push('La DRM chiede '+Math.round(p.tot*1.05+dd.extra)+' m/s, il satellite ne ha '+Math.round(p.dvAvail)+'.'); }
   if(M.sat.lv){ const wet=E.budget(M.sat).wet, cap=lvCap(M); if(wet>cap+1e-9) bad.push('Il satellite pesa '+nf(wet,1)+' kg, ma '+esc(E.LV[M.sat.lv].n)+' ne porta al massimo '+cap+' in quest’orbita.'); }
   if(!M.sat.lv) bad.push('Scegli come vai nello spazio.'); else { if(p.bad) bad.push(esc(p.bad)+'.'); else if(!p.ok) bad.push(p.stratOk?'L’orbita finale non è dentro la fascia obiettivo.':'Scegli una strategia per ogni tratto del viaggio.'); else if(p.ref&&p.tot>1&&p.tot*1.05>p.dvAvail) bad.push('Il piano chiede '+Math.round(p.tot*1.05)+' m/s (con il margine), ma il miglior propulsore del tuo livello ne dà circa '+Math.round(p.dvAvail)+': scegli un’orbita più vicina a quella di rilascio.'); }
+  { const an=p.an, w=p.lf&&(p.lf.max||p.lf.nom), dd=M.sat.dest||'leo'; if(an&&an.impact&&!M.sat.placed.prop&&an.impact.days<L.minMonths(M)*30.4) bad.push('Senza propulsione l’orbita cade: GMAT prevede il contatto con la superficie o l’atmosfera dopo '+nf(an.impact.days,0)+' giorni, ne servono almeno '+nf(L.minMonths(M)*30.4,0)+'.'); if(!M.sat.placed.prop&&(dd==='leo'||dd==='mars')&&w&&w.days!=null&&w.days<L.minMonths(M)*30.4) bad.push('Senza propulsione l’orbita decade: GMAT stima circa '+nf(w.days,0)+' giorni di vita (caso peggiore), ne servono almeno '+nf(L.minMonths(M)*30.4,0)+'.'); else if(!w&&an&&an.decay&&an.decay.measurable&&an.decay.lifeMonths!=null&&!M.sat.placed.prop&&an.decay.lifeMonths<L.minMonths(M)) bad.push('Senza propulsione l’orbita decade: GMAT stima circa '+nf(an.decay.lifeMonths,0)+' mesi di vita, ne servono almeno '+L.minMonths(M)+'.'); }
   const inst=L.installment(M,'PDR'), lc=M.sat.lv?E.lvCost(M.sat):0, rush=rushExtra(M,lc);
   if(bad.length){ review({eb:'Fine fase B',name:'Preliminary Design Review',code:'PDR',nasa:'Preliminary Design Review',stamp:'NO-GO',no:true,body:'<ul class="reqs">'+bad.map(x=>'<li><span class="c">ORB</span><span>'+x+'</span><span></span></li>').join('')+'</ul>',actions:'<button class="btn primary" data-act="closeov">Torna alla fase B</button>'}); return; }
   review({eb:'Fine fase B',name:'Preliminary Design Review',code:'PDR',nasa:'Preliminary Design Review',stamp:'GO',short:(LANG==='en'?'Orbit and launch approved. Second instalment: ':'Orbita e lancio approvati. Seconda rata: ')+'<b class="num">'+keur(inst)+'</b>.',body:'<p>Lancio: <b>'+esc(E.LV[M.sat.lv].n)+'</b>'+(lc?' · prenotazione '+keur(lc):'')+(rush?' + extra Rush '+keur(rush):'')+' · finestra '+winName(winMode(M))+'. Orbita di lavoro: '+(p.land?'sul suolo':O.fmt(p.final))+'; ΔV del piano '+Math.round(p.tot)+' m/s'+(p.tot>1?': con il propulsore che hai scelto':'')+'. Fase C: il progetto si congela e alla CDR compri i pezzi.</p>'+(()=>{ const q=dataBud(M); return q.ok?'':'<p class="bad">Attenzione: la radio scarica solo il '+pct(q.k)+' dei dati prodotti. La scienza in volo calerà nella stessa misura.</p>'; })()+(p.atm&&p.atm.p>0.005&&p.atm.worst?'<p class="bad">Attenzione: '+pct(p.atm.p)+' di probabilità che l’attrito dell’atmosfera faccia rientrare il satellite prima del tempo (pericentro a '+nf(p.atm.worst.pe,0)+' km).</p>':'')+'<p>Gli stakeholder versano la seconda rata, <b class="num">'+keur(inst)+'</b>.</p>'+(G.money+inst<lc+rush?'<p class="bad">Anche con la rata non basta per prenotare il lancio.</p>':'')+payPlan(M,'PDR'),actions:'<button class="btn primary" data-act="toC">Prenota il lancio e vai avanti</button><button class="btn" data-act="closeov">Non ancora</button>'}); }
-function toC(){ const M=cur(), first=!(M.once&&M.once.PDR), inst=first?L.installment(M,'PDR'):0, lc=E.lvCost(M.sat), rush=rushExtra(M,lc); if(G.money+inst<lc+rush){ toast('Non hai abbastanza crediti, nemmeno con la rata.'); return; } closeOv(); once(M,'PDR'); M.got=(M.got||0)+inst; M.lvPaid=lc; M.rushPaid=rush; M.lvFixed=true; addMoney(inst-lc-rush); if(first) gainXP(L.XP.PDR); M.phase='C'; M.stage='design'; render(); toast((inst?'Rata PDR '+keur(inst):'Nessuna nuova rata')+(lc?' · lancio prenotato −'+keur(lc):'')+(rush?' · extra Rush −'+keur(rush):'')+'. Fase C: costruisci il satellite nell’edificio di costruzione.'); }
+function toC(){ const M=cur(), first=!(M.once&&M.once.PDR), inst=first?L.installment(M,'PDR'):0, lc=E.lvCost(M.sat), rush=rushExtra(M,lc); if(G.money+inst<lc+rush){ toast('Non hai abbastanza crediti, nemmeno con la rata.'); return; } closeOv(); once(M,'PDR'); M.got=(M.got||0)+inst; M.lvPaid=lc; M.rushPaid=rush; M.lvFixed=true; addMoney(inst-lc-rush); if(first) gainXP(L.XP.PDR); M.phase='C'; M.stage='design'; render(); toast((inst?'Rata PDR '+keur(inst):'Nessuna nuova rata')+(lc?' · lancio prenotato −'+keur(lc):'')+(rush?' · extra Rush −'+keur(rush):'')+'. Fase C: revisione CDR e acquisto dei pezzi.');
+  /* la CDR si apre subito, qui nel Centro di dinamica del volo: niente viaggio all'edificio di costruzione solo per comprare i pezzi */
+  ACT.pdr(); }
 function gone(M,lv){ const P2=PEO[lv.who]; sfx.leave(); if(!lv.staff) M.funded=L.pledged(M);
   toast(lv.staff?P2.n+' se ne va: d’ora in poi nessuno ti segnala i rischi del suo sottosistema.':P2.org+' lascia la missione: niente più rate da lui. Le sue tecnologie non sono più disponibili.'); }
 // rate: chi è contento paga tutto, chi è scontento paga meno
 function payPlan(M,gate){ const G2=['MDR','PDR','FRR','MCR'], i=G2.indexOf(gate);
-  return '<div class="tw"><table class="pay"><tr><th>Stakeholder</th><th>Soddisfazione</th>'+G2.map((g,k)=>'<th'+(k===i?' class="now"':'')+'>'+g+' '+Math.round(L.PAY[g]*100)+'%</th>').join('')+'</tr>'+
+  return '<div class="tw"><table class="pay"><tr><th>Stakeholder</th><th>Soddisfazione</th>'+G2.map((g,k)=>'<th'+(k===i?' class="now"':'')+'>'+({MDR:'MCR',MCR:'DR'}[g]||g)+' '+Math.round(L.PAY[g]*100)+'%</th>').join('')+'</tr>'+
     M.stake.map(id=>{ const j=M.joy[id]==null?60:M.joy[id], k=L.joyK(j); return '<tr><td>'+esc(E.stk(id).n)+'</td><td class="'+(k<1?'bad':'')+'">'+j+'%'+(k<1?' · paga il '+Math.round(k*100)+'%':'')+'</td>'+G2.map((g,n)=>'<td class="num'+(n===i?' now':'')+'">'+keur(L.fund(id,M)*L.PAY[g]*k*L.SCALE.inst())+'</td>').join('')+'</tr>'; }).join('')+
     '</table></div><p class="fine">Le rate future dipendono dalla soddisfazione di quel momento. Sotto il 50% di soddisfazione si paga l’80%, sotto il 25% solo la metà. L’ultima rata arriva solo se la missione riesce.</p>'; }
 document.addEventListener('click',e=>{ if(document.body.classList.contains('hmo')&&!(e.target.closest&&e.target.closest('.hud-r'))){ document.body.classList.remove('hmo'); hud(); } },true);
@@ -4500,7 +4891,7 @@ function roadModal(){ const lv=L.level(G.xp), N=L.LEVELS.length, mA=l=>L.maxActi
     { const sp=L.sponsorSlots(n)-(n>1?L.sponsorSlots(n-1):0); if(n>=3&&sp>0) g.push('✍️ +'+sp+' recruitable sponsor'+(sp>1?'s':'')); }
     if(n>1) g.push('🌳 Campus più grande ('+Math.round(siteK(n)*siteK(n)*100)+'% dell’area iniziale)');
     if(n===1) g.push('NASA, scienziata ed ente regolatore','CubeSat 3U','🌍 Terra · orbita bassa','🔧 Tavola vibrante');
-    if(n>1){ const ZN={leo:'Terra',moon:'Luna',mars:'Marte',venus:'Venere'}; Object.keys(O.ZONES||{}).forEach(d=>(O.ZONES[d]||[]).filter(z=>z.lvl===n).forEach(z=>g.push('🪐 '+ZN[d]+' · '+z.n.toLowerCase()))); }
+    if(n>1){ const ZN={leo:'Terra',moon:'Luna',mars:'Marte',venus:'Venere'}; Object.keys(E.EXT).forEach(k=>{ ZN[k]=E.EXT[k].n; }); Object.keys(O.ZONES||{}).forEach(d=>(O.ZONES[d]||[]).filter(z=>z.lvl===n).forEach(z=>g.push('🪐 '+ZN[d]+' · '+z.n.toLowerCase()))); }
     { const ti=L.TIERS.findIndex(x=>x.from===n); if(ti>=0) rows.push('<div class="rtier"><b>Tier '+(ti+1)+'</b> · '+L.TIERS[ti].n+''+'</div>'); }
     rows.push('<div class="rlv'+(n<lv?' done':n===lv?' cur':'')+'"><div class="n">'+n+'<small>'+(n<lv?'✓':n===lv?'sei qui':L.LEVELS[n-1]+' XP')+'</small></div><ul>'+g.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'); }
   el.innerHTML='<div class="rv wide rvfix rvroad" role="dialog" aria-modal="true"><h3>Roadmap</h3><h2>'+(L.LEVELS[lv]?TX('Livello '+lv+' · mancano '+(L.LEVELS[lv]-G.xp)+' XP al livello '+(lv+1),'Level '+lv+' · '+(L.LEVELS[lv]-G.xp)+' XP to level '+(lv+1)):TX('Livello ','Level ')+lv)+'</h2><div class="road" id="road">'+rows.join('')+'</div><div class="row" style="margin-top:12px"><button class="btn primary" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false;
@@ -4554,10 +4945,14 @@ function labMachines(){ const M=cur(), inLab=M&&M.phase==='D'&&M.stage!=='assemb
     else if(inLab) lab='pronta';
     return {k,i,x:p.x,y:p.y,n:m.n,lab,col,state,img:st&&st.res==='run'?satImg(inLab):null}; }); }
 const SF2={teal:'#45A9A3'};
+/* menu del macchinario nel laboratorio prove: si sceglie quale satellite provarci (al posto del magazzino a sinistra), oppure lo si sposta */
+function labCands(k){ return G.missions.filter(m=>m.phase==='D'&&m.stage!=='assembly'&&!m.ready&&!(m.tr&&m.tr[k])&&!Object.keys(m.tr||{}).some(x=>m.tr[x].res==='run')); }
+function labPop(){ const k=G.lab[MSEL], c=labCands(k);
+  return '<div class="cpop mpop"><b>'+esc(L.MACH[k].n)+'</b><div class="row">'+(c.length?c.map(m=>'<button class="btn small primary" data-act="mtest" data-id="'+m.id+'" data-k="'+k+'">'+TX('Prova ','Test ')+esc(m.name)+' · '+testC(m)+' cr</button>').join(''):'<span class="mnone">'+TX('Nessun satellite da provare qui','No satellite to test here')+'</span>')+'<button class="btn small" data-act="mmove">✥ Sposta</button><button class="btn small" data-act="mselx">Chiudi</button></div><span class="fine">Puoi cambiare la disposizione del laboratorio quando vuoi.</span></div>'; }
 function roomSt(room,extra){ G.rooms=G.rooms||{}; const R=G.rooms[room]||(G.rooms[room]={plants:[]}); return Object.assign({plants:R.plants,sel:RSEL&&RSEL.room===room?RSEL.i:null,machines:room==='test'?labMachines():[],moveI:(RPLACE&&RPLACE.room===room&&RPLACE.moveI!=null)?RPLACE.moveI:null},extra||{}); }
 function roomBox(room,extra,ovl){ const pl=(G.rooms[room]||{plants:[]}).plants.length, pk=RPLACE&&RPLACE.room===room;
-  const tools='<div class="ctools">'+(room==='clean'||room==='test'?'':'<button data-act="rplant" data-r="'+room+'" title="Le piante rendono più felici i dipendenti">🪴<span class="tl"> Pianta · '+keur(PLANTC)+'</span></button>')+(pk?'<button class="on" data-act="resc">Annulla</button>':'')+'</div>';
-  const pop=room==='clean'&&PICKST&&!pk?'<div class="cpop"><b>'+TX('Quale satellite assembli qui?','Which satellite do you assemble here?')+'</b><div class="row">'+G.missions.filter(x=>x.phase==='D'&&x.stage==='assembly'&&x.asmWait).map(x=>'<button class="btn small primary" data-act="cleanpick" data-id="'+x.id+'">'+esc(x.name)+'</button>').join('')+'<button class="btn small" data-act="cleanpickx">'+TX('Chiudi','Close')+'</button></div></div>':room==='test'&&MSEL!=null&&!pk&&G.lab[MSEL]?'<div class="cpop mpop"><b>'+esc(L.MACH[G.lab[MSEL]].n)+'</b><div class="row"><button class="btn small" data-act="mmove">✥ Sposta</button><button class="btn small" data-act="mselx">Chiudi</button></div><span class="fine">Puoi cambiare la disposizione del laboratorio quando vuoi.</span></div>':RSEL&&RSEL.room===room&&!pk?'<div class="cpop"><b>Pianta da interno</b><div class="row"><button class="btn small" data-act="rplantdel">Rimuovi</button><button class="btn small" data-act="rselx">Chiudi</button></div><span class="fine">'+plantsN()+' piante in tutto · squadra felice al '+morale()+'%</span></div>':'';
+  const tools='<div class="ctools">'+(IR3.can()?'<button data-act="rrot" title="Ruota la stanza" aria-label="Ruota la stanza">⟳</button>':'')+(room==='clean'||room==='test'?'':'<button data-act="rplant" data-r="'+room+'" title="Le piante rendono più felici i dipendenti">🪴<span class="tl"> Pianta · '+keur(PLANTC)+'</span></button>')+(pk?'<button class="on" data-act="resc">Annulla</button>':'')+'</div>';
+  const pop=room==='clean'&&PICKST&&!pk?'<div class="cpop"><b>'+TX('Quale satellite assembli qui?','Which satellite do you assemble here?')+'</b><div class="row">'+G.missions.filter(x=>x.phase==='D'&&x.stage==='assembly'&&x.asmWait).map(x=>'<button class="btn small primary" data-act="cleanpick" data-id="'+x.id+'">'+esc(x.name)+'</button>').join('')+'<button class="btn small" data-act="cleanpickx">'+TX('Chiudi','Close')+'</button></div></div>':room==='test'&&MSEL!=null&&!pk&&G.lab[MSEL]?labPop():RSEL&&RSEL.room===room&&!pk?'<div class="cpop"><b>Pianta da interno</b><div class="row"><button class="btn small" data-act="rplantdel">Rimuovi</button><button class="btn small" data-act="rselx">Chiudi</button></div><span class="fine">'+plantsN()+' piante in tutto · squadra felice al '+morale()+'%</span></div>':'';
   const hint=false?'<div class="chint" id="rhint">'+(RPLACE.k==='plant'?'Tocca un punto libero per mettere la pianta.':(RPLACE.moveI!=null?'Tocca il nuovo posto per: ':'Tocca un punto libero per posizionare: ')+L.MACH[RPLACE.k].n.toLowerCase()+'.')+' Esc per annullare.</div>':'';
   const st0=roomSt(room,extra), use3=IR3.can(); if(use3){ IR3.pending={room,st:st0}; queueMicrotask(IR3.sync); }
   return '<section class="room3 fsc'+(use3?' r3full':'')+'" style="--ar:1000/620">'+(use3?'<div id="roomsvg" class="r3host'+(pk?' placing':'')+'" data-3d="1" data-room="'+room+'" role="img" aria-label="Interno dell’edificio"></div>':'<svg id="roomsvg" data-room="'+room+'" class="'+(pk?'placing':'')+'" viewBox="'+IR.view+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Interno dell’edificio">'+(()=>{ IR.setWalkers(wkScene(room,st0)); return IR[room](st0); })()+'<g id="rghost"></g></svg>')+tools+pop+hint+(ovl||'')+'</section>'; }
@@ -4572,12 +4967,12 @@ function rPlace(){ const R=RPLACE; if(!R) return; if(!R.ok){ sfx.bad(); toast('Q
   if(R.moveI!=null){ G.labPos[R.moveI]={x:R.x,y:R.y}; RPLACE=null; sfx.put(); toast(L.MACH[R.k].n+' spostato.'); save(); render(); return; }
   const m=L.MACH[R.k]; if(G.money<m.c){ toast('Non hai abbastanza crediti.'); RPLACE=null; render(); return; } addMoney(-m.c); G.lab.push(R.k); G.labPos.push({x:R.x,y:R.y}); RPLACE=null; sfx.stamp(); toast(m.n+' installato.'); save(); render(); }
 function staffModal(){ const need=staffNeed(), free=G.staff-need, sp=spaces(), mo=morale(), el=$('#ov');
-  el.innerHTML='<div class="rv" role="dialog" aria-modal="true"><h3>Personale</h3><h2>La tua squadra</h2>'+
+  el.innerHTML='<div class="rv stkrow" role="dialog" aria-modal="true"><h3>Personale</h3><h2>La tua squadra</h2>'+
     '<div class="stl"><div><span>👥</span><span>Dipendenti</span><span class="num"><b>'+G.staff+'</b></span></div><div><span>🏢</span><span>Servono per far funzionare gli edifici</span><span class="num">'+need+'</span></div><div><span>✓</span><span>Liberi per nuovi edifici</span><span class="num">'+free+'</span></div><div><span>🚗</span><span>Posti auto (14 per parcheggio)</span><span class="num">'+G.staff+' / '+sp+'</span></div><div><span>cr</span><span>Stipendi a ogni nuova fase di una missione ('+String(SAL).replace('.',',')+' cr a testa). Se le missioni sono ferme non paghi nulla.</span><span class="num">−'+keur(Math.round(G.staff*SAL))+'</span></div></div>'+
     '<div style="margin:12px 0 4px" class="row"><b>Felicità della squadra</b><span class="fine" style="margin-left:auto">'+mo+'%</span></div><div class="mbar"><i style="width:'+mo+'%"></i></div>'+
     '<p class="fine">'+plantsN()+' piante da interno. Più piante, più felicità: con la squadra al '+mo+'% assemblaggio e prove durano ×'+String(workK()).replace('.',',')+'. Serve circa una pianta per dipendente per arrivare al 100%. Le piante si mettono dentro gli edifici.</p>'+
     (G.staff>=sp?'<p class="bad">Tutti i posti auto sono occupati: per assumere costruisci un parcheggio nel campus (Costruisci → Infrastrutture).</p>':'')+
-    '<div class="row"><button class="btn primary" data-act="hire"'+(G.staff>=sp?' disabled':'')+'>Assumi · '+keur(HIRE)+'</button><button class="btn" data-act="fire"'+(G.staff<=need?' disabled':'')+'>Licenzia</button><button class="btn" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; }
+    '<div class="row stkbar"><button class="btn primary" data-act="hire"'+(G.staff>=sp?' disabled':'')+'>Assumi · '+keur(HIRE)+'</button><button class="btn" data-act="fire"'+(G.staff<=need?' disabled':'')+'>Licenzia</button><button class="btn" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; }
 function rankModal(){ const me=G.sciTotal|0, li=leagueOf(me), nx=LEAGUES[li+1], el=$('#ov');
   const road=LEAGUES.map((l,i)=>'<div class="lrow'+(i===li?' on':i>li?' lock':'')+'">'+badge(i)+'<div><b>Lega '+l[1]+'</b><div class="fine">da '+l[0]+' punti scienza</div></div><span class="fine">'+(i<li?'✓':i===li?'sei qui':'🔒')+'</span></div>').reverse().join('');
   const rows=(shared?RANK:[]).map(r=>({id:r._id,co:String(r.co||'Agenzia').slice(0,28),sci:Math.max(0,+r.sci|0)})).sort((a,b)=>b.sci-a.sci);
@@ -4599,7 +4994,7 @@ const TUT={ seed:7, capC:320, parts:['BASE-DOSE','BASE-OBC','BASE-BAT20','BASE-U
     'BASE-UHF':'La radio UHF manda i dati a terra. Toccala.', 'BASE-MAG':'Le bobine magnetiche orientano il satellite usando il campo magnetico terrestre. Toccale.' } };
 const once=(M,k)=>{ M.once=M.once||{}; if(M.once[k]) return false; M.once[k]=1; return true; };
 const costDue=M=>Math.max(0,E.budget(M.sat).cost-(M.lvPaid||0)-(M.partsCredit||0));
-const PHN2={'0':'0 · definizione','A':'A · fattibilità','B':'B · progetto preliminare','C':'C · progetto di dettaglio','D':'D · assemblaggio e prove'};
+const PHN2={'0':'pre-fase A · studi di concetto','A':'A · concetto e sviluppo tecnologico','B':'B · progetto preliminare','C':'C · progetto finale e fabbricazione','D':'D · assemblaggio, integrazione, prove e lancio'};
 function backInfo(M){ if(!M||M.tut) return null; const ph=M.phase, nasa=M.stake[0];
   if(ph==='A') return {to:'0',fee:20,joy:10,items:['Si riapre il tavolo con gli stakeholder: i requisiti di missione e di sistema accettati vengono cancellati e si rinegoziano.','La prima rata è già incassata: non arriva una seconda volta.']};
   if(ph==='B') return {to:'A',fee:15,joy:5,items:['Puoi cambiare taglia del satellite. Lo staff tecnico torna al tavolo: i requisiti di sistema si rinegoziano.']};
@@ -4607,9 +5002,9 @@ function backInfo(M){ if(!M||M.tut) return null; const ph=M.phase, nasa=M.stake[
   if(ph==='D'){ const val=M.partsVal||M.paid||0, keep=Math.round(val*.6), lose=val-keep; return {to:'C',fee:10,joy:8,lost:lose,items:['Il satellite si smonta: i pezzi comprati valgono ancora '+keur(keep)+' (60%) quando ripassi la CDR, '+keur(lose)+' sono persi tra smontaggio e pezzi da buttare.','Le prove fatte vanno rifatte. I macchinari del laboratorio restano.',(M.ready?'La revisione FRR va ripetuta: la rata è già incassata.':'')].filter(Boolean)}; }
   return null; }
 function backModal(){ const M=cur(), b=backInfo(M); $('#pop').hidden=true; if(!b){ toast('Da questa fase non si torna indietro.'); return; }
-  review({eb:'Ritorno di fase',name:'Torna alla fase '+PHN2[b.to],code:'—',nasa:'Delta review',body:'<p>Tornare indietro è possibile, ma costa: tempo, soldi e fiducia degli stakeholder. È quello che succede in un progetto vero quando una revisione scopre un problema.</p><ul class="reqs">'+b.items.map(t=>'<li><span class="c">↩</span><span>'+esc(t)+'</span><span></span></li>').join('')+
+  review({eb:'Ritorno di fase',name:'Torna alla '+(b.to==='0'?'':'fase ')+PHN2[b.to],code:'—',nasa:'Delta review',body:'<p>Tornare indietro è possibile, ma costa: tempo, soldi e fiducia degli stakeholder. È quello che succede in un progetto vero quando una revisione scopre un problema.</p><ul class="reqs">'+b.items.map(t=>'<li><span class="c">↩</span><span>'+esc(t)+'</span><span></span></li>').join('')+
     (b.fee?'<li><span class="c">cr</span><span>Costo della revisione straordinaria</span><span class="num">'+keur(b.fee)+'</span></li>':'')+(b.refund?'<li><span class="c">cr</span><span>Rimborso della prenotazione</span><span class="num">+'+keur(b.refund)+'</span></li>':'')+'<li><span class="c">☺</span><span>Soddisfazione della NASA</span><span class="num">−'+b.joy+'</span></li></ul>'+(G.money<b.fee?'<p class="bad">Non hai abbastanza crediti.</p>':''),
-    actions:'<button class="btn primary" data-act="backgo"'+(G.money<b.fee?' disabled':'')+'>Torna alla fase '+b.to+'</button><button class="btn" data-act="closeov">Annulla</button>'}); }
+    actions:'<button class="btn primary" data-act="backgo"'+(G.money<b.fee?' disabled':'')+'>Torna alla '+(b.to==='0'?'pre-fase A':'fase '+b.to)+'</button><button class="btn" data-act="closeov">Annulla</button>'}); }
 function backGo(){ const M=cur(), b=backInfo(M); if(!b||G.money<b.fee) return; closeOv(); const d=M.sat;
   if(b.refund) addMoney(b.refund); if(b.fee) addMoney(-b.fee);
   M.stake.forEach(id=>{ M.joy[id]=Math.max(1,(M.joy[id]||60)-b.joy); });
@@ -4623,14 +5018,14 @@ function startTutorial(){ const M=L.newMission('FIRST FLIGHT','tut'+Date.now().t
 function endTutorial(skipped){ const co=G.co, av=G.avatar, mu=G.music, bg=G.big; let prev=null; try{ prev=JSON.parse(localStorage.getItem('gngPrev')||'null'); localStorage.removeItem('gngPrev'); }catch(e){} if(prev){ G=prev; G.recruited=G.recruited||[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m)); closeOv(); view='hub'; render(); save(); coach(); toast(TX('Tutorial finito: torni alla tua partita.','Tutorial done: back to your game.')); return; } G=newG(); G.co=co; G.avatar=av; G.crew=[av||'giulia']; G.music=mu; G.big=bg; applyStartPerks(); G.tutDone=true; closeOv(); view='hub'; render(); save(); coach();
   if(skipped) toast(TX('Tutorial saltato. Crea la tua prima missione con il tasto + in basso a sinistra.','Tutorial skipped. Create your first mission with the + button bottom left.')); else setTimeout(newMission,200); }
 function tutEndModal(){ const M=G.missions[0], r=M.result||{};
-  $('#ov').innerHTML='<div class="rv" role="dialog" aria-modal="true"><h3>Tutorial completato</h3><h2>'+(r.ok?'Primo volo riuscito!':'Fine del primo volo')+'</h2><p>Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (fase 0), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio e prove (D), volo (E) e chiusura (F).</p>'+
+  $('#ov').innerHTML='<div class="rv" role="dialog" aria-modal="true"><h3>Tutorial completato</h3><h2>'+(r.ok?'Primo volo riuscito!':'Fine del primo volo')+'</h2><p>Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (pre-fase A), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio, prove e lancio (D), operazioni in volo (E) e chiusura (F).</p>'+
     '<p>Era una prova: non dà punti, non va in bacheca e la tua agenzia riparte da '+keur(L.START_MONEY)+', come se l’avessi saltato. Da adesso le missioni sono vere: le richieste cambiano ogni volta e decidi tu.</p><div class="row"><button class="btn primary" data-act="tutend">Crea la tua prima missione</button></div></div>'; $('#ov').hidden=false; }
 let coachEl=null;
 function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d=M.sat, ph=M.phase, st=M.stage, ovOn=!$('#ov').hidden, S=(sel,t,n)=>({sel,t,n}), here=k=>view===k, go2=(k,t,n)=>view!=='hub'?S('[data-act="home"]',t.replace(/\.$/,'')+'. Prima torna al campus: tocca la casetta.',n):S('.b3h[data-k="'+k+'"],#camsvg .wobj[data-act="enter"][data-k="'+k+'"]',t.replace(/\.$/,'')+'. Tocca l’edificio sulla mappa.',n);
   if(ovOn){ const has=q=>$('#ov '+q);
     if(has('#xcnt:not([hidden])')) return S(null,'Conto alla rovescia… decollo!',8);
     if(has('[data-act="tutend"]')) return S('#ov [data-act="tutend"]','Bravo! Hai chiuso il tutorial.',10);
-    if(has('[data-act="toA"]')) return S('#ov [data-act="toA"]','Mission Definition Review: i requisiti di missione sono approvati. Premi per chiudere la fase 0 e incassare la prima rata.',1);
+    if(has('[data-act="toA"]')) return S('#ov [data-act="toA"]','Mission Concept Review: i requisiti di missione sono approvati. Premi per chiudere la pre-fase A e incassare la prima rata.',1);
     if(has('[data-act="toB"]')) return S('#ov [data-act="toB"]','System Requirements Review: i requisiti di sistema sono fissati. Passa alla fase B.',3);
     if(has('[data-act="toC"]')) return S('#ov [data-act="toC"]','Preliminary Design Review: orbita e lancio vanno bene. Prenota il lancio: arriva anche la seconda rata.',4);
     if(has('[data-act="toD"]')) return S('#ov [data-act="toD"]','Critical Design Review: il progetto rispetta tutti i requisiti. Compra i pezzi e passa all’assemblaggio.',6);
@@ -4642,7 +5037,13 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
     return S('#ov [data-act="closeov"]',ph==='done'?'Ecco la revisione di fine missione (MCR): scienza raccolta, rate e cosa è successo. Chiudila.':'Leggi e chiudi la finestra.',ph==='done'?10:null); }
   if(ph==='0'){ if(st==='partners'){ if(!here('admin')) return go2('admin','Benvenuto! Questa prima missione è guidata. Entra nell’edificio amministrativo: la NASA ti aspetta.',0); return S('[data-act="sit"]','Al tavolo siedono la NASA (finanzia), la tua scienziata e l’ente regolatore. Siediti per ascoltare le loro richieste.',0); }
     if(!here('admin')) return go2('admin','Torna nella sala riunioni.',0);
-    return M.queue.length?S('[data-act="yes"]','Ogni richiesta accettata diventa un requisito di missione (MIS). In questa prova accettale tutte: sono già state scelte per te.',0):S('[data-act="endmeet"]','Hai i requisiti di missione. Chiudi la riunione: segue la revisione MDR.',1); }
+    /* nel tutorial si provano tutte e tre le risposte: controproposta (budget NASA), rifiuto (termovuoto degli scienziati), accetta (regola sui detriti) */
+    if(M.queue.length){ const r=L.R(M.queue[0])||{}, tid=r.tid;
+      if(tid==='cost'&&$('[data-act="soft"]:not([disabled])')) return S('[data-act="soft"]','La NASA vuole che il satellite resti nel budget. Puoi trattare: tocca «Controproposta» per chiedere un tetto un po’ più alto. Il requisito diventa più facile, la NASA è un po’ meno contenta.',0);
+      if(tid==='tvt') return S('[data-act="no"]','Gli scienziati vogliono anche la prova in termovuoto: costa tempo e crediti. Prova a rifiutarla con «Rifiuta»: il requisito sparisce, ma loro saranno meno contenti.',0);
+      if(r.rule) return S('[data-act="yes"]','Il regolatore impone che il satellite rientri a fine vita: è una regola, non si rifiuta e non si tratta. Accettala: diventa un requisito di missione (MIS).',0);
+      return S('[data-act="yes"]','Ogni richiesta accettata diventa un requisito di missione (MIS). Accettala.',0); }
+    return S('[data-act="endmeet"]','Hai i requisiti di missione. Chiudi la riunione: segue la revisione MCR.',1); }
   if(ph==='A'){ if(!here('admin')) return go2('admin','Fase A: rientra nell’edificio amministrativo per scegliere il satellite.',2);
     if(st==='type') return S('[data-act="pickType"][data-k="S3"]','Scegli un CubeSat 3U: tre cubi da 10 cm, al massimo 6 kg.',2);
     return M.queue.length?S('[data-act="yes"]','Adesso parla lo staff tecnico: i suoi sono requisiti di sistema (SYS). Accetta.',2):S('[data-act="endmeet"]','Chiudi la riunione: segue la revisione SRR.',3); }
@@ -4653,10 +5054,10 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
       if(nx) return $('#ptiles .tile[data-id="'+nx+'"]')?S('#ptiles .tile[data-id="'+nx+'"]',TUT.say[nx],5):S('[data-act="stab"][data-k="all"]','Apri la scheda con tutti i pezzi.',5);
       if(d.sol!==TUT.sol) return $('#ptiles [data-act="sol"][data-k="'+TUT.sol+'"]')?S('#ptiles [data-act="sol"][data-k="'+TUT.sol+'"]','Servono pannelli solari: scegli le ali dispiegabili, danno più potenza di quelli sul corpo.',5):S('[data-act="stab"][data-k="sol"]','Apri la scheda dei pannelli solari.',5);
       return S('.assist [data-act="bstep"][data-k="orb"]','Il satellite è completo: massa, potenza ed eclisse sono in verde. Passa al passo 3, le orbite in dettaglio.',5); }
+    if(st==='drm'&&ZD&&ZD.sel&&document.getElementById('zdlg')) return S(ZD.sel,ZD.tt,4);
     if(!here('fd')) return go2('fd',st==='orb'?'Passo 3: torna al Centro di dinamica del volo':'Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM).',4);
     if(st==='orb') return S('#fdp [data-act="pdrB"]','Il razzo ti lascia a 550 km, già nella fascia obiettivo: nessuna manovra, e il rientro avviene da solo per l’attrito dell’aria. Chiedi la revisione PDR.',5);
-    if(!dr.eol) return S('[data-act="drmeol"][data-k="reentry"]','Questa è la Design Reference Mission: il razzo ti lascia a 550 km, dove il satellite lavora (★). Scegli come finisce la missione: rientro in atmosfera.',4);
-    return S('.drmp [data-act="bstep"][data-k="sat"]','Missione disegnata. Ora progetta il satellite che deve farla.',4); }
+    return S('.drmp [data-act="mdredone"]','Orbite pronte. Premi Fatto per continuare con la fine vita.',4); }
   if(ph==='C'){ if(!here('build')) return go2('build','Fase C: il progetto si congela. Entra nell’edificio di costruzione.',6);
     if(BVIEW!=='yard') return S('#roomsvg [data-act="openyard"]','Tocca il banco di '+M.name+'.',6);
     return S('[data-act="pdr"]','Fase C: progetto congelato. Con la revisione CDR compri i pezzi.',6); }
@@ -4667,7 +5068,7 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
   if(ph==='D'){ const need=['vib','func'].filter(k=>L.MACH[k].lvl<=1); if(!here('test')) return go2('test','Al laboratorio prove: i requisiti chiedono la prova di vibrazione.',7);
     if(RPLACE&&RPLACE.room==='test') return S('#roomsvg','Tocca un punto libero del laboratorio per posizionare il macchinario: lo metti dove vuoi, ma senza toccare gli altri.',7);
     for(const k of need) if(G.lab.indexOf(k)<0) return S('.rb[data-act="labadd"]','Ogni prova vuole il suo macchinario. Tocca «Macchinario» a destra per installarne uno.',7);
-    for(const k of need){ const r=M.tr[k]; if(r&&r.res==='run') return S(null,(k==='vib'?'Prova di vibrazione':'Prova funzionale')+' in corso…',7); if(!M.tests[k]&&!r) return S('#roomsvg',k==='vib'?'Tocca la tavola vibrante per lanciare la prova di vibrazione.':'Tocca il banco per la prova funzionale.',7); }
+    for(const k of need){ const r=M.tr[k]; if(r&&r.res==='run') return S(null,(k==='vib'?'Prova di vibrazione':'Prova funzionale')+' in corso…',7); if(!M.tests[k]&&!r){ if($('[data-act="mtest"]')) return S('[data-act="mtest"]','Scegli il satellite da provare: la prova parte subito.',7); return S('#roomsvg',k==='vib'?'Tocca la tavola vibrante per lanciare la prova di vibrazione.':'Tocca il banco per la prova funzionale.',7); } }
     return S('[data-act="frr"]','Prova superata. Al livello 1 hai solo la tavola vibrante: gli altri macchinari si sbloccano salendo di livello. Chiedi la revisione FRR: decide se il satellite può volare.',8); }
   if(ph==='E'){ if(!here('mcc')) return go2('mcc','Il satellite è in orbita! Seguilo dalla sala controllo.',9);
     if(MCCV!=='wall') return S('#roomsvg [data-act="mccwall"]','Il satellite è in orbita! Tocca gli schermi della sala controllo per seguire la telemetria.',9);
@@ -4710,11 +5111,19 @@ function sdNext(){ if(SD.cur||!SD.q.length) return; const m=SD.q.shift(); let el
 function sdSay(who,txt,skip){ SD.q.push([who,txt,skip]); sdNext(); }
 function tutKey(){ if(view==='build') return BVIEW==='yard'?'yard':(BROOM==='clean'?'clean':'build'); return view; }
 document.addEventListener('pointerdown',()=>{ SD.last=Date.now(); },true);
-function coach(){ const box=$('#coach'), hand=$('#chand'); if(box) box.hidden=true; if(hand) hand.hidden=true; const prev=document.querySelector('.coach-hl');
-  if(document.body.classList.contains('ttl-on')||!G||!G.tut){ if(prev) prev.classList.remove('coach-hl'); document.body.classList.toggle('tutmode',!!(G&&G.tut&&!document.body.classList.contains('ttl-on'))); return; }
+/* solo nel tutorial: Zorty spiega ogni passo in un fumetto leggero in basso a sinistra (non blocca il gioco, si chiude con ✕ e riappare al passo dopo) */
+function tutBub(stp){ let b=$('#tbub'); const txt=stp&&stp.t?String(stp.t):'';
+  if(!b){ if(!txt) return; b=document.createElement('div'); b.id='tbub'; b.setAttribute('role','status'); b.setAttribute('aria-live','polite'); b.hidden=true;
+    b.innerHTML='<img class="tb-z" alt="" src="'+((ZORTY.SPR&&ZORTY.SPR.suggerisce)||'')+'"><div class="tb-t"><b class="tb-n">Zorty</b><span class="tb-s"></span></div><button class="tb-x" type="button" aria-label="'+TX('Chiudi','Close')+'">✕</button>';
+    document.body.appendChild(b); b.querySelector('.tb-x').addEventListener('click',()=>{ tutBub.closed=tutBub.last; b.hidden=true; }); }
+  if(!txt){ b.hidden=true; return; }
+  if(txt!==tutBub.last){ tutBub.last=txt; b.querySelector('.tb-s').textContent=txt; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+  b.hidden=tutBub.closed===txt; }
+function coach(){ const box=$('#coach'), hand=$('#chand'); if(box&&!box.hidden) box.hidden=true; if(hand&&!hand.hidden) hand.hidden=true; const prev=document.querySelector('.coach-hl');
+  if(document.body.classList.contains('ttl-on')||!G||!G.tut){ if(prev) prev.classList.remove('coach-hl'); tutBub(null); document.body.classList.toggle('tutmode',!!(G&&G.tut&&!document.body.classList.contains('ttl-on'))); return; }
   document.body.classList.add('tutmode'); G.sdSeen=G.sdSeen||{};
   const M=G.missions[0], nw=tutUnlock(); if(nw.length){ nw.forEach(k=>{ if(SD_NEW[k]) sdSay(SD_NEW[k][0],SD_NEW[k][1]); }); if(view==='hub') render(); }
-  const stp=coachStep();
+  const stp=coachStep(); tutBub(stp);
   if(M&&M.phase==='done'&&$('#ov').hidden&&coach.mcr&&!coach.ended){ coach.ended=true; tutEndModal(); return; }
   let el=(stp&&stp.sel)?Array.from(document.querySelectorAll(stp.sel)).find(vis):null;
   { const any=el||(stp&&stp.sel?document.querySelector(stp.sel):null), dk=any&&any.closest&&any.closest('.dockL,.dockR'), vw=$('#view'); if(dk&&vw){ const sd=dk.classList.contains('dockL')?'L':'R', rb=document.querySelector('.rb[data-k="'+sd+'"]'); if(!vw.classList.contains('open'+sd)&&rb&&vis(rb)) el=rb; } }
@@ -4728,7 +5137,7 @@ setInterval(()=>{ if(G) coach(); },300);
 /* ---------- avvio ---------- */
 function newG(){ return {v:32,staff:12,sciTotal:0,labPos:[],rooms:{build:{plants:[{x:17,y:.4}]},clean:{plants:[]},test:{plants:[]},mcc:{plants:[{x:16.9,y:12.9}]}},world:CAM.defaultWorld(),flag:null,cedit:false,myBoard:[],tut:false,tutDone:false,fresh:[],pad:false,co:'',money:L.START_MONEY,xp:0,missions:[],cur:0,lab:[],plots:[],recruited:[],speed:1,vt:0,lastReal:Date.now()}; }
 function welcome(){ $('#ov').innerHTML='<div class="rv" role="dialog" aria-modal="true"><h3>Benvenuto</h3><h2>Fonda la tua agenzia spaziale</h2><p>Hai un campus, '+keur(L.START_MONEY)+' e nessun satellite. La NASA finanzia il tuo primo CubeSat e ti apre il suo catalogo di tecnologie: si parte con poche carte, le altre si sbloccano salendo di livello.</p><p><b>Lo scopo:</b> raccogliere più punti scienza possibile e salire di lega nella classifica mondiale delle agenzie.</p>'+
-    '<div><label for="co">Nome dell’agenzia</label><input type="text" id="co" maxlength="28" value="Perigeo Labs"></div><p class="fine">La prova guidata porta una missione intera, dall’idea al volo, in circa 10 minuti: requisiti, missione, satellite, prove, lancio e operazioni. Ti diciamo noi cosa toccare. Non dà punti e non cambia la partita.</p><div class="row"><button class="btn primary" data-act="start">Prova guidata · 10 minuti</button></div><h3 style="margin-top:14px">Oppure gioca subito</h3><div class="diffs">'+Object.keys(DIFF).map(k=>'<button class="'+(WDIFF===k?'on':'')+'" data-act="wdiff" data-k="'+k+'"><b>'+DIFF[k].n+'</b><small>'+DIFF[k].s+'</small></button>').join('')+'</div><div class="row"><button class="btn" data-act="startskip">Gioca · '+DIFF[WDIFF].n.toLowerCase()+'</button><button class="btn" data-act="startsand" title="Tutto sbloccato, nessun vincolo di budget">Modalità libera</button></div></div>'; $('#ov').hidden=false; }
+    '<div><label for="co">Nome dell’agenzia</label><input type="text" id="co" maxlength="28" value="" placeholder="Perigeo Labs" autocomplete="off"></div><p class="fine">La prova guidata porta una missione intera, dall’idea al volo, in circa 10 minuti: requisiti, missione, satellite, prove, lancio e operazioni. Ti diciamo noi cosa toccare. Non dà punti e non cambia la partita.</p><div class="row"><button class="btn primary" data-act="start">Prova guidata · 10 minuti</button></div><h3 style="margin-top:14px">Oppure gioca subito</h3><div class="diffs">'+Object.keys(DIFF).map(k=>'<button class="'+(WDIFF===k?'on':'')+'" data-act="wdiff" data-k="'+k+'"><b>'+DIFF[k].n+'</b><small>'+DIFF[k].s+'</small></button>').join('')+'</div><div class="row"><button class="btn" data-act="startskip">Gioca · '+DIFF[WDIFF].n.toLowerCase()+'</button><button class="btn" data-act="startsand" title="Tutto sbloccato, nessun vincolo di budget">Modalità libera</button></div></div>'; $('#ov').hidden=false; }
 function start(){ try{ const nj=document.getElementById('nojs'); if(nj) nj.remove(); start0(); }catch(e){ console.error(e); document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:#DCE6EE;font:15px/1.5 sans-serif;padding:16px"><div style="max-width:440px;background:#fff;border-radius:16px;padding:22px;box-shadow:0 8px 30px rgba(0,0,0,.15)"><h2 style="font:700 22px/1.2 sans-serif;margin:0 0 8px">Salvataggio non compatibile</h2><p style="margin:0 0 14px">La partita salvata in questo browser viene da una versione precedente del gioco e non si riesce ad aprire.</p><p style="margin:0 0 14px;font-size:12px;color:#5F6E80">'+String(e&&e.message||e).replace(/</g,'&lt;')+'</p><button id="gngReset" style="background:#F07B3F;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer">Ricomincia da capo</button></div></div>'); document.getElementById('gngReset').onclick=()=>{ try{ Object.keys(localStorage).filter(k=>/^gng/i.test(k)).forEach(k=>localStorage.removeItem(k)); }catch(_){} try{ sessionStorage.clear(); }catch(_){} location.href=location.href.split('#')[0]; setTimeout(()=>location.reload(),300); }; } }
 // v33.1 · ogni edificio dichiarato costruito deve stare sulla mappa: lo piazza da solo vicino al centro del campus
 /* Posizionamento automatico degli edifici: sceglie, tra tutti i punti validi, quello vicino al centro del campus che non finisce dietro a un edificio alto (la camera guarda da sud) e che non nasconde gli altri */
@@ -4744,7 +5153,7 @@ function autoPlace(k,multi){ const W=G.world; if(!W||!CAM.K[k]||(!multi&&W.items
 /* una tantum: nelle partite creative gli edifici aggiunti dal sistema vengono ridisposti perche' si vedano tutti */
 function relayoutSandbox(){ if(!G||!G.sandbox||!G.world||G.layoutV===2) return false; const ex=['factory','ground','rnd','office','visit','pad']; G.world.items=G.world.items.filter(i=>ex.indexOf(i.k)<0&&!((i.k==='tree'||i.k==='pine')&&i.x>13&&i.x<27&&i.y>-1&&i.y<17)); G.layoutV=2; return true; }
 function fixPlots(){ if(!G||!G.world) return; let ch=relayoutSandbox(); (G.plots||[]).filter(Boolean).forEach(k=>{ if(L.BUILD[k]&&autoPlace(k)) ch=true; }); if(G.pad&&autoPlace('pad')) ch=true; return ch; }
-function start0(){ G=load(); if(G) G.speed=1; const fresh=!G; if(!G) G=newG(); G.recruited=G.recruited||[]; if(G.rooms&&G.rooms.clean) G.rooms.clean.plants=[]; if(G.rooms&&G.rooms.test) G.rooms.test.plants=[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m));
+function start0(){ G=load(); if(G) G.speed=1; const fresh=!G; if(!G) G=newG(); if(G.cedit&&!CUST) G.cedit=false; G.recruited=G.recruited||[]; if(G.rooms&&G.rooms.clean) G.rooms.clean.plants=[]; if(G.rooms&&G.rooms.test) G.rooms.test.plants=[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m));
   G.lastReal=G.lastReal||Date.now(); clock(); view='hub'; render(); initBoard(); setInterval(tick,500); let nw=innerWidth<640; addEventListener('resize',()=>{ const n=innerWidth<640; if(n!==nw){ nw=n; if(view==='hub') render(); } });
   openTitle('main','title'); coach(); try{ if(fixPlots()) save(); }catch(e){ console.warn(e); } if(!fresh&&G.tutDone&&!G.sandbox&&!G.boost33&&!(G.missions||[]).some(m=>m.phase==='done'&&!m.tut)){ G.boost33=1; const add=Math.max(0,Math.round(L.START_MONEY*dif().money)-150); if(add){ G.money+=add; save(); setTimeout(()=>toast('Fondo di avvio aumentato: +'+keur(add)+' per la prima missione.'),1500); } } I18N.start(); }
 /* ==========================================================================
@@ -4753,17 +5162,18 @@ function start0(){ G=load(); if(G) G.speed=1; const fresh=!G; if(!G) G=newG(); G
    Stile retro-futuristico alla «Surviving Mars», ma sulla Terra.
    ========================================================================== */
 /* ===== Alieni (da personaggi-3d.html): creature() procedurale in stile toon con contorno nero, animazioni e Crowd. Sostituiscono gli omini di campus e interni. ===== */
+const hyp=(a,b,c)=>Math.sqrt(a*a+b*b+(c===undefined?0:c*c)); /* Math.hypot alloca un numero a ogni chiamata */
 const ALN=(()=>{ if(typeof THREE==='undefined') return null;
 const ramp=(()=>{ const d=new Uint8Array([90,170,255]); const t=new THREE.DataTexture(d,3,1,THREE.LuminanceFormat); t.minFilter=t.magFilter=THREE.NearestFilter; t.needsUpdate=true; return t; })();
 const C=h=>new THREE.Color(h).convertSRGBToLinear();
 const MT={}; const toon=h=>MT[h]||(MT[h]=new THREE.MeshToonMaterial({color:C(h),gradientMap:ramp}));
-const OUT=new THREE.MeshBasicMaterial({color:0x14181f,side:THREE.BackSide}); let OLM=1;
-function mesh(g,h,parent,ol){ const m=new THREE.Mesh(g,toon(h)); parent.add(m); if(ol!==0){ const o=new THREE.Mesh(g,OUT); o.scale.setScalar(1+(ol||.06)/Math.max(.05,g.boundingSphere?g.boundingSphere.radius:1)); g.computeBoundingSphere(); o.scale.setScalar(1+(ol||.025)*OLM/g.boundingSphere.radius); m.add(o); } return m; }
+const OUT=new THREE.MeshBasicMaterial({color:0x14181f,side:THREE.BackSide}); let OLM=1, OLTH=0; /* OLTH: sotto questo raggio una parte non ha contorno (solo a basso dettaglio) */
+function mesh(g,h,parent,ol){ const m=new THREE.Mesh(g,toon(h)); parent.add(m); if(OLTH>0){ g.computeBoundingSphere(); if(g.boundingSphere.radius<OLTH) return m; } if(ol!==0){ const o=new THREE.Mesh(g,OUT); o.scale.setScalar(1+(ol||.06)/Math.max(.05,g.boundingSphere?g.boundingSphere.radius:1)); g.computeBoundingSphere(); o.scale.setScalar(1+(ol||.025)*OLM/g.boundingSphere.radius); m.add(o); } return m; }
 const BLUE='#3A9BD5', BLUED='#2B78B8', BLUEL='#7CC8EE', EYE='#BFEFFF';
 function fin(pts,depth,col){ const s=new THREE.Shape(); s.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length;i++) s.quadraticCurveTo(...pts[i]); const g=new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:true,bevelThickness:depth*.4,bevelSize:depth*.4,bevelSegments:2,curveSegments:10}); g.translate(0,0,-depth/2); return g; }
 function creature(o){ o=o||{}; const g=new THREE.Group(), head=new THREE.Group(); head.position.y=2.15; g.add(head);
   // testa: pera larga in alto, mento piccolo (come la prima versione)
-  const LO=!!o.lo, LL=o.lo===2, OLK=o.ol||1; OLM=OLK; const RH=.62, hg=new THREE.SphereGeometry(RH,LO?28:48,LO?20:36); { const p=hg.attributes.position; for(let i=0;i<p.count;i++){ let x=p.getX(i),y=p.getY(i),z=p.getZ(i); x*=1.1; if(y<0){ x*=1-(-y)*.42; z*=1-(-y)*.2; } p.setXYZ(i,x,y,z); } hg.computeVertexNormals(); }
+  const LO=!!o.lo, LL=o.lo===2, OLK=o.ol||1; OLM=OLK; OLTH=LL?.09:0; const RH=.62, hg=new THREE.SphereGeometry(RH,LO?28:48,LO?20:36); { const p=hg.attributes.position; for(let i=0;i<p.count;i++){ let x=p.getX(i),y=p.getY(i),z=p.getZ(i); x*=1.1; if(y<0){ x*=1-(-y)*.42; z*=1-(-y)*.2; } p.setXYZ(i,x,y,z); } hg.computeVertexNormals(); }
   const hide=[]; mesh(hg,o.skin||BLUE,head);
   // due riflessi lucidi sulla fronte
   if(!LL) [[-.15,.4,.42,.07,.045],[.13,.43,.4,.035,.025]].forEach(q=>{ const m=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),new THREE.MeshBasicMaterial({color:C('#C8EEFF')})); m.position.set(q[0]*1.08,q[1]*1.08,q[2]*1.08); m.scale.set(q[3],q[4],.015); m.lookAt(q[0]*3,q[1]*3,q[2]*3); m.rotateZ(.4); head.add(m); });
@@ -4837,19 +5247,25 @@ function creature(o){ o=o||{}; const g=new THREE.Group(), head=new THREE.Group()
   // bocca che si apre quando parla (sotto il sorriso)
   const mouth=new THREE.Mesh(new THREE.SphereGeometry(1,16,10),new THREE.MeshBasicMaterial({color:0x5A1F2A})); mouth.position.set(0,-.245,.53); mouth.scale.set(.075,.001,.03); mouth.visible=false; if(!o.hood) head.add(mouth);
   // coda dinamica: tubo che si rigenera ogni fotogramma seguendo 7 punti di controllo
-  const TS=LO?24:48, RS=LO?8:10, TP=[0,1,2,3,4,5,6].map(()=>new THREE.Vector3()), tc=new THREE.CatmullRomCurve3(TP); tc.arcLengthDivisions=120;
+  const TS=LO?24:48, RS=LO?8:10, TP=[0,1,2,3,4,5,6].map(()=>new THREE.Vector3()), tc=new THREE.CatmullRomCurve3(TP); tc.arcLengthDivisions=32; /* 120 allocava ~120 vettori a ogni ricostruzione */
   const mkTube=()=>{ const gg=new THREE.BufferGeometry(); const n=(TS+1)*(RS+1); gg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*3),3)); gg.setAttribute('normal',new THREE.BufferAttribute(new Float32Array(n*3),3)); const ix=[];
     for(let i=1;i<=TS;i++) for(let j=1;j<=RS;j++){ const a=(RS+1)*(i-1)+(j-1), b=(RS+1)*i+(j-1), c=(RS+1)*i+j, d=(RS+1)*(i-1)+j; ix.push(a,b,d,b,c,d); } gg.setIndex(ix); return gg; };
   const tailCol=o.outfit==='clean'?'#F3F4F6':(o.skin||BLUE), tGeo=mkTube(), tOut=mkTube(); const tMesh=new THREE.Mesh(tGeo,toon(tailCol)), tOM=new THREE.Mesh(tOut,OUT); tMesh.frustumCulled=tOM.frustumCulled=false; g.add(tMesh); g.add(tOM);
   const tipCap=mesh(new THREE.SphereGeometry(.02,8,6),tailCol,g,.01);
   const scales=[]; if(o.outfit!=='clean'&&!LO) for(let i=6;i<44;i+=3){ const sc=new THREE.Mesh(new THREE.OctahedronGeometry(.035*(1.3-i/TS),0),toon(BLUEL)); sc.scale.y=.6; sc.userData.u=i/TS; g.add(sc); scales.push(sc); }
-  const fP=new THREE.Vector3(), fN=new THREE.Vector3();
-  function buildTail(){ tc.needsUpdate=true; tc.updateArcLengths(); const fr=tc.computeFrenetFrames(TS,false); const pa=tGeo.attributes.position.array, na=tGeo.attributes.normal.array, oa=tOut.attributes.position.array;
-    for(let i=0;i<=TS;i++){ const u=i/TS; tc.getPointAt(u,fP); const r=.13*(1-u*.85), N=fr.normals[i], B=fr.binormals[i];
+  const fP=new THREE.Vector3(), fN=new THREE.Vector3(); const FT=[], FNm=[], FBn=[]; for(let i=0;i<=TS;i++){ FT.push(new THREE.Vector3()); FNm.push(new THREE.Vector3()); FBn.push(new THREE.Vector3()); } let lastTail=-9;
+  /* telai di Frenet calcolati sul posto (come computeFrenetFrames di three.js, ma senza allocare vettori a ogni fotogramma) */
+  function frenet(){ for(let i=0;i<=TS;i++) tc.getTangentAt(i/TS,FT[i]); const t0=FT[0], ax=Math.abs(t0.x), ay=Math.abs(t0.y), az=Math.abs(t0.z); let nx=0,ny=0,nz=0; if(ax<=ay&&ax<=az) nx=1; else if(ay<=ax&&ay<=az) ny=1; else nz=1;
+    let vx=t0.y*nz-t0.z*ny, vy=t0.z*nx-t0.x*nz, vz=t0.x*ny-t0.y*nx; const vl=hyp(vx,vy,vz)||1; vx/=vl; vy/=vl; vz/=vl; FNm[0].set(t0.y*vz-t0.z*vy,t0.z*vx-t0.x*vz,t0.x*vy-t0.y*vx); FBn[0].crossVectors(t0,FNm[0]);
+    for(let i=1;i<=TS;i++){ const a=FT[i-1], b=FT[i], n=FNm[i].copy(FNm[i-1]); let cx=a.y*b.z-a.z*b.y, cy=a.z*b.x-a.x*b.z, cz=a.x*b.y-a.y*b.x; const cl=hyp(cx,cy,cz);
+      if(cl>2.2e-16){ cx/=cl; cy/=cl; cz/=cl; const th=Math.acos(Math.max(-1,Math.min(1,a.x*b.x+a.y*b.y+a.z*b.z))), c=Math.cos(th), s=Math.sin(th), d=(cx*n.x+cy*n.y+cz*n.z)*(1-c), kx=cy*n.z-cz*n.y, ky=cz*n.x-cx*n.z, kz=cx*n.y-cy*n.x; n.set(n.x*c+kx*s+cx*d,n.y*c+ky*s+cy*d,n.z*c+kz*s+cz*d); }
+      FBn[i].crossVectors(b,n); } }
+  function buildTail(){ if(time-lastTail<.032&&lastTail>=0) return; lastTail=time; /* la coda si rigenera a circa 30 Hz */ tc.updateArcLengths(); frenet(); const pa=tGeo.attributes.position.array, na=tGeo.attributes.normal.array, oa=tOut.attributes.position.array;
+    for(let i=0;i<=TS;i++){ const u=i/TS; tc.getPointAt(u,fP); const r=.13*(1-u*.85), N=FNm[i], B=FBn[i];
       for(let j=0;j<=RS;j++){ const v=j/RS*Math.PI*2, s=Math.sin(v), c=-Math.cos(v); fN.set(c*N.x+s*B.x,c*N.y+s*B.y,c*N.z+s*B.z).normalize(); const k=((RS+1)*i+j)*3;
         pa[k]=fP.x+r*fN.x; pa[k+1]=fP.y+r*fN.y; pa[k+2]=fP.z+r*fN.z; na[k]=fN.x; na[k+1]=fN.y; na[k+2]=fN.z; oa[k]=fP.x+(r+.018)*fN.x; oa[k+1]=fP.y+(r+.018)*fN.y; oa[k+2]=fP.z+(r+.018)*fN.z; } }
-    tGeo.attributes.position.needsUpdate=tGeo.attributes.normal.needsUpdate=tOut.attributes.position.needsUpdate=true; tOut.computeVertexNormals();
-    tc.getPointAt(1,fP); tipCap.position.copy(fP); scales.forEach(sc=>{ tc.getPointAt(sc.userData.u,fP); sc.position.set(fP.x,fP.y+.11*(1-sc.userData.u*.8),fP.z); }); }
+    tGeo.attributes.position.needsUpdate=tGeo.attributes.normal.needsUpdate=tOut.attributes.position.needsUpdate=true; tOut.attributes.normal.array.set(na); tOut.attributes.normal.needsUpdate=true; /* stesse normali del tubo: niente computeVertexNormals */
+    tc.getPointAt(1,fP); tipCap.position.copy(fP); for(let k=0;k<scales.length;k++){ const sc=scales[k]; tc.getPointAt(sc.userData.u,fP); sc.position.set(fP.x,fP.y+.11*(1-sc.userData.u*.8),fP.z); } }
   // tutto ciò che sta sopra il bacino va nel gruppo "upper" (perno all'anca): così il corpo si piega e si siede
   const upper=new THREE.Group(); upper.position.y=.75; const keep=new Set([tMesh,tOM,tipCap,...scales,...legs.map(l=>l.th)]);
   g.children.slice().forEach(c=>{ if(keep.has(c)) return; g.remove(c); c.position.y-=.75; upper.add(c); }); g.add(upper);
@@ -4858,15 +5274,15 @@ function creature(o){ o=o||{}; const g=new THREE.Group(), head=new THREE.Group()
   // "rig": contiene tutto il corpo e ruota attorno ai piedi (serve per cadere all'indietro)
   const rig=new THREE.Group(); g.children.slice().forEach(c=>{ g.remove(c); rig.add(c); }); g.add(rig);
   const eyeY=eyes.map(e=>e.scale.y); let ES=1, blinkT=1+Math.random()*3, blink=0, time=Math.random()*10, cur=null, prev=null, fade=1, t0=0, pt0=0, onDone=null;
-  function apply(p){ rig.rotation.x=p.rx; rig.position.y=p.ry; upper.position.y=p.hy; upper.rotation.set(p.hx,p.hyaw,p.hz); legs.forEach((l,i)=>{ l.th.position.y=p.hy; l.th.rotation.set(p['l'+i],0,i?-.02:.02); l.kn.rotation.x=p['k'+i]; });
-    arms.forEach((a,i)=>{ a.a.rotation.set(p['a'+i+'x'],p['a'+i+'y'],p['a'+i+'z']); a.el.rotation.x=p['e'+i]; }); head.rotation.set(p.nx,p.ny+(g.userData.lookY||0),p.nz);
+  function apply(p){ rig.rotation.x=p.rx; rig.position.y=p.ry; upper.position.y=p.hy; upper.rotation.set(p.hx,p.hyaw,p.hz); for(let i=0;i<legs.length;i++){ const l=legs[i]; l.th.position.y=p.hy; l.th.rotation.set(p[LK[i]],0,i?-.02:.02); l.kn.rotation.x=p[KK[i]]; }
+    for(let i=0;i<arms.length;i++){ const a=arms[i]; a.a.rotation.set(p[AXK[i]],p[AYK[i]],p[AZK[i]]); a.el.rotation.x=p[EK[i]]; } head.rotation.set(p.nx,p.ny+(g.userData.lookY||0),p.nz);
     mouth.visible=p.mo>.03; mouth.scale.y=.065*p.mo+.001;
     /* l'umore (g.userData.mood da -1 furioso a +1 contento) si somma alla posa: chi e' stato trattato male resta imbronciato o furioso */
     const md=g.userData.mood||0, an=Math.max(0,-md), br=Math.max(p.br,an*.85), fr=Math.max(p.fr,an>.25?1:0), es=Math.min(p.es,1-an*.4), rd=Math.max(p.rd,an>.6?(an-.4)*1.5:0), vn=Math.max(p.vn,an>.85?1:0), bu=Math.max(p.bu,md>.5?(md-.5)*1.2:0);
     mouth.scale.x=.075+.03*fr; ES=es;
     if(SMILE&&FROWN){ const op=p.mo>.03; SMILE.visible=!op&&fr<.5; FROWN.visible=!op&&fr>=.5; }
     BROWS.forEach((b2,i)=>{ b2.visible=Math.abs(br)>.05||bu>.05; b2.rotation.z=(i?1:-1)*br*.55; b2.position.y=.3+bu*.06-(br>0?.03*br:0); }); FLUSH.forEach(m=>{ m.visible=rd>.05; m.material.opacity=Math.min(1,rd)*.9; }); if(VEIN){ VEIN.visible=vn>.4; VEIN.scale.setScalar(1+.15*Math.sin(time*18)); } stars.visible=p.st>.3; stars.rotation.y=time*4; stars.scale.setScalar(Math.max(.01,p.st));
-    for(let i=0;i<7;i++) TP[i].set(p['tx'+i],p['ty'+i],p['tz'+i]); buildTail(); }
+    for(let i=0;i<7;i++) TP[i].set(p[TXK[i]],p[TYK[i]],p[TZK[i]]); buildTail(); }
   // play(nome[, callback]): per le animazioni "una volta sola" (fall) la callback parte alla fine
   function play(name,cb){ if(!ANIMS[name]) return; if(name===cur&&!ONESHOT[name]){ onDone=cb||null; return; } prev=cur; pt0=t0; t0=time; cur=name; fade=prev?0:1; onDone=cb||null; }
   function update(dt){ time+=dt; fade=Math.min(1,fade+dt/.3); let p=ANIMS[cur](time,time-t0); if(prev&&fade<1){ const q=ANIMS[prev](time,time-pt0), w=fade*fade*(3-2*fade); for(const k in p) p[k]=q[k]+(p[k]-q[k])*w; }
@@ -4875,13 +5291,14 @@ function creature(o){ o=o||{}; const g=new THREE.Group(), head=new THREE.Group()
     blinkT-=dt; if(blinkT<0){ blink=.16; blinkT=2.5+Math.random()*3.5; } if(blink>0){ blink-=dt; } const bk=blink>0?Math.max(.08,Math.abs(blink-.08)/.08):1; eyes.forEach((e,i)=>e.scale.y=eyeY[i]*bk*ES); }
   g.userData={noOL:1,play,update,get anim(){return cur;}}; play('idle'); update(0); OLM=1;
   return g; }
+const TXK=[0,1,2,3,4,5,6].map(i=>'tx'+i), TYK=[0,1,2,3,4,5,6].map(i=>'ty'+i), TZK=[0,1,2,3,4,5,6].map(i=>'tz'+i), LK=['l0','l1'], KK=['k0','k1'], AXK=['a0x','a1x'], AYK=['a0y','a1y'], AZK=['a0z','a1z'], EK=['e0','e1'];
 const BASE={rx:0,ry:0,st:0,hy:.75,hx:0,hyaw:0,hz:0,nx:0,ny:0,nz:0,a0x:0,a0y:0,a0z:-.12,e0:-.15,a1x:0,a1y:0,a1z:.12,e1:-.15,l0:0,k0:0,l1:0,k1:0,mo:0,br:0,bu:0,es:1,fr:0,rd:0,vn:0};
 const sn=Math.sin, cs=Math.cos;
 // coda: forma "a riposo" arricciata a terra + forma "scia" dietro il corpo, più un'onda che parte dalla base
 function tail(p,t,{trail=0,amp=.08,f=1.5,lift=0,up=.06}){ const hy=p.hy;
   const RX=[0,.15,.55,.95,.7,.2,-.35], RY=[hy,Math.max(.16,hy-.4),.1,.08,.08,.075,.075], RZ=[-.2,-.45,-.35,.1,.55,.65,.55];
   const SX=[0,0,.03,.06,.09,.12,.15], SY=[hy,hy-.25,.22+lift,.14+lift*.8,.1+lift*.6,.1+lift*.55,.12+lift*.7], SZ=[-.2,-.5,-.85,-1.2,-1.5,-1.78,-2];
-  for(let i=0;i<7;i++){ const w=i/6; p['tx'+i]=RX[i]+(SX[i]-RX[i])*trail+amp*w*sn(t*f-i*.9)*(i?1:0); p['ty'+i]=RY[i]+(SY[i]-RY[i])*trail+(i>=4?up*w*w*(.5+.5*sn(t*f*.7-i*.6)):0); p['tz'+i]=RZ[i]+(SZ[i]-RZ[i])*trail+(i?amp*.6*w*cs(t*f*.8-i*.7):0); }
+  for(let i=0;i<7;i++){ const w=i/6; p[TXK[i]]=RX[i]+(SX[i]-RX[i])*trail+amp*w*sn(t*f-i*.9)*(i?1:0); p[TYK[i]]=RY[i]+(SY[i]-RY[i])*trail+(i>=4?up*w*w*(.5+.5*sn(t*f*.7-i*.6)):0); p[TZK[i]]=RZ[i]+(SZ[i]-RZ[i])*trail+(i?amp*.6*w*cs(t*f*.8-i*.7):0); }
   return p; }
 const ANIMS={
   // scontro, caduta all'indietro, stelline, rialzo (dura ONESHOT.fall secondi)
@@ -4930,9 +5347,9 @@ class Crowd{
     if(on) this.run(a,a.yaw+RND(-1,1)); else this.set(a,'calm','idle',RND(.8,2)); }); }
   // collisione di un cerchio (x,z,r) con muri e macchinari: restituisce {type, nx, nz} o null
   hit(x,z,r){ const W=this.w/2-r, D=this.d/2-r; if(x<-W) return {type:'wall',nx:1,nz:0}; if(x>W) return {type:'wall',nx:-1,nz:0}; if(z<-D) return {type:'wall',nx:0,nz:1}; if(z>D) return {type:'wall',nx:0,nz:-1};
-    for(const m of this.machines){ const cx=Math.max(m.x-m.w/2,Math.min(x,m.x+m.w/2)), cz=Math.max(m.z-m.d/2,Math.min(z,m.z+m.d/2)), dx=x-cx, dz=z-cz, l=Math.hypot(dx,dz); if(l<r) return {type:'machine',m,nx:l?dx/l:0,nz:l?dz/l:1}; }
+    for(const m of this.machines){ const cx=Math.max(m.x-m.w/2,Math.min(x,m.x+m.w/2)), cz=Math.max(m.z-m.d/2,Math.min(z,m.z+m.d/2)), dx=x-cx, dz=z-cz, l=hyp(dx,dz); if(l<r) return {type:'machine',m,nx:l?dx/l:0,nz:l?dz/l:1}; }
     return null; }
-  near(a,x,z,dist){ for(const b of this.list){ if(b===a) continue; if(Math.hypot(b.x-x,b.z-z)<dist) return b; } return null; }
+  near(a,x,z,dist){ for(const b of this.list){ if(b===a) continue; if(hyp(b.x-x,b.z-z)<dist) return b; } return null; }
   update(dt){ for(const a of this.list){ a.cool=Math.max(0,a.cool-dt); a.t-=dt;
       if(a.state==='walk'||a.state==='run'){ const run=a.state==='run', sp=run?this.RUN:this.WALK, nx=a.x+Math.sin(a.yaw)*sp*dt, nz=a.z+Math.cos(a.yaw)*sp*dt;
         if(Math.abs(ANG(a.ty-a.yaw))>.6){ /* prima si gira, poi parte */ }
@@ -5017,7 +5434,7 @@ function createAlienCat(o){ o=o||{}; const skin=o.skin||BLUE, dark=o.dark||BLUED
     gp+=dt*c.gf; const th=c.tr, cT=Math.cos(th), sT=Math.sin(th), PH=[[0,.25,.5,.75],[0,.08,.5,.58]];
     legs.forEach(L=>{ const hz=c.tz+L.z*cT, hy=c.ty+c.jy-L.z*sT; const order=L.i===2?0:L.i===0?1:L.i===3?2:3; const ph0=PH[0][order]*(1-c.pat)+PH[1][order]*c.pat; const f=((gp+ph0)%1+1)%1;
       let dz, dy; if(f<c.duty){ dz=c.S*(.5-f/c.duty); dy=0; } else { const q=(f-c.duty)/(1-c.duty), e=q*q*(3-2*q); dz=c.S*(-.5+e); dy=c.lift*Math.sin(Math.PI*q); }
-      const off=L.front?c.fF:c.fH; const gz=hz+off+dz, gy=GROUND+dy, az=hz+(L.front?.38:-.3), ay=hy-.5-(L.front?0:.08), tzf=gz+(az-gz)*c.air, tyf=gy+(ay-gy)*c.air; const vz=tzf-hz, vy=tyf-hy; let d=Math.hypot(vz,vy); d=Math.max(.08,Math.min(L1+L2-.004,d));
+      const off=L.front?c.fF:c.fH; const gz=hz+off+dz, gy=GROUND+dy, az=hz+(L.front?.38:-.3), ay=hy-.5-(L.front?0:.08), tzf=gz+(az-gz)*c.air, tyf=gy+(ay-gy)*c.air; const vz=tzf-hz, vy=tyf-hy; let d=hyp(vz,vy); d=Math.max(.08,Math.min(L1+L2-.004,d));
       const thT=Math.atan2(-vz,-vy), al=Math.acos(Math.max(-1,Math.min(1,(L1*L1+d*d-L2*L2)/(2*L1*d)))), th1=thT+(L.front?1:-1)*al;
       const kz=hz-L1*Math.sin(th1), ky=hy-L1*Math.cos(th1), th2=Math.atan2(-(tzf-kz),-(tyf-ky));
       L.hip.rotation.x=th1-th; L.kn.rotation.x=th2-th1; L.pw.rotation.x=-th2+(dy>0?.5*Math.sin(Math.PI*((f-c.duty)/(1-c.duty))):0); });
@@ -5039,12 +5456,12 @@ return {make:creature,cat:createAlienCat,look,LIST,SC,Crowd,ANIMS};
 })();
 const C3=(()=>{
   let R=null, scene=null, cam=null, host=null, hot=null, raf=0, sig='', built=null, okGL=null, last=0, running=false, HEMC=null, SUNC=null, FILC=null, STARS=null, LAMPM=[], GLOWM=null, TODS=null;
-  const YAW0=.38, T={x:12.5,z:10.5,d:30,yaw:YAW0,pitch:.6}; let lastIn=0, ttlWas=false;
-  const anims=[], walkers=[], flags=[]; let OBJ={}, TREEIM=[];
+  const YAW0=.38, T={x:12.5,z:10.5,d:30,yaw:YAW0,pitch:.6}; let lastIn=0, ttlWas=false, SIMT=0, SHPOS=null; /* SIMT: orologio di simulazione (somma dei dt mediati): luci, animazioni e personaggi restano sincronizzati anche dopo un rallentamento */
+  const anims=[], walkers=[], flags=[], RVL=[]; let OBJ={}, TREEIM=[];
   const col=h=>new THREE.Color(h).convertSRGBToLinear();
   const MC={}; function mat(h,o){ const k=h+'|'+JSON.stringify(o||{}); if(MC[k]) return MC[k]; return MC[k]=new THREE.MeshStandardMaterial(Object.assign({color:col(h),roughness:.85,metalness:0,envMapIntensity:.5},o||{})); }
   function can(){ if(okGL!=null) return okGL; try{ const c=document.createElement('canvas'); okGL=!!(window.THREE&&(c.getContext('webgl2')||c.getContext('webgl'))); }catch(e){ okGL=false; } return okGL; }
-  const sh=m=>{ m.castShadow=true; m.receiveShadow=true; return m; };
+  const sh=m=>{ /* le cose piccole o sottili (listelli, pali, ruote, righe) ricevono ombra ma non la proiettano: non si vedrebbe e costa */ const g=m.geometry; let cast=true; if(g){ if(!g.boundingBox) g.computeBoundingBox(); const b=g.boundingBox, d=[b.max.x-b.min.x,b.max.y-b.min.y,b.max.z-b.min.z].sort((x,y)=>x-y); cast=d[2]*d[1]>=.08; } m.castShadow=cast; m.receiveShadow=true; return m; };
   function add(g,m,x,y,z,p){ const o=sh(new THREE.Mesh(g,m)); o.position.set(x,y,z); (p||built).add(o); return o; }
   /* ==========================================================================
      Kit grafico in stile «Surviving Mars» sulla Terra: architettura spaziale
@@ -5193,7 +5610,7 @@ const C3=(()=>{
       ['#2E86C1','#EB7D44','#1FA2A8','#F2B83A'].forEach((c,i)=>{ const px=x+.55+i*.4, pz=y+2.7; add(new THREE.CylinderGeometry(.02,.02,1.5,6),M('#D8D7D2'),px,.75,pz); const f=new THREE.Mesh(new THREE.PlaneGeometry(.32,.2,6,1),M(c,{side:THREE.DoubleSide})); f.position.set(px+.16,1.38,pz); f.userData.dyn=1; built.add(f); flags.push(f); });
       top=2.5; }
     else if(k==='parking'){ apron(x,y,x+6,y+3,'#D9D3C6'); for(let i=0;i<=6;i++){ add(new THREE.BoxGeometry(.04,.01,1.2),M('#F3F1EA'),x+.15+i*.9,.115,y+.8); add(new THREE.BoxGeometry(.04,.01,1.2),M('#F3F1EA'),x+.15+i*.9,.115,y+2.2); }
-      const cg=['#E04A3C','#7BC043','#F2B83A','#2E86C1','#EB7D44','#1FA2A8']; [0,1,3,4,5].forEach((i,j)=>{ const g=rover(); g.children[4].material=M(cg[(i+1)%6]); g.position.set(x+.6+i*.9,.11,y+.8); g.rotation.y=Math.PI/2; built.add(g); }); [1,2,4].forEach((i,j)=>{ const g=rover(); g.children[4].material=M(cg[(i+3)%6]); g.position.set(x+.6+i*.9,.11,y+2.2); g.rotation.y=-Math.PI/2; built.add(g); }); top=.6; }
+      const cg=['#E04A3C','#7BC043','#F2B83A','#2E86C1','#EB7D44','#1FA2A8']; const PLG=new THREE.Group(); [0,1,3,4,5].forEach((i,j)=>{ const g=rover(); g.children[4].material=M(cg[(i+1)%6]); g.position.set(x+.6+i*.9,.11,y+.8); g.rotation.y=Math.PI/2; flat(PLG,g); }); [1,2,4].forEach((i,j)=>{ const g=rover(); g.children[4].material=M(cg[(i+3)%6]); g.position.set(x+.6+i*.9,.11,y+2.2); g.rotation.y=-Math.PI/2; flat(PLG,g); }); mergeGroup(PLG); built.add(PLG); top=.6; }
     else if(k==='dish'){ dish(it.x+.5,it.y+.5,0,.48,.8,-.7); top=1.3; }
     else if(k==='pond'){ const cx=x+1.8, cz=y+1.4; const rim=rslab(cx,cz,3.5,2.7,1.3,0,.12,M('#D9D3C2',{roughness:.9}),.04); rim.castShadow=false;
       const w=rslab(cx,cz,3.15,2.35,1.15,.06,.08,waterMat(),0); w.castShadow=false; [[1.1,1],[2.3,1.6],[1.6,1.9],[2.6,.9],[.9,1.7]].forEach(p=>{ const l=add(new THREE.CylinderGeometry(.13,.13,.02,10),M('#5FA63A'),x+p[0],.15,y+p[1]); l.castShadow=false; });
@@ -5205,15 +5622,17 @@ const C3=(()=>{
   function car(c){ const g=new THREE.Group(); const b=new THREE.Mesh(new THREE.ExtrudeGeometry(rr(.62,.3,.12),{depth:.12,bevelEnabled:true,bevelThickness:.04,bevelSize:.03,bevelSegments:2}),M(c,{roughness:.3})); b.geometry.rotateX(-Math.PI/2); b.position.y=.07; b.castShadow=true; g.add(b);
     const cab=new THREE.Mesh(new THREE.SphereGeometry(.15,14,10,0,Math.PI*2,0,Math.PI/2),glassMat()); cab.scale.set(1.3,.75,.85); cab.position.set(-.04,.24,0); g.add(cab);
     [[-.2,-.16],[.2,-.16],[-.2,.16],[.2,.16]].forEach(p=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.06,12),M('#1E2024')); w.rotation.x=Math.PI/2; w.position.set(p[0],.065,p[1]); g.add(w); }); return g; }
+  /* rover parcheggiati: le parti passano in un gruppo unico e si fondono per materiale (8 rover x 18 mesh -> pochi disegni) */
+  let PBL=null; function flat(dst,g){ g.updateMatrix(); PBL=PBL||EMI('#FF4A3A'); g.userData.bl.material=PBL; g.children.slice().forEach(c=>{ c.updateMatrix(); c.matrix.premultiply(g.matrix); c.matrix.decompose(c.position,c.quaternion,c.scale); dst.add(c); }); }
   function rover(){ const g=new THREE.Group(); const body=new THREE.Mesh(new THREE.ExtrudeGeometry(rr(.95,.42,.14),{depth:.14,bevelEnabled:true,bevelThickness:.05,bevelSize:.04,bevelSegments:2}),M(PALW,{roughness:.35})); body.geometry.rotateX(-Math.PI/2); body.position.y=.17; body.castShadow=true; g.add(body);
     const cab=new THREE.Mesh(new THREE.ExtrudeGeometry(rr(.38,.34,.15),{depth:.14,bevelEnabled:true,bevelThickness:.06,bevelSize:.05,bevelSegments:3}),M(PALW,{roughness:.35})); cab.geometry.rotateX(-Math.PI/2); cab.position.set(.22,.34,0); g.add(cab);
-    const win=new THREE.Mesh(new THREE.BoxGeometry(.04,.1,.28),glassMat()); win.position.set(.43,.43,0); g.add(win); const strip=new THREE.Mesh(new THREE.BoxGeometry(.97,.04,.44),M(DARK)); strip.position.y=.2; g.add(strip);
+    const win=new THREE.Mesh(new THREE.BoxGeometry(.04,.1,.28),glassMat()); win.position.set(.43,.43,0); win.userData.skipOL=1; g.add(win); const strip=new THREE.Mesh(new THREE.BoxGeometry(.97,.04,.44),M(DARK)); strip.position.y=.2; strip.userData.skipOL=1; g.add(strip);
     const cargo=new THREE.Mesh(new THREE.BoxGeometry(.4,.14,.3),M(['#E04A3C','#7BC043','#F2B83A'][walkers.length%3])); cargo.position.set(-.2,.37,0); g.add(cargo);
-    const wh=[]; [-.32,0,.32].forEach(xx=>[-.25,.25].forEach(zz=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.09,14),M('#1E2024')); w.rotation.x=Math.PI/2; w.position.set(xx,.11,zz); g.add(w); const hb=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.095,10),M('#E9E7E0')); hb.rotation.x=Math.PI/2; hb.position.set(xx,.11,zz); g.add(hb); wh.push(w); }));
-    const bl=new THREE.Mesh(new THREE.SphereGeometry(.04,8,6),EMI('#FF4A3A')); bl.position.set(.22,.5,0); g.add(bl); g.userData.wh=wh; g.userData.bl=bl; return g; }
+    const wh=[]; [-.32,0,.32].forEach(xx=>[-.25,.25].forEach(zz=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.09,14),M('#1E2024')); w.rotation.x=Math.PI/2; w.position.set(xx,.11,zz); w.userData.skipOL=1; g.add(w); const hb=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.095,10),M('#E9E7E0')); hb.rotation.x=Math.PI/2; hb.position.set(xx,.11,zz); hb.userData.skipOL=1; g.add(hb); wh.push(w); }));
+    const bl=new THREE.Mesh(new THREE.SphereGeometry(.04,8,6),EMI('#FF4A3A')); bl.position.set(.22,.5,0); bl.userData.skipOL=1; g.add(bl); g.userData.wh=wh; g.userData.bl=bl; return g; }
   /* coloni: busto, testa, capelli, braccia e gambe che si muovono */
   const SKIN=['#F2CBA8','#D9A37E','#B97F55','#8A5A3C','#F0D2B8'], HAIR=['#2A1D18','#5B3A26','#C9342E','#E7C15A','#1B1414','#8D8A86'];
-  function colonist(i,N){ const OL=ALN.LIST.filter(q=>!q.hood), c=ALN.make(Object.assign({lo:N>14?2:1,ol:2.6},OL[i%OL.length])); c.scale.setScalar(ALN.SC.campus); c.userData.play('walk'); return c; }
+  function colonist(i,N){ const OL=ALN.LIST.filter(q=>!q.hood), c=ALN.make(Object.assign({lo:(MOB||N>14)?2:1,ol:2.6},OL[i%OL.length])); c.scale.setScalar(ALN.SC.campus); c.userData.play('walk'); return c; }
   /* ---------- natura: alberi a chioma multipla, pini, cipressi, cespugli ---------- */
   function trees(list){ const kinds={round:[],pine:[],poplar:[]}; list.forEach(t=>kinds[t.k==='tree'||t.k==='round'?'round':t.k==='pine'?'pine':'poplar'].push(t));
     const dummy=new THREE.Object3D(), C=new THREE.Color();
@@ -5230,12 +5649,12 @@ const C3=(()=>{
     const cp=[]; for(let i=0;i<=12;i++){ const f=i/12; cp.push(new THREE.Vector2(Math.max(.001,Math.sin(Math.pow(f,.85)*Math.PI)*(1-f*.35)*.36),f*2.4)); }
     mk(new THREE.LatheGeometry(cp,10),leaf,kinds.poplar,(t,o)=>{ const s=t.s||1; o.position.set(t.x,.08*s,t.y); o.scale.set(s,s,s); },(t)=>['#2E5E2A','#386B30','#2A5526'][Math.floor(hs(t.x,t.y)*3)]);
   }
-  function bushes(list){ if(!list.length) return; const im=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.95}),list.length); im.castShadow=true; im.receiveShadow=true; const o=new THREE.Object3D(), C=new THREE.Color();
+  function bushes(list){ if(!list.length) return; const im=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.95}),list.length); im.castShadow=false; im.receiveShadow=true; const o=new THREE.Object3D(), C=new THREE.Color();
     list.forEach((b,i)=>{ o.position.set(b[0],b[2]*.55,b[1]); o.scale.set(b[2],b[2]*.8,b[2]); o.rotation.set(i,i*2,0); o.updateMatrix(); im.setMatrixAt(i,o.matrix); C.set(['#3F8A2E','#4E9A35','#5DA83C'][i%3]).convertSRGBToLinear(); im.setColorAt(i,C); }); built.add(im); }
   function flowers(list){ if(!list.length) return; const im=new THREE.InstancedMesh(new THREE.SphereGeometry(.07,6,5),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.8}),list.length); const o=new THREE.Object3D(), C=new THREE.Color(), FC=['#F2B83A','#E25A8C','#FFFFFF','#E04A3C','#9B6BD6'];
     list.forEach((f,i)=>{ o.position.set(f[0],f[2],f[1]); o.updateMatrix(); im.setMatrixAt(i,o.matrix); C.set(FC[f[3]%5]).convertSRGBToLinear(); im.setColorAt(i,C); }); built.add(im); }
   function lamps(list){ if(!list.length) return; list=list.map(l=>[l[0],l[1],l[2]+Math.PI]); /* i bracci guardano la strada */ const pole=new THREE.InstancedMesh(new THREE.CylinderGeometry(.025,.035,1,6),M('#E4E2DC'),list.length), head=new THREE.InstancedMesh(new THREE.SphereGeometry(.07,10,8),EMI('#FFF4D6'),list.length), arm=new THREE.InstancedMesh(new THREE.TorusGeometry(.14,.018,5,10,Math.PI),M('#E4E2DC'),list.length);
-    pole.castShadow=true; if(LAMPM.indexOf(head.material)<0) LAMPM.push(head.material); const o=new THREE.Object3D();
+    pole.castShadow=false; if(LAMPM.indexOf(head.material)<0) LAMPM.push(head.material); const o=new THREE.Object3D();
     list.forEach((l,i)=>{ o.rotation.set(0,0,0); o.scale.set(1,1,1); o.position.set(l[0],.5,l[1]); o.updateMatrix(); pole.setMatrixAt(i,o.matrix); o.position.set(l[0]+Math.cos(l[2])*.14,1.0,l[1]-Math.sin(l[2])*.14); o.rotation.set(0,l[2],0); o.updateMatrix(); arm.setMatrixAt(i,o.matrix); o.rotation.set(0,l[2],Math.PI/2); o.position.set(l[0]+Math.cos(l[2])*.28,.98,l[1]-Math.sin(l[2])*.28); o.updateMatrix(); head.setMatrixAt(i,o.matrix); });
     /* chiazza di luce a terra sotto ogni lampione (si vede di sera e di notte) */
     { if(!GLOWM){ const cv=document.createElement('canvas'); cv.width=cv.height=128; const g=cv.getContext('2d'), gr=g.createRadialGradient(64,64,0,64,64,64); gr.addColorStop(0,'rgba(255,236,170,.95)'); gr.addColorStop(.45,'rgba(255,220,140,.35)'); gr.addColorStop(1,'rgba(255,210,120,0)'); g.fillStyle=gr; g.fillRect(0,0,128,128); GLOWM=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv),transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}); }
@@ -5244,11 +5663,11 @@ const C3=(()=>{
   /* ---------- persone e veicoli in movimento ---------- */
   /* gatti: percorrono i marciapiedi, ogni tanto si siedono o dormono (a terra, senza cuccia); se incontrano uno Zorty si fermano a farsi coccolare */
   const CATS=[{skin:'#3A9BD5',dark:'#2B78B8'},{skin:'#7C6BD8',dark:'#5646AE'},{skin:'#3FB8A0',dark:'#2A8672'}];
-  function cats(paths,N){ if(!paths||!paths.length||!N) return; for(let i=0;i<N;i++){ const pl=paths[(i*3+2)%paths.length], c=ALN.cat(Object.assign({lo:1,ol:2.6},CATS[i%CATS.length])); c.scale.setScalar(ALN.SC.campus*1.05); built.add(c); let L=0; const seg=[]; for(let k=1;k<pl.length;k++){ const d=Math.hypot(pl[k][0]-pl[k-1][0],pl[k][1]-pl[k-1][1]); seg.push(d); L+=d; } walkers.push({g:c,pl,seg,L,u:((i*.382+.17)%1)*L,sp:.32,dir:i%2?-1:1,kind:'c',st:'walk',t:3+Math.random()*6,cool:5+Math.random()*8,ang:0}); c.userData.play('walk'); } }
+  function cats(paths,N){ if(!paths||!paths.length||!N) return; for(let i=0;i<N;i++){ const pl=paths[(i*3+2)%paths.length], c=ALN.cat(Object.assign({lo:1,ol:2.6},CATS[i%CATS.length])); c.scale.setScalar(ALN.SC.campus*1.05); built.add(c); let L=0; const seg=[]; for(let k=1;k<pl.length;k++){ const d=hyp(pl[k][0]-pl[k-1][0],pl[k][1]-pl[k-1][1]); seg.push(d); L+=d; } walkers.push({g:c,pl,seg,L,u:((i*.382+.17)%1)*L,sp:.32,dir:i%2?-1:1,kind:'c',st:'walk',t:3+Math.random()*6,cool:5+Math.random()*8,ang:0}); c.userData.play('walk'); } }
   /* parco: punti dove gatti e Zorty possono passeggiare sull'erba (dentro il recinto, lontano da edifici, strade, alberi e siepi); i percorsi sono "uscite" di 2 tappe + ritorno al punto di partenza */
   let PARK=null;
-  function parkSep(self,x,z,dt){ let rx=0,rz=0; walkers.forEach(o=>{ if(o===self||(o.kind!=='p'&&o.kind!=='c')) return; const ox=o.g.position.x-x, oz=o.g.position.z-z, d=Math.hypot(ox,oz); if(d<.55&&d>1e-3){ rx-=ox/d*(.55-d); rz-=oz/d*(.55-d); } }); const k=Math.min(1,dt*3), nx=x+rx*k, nz=z+rz*k; return PARK.ok(nx,nz)?[nx,nz]:[x,z]; }
-  function parkMove(w,P,sp,dt,onStop,onEnd){ const g=w.g, L=P.legs[P.i], dx=L[0]-P.x, dz=L[1]-P.z, d=Math.hypot(dx,dz), step=sp*dt;
+  const PSR=[0,0]; function parkSep(self,x,z,dt){ let rx=0,rz=0; for(let i=0;i<walkers.length;i++){ const o=walkers[i]; if(o===self||(o.kind!=='p'&&o.kind!=='c')) continue; const ox=o.g.position.x-x, oz=o.g.position.z-z, d=Math.sqrt(ox*ox+oz*oz); if(d<.55&&d>1e-3){ rx-=ox/d*(.55-d); rz-=oz/d*(.55-d); } } const k=Math.min(1,dt*3), nx=x+rx*k, nz=z+rz*k; if(PARK.ok(nx,nz)){ PSR[0]=nx; PSR[1]=nz; } else { PSR[0]=x; PSR[1]=z; } return PSR; }
+  function parkMove(w,P,sp,dt,onStop,onEnd){ const g=w.g, L=P.legs[P.i], dx=L[0]-P.x, dz=L[1]-P.z, d=hyp(dx,dz), step=sp*dt;
     if(d<=step){ P.x=L[0]; P.z=L[1]; P.i++; if(P.i>=P.legs.length){ onEnd(); return false; } onStop(); }
     else { P.x+=dx/d*step; P.z+=dz/d*step; let da=Math.atan2(dx,dz)-g.rotation.y; da=Math.atan2(Math.sin(da),Math.cos(da)); g.rotation.y+=da*Math.min(1,dt*8); }
     const s=parkSep(w,P.x,P.z,dt); P.x=s[0]; P.z=s[1]; g.position.set(P.x,0,P.z); return true; }
@@ -5257,14 +5676,14 @@ const C3=(()=>{
   function greetEnd(w,pet){ if(pet){ w.hs='pet'; w.at=0; w.petT=3.8+Math.random()*1.4; w.tx=0; w.tz=0; w.g.userData.play('talk'); } else { w.hs=''; w.tx=0; w.tz=0; w.cool=15+Math.random()*10; w.car=null; w.g.userData.play('walk'); } }
   const greetOk=w=>{ const c=w.car; return !!c&&(c.st==='wait'||c.st==='pet'); };
   /* rallenta man mano che si avvicina al gatto (da ~2 a ~0,9 di distanza) */
-  function greetFactor(w){ if(w.hs!=='greet'||!w.car) return 1; const d=Math.hypot(w.car.g.position.x-w.g.position.x,w.car.g.position.z-w.g.position.z); return Math.max(.12,Math.min(1,(d-.9)/1.1)); }
+  function greetFactor(w){ if(w.hs!=='greet'||!w.car) return 1; const d=hyp(w.car.g.position.x-w.g.position.x,w.car.g.position.z-w.g.position.z); return Math.max(.12,Math.min(1,(d-.9)/1.1)); }
   /* chiamata a ogni passo sul percorso: durante l'avvicinamento si sposta verso il gatto e si gira piano verso di lui; dopo l'incontro si rigira piano verso la strada */
-  function greetFace(w,ang,dt){ if(w.hs==='greet'){ const c=w.car; if(!greetOk(w)){ greetEnd(w,false); return; } w.gt=(w.gt||0)+dt; const cx=c.g.position.x, cz=c.g.position.z, dx=cx-w.px, dz=cz-w.pz, dd=Math.hypot(dx,dz)||1, pull=Math.min(2.4,Math.max(0,dd-.86))*Math.min(1,w.gt/1.2); w.tx=dx/dd*pull; w.tz=dz/dd*pull;
-      const gx=cx-w.g.position.x, gz=cz-w.g.position.z, gd=Math.hypot(gx,gz); if(w.yaw==null) w.yaw=w.g.rotation.y; const tg=gd<2.2?Math.atan2(gx,gz):ang; w.yaw+=ANGN2(tg-w.yaw)*Math.min(1,dt*5); w.g.rotation.y=w.yaw;
+  function greetFace(w,ang,dt){ if(w.hs==='greet'){ const c=w.car; if(!greetOk(w)){ greetEnd(w,false); return; } w.gt=(w.gt||0)+dt; const cx=c.g.position.x, cz=c.g.position.z, dx=cx-w.px, dz=cz-w.pz, dd=hyp(dx,dz)||1, pull=Math.min(2.4,Math.max(0,dd-.86))*Math.min(1,w.gt/1.2); w.tx=dx/dd*pull; w.tz=dz/dd*pull;
+      const gx=cx-w.g.position.x, gz=cz-w.g.position.z, gd=hyp(gx,gz); if(w.yaw==null) w.yaw=w.g.rotation.y; const tg=gd<2.2?Math.atan2(gx,gz):ang; w.yaw+=ANGN2(tg-w.yaw)*Math.min(1,dt*5); w.g.rotation.y=w.yaw;
       if(gd<=.95) greetEnd(w,true); else if(w.gt>10||gd>3.6) greetEnd(w,false); }
     else if(w.yawT>0){ w.yawT-=dt; w.yaw+=ANGN2(ang-w.yaw)*Math.min(1,dt*6); w.g.rotation.y=w.yaw; } }
   function parkStep(w,dt){ const P=w.park, g=w.g; w.ox=0; w.oz=0; w.off=0;
-    if(w.hs==='greet'){ const c=w.car; if(!greetOk(w)) greetEnd(w,false); else { w.gt=(w.gt||0)+dt; const dx=c.g.position.x-P.x, dz=c.g.position.z-P.z, d=Math.hypot(dx,dz)||1;
+    if(w.hs==='greet'){ const c=w.car; if(!greetOk(w)) greetEnd(w,false); else { w.gt=(w.gt||0)+dt; const dx=c.g.position.x-P.x, dz=c.g.position.z-P.z, d=hyp(dx,dz)||1;
         if(d<=.95) greetEnd(w,true); else if(w.gt>10||d>3.6) greetEnd(w,false); else { const st=Math.max(.12,Math.min(1,(d-.9)/1.1))*w.sp*.8*dt; P.x+=dx/d*st; P.z+=dz/d*st; g.position.set(P.x,0,P.z); g.rotation.y+=ANGN2(Math.atan2(dx,dz)-g.rotation.y)*Math.min(1,dt*6); } }
       w.px=P.x; w.pz=P.z; pedUpd(w,dt); return; }
     if(P.wait>0){ P.wait-=dt; if(P.wait<=0) g.userData.play('walk'); g.position.set(P.x,0,P.z); w.px=P.x; w.pz=P.z; pedUpd(w,dt); return; }
@@ -5272,8 +5691,8 @@ const C3=(()=>{
     w.px=P.x; w.pz=P.z; pedUpd(w,dt); }
   function catsStep(dt){ walkers.forEach(w=>{ if(w.kind!=='c') return; const c=w.g, u=c.userData; w.cool=Math.max(0,w.cool-dt);
       w.dcd=Math.max(0,(w.dcd||0)-dt);
-      if(w.dcd<=0&&w.st!=='jump'){ const rv=walkers.find(q=>{ if(q.kind!=='r') return false; const dx=c.position.x-q.g.position.x, dz=c.position.z-q.g.position.z, d=Math.hypot(dx,dz); return d<.95&&((q.hx||0)*dx+(q.hz||0)*dz>0||d<.5); });
-        if(rv){ const dx=c.position.x-rv.g.position.x, dz=c.position.z-rv.g.position.z, d=Math.hypot(dx,dz)||1, x0=c.position.x, z0=c.position.z; if(!w.away){ w.away=true; w.legs=[[x0,z0]]; w.li=0; } w.fx=x0; w.fz=z0; const hx=rv.hx||0, hz=rv.hz||0, al=dx*hx+dz*hz; let lx=dx-al*hx, lz=dz-al*hz, ll=Math.hypot(lx,lz); if(ll<.12){ lx=-hz; lz=hx; ll=1; } w.hop={x0,z0,tx:x0+lx/ll*1.1+hx*.25,tz:z0+lz/ll*1.1+hz*.25,t:0}; w.partner=null; w.st='jump'; w.t=1.2; w.dcd=3; u.play('jump'); } }
+      if(w.dcd<=0&&w.st!=='jump'){ const rv=walkers.find(q=>{ if(q.kind!=='r') return false; const dx=c.position.x-q.g.position.x, dz=c.position.z-q.g.position.z, d=hyp(dx,dz); return d<.95&&((q.hx||0)*dx+(q.hz||0)*dz>0||d<.5); });
+        if(rv){ const dx=c.position.x-rv.g.position.x, dz=c.position.z-rv.g.position.z, d=hyp(dx,dz)||1, x0=c.position.x, z0=c.position.z; if(!w.away){ w.away=true; w.legs=[[x0,z0]]; w.li=0; } w.fx=x0; w.fz=z0; const hx=rv.hx||0, hz=rv.hz||0, al=dx*hx+dz*hz; let lx=dx-al*hx, lz=dz-al*hz, ll=hyp(lx,lz); if(ll<.12){ lx=-hz; lz=hx; ll=1; } w.hop={x0,z0,tx:x0+lx/ll*1.1+hx*.25,tz:z0+lz/ll*1.1+hz*.25,t:0}; w.partner=null; w.st='jump'; w.t=1.2; w.dcd=3; u.play('jump'); } }
       const back=()=>{ if(w.away){ w.st='roam'; u.play('walk'); } else { w.st='walk'; w.t=2+Math.random()*3; u.play('walk'); } };
       if(w.st==='walk'){ w.u+=w.dir*w.sp*dt; if(w.u>w.L||w.u<0){ w.u=Math.max(0,Math.min(w.L,w.u)); w.dir*=-1; } w.t-=dt; if(w.t<=0){ const r=w.force?0:Math.random(), lg=r<.8&&PARK?PARK.legs(c.position.x,c.position.z,3):null; if(lg){ w.legs=lg; w.li=0; w.away=true; w.fx=c.position.x; w.fz=c.position.z; w.st='roam'; u.play('walk'); } else { w.st=r<.9?'sleep':r<.95?'sit':'idle'; w.t=w.st==='sleep'?12+Math.random()*14:5+Math.random()*7; u.play(w.st); } } }
       else if(w.st==='sleep'||w.st==='sit'||w.st==='idle'){ w.t-=dt; if(w.t<=0) back(); }
@@ -5284,11 +5703,26 @@ const C3=(()=>{
       if(w.away) c.position.set(w.fx,0,w.fz);
       else { let k=0, uu=w.u; while(k<w.seg.length-1&&uu>w.seg[k]){ uu-=w.seg[k]; k++; } const a=w.pl[k], b=w.pl[k+1]||a, f=w.seg[k]?uu/w.seg[k]:0; c.position.set(a[0]+(b[0]-a[0])*f,0,a[1]+(b[1]-a[1])*f); if(w.st==='walk') c.rotation.y=Math.atan2(b[0]-a[0],b[1]-a[1])+(w.dir<0?Math.PI:0); }
       /* incontro: uno Zorty libero che viene verso il gatto: il gatto si ferma e lo guarda, lo Zorty rallenta, si avvicina e si ferma davanti a lui a parlargli */
-      if(w.cool<=0&&(w.st==='walk'||w.st==='idle'||w.st==='roam')){ const p=walkers.find(q=>{ if(q.kind!=='p'||q.hs||q.pause>0||(q.cool||0)>0) return false; const dx=c.position.x-q.g.position.x, dz=c.position.z-q.g.position.z, d=Math.hypot(dx,dz); if(d>2.6||d<.5) return false; return (q.park&&q.park.wait>0)||(Math.sin(q.g.rotation.y)*dx+Math.cos(q.g.rotation.y)*dz)>0; });
+      if(w.cool<=0&&(w.st==='walk'||w.st==='idle'||w.st==='roam')){ const p=walkers.find(q=>{ if(q.kind!=='p'||q.hs||q.pause>0||(q.cool||0)>0) return false; const dx=c.position.x-q.g.position.x, dz=c.position.z-q.g.position.z, d=hyp(dx,dz); if(d>2.6||d<.5) return false; return (q.park&&q.park.wait>0)||(Math.sin(q.g.rotation.y)*dx+Math.cos(q.g.rotation.y)*dz)>0; });
         if(p){ w.cool=30+Math.random()*30; if(w.sure||Math.random()<.7){ w.st='wait'; w.wt=0; w.partner=p; p.hs='greet'; p.gt=0; p.car=w; p.cool=25; p.yaw=p.g.rotation.y; p.g.userData.play('walk'); u.play('idle'); } } }
       const vis=FRU.intersectsSphere(FRS.set(c.position,.8)); c.visible=vis; if(vis) u.update(dt); }); }
-  function people(paths,N){ if(!paths||!paths.length||!N) return; for(let i=0;i<N;i++){ const pl=paths[i%paths.length], g=colonist(i,N); built.add(g); let L=0; const seg=[]; for(let k=1;k<pl.length;k++){ const d=Math.hypot(pl[k][0]-pl[k-1][0],pl[k][1]-pl[k-1][1]); seg.push(d); L+=d; } walkers.push({g,pl,seg,L,u:((i*.618034)%1)*L,sp:.5+(i%3)*.12,dir:i%2?1:-1,kind:'p',pause:0,id:i,off:0,ox:0,oz:0,tx:0,tz:0,cool:6+Math.random()*10}); } }
-  function rovers(paths){ paths.forEach((pl,i)=>{ const g=rover(); g.userData.dyn=true; built.add(g); let L=0; const seg=[]; for(let k=1;k<pl.length;k++){ const d=Math.hypot(pl[k][0]-pl[k-1][0],pl[k][1]-pl[k-1][1]); seg.push(d); L+=d; } walkers.push({g,pl,seg,L,u:(.3+i*.4)%1*L,sp:1.1,dir:1,kind:'r'}); }); }
+  function people(paths,N){ if(!paths||!paths.length||!N) return; for(let i=0;i<N;i++){ const pl=paths[i%paths.length], g=colonist(i,N); built.add(g); let L=0; const seg=[]; for(let k=1;k<pl.length;k++){ const d=hyp(pl[k][0]-pl[k-1][0],pl[k][1]-pl[k-1][1]); seg.push(d); L+=d; } walkers.push({g,pl,seg,L,u:((i*.618034)%1)*L,sp:.5+(i%3)*.12,dir:i%2?1:-1,kind:'p',pause:0,id:i,off:0,ox:0,oz:0,tx:0,tz:0,cool:6+Math.random()*10}); } }
+  /* Rover: la strada è una spezzata; il rover la percorre su una curva di Catmull-Rom (angoli arrotondati), sterza verso un punto poco più avanti con una rotazione smorzata,
+     e ha una velocità con inerza: rallenta ai capolinea e in curva, frena e riparte dolcemente. Il dietrofront ai capolinea è una vera curva, non uno scatto. */
+  const RA=[0,0,0,0], RB=[0,0,0,0];
+  function crPt(P,k,f,o){ const n=P.length, p0=P[k>0?k-1:0], p1=P[k], p2=P[k+1<n?k+1:n-1], p3=P[k+2<n?k+2:n-1], f2=f*f, f3=f2*f;
+    for(let c=0;c<2;c++){ const a=-p0[c]+p2[c], b=2*p0[c]-5*p1[c]+4*p2[c]-p3[c], d=-p0[c]+3*p1[c]-3*p2[c]+p3[c]; o[c]=.5*(2*p1[c]+a*f+b*f2+d*f3); o[2+c]=.5*(a+2*b*f+3*d*f2); } }
+  function rvAt(w,u,o){ u=u<0?0:u>w.L?w.L:u; let k=w.k||0; while(k>0&&u<w.cum[k]) k--; while(k<w.seg.length-1&&u>w.cum[k+1]) k++; w.k=k; const f=w.seg[k]?(u-w.cum[k])/w.seg[k]:0; crPt(w.pl,k,f<0?0:f>1?1:f,o); }
+  function roverStep(w,dt,t){
+    if(w.yaw==null){ w.cum=[0]; for(let i=0;i<w.seg.length;i++) w.cum.push(w.cum[i]+w.seg[i]); w.v=0; w.k=0; rvAt(w,w.u,RA); w.yaw=Math.atan2(RA[2]*w.dir,RA[3]*w.dir); }
+    rvAt(w,w.u,RA); const x0=RA[0], z0=RA[1]; rvAt(w,w.u+w.dir*.45,RB); let dx=RB[0]-x0, dz=RB[1]-z0; if(hyp(dx,dz)<.05){ dx=RA[2]*w.dir; dz=RA[3]*w.dir; }
+    const da=Math.atan2(Math.sin(Math.atan2(dx,dz)-w.yaw),Math.cos(Math.atan2(dx,dz)-w.yaw)), maxTurn=3.4*dt; w.yaw+=Math.max(-maxTurn,Math.min(maxTurn,da*Math.min(1,dt*7)));
+    const toEnd=w.dir>0?w.L-w.u:w.u, tv=w.sp*Math.min(1,.18+toEnd/1.4)*(Math.abs(da)>.6?.12:1)*(w.brake>0?.12:1); if(w.brake>0) w.brake-=dt;
+    w.v+=(tv-w.v)*Math.min(1,dt*(tv>w.v?1.8:4)); w.u+=w.dir*w.v*dt; if(w.u>w.L){ w.u=w.L; w.dir=-1; } else if(w.u<0){ w.u=0; w.dir=1; }
+    rvAt(w,w.u,RA); w.g.position.set(RA[0],0,RA[1]); w.g.rotation.y=w.yaw-Math.PI/2; w.hx=Math.sin(w.yaw); w.hz=Math.cos(w.yaw);
+    const wh=w.g.userData.wh, spin=dt*w.v*w.dir*-8; for(let i=0;i<wh.length;i++) wh[i].rotation.y+=spin; w.g.userData.bl.material.emissiveIntensity=Math.sin(t*6)>0?1.6:.2; }
+  function rovers(paths){ paths.forEach((pl,i)=>{ const g=rover(); g.userData.dyn=true; built.add(g); let L=0; const seg=[]; for(let k=1;k<pl.length;k++){ const d=hyp(pl[k][0]-pl[k-1][0],pl[k][1]-pl[k-1][1]); seg.push(d); L+=d; } const w={g,pl,seg,L,u:(.3+i*.4)%1*L,sp:1.1,dir:1,kind:'r'}; w.body=g.children[0]; BLOBG=BLOBG||new THREE.CircleGeometry(.5,14); BLOBM=BLOBM||new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.3,depthWrite:false}); const bz=new THREE.Mesh(BLOBG,BLOBM); bz.rotation.x=-Math.PI/2; bz.scale.set(1.25,.7,1); bz.position.set(-.02,.125,0); bz.renderOrder=1; bz.userData.noOL=1; bz.userData.skipOL=1; g.add(bz); w.blob=bz; walkers.push(w); RVL.push(w); }); roverShadows(); }
+  let BLOBG=null, BLOBM=null; function roverShadows(){ for(let i=0;i<RVL.length;i++){ const w=RVL[i]; if(w.body){ w.body.castShadow=PF.lvl>=3; w.blob.visible=PF.lvl<3; } } }
   /* i pedoni non si attraversano: se un altro e' vicino, si spostano di lato (destra se si incrociano, alternati se vanno nello stesso verso) */
   const FRU=new THREE.Frustum(), FRM=new THREE.Matrix4(), FRS=new THREE.Sphere(new THREE.Vector3(),.9);
   function pedUpd(w,dt){ const vis=FRU.intersectsSphere(FRS.set(w.g.position,.9)); w.g.visible=vis; if(vis) w.g.userData.update(dt); }
@@ -5297,17 +5731,17 @@ const C3=(()=>{
     if(w.hs==='pet'){ w.at+=dt; const yaw=Math.atan2(car.g.position.x-w.g.position.x,car.g.position.z-w.g.position.z); let da=yaw-w.g.rotation.y; da=Math.atan2(Math.sin(da),Math.cos(da)); w.g.rotation.y+=da*Math.min(1,dt*6); if(w.at>w.petT){ w.hs=''; w.tx=0; w.tz=0; w.cool=20+Math.random()*30; w.car=null; w.yaw=w.g.rotation.y; w.yawT=1.1; w.g.userData.play('walk'); } }
     if(w.hs==='angry'){ w.at+=dt; const yaw=Math.atan2(car.g.position.x-w.g.position.x,car.g.position.z-w.g.position.z); let da=yaw-w.g.rotation.y; da=Math.atan2(Math.sin(da),Math.cos(da)); w.g.rotation.y+=da*Math.min(1,dt*6); if(w.at>3.6){ w.hs=''; w.tx=0; w.tz=0; w.cool=30+Math.random()*40; w.will=false; w.g.userData.play('walk'); } }
     w.g.userData.update(dt); w.g.visible=true; }
-  function pedCars(dt){ const rv=walkers.filter(q=>q.kind==='r'); if(!rv.length) return; walkers.forEach(w=>{ if(w.kind!=='p') return; w.cool=Math.max(0,(w.cool||0)-dt); if(w.park&&!w.hs) return; const g=w.g;
-      if(!w.hs){ if(w.cool>0) return; let best=null, bd=9; rv.forEach(r=>{ const d=Math.hypot(r.g.position.x-g.position.x,r.g.position.z-g.position.z); if(d<bd){ bd=d; best=r; } });
+  function pedCars(dt){ const rv=RVL; if(!rv.length) return; walkers.forEach(w=>{ if(w.kind!=='p') return; w.cool=Math.max(0,(w.cool||0)-dt); if(w.park&&!w.hs) return; const g=w.g;
+      if(!w.hs){ if(w.cool>0) return; let best=null, bd=9; rv.forEach(r=>{ const d=hyp(r.g.position.x-g.position.x,r.g.position.z-g.position.z); if(d<bd){ bd=d; best=r; } });
         if(best&&bd<2.4){ if(w.enc!==best){ w.enc=best; w.will=Math.random()<.6; } if(w.will){ w.hs='step'; w.car=best; w.st=0; } } else w.enc=null; }
-      else if(w.hs==='step'){ const r=w.car, dx=r.g.position.x-g.position.x, dz=r.g.position.z-g.position.z, d=Math.hypot(dx,dz)||1; w.st+=dt; w.tx=dx/d*.55; w.tz=dz/d*.55;
+      else if(w.hs==='step'){ const r=w.car, dx=r.g.position.x-g.position.x, dz=r.g.position.z-g.position.z, d=hyp(dx,dz)||1; w.st+=dt; w.tx=dx/d*.55; w.tz=dz/d*.55;
         if(d<.5){ w.hs='fall'; r.brake=.7; w.tx+=(r.hx||0)*.6; w.tz+=(r.hz||0)*.6; w.at=0; w.g.userData.play('fall',()=>{ w.hs='angry'; w.at=0; w.g.userData.play('angry'); }); }
         else if(d>2.8||w.st>2.4){ w.hs=''; w.tx=0; w.tz=0; w.will=false; w.cool=10; } } }); }
   function pedOff(w,ang,dt){ let tg=0; const fx=Math.sin(ang), fz=Math.cos(ang), px=w.g.position.x-w.off*fz*0, pz=w.g.position.z;
-    walkers.forEach(o=>{ if(o===w||o.kind!=='p') return; const dx=o.g.position.x-px, dz=o.g.position.z-pz; if(Math.hypot(dx,dz)>.4) return; const oa=o.g.rotation.y, opp=Math.sin(oa)*fx+Math.cos(oa)*fz<0; tg=opp?.16:((w.id%2)?.16:-.16); });
-    let seen=false; walkers.forEach(o=>{ if(o.kind!=='c'||(w.hs==='greet'&&o===w.car)) return; const dx=o.g.position.x-px, dz=o.g.position.z-pz; if(Math.hypot(dx,dz)>.8||dx*fx+dz*fz<-.25) return; const lat=dx*Math.cos(ang)-dz*Math.sin(ang); if(!w.cside) w.cside=Math.abs(lat)<.14?((w.id%2)?1:-1):(lat>0?-1:1); tg=w.cside*.34; seen=true; }); if(!seen) w.cside=0;
+    walkers.forEach(o=>{ if(o===w||o.kind!=='p') return; const dx=o.g.position.x-px, dz=o.g.position.z-pz; if(hyp(dx,dz)>.4) return; const oa=o.g.rotation.y, opp=Math.sin(oa)*fx+Math.cos(oa)*fz<0; tg=opp?.16:((w.id%2)?.16:-.16); });
+    let seen=false; walkers.forEach(o=>{ if(o.kind!=='c'||(w.hs==='greet'&&o===w.car)) return; const dx=o.g.position.x-px, dz=o.g.position.z-pz; if(hyp(dx,dz)>.8||dx*fx+dz*fz<-.25) return; const lat=dx*Math.cos(ang)-dz*Math.sin(ang); if(!w.cside) w.cside=Math.abs(lat)<.14?((w.id%2)?1:-1):(lat>0?-1:1); tg=w.cside*.34; seen=true; }); if(!seen) w.cside=0;
     w.off+=(tg-w.off)*Math.min(1,dt*4); w.g.position.x+=Math.cos(ang)*w.off; w.g.position.z-=Math.sin(ang)*w.off; }
-  function walk(dt,t){ cam.updateMatrixWorld(); FRM.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse); FRU.setFromProjectionMatrix(FRM); walkers.forEach(w=>{ if(w.kind==='c') return; if(w.kind==='p'&&(w.hs==='fall'||w.hs==='angry'||w.hs==='pet')){ pedFrozen(w,dt); return; } if(w.kind==='p'&&w.park&&(!w.hs||w.hs==='greet')){ parkStep(w,dt); return; } if(w.kind==='p'&&!w.hs&&!w.park&&PARK&&w.px!=null&&w.pause<=0&&(w.pkc=(w.pkc==null?8+Math.random()*20:w.pkc)-dt)<=0){ w.pkc=25+Math.random()*40; const lg=PARK.legs(w.px,w.pz); if(lg){ w.park={legs:lg,i:0,x:w.g.position.x,z:w.g.position.z,wait:0}; w.g.userData.play('walk'); parkStep(w,dt); return; } } if(w.kind==='p'&&w.pause>0){ w.pause-=dt; if(w.pause<=0) w.g.userData.play('walk'); pedUpd(w,dt); return; }
+  function walk(dt,t){ cam.updateMatrixWorld(); FRM.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse); FRU.setFromProjectionMatrix(FRM); walkers.forEach(w=>{ if(w.kind==='c') return; if(w.kind==='r'){ roverStep(w,dt,t); return; } if(w.kind==='p'&&(w.hs==='fall'||w.hs==='angry'||w.hs==='pet')){ pedFrozen(w,dt); return; } if(w.kind==='p'&&w.park&&(!w.hs||w.hs==='greet')){ parkStep(w,dt); return; } if(w.kind==='p'&&!w.hs&&!w.park&&PARK&&w.px!=null&&w.pause<=0&&(w.pkc=(w.pkc==null?8+Math.random()*20:w.pkc)-dt)<=0){ w.pkc=25+Math.random()*40; const lg=PARK.legs(w.px,w.pz); if(lg){ w.park={legs:lg,i:0,x:w.g.position.x,z:w.g.position.z,wait:0}; w.g.userData.play('walk'); parkStep(w,dt); return; } } if(w.kind==='p'&&w.pause>0){ w.pause-=dt; if(w.pause<=0) w.g.userData.play('walk'); pedUpd(w,dt); return; }
       w.u+=w.dir*w.sp*dt*(w.brake>0?.25:1)*greetFactor(w); if(w.brake>0) w.brake-=dt; let ended=0; if(w.u>w.L){ w.u=w.L; w.dir=-1; ended=1; } if(w.u<0){ w.u=0; w.dir=1; ended=1; }
       if(ended&&w.kind==='p'){ if(w.hs==='greet') greetEnd(w,false); w.pause=1.2+Math.random()*2.8; w.g.userData.play(['calc','notes','idle','talk'][(Math.random()*4)|0]); } let u=w.u, k=0; while(k<w.seg.length-1&&u>w.seg[k]){ u-=w.seg[k]; k++; } const a=w.pl[k], b=w.pl[k+1]||a, f=w.seg[k]?u/w.seg[k]:0;
       const ang=Math.atan2(b[0]-a[0],b[1]-a[1])+(w.dir<0?Math.PI:0);
@@ -5315,13 +5749,13 @@ const C3=(()=>{
       else { w.hx=Math.sin(ang); w.hz=Math.cos(ang); w.g.position.set(a[0]+(b[0]-a[0])*f,0,a[1]+(b[1]-a[1])*f); w.g.rotation.y=ang-Math.PI/2; w.g.userData.wh.forEach(q=>q.rotation.y+=dt*w.sp*w.dir*-8); w.g.userData.bl.material.emissiveIntensity=Math.sin(t*6)>0?1.6:.2; } }); pedCars(dt); catsStep(dt); }
   /* ---------- strade ---------- */
   function smoothPl(pl,it){ let p=pl.map(q=>q.slice()); for(let k=0;k<(it||3);k++){ const o=[p[0]]; for(let i=0;i<p.length-1;i++){ const a=p[i], b=p[i+1]; o.push([a[0]*.75+b[0]*.25,a[1]*.75+b[1]*.25],[a[0]*.25+b[0]*.75,a[1]*.25+b[1]*.75]); } o.push(p[p.length-1]); p=o; } return p; }
-  function ribbon(pl,hw,y,c){ const pos=[], idx=[]; for(let i=0;i<pl.length;i++){ const a=pl[Math.max(0,i-1)], b=pl[Math.min(pl.length-1,i+1)]; let dx=b[0]-a[0], dz=b[1]-a[1]; const L=Math.hypot(dx,dz)||1; dx/=L; dz/=L; pos.push(pl[i][0]-dz*hw,y,pl[i][1]+dx*hw, pl[i][0]+dz*hw,y,pl[i][1]-dx*hw); if(i) idx.push(2*i-2,2*i-1,2*i, 2*i-1,2*i+1,2*i); }
+  function ribbon(pl,hw,y,c){ const pos=[], idx=[]; for(let i=0;i<pl.length;i++){ const a=pl[Math.max(0,i-1)], b=pl[Math.min(pl.length-1,i+1)]; let dx=b[0]-a[0], dz=b[1]-a[1]; const L=hyp(dx,dz)||1; dx/=L; dz/=L; pos.push(pl[i][0]-dz*hw,y,pl[i][1]+dx*hw, pl[i][0]+dz*hw,y,pl[i][1]-dx*hw); if(i) idx.push(2*i-2,2*i-1,2*i, 2*i-1,2*i+1,2*i); }
     const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals(); const m=new THREE.Mesh(g,mat(c,{side:THREE.DoubleSide})); m.receiveShadow=true; built.add(m); return m; }
-  function dashes(pl,y){ const g=new THREE.PlaneGeometry(.42,.07); g.rotateX(-Math.PI/2); const m=mat('#F3F1EA'); let acc=0; for(let i=1;i<pl.length;i++){ const a=pl[i-1], b=pl[i], L=Math.hypot(b[0]-a[0],b[1]-a[1]); acc+=L; if(acc>.95){ acc=0; const d=new THREE.Mesh(g,m); d.position.set((a[0]+b[0])/2,y,(a[1]+b[1])/2); d.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]); d.receiveShadow=true; built.add(d); } } }
+  function dashes(pl,y){ const g=new THREE.PlaneGeometry(.42,.07); g.rotateX(-Math.PI/2); const m=mat('#F3F1EA'), grp=new THREE.Group(); let acc=0; for(let i=1;i<pl.length;i++){ const a=pl[i-1], b=pl[i], L=hyp(b[0]-a[0],b[1]-a[1]); acc+=L; if(acc>.95){ acc=0; const d=new THREE.Mesh(g,m); d.position.set((a[0]+b[0])/2,y,(a[1]+b[1])/2); d.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]); d.receiveShadow=true; grp.add(d); } } mergeGroup(grp); built.add(grp); }
   /* ---------- scena ---------- */
-  function dPL(p,pl){ let m=1e9; for(let i=1;i<pl.length;i++){ const a=pl[i-1], b=pl[i], dx=b[0]-a[0], dz=b[1]-a[1], L2=dx*dx+dz*dz||1; let u=((p[0]-a[0])*dx+(p[1]-a[1])*dz)/L2; u=Math.max(0,Math.min(1,u)); m=Math.min(m,Math.hypot(p[0]-a[0]-dx*u,p[1]-a[1]-dz*u)); } return m; }
+  function dPL(p,pl){ let m=1e9; for(let i=1;i<pl.length;i++){ const a=pl[i-1], b=pl[i], dx=b[0]-a[0], dz=b[1]-a[1], L2=dx*dx+dz*dz||1; let u=((p[0]-a[0])*dx+(p[1]-a[1])*dz)/L2; u=Math.max(0,Math.min(1,u)); const ex=p[0]-a[0]-dx*u, ez=p[1]-a[1]-dz*u, e=Math.sqrt(ex*ex+ez*ez); if(e<m) m=e; } return m; }
   function inPolyS(p,pg){ let c=false; for(let i=0,j=pg.length-1;i<pg.length;j=i++){ const a=pg[i], b=pg[j]; if((a[1]>p[1])!==(b[1]>p[1])&&p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0]) c=!c; } return c; }
-  function uvRibbon(pl,hw,y,m){ const pos=[], uv=[], idx=[]; let v=0; for(let i=0;i<pl.length;i++){ const a=pl[Math.max(0,i-1)], b=pl[Math.min(pl.length-1,i+1)]; let dx=b[0]-a[0], dz=b[1]-a[1]; const L=Math.hypot(dx,dz)||1; dx/=L; dz/=L; if(i) v+=Math.hypot(pl[i][0]-pl[i-1][0],pl[i][1]-pl[i-1][1]); pos.push(pl[i][0]-dz*hw,y,pl[i][1]+dx*hw, pl[i][0]+dz*hw,y,pl[i][1]-dx*hw); uv.push(0,v/2.5,hw*2/2.5,v/2.5); if(i) idx.push(2*i-2,2*i-1,2*i, 2*i-1,2*i+1,2*i); }
+  function uvRibbon(pl,hw,y,m){ const pos=[], uv=[], idx=[]; let v=0; for(let i=0;i<pl.length;i++){ const a=pl[Math.max(0,i-1)], b=pl[Math.min(pl.length-1,i+1)]; let dx=b[0]-a[0], dz=b[1]-a[1]; const L=hyp(dx,dz)||1; dx/=L; dz/=L; if(i) v+=hyp(pl[i][0]-pl[i-1][0],pl[i][1]-pl[i-1][1]); pos.push(pl[i][0]-dz*hw,y,pl[i][1]+dx*hw, pl[i][0]+dz*hw,y,pl[i][1]-dx*hw); uv.push(0,v/2.5,hw*2/2.5,v/2.5); if(i) idx.push(2*i-2,2*i-1,2*i, 2*i-1,2*i+1,2*i); }
     const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals(); const o=new THREE.Mesh(g,m); o.receiveShadow=true; built.add(o); return o; }
   /* montagne intorno al bosco: coni sfaccettati (verde alla base, roccia, neve sulle cime alte), colore per faccia */
   function hs2(a,b){ const s=Math.sin(a*127.1+b*311.7)*43758.5453; return s-Math.floor(s); }
@@ -5338,7 +5772,7 @@ const C3=(()=>{
     if(!cave){ const wh=cy+R+tb+.55, wall=new THREE.Mesh(new THREE.BoxGeometry(2*R+1.8,wh,3),mat('#8A867F',{roughness:1})); wall.position.set(0,wh/2,-1.56); g.add(wall); }
     if(!cave) [-1,1].forEach(s=>{ const pl=new THREE.Mesh(new THREE.BoxGeometry(tb*1.6,cy+.05,1.1),stone); pl.position.set(s*R,(cy+.05)/2,0); g.add(pl); });
     else [-1,1].forEach(s=>{ const b=new THREE.Mesh(new THREE.IcosahedronGeometry(.9,0),stone); b.position.set(s*(R+.75),.35,.5); b.scale.set(1,.8,1.1); b.rotation.y=s; g.add(b); });
-    g.traverse(o=>{ if(o.isMesh){ o.castShadow=false; o.receiveShadow=true; } }); built.add(g); }
+    g.traverse(o=>{ if(o.isMesh){ o.castShadow=false; o.receiveShadow=true; } }); g.updateMatrixWorld(true); mergeGroup(g); built.add(g); }
   /* barricata di legno a strisce con cartello di stop: chiude la strada dove finisce il prato del campus (E = ultimo punto, D = verso in cui la strada prosegue) */
   let BARL=[], MTN=[], ARCHL=[];
   function barricade(E,D,hw){ const g=new THREE.Group(); g.position.set(E[0]+D[0]*.55,0,E[1]+D[1]*.55); g.rotation.y=Math.atan2(D[0],D[1]); const W=hw+.5, wood=mat('#9A6B3F',{roughness:1}), red=mat('#D8472E',{roughness:.8}), wht=mat('#F4F1E8',{roughness:.8}); const n=6, sw=2*W/n;
@@ -5348,14 +5782,14 @@ const C3=(()=>{
     const bg=new THREE.CylinderGeometry(.175,.175,.016,8); bg.rotateY(Math.PI/8); const back=sh(new THREE.Mesh(bg,wht)); back.rotation.x=Math.PI/2; back.position.set(sx,.66,-.01); g.add(back);
     const fg=new THREE.CylinderGeometry(.15,.15,.02,8); fg.rotateY(Math.PI/8); const face=sh(new THREE.Mesh(fg,red)); face.rotation.x=Math.PI/2; face.position.set(sx,.66,-.02); g.add(face);
     const bar=new THREE.Mesh(new THREE.BoxGeometry(.2,.05,.01),wht); bar.position.set(sx,.66,-.038); g.add(bar);
-    g.userData.noOL=0; built.add(g); }
+    g.userData.noOL=0; mergeGroup(g); built.add(g); }
   /* ponte bianco ad archi dove la strada principale attraversa il fiume */
   function bridge(rd,sp){ let at=null, ang=0, cr=1; const P=rd.p;
-    for(let i=1;i<P.length&&!at;i++) for(let j=1;j<sp.length;j++){ const a=P[i-1], b=P[i], c=sp[j-1], d=sp[j]; const r1=[b[0]-a[0],b[1]-a[1]], r2=[d[0]-c[0],d[1]-c[1]], den=r1[0]*r2[1]-r1[1]*r2[0]; if(Math.abs(den)<1e-9) continue; const u=((c[0]-a[0])*r2[1]-(c[1]-a[1])*r2[0])/den, v=((c[0]-a[0])*r1[1]-(c[1]-a[1])*r1[0])/den; if(u>=0&&u<=1&&v>=0&&v<=1){ at=[a[0]+r1[0]*u,a[1]+r1[1]*u]; ang=Math.atan2(r1[0],r1[1]); const l1=Math.hypot(...r1), l2=Math.hypot(...r2); cr=Math.abs(den)/(l1*l2); break; } }
+    for(let i=1;i<P.length&&!at;i++) for(let j=1;j<sp.length;j++){ const a=P[i-1], b=P[i], c=sp[j-1], d=sp[j]; const r1=[b[0]-a[0],b[1]-a[1]], r2=[d[0]-c[0],d[1]-c[1]], den=r1[0]*r2[1]-r1[1]*r2[0]; if(Math.abs(den)<1e-9) continue; const u=((c[0]-a[0])*r2[1]-(c[1]-a[1])*r2[0])/den, v=((c[0]-a[0])*r1[1]-(c[1]-a[1])*r1[0])/den; if(u>=0&&u<=1&&v>=0&&v<=1){ at=[a[0]+r1[0]*u,a[1]+r1[1]*u]; ang=Math.atan2(r1[0],r1[1]); const l1=hyp(...r1), l2=hyp(...r2); cr=Math.abs(den)/(l1*l2); break; } }
     if(!at) return; const g=new THREE.Group(), L=Math.min(14,(2.55*2)/Math.max(.35,cr)+1.6), W=rd.hw*2+.5, wm=WHITE(); const deck=sh(new THREE.Mesh(new THREE.BoxGeometry(W-.3,.03,L),M('#6E747A'))); deck.position.y=.035; g.add(deck); const side=sh(new THREE.Mesh(new THREE.BoxGeometry(W+.12,.12,L),wm)); side.position.y=-.045; g.add(side);
     [-1,1].forEach(sd=>{ const rail=sh(new THREE.Mesh(new THREE.BoxGeometry(.06,.06,L),wm)); rail.position.set(sd*(W/2+.02),.34,0); g.add(rail); const np=Math.round(L/.7); for(let i=0;i<=np;i++){ const p=sh(new THREE.Mesh(new THREE.BoxGeometry(.04,.3,.04),wm)); p.position.set(sd*(W/2+.02),.19,-L/2+i*L/np); g.add(p); }
       const arc=sh(new THREE.Mesh(new THREE.TorusGeometry(L*.42,.09,8,28,Math.PI),wm)); arc.position.set(sd*(W/2+.06),-.1-L*.42*.35,0); arc.rotation.y=Math.PI/2; arc.scale.set(1,.35,1); g.add(arc); });
-    g.position.set(at[0],0,at[1]); g.rotation.y=ang; built.add(g); return {at,ang,L}; }
+    g.position.set(at[0],0,at[1]); g.rotation.y=ang; g.updateMatrixWorld(true); mergeGroup(g); built.add(g); return {at,ang,L}; }
   const GT={}; function grassTex(rep){ if(GT[rep]) return GT[rep]; const S=256, c=document.createElement('canvas'); c.width=c.height=S; const g=c.getContext('2d'); g.fillStyle='#F2F2F2'; g.fillRect(0,0,S,S);
     let sd=12345; const rnd=()=>{ sd=(sd*1664525+1013904223)>>>0; return sd/4294967296; };
     for(let i=0;i<40;i++){ const x=rnd()*S, y=rnd()*S, r=12+rnd()*30; const gr=g.createRadialGradient(x,y,0,x,y,r); const v=rnd()>.5?'rgba(255,255,255,.35)':'rgba(170,190,140,.22)'; gr.addColorStop(0,v); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; for(const ox of [-S,0,S]) for(const oy of [-S,0,S]) g.fillRect(x-r+ox,y-r+oy,2*r,2*r); }
@@ -5364,8 +5798,8 @@ const C3=(()=>{
   /* unisce i pezzi statici di ogni edificio per materiale: molte meno chiamate di disegno sul telefono */
   function mergeGroup(g){ TOON.outlineStatic(g,{minDim:.045}); const B={}; g.children.slice().forEach(o=>{ if(!o.isMesh||o.isInstancedMesh||Array.isArray(o.material)||o.userData.dyn) return; (B[o.material.uuid]=B[o.material.uuid]||[]).push(o); });
     Object.values(B).forEach(list=>{ if(list.length<2) return; const pos=[], nor=[], uv=[]; list.forEach(o=>{ o.updateMatrix(); let geo=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone(); geo.applyMatrix4(o.matrix); const p=geo.attributes.position, n=geo.attributes.normal, u=geo.attributes.uv; for(let i=0;i<p.count;i++){ pos.push(p.getX(i),p.getY(i),p.getZ(i)); if(n) nor.push(n.getX(i),n.getY(i),n.getZ(i)); else nor.push(0,1,0); if(u) uv.push(u.getX(i),u.getY(i)); else uv.push(0,0); } geo.dispose(); g.remove(o); o.geometry.dispose(); });
-      const mg=new THREE.BufferGeometry(); mg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); mg.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3)); mg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); const m=new THREE.Mesh(mg,list[0].material); m.userData.noOL=1; m.castShadow=true; m.receiveShadow=list.every(o=>o.receiveShadow); g.add(m); }); }
-  function buildScene(items,ctx){ if(built){ scene.remove(built); built.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } TREEIM=[]; built=new THREE.Group(); scene.add(built); anims.length=0; walkers.length=0; flags.length=0;
+      const mg=new THREE.BufferGeometry(); mg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); mg.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3)); mg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); const m=new THREE.Mesh(mg,list[0].material); m.userData.noOL=1; m.castShadow=list.some(o=>o.castShadow); m.receiveShadow=list.every(o=>o.receiveShadow); g.add(m); }); }
+  function buildScene(items,ctx){ if(built){ scene.remove(built); built.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } TREEIM=[]; built=new THREE.Group(); scene.add(built); anims.length=0; walkers.length=0; RVL.length=0; flags.length=0;
     const site=CAM.site(), nat=CAM.nat(), roads=CAM.roads();
     // prato con chiazze
     const gg=new THREE.PlaneGeometry(260,260,90,90); gg.rotateX(-Math.PI/2); const cc=[], C=new THREE.Color(); const pa=gg.attributes.position;
@@ -5375,59 +5809,59 @@ const C3=(()=>{
     const sp=new THREE.Shape(site.map(p=>new THREE.Vector2(p[0],-p[1]))); const sg=new THREE.ShapeGeometry(sp); sg.rotateX(-Math.PI/2); const sm=new THREE.Mesh(sg,new THREE.MeshStandardMaterial({color:col('#54A535'),roughness:1,map:grassTex(1/4.5),envMapIntensity:.35})); sm.position.y=.005; sm.receiveShadow=true; built.add(sm);
     
     // ruscello, colline, strade
-    const MCX=13.75, MCY=7.25, MR0=CAM.R0max(), MRP=MR0+18, rad=p=>Math.hypot(p[0]-MCX,p[1]-MCY);
-    const SPd=(()=>{ const s=smoothPl(CAM.stream()), o=[]; for(let i=0;i<s.length-1;i++){ const a=s[i], b=s[i+1], n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/1.2)); for(let k=0;k<n;k++) o.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n]); } o.push(s[s.length-1]); return o; })();
+    const MCX=13.75, MCY=7.25, MR0=CAM.R0max(), MRP=MR0+18, rad=p=>hyp(p[0]-MCX,p[1]-MCY);
+    const SPd=(()=>{ const s=smoothPl(CAM.stream()), o=[]; for(let i=0;i<s.length-1;i++){ const a=s[i], b=s[i+1], n=Math.max(1,Math.ceil(hyp(b[0]-a[0],b[1]-a[1])/1.2)); for(let k=0;k<n;k++) o.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n]); } o.push(s[s.length-1]); return o; })();
     let si0=0, si1=SPd.length-1; while(si0<SPd.length-1&&rad(SPd[si0])>MRP+2.6) si0++; while(si1>0&&rad(SPd[si1])>MRP+2.6) si1--;
     const SP=SPd.slice(si0,si1+1); ribbon(SP,3.1,.008,'#7DAF4A'); ribbon(SP,2.55,.012,'#D9CBA0'); uvRibbon(SP,1.95,.03,waterMat()); anims.push(tt=>{ if(WATER) WATER.map.offset.set(tt*.015,-tt*.09); });
     nat.hills.forEach(h=>{ const m=add(new THREE.SphereGeometry(1,20,12,0,Math.PI*2,0,Math.PI/2),mat('#4F9A32',{roughness:1}),h.x,0,h.y); m.scale.set(h.r,h.h/11*.55,h.r*.9); });
     const cw=CAM.crawler(items); if(cw){ const p=smoothPl(cw,2); ribbon(p,.75,.02,'#D9D2BC'); ribbon(p,.25,.025,'#9BB46A'); }
-    const cwP=cw?smoothPl(cw,2):null, pdist=(x,z,pl)=>{ let m=1e9; for(let i=0;i<pl.length-1;i++){ const a=pl[i], b=pl[i+1], dx=b[0]-a[0], dz=b[1]-a[1], L2=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/L2)); m=Math.min(m,Math.hypot(x-a[0]-dx*t,z-a[1]-dz*t)); } return m; };
-    const ext=(p,e)=>{ const q=p.slice(), f=(A,B)=>{ const dx=A[0]-B[0], dz=A[1]-B[1], L=Math.hypot(dx,dz)||1; return [A[0]+dx/L*e,A[1]+dz/L*e]; }; q.unshift(f(p[0],p[1])); q.push(f(p[p.length-1],p[p.length-2])); return q; };
+    const cwP=cw?smoothPl(cw,2):null, pdist=(x,z,pl)=>{ let m=1e9; for(let i=0;i<pl.length-1;i++){ const a=pl[i], b=pl[i+1], dx=b[0]-a[0], dz=b[1]-a[1], L2=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/L2)); m=Math.min(m,hyp(x-a[0]-dx*t,z-a[1]-dz*t)); } return m; };
+    const ext=(p,e)=>{ const q=p.slice(), f=(A,B)=>{ const dx=A[0]-B[0], dz=A[1]-B[1], L=hyp(dx,dz)||1; return [A[0]+dx/L*e,A[1]+dz/L*e]; }; q.unshift(f(p[0],p[1])); q.push(f(p[p.length-1],p[p.length-2])); return q; };
     const RDS=roads.map(r=>{ const hw=r[1]/52+.12; return {p:ext(smoothPl(r[0]),hw*.85),hw}; });
     /* un parcheggio vicino a una strada la raggiunge da solo con un breve raccordo (stessi strati: marciapiede, bordo, asfalto) */
     const SPURS=[];
     items.filter(it=>it.k==='parking').forEach(it=>{ const x0=it.x, x1=it.x+6, z0=it.y, z1=it.y+3; let best=null;
-      RDS.forEach(r=>{ const p=r.p; for(let i=0;i<p.length-1;i++){ const a=p[i], b=p[i+1], n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/.4)); for(let s=0;s<=n;s++){ const px=a[0]+(b[0]-a[0])*s/n, pz=a[1]+(b[1]-a[1])*s/n, qx=Math.max(x0,Math.min(px,x1)), qz=Math.max(z0,Math.min(pz,z1)), d=Math.hypot(px-qx,pz-qz)-r.hw; if(!best||d<best.d) best={d,px,pz,qx,qz,hw:r.hw}; } } });
+      RDS.forEach(r=>{ const p=r.p; for(let i=0;i<p.length-1;i++){ const a=p[i], b=p[i+1], n=Math.max(1,Math.ceil(hyp(b[0]-a[0],b[1]-a[1])/.4)); for(let s=0;s<=n;s++){ const px=a[0]+(b[0]-a[0])*s/n, pz=a[1]+(b[1]-a[1])*s/n, qx=Math.max(x0,Math.min(px,x1)), qz=Math.max(z0,Math.min(pz,z1)), d=hyp(px-qx,pz-qz)-r.hw; if(!best||d<best.d) best={d,px,pz,qx,qz,hw:r.hw}; } } });
       if(best&&best.d>.2&&best.d<=5){ const px=best.px, pz=best.pz, ddx=px<x0?x0-px:px>x1?px-x1:0, ddz=pz<z0?z0-pz:pz>z1?pz-z1:0;
         const side=ddz===0?(px<x0?'L':'R'):ddx===0?(pz<z0?'T':'B'):(ddx>ddz?(px<x0?'L':'R'):(pz<z0?'T':'B'));
         let q, n; if(side==='T'){ q=[Math.max(x0+1,Math.min(x1-1,px)),z0]; n=[0,-1]; } else if(side==='B'){ q=[Math.max(x0+1,Math.min(x1-1,px)),z1]; n=[0,1]; } else if(side==='L'){ q=[x0,Math.max(z0+.9,Math.min(z1-.9,pz))]; n=[-1,0]; } else { q=[x1,Math.max(z0+.9,Math.min(z1-.9,pz))]; n=[1,0]; }
-        const L=Math.hypot(px-q[0],pz-q[1]), w=Math.min(.9,L*.5), spl=[[px,pz],[q[0]+n[0]*w,q[1]+n[1]*w],[q[0],q[1]]]; spl.spur=1; const hw=Math.max(.5,best.hw*.9); RDS.push({p:spl,hw,spur:1}); SPURS.push({q,n,hw}); } });
+        const L=hyp(px-q[0],pz-q[1]), w=Math.min(.9,L*.5), spl=[[px,pz],[q[0]+n[0]*w,q[1]+n[1]*w],[q[0],q[1]]]; spl.spur=1; const hw=Math.max(.5,best.hw*.9); RDS.push({p:spl,hw,spur:1}); SPURS.push({q,n,hw}); } });
     const cap=(p,r,y,c)=>{ if(p.spur) return; [p[1],p[p.length-2]].forEach(q=>{ const d=new THREE.Mesh(new THREE.CircleGeometry(r,24),mat(c)); d.rotation.x=-Math.PI/2; d.position.set(q[0],y,q[1]); d.receiveShadow=true; built.add(d); }); }; RDS.forEach(r=>{ ribbon(r.p,r.hw+.42,.016,'#E9E6DE'); cap(r.p,r.hw+.42,.016,'#E9E6DE'); }); RDS.forEach(r=>{ ribbon(r.p,r.hw+.14,.022,'#F4F2EC'); cap(r.p,r.hw+.14,.022,'#F4F2EC'); }); RDS.forEach(r=>{ ribbon(r.p,r.hw,.03,'#6E747A'); cap(r.p,r.hw,.03,'#6E747A'); }); RDS.forEach(r=>dashes(r.p.slice(2,-2),.036));
     const BRG=bridge(RDS[0],SP)||null;
-    const slabQ=(a,b,hw,y0,y1,c)=>{ const dx=b[0]-a[0], dz=b[1]-a[1], L=Math.hypot(dx,dz)||1, nx=-dz/L*hw, nz=dx/L*hw; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute([a[0]-nx,y0,a[1]-nz,a[0]+nx,y0,a[1]+nz,b[0]-nx,y1,b[1]-nz,b[0]+nx,y1,b[1]+nz],3)); g.setIndex([0,1,2,1,3,2]); g.computeVertexNormals(); const m=new THREE.Mesh(g,mat(c,{side:THREE.DoubleSide})); m.receiveShadow=true; m.userData.noOL=1; built.add(m); };
+    const slabQ=(a,b,hw,y0,y1,c)=>{ const dx=b[0]-a[0], dz=b[1]-a[1], L=hyp(dx,dz)||1, nx=-dz/L*hw, nz=dx/L*hw; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute([a[0]-nx,y0,a[1]-nz,a[0]+nx,y0,a[1]+nz,b[0]-nx,y1,b[1]-nz,b[0]+nx,y1,b[1]+nz],3)); g.setIndex([0,1,2,1,3,2]); g.computeVertexNormals(); const m=new THREE.Mesh(g,mat(c,{side:THREE.DoubleSide})); m.receiveShadow=true; m.userData.noOL=1; built.add(m); };
     SPURS.forEach(s=>{ const a=[s.q[0]+s.n[0]*.55,s.q[1]+s.n[1]*.55], b=s.q, c=[s.q[0]-s.n[0]*1.0,s.q[1]-s.n[1]*1.0]; slabQ(a,b,s.hw+.14,.034,.106,'#F4F2EC'); slabQ(a,b,s.hw,.04,.112,'#6E747A'); slabQ(b,c,s.hw+.14,.106,.106,'#F4F2EC'); slabQ(b,c,s.hw,.112,.112,'#6E747A'); });
     /* montagne a corona intorno al bosco; dove il ruscello e le strade arrivano alla corona: grotta e galleria */
-    const PORT=[], ARCH=[], dn=(a,b)=>{ const l=Math.hypot(b[0]-a[0],b[1]-a[1])||1; return [(b[0]-a[0])/l,(b[1]-a[1])/l]; };
+    const PORT=[], ARCH=[], dn=(a,b)=>{ const l=hyp(b[0]-a[0],b[1]-a[1])||1; return [(b[0]-a[0])/l,(b[1]-a[1])/l]; };
     { const n=SP.length; let i=0; while(i<n-1&&rad(SP[i])>MRP) i++; let j=n-1; while(j>0&&rad(SP[j])>MRP) j--;
       const Da=i>0?dn(SP[i],SP[i-1]):dn(SP[1],SP[0]), Db=j<n-1?dn(SP[j],SP[j+1]):dn(SP[n-2],SP[n-1]);
       [[SP[i],Da],[SP[j],Db]].forEach(c=>{ const X=c[0], D=c[1], br=9.5; PORT.push({x:X[0]+D[0]*(br+.2),z:X[1]+D[1]*(br+.2),br,h:14,seed:PORT.length+40,calm:1}); ARCH.push([X,[-D[0],-D[1]],'cave']); }); }
-    RDS.forEach(r=>{ if(r.spur) return; const d=[]; for(let i=0;i<r.p.length-1;i++){ const a=r.p[i], b=r.p[i+1], n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/.5)); for(let k=0;k<n;k++) d.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n]); }
+    RDS.forEach(r=>{ if(r.spur) return; const d=[]; for(let i=0;i<r.p.length-1;i++){ const a=r.p[i], b=r.p[i+1], n=Math.max(1,Math.ceil(hyp(b[0]-a[0],b[1]-a[1])/.5)); for(let k=0;k<n;k++) d.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n]); }
       for(let i=1;i<d.length;i++){ const r0=rad(d[i-1]), r1=rad(d[i]); if((r0<=MRP)!==(r1<=MRP)){ const t=(MRP-r0)/(r1-r0), X=[d[i-1][0]+(d[i][0]-d[i-1][0])*t,d[i-1][1]+(d[i][1]-d[i-1][1])*t], D=r1>r0?dn(d[i-1],d[i]):dn(d[i],d[i-1]), br=9; PORT.push({x:X[0]+D[0]*(br+.2),z:X[1]+D[1]*(br+.2),br,h:13,seed:PORT.length+60,calm:1}); ARCH.push([X,[-D[0],-D[1]],'road']); ARCH.push([[X[0]+D[0]*(2*br+.4),X[1]+D[1]*(2*br+.4)],D,'road']); } } });
-    { const nR=Math.ceil(2*Math.PI*(MRP+8)/11); for(let i=0;i<nR;i++){ const t=(i+hs2(i,5)*.6)/nR*Math.PI*2, rr=MRP+6.5+hs2(i,7)*3.5, x=MCX+Math.cos(t)*rr, z=MCY+Math.sin(t)*rr, br=7+hs2(i,9)*3.5, hh=11+hs2(i,11)*9; if(PORT.some(q=>Math.hypot(q.x-x,q.z-z)<(q.br+br)*.62)) continue; PORT.push({x,z,br,h:hh,seed:i+3}); } }
+    { const nR=Math.ceil(2*Math.PI*(MRP+8)/11); for(let i=0;i<nR;i++){ const t=(i+hs2(i,5)*.6)/nR*Math.PI*2, rr=MRP+6.5+hs2(i,7)*3.5, x=MCX+Math.cos(t)*rr, z=MCY+Math.sin(t)*rr, br=7+hs2(i,9)*3.5, hh=11+hs2(i,11)*9; if(PORT.some(q=>hyp(q.x-x,q.z-z)<(q.br+br)*.62)) continue; PORT.push({x,z,br,h:hh,seed:i+3}); } }
     PORT.forEach(m=>mountainMesh(m.x,m.z,m.br,m.h,m.seed,m.calm)); ARCH.forEach(a=>portalArch(a[0],a[1],a[2]));
     MTN=PORT; ARCHL=ARCH.map(a=>[+a[0][0].toFixed(1),+a[0][1].toFixed(1),+a[1][0].toFixed(2),+a[1][1].toFixed(2),a[2]]);
     // edifici e oggetti
 
     const tr=[]; const tops={};
-    OBJ={}; items.forEach(it=>{ if(it.k==='tree'||it.k==='pine'||it.k==='poplar'){ tr.push({id:it.id,x:it.x+.45,y:it.y+.45,k:it.k==='tree'?'round':it.k,s:it.k==='poplar'?.95:1.05}); return; } const keep=built, g=new THREE.Group(); g.userData.id=it.id; built=g; tops[it.id]=building(it,ctx); built=keep; mergeGroup(g); keep.add(g); OBJ[it.id]=g; });
-    nat.trees.forEach(t=>{ if(MTN.some(m=>Math.hypot(t.x-m.x,t.y-m.z)<m.br*1.02)) return; if(dPL([t.x,t.y],SP)<3.3) return; if(cwP&&pdist(t.x,t.y,cwP)<1.7) return; if(RDS.some(r=>pdist(t.x,t.y,r.p)<r.hw+1.1)) return; tr.push({x:t.x,y:t.y,k:t.t,s:t.k*1.05}); }); trees(tr);
+    Object.keys(GLOW).forEach(k=>delete GLOW[k]); OBJ={}; items.forEach(it=>{ if(it.k==='tree'||it.k==='pine'||it.k==='poplar'){ tr.push({id:it.id,x:it.x+.45,y:it.y+.45,k:it.k==='tree'?'round':it.k,s:it.k==='poplar'?.95:1.05}); return; } const keep=built, g=new THREE.Group(); g.userData.id=it.id; built=g; tops[it.id]=building(it,ctx); built=keep; mergeGroup(g); keep.add(g); OBJ[it.id]=g; });
+    nat.trees.forEach(t=>{ if(MTN.some(m=>hyp(t.x-m.x,t.y-m.z)<m.br*1.02)) return; if(dPL([t.x,t.y],SP)<3.3) return; if(cwP&&pdist(t.x,t.y,cwP)<1.7) return; if(RDS.some(r=>pdist(t.x,t.y,r.p)<r.hw+1.1)) return; tr.push({x:t.x,y:t.y,k:t.t,s:t.k*1.05}); }); trees(tr);
     // siepe lungo il confine, lampioni lungo i viali, aiuole davanti agli edifici
     const rects=items.filter(i=>CAM.K[i.k]&&!/tree|pine|poplar/.test(i.k)).map(i=>[i.x-.15,i.y-.15,i.x+CAM.K[i.k].w+.15,i.y+CAM.K[i.k].h+.15]);
     const inR=(x,z)=>rects.some(r=>x>r[0]&&x<r[2]&&z>r[1]&&z<r[3]), nearRd=(x,z,m)=>RDS.some(r=>dPL([x,z],r.p)<r.hw+m);
-    const B=[]; const ring2=site.concat([site[0]]); for(let i=1;i<ring2.length;i++){ const a=ring2[i-1], b=ring2[i], L=Math.hypot(b[0]-a[0],b[1]-a[1]); for(let s=0;s<L;s+=.5){ const x=a[0]+(b[0]-a[0])*s/L, z=a[1]+(b[1]-a[1])*s/L; let hx=x, hz=z; if(SP&&dPL([x,z],SP)<3.1){ /* la siepe lungo il fiume non sparisce: si sposta sul bordo dell'argine, verso il campus */ let bd=1e9, nx=0, nz=0; for(let k=1;k<SP.length;k++){ const p0=SP[k-1], p1=SP[k], vx=p1[0]-p0[0], vz=p1[1]-p0[1], L2=vx*vx+vz*vz||1, t=Math.max(0,Math.min(1,((x-p0[0])*vx+(z-p0[1])*vz)/L2)), qx=p0[0]+vx*t, qz=p0[1]+vz*t, d=Math.hypot(x-qx,z-qz); if(d<bd){ bd=d; nx=qx; nz=qz; } } const dx=x-nx, dz=z-nz, L=Math.hypot(dx,dz)||1, cx=(MCX!=null?MCX:x)-nx, cz=(MCY!=null?MCY:z)-nz, sg=(dx*cx+dz*cz)>=0?1:-1; hx=nx+dx/L*3.35*sg; hz=nz+dz/L*3.35*sg; if(!inPolyS([hx,hz],site)||dPL([hx,hz],SP)<3.1) continue; }
+    const B=[]; const ring2=site.concat([site[0]]); for(let i=1;i<ring2.length;i++){ const a=ring2[i-1], b=ring2[i], L=hyp(b[0]-a[0],b[1]-a[1]); for(let s=0;s<L;s+=.5){ const x=a[0]+(b[0]-a[0])*s/L, z=a[1]+(b[1]-a[1])*s/L; let hx=x, hz=z; if(SP&&dPL([x,z],SP)<3.1){ /* la siepe lungo il fiume non sparisce: si sposta sul bordo dell'argine, verso il campus */ let bd=1e9, nx=0, nz=0; for(let k=1;k<SP.length;k++){ const p0=SP[k-1], p1=SP[k], vx=p1[0]-p0[0], vz=p1[1]-p0[1], L2=vx*vx+vz*vz||1, t=Math.max(0,Math.min(1,((x-p0[0])*vx+(z-p0[1])*vz)/L2)), qx=p0[0]+vx*t, qz=p0[1]+vz*t, d=hyp(x-qx,z-qz); if(d<bd){ bd=d; nx=qx; nz=qz; } } const dx=x-nx, dz=z-nz, L=hyp(dx,dz)||1, cx=(MCX!=null?MCX:x)-nx, cz=(MCY!=null?MCY:z)-nz, sg=(dx*cx+dz*cz)>=0?1:-1; hx=nx+dx/L*3.35*sg; hz=nz+dz/L*3.35*sg; if(!inPolyS([hx,hz],site)||dPL([hx,hz],SP)<3.1) continue; }
       if(nearRd(hx,hz,1)||inR(hx,hz)) continue; B.push([hx,hz,.26+((i*7+s*3)%3)*.04]); } } bushes(B);
-    const LP=[]; RDS.forEach(r=>{ let acc=0; for(let i=1;i<r.p.length;i++){ const a=r.p[i-1], b=r.p[i], L=Math.hypot(b[0]-a[0],b[1]-a[1]); acc+=L; if(acc<3.2) continue; acc=0; const dx=(b[0]-a[0])/L, dz=(b[1]-a[1])/L, sd=(LP.length%2?1:-1); const x=a[0]-dz*(r.hw+.5)*sd, z=a[1]+dx*(r.hw+.5)*sd; if(!inPolyS([x,z],site)||inR(x,z)||dPL([x,z],SP)<3.6) continue; LP.push([x,z,Math.atan2(-(dx*sd),-dz*sd)]); } }); lamps(LP);
+    const LP=[]; RDS.forEach(r=>{ let acc=0; for(let i=1;i<r.p.length;i++){ const a=r.p[i-1], b=r.p[i], L=hyp(b[0]-a[0],b[1]-a[1]); acc+=L; if(acc<3.2) continue; acc=0; const dx=(b[0]-a[0])/L, dz=(b[1]-a[1])/L, sd=(LP.length%2?1:-1); const x=a[0]-dz*(r.hw+.5)*sd, z=a[1]+dx*(r.hw+.5)*sd; if(!inPolyS([x,z],site)||inR(x,z)||dPL([x,z],SP)<3.6) continue; LP.push([x,z,Math.atan2(-(dx*sd),-dz*sd)]); } }); lamps(LP);
     
     // persone sui marciapiedi
-    const off=(pl,o)=>pl.map((p,i)=>{ const a=pl[Math.max(0,i-1)], b=pl[Math.min(pl.length-1,i+1)]; let dx=b[0]-a[0], dz=b[1]-a[1]; const L=Math.hypot(dx,dz)||1; return [p[0]-dz/L*o,p[1]+dx/L*o]; });
+    const off=(pl,o)=>pl.map((p,i)=>{ const a=pl[Math.max(0,i-1)], b=pl[Math.min(pl.length-1,i+1)]; let dx=b[0]-a[0], dz=b[1]-a[1]; const L=hyp(dx,dz)||1; return [p[0]-dz/L*o,p[1]+dx/L*o]; });
     /* tratti di strada dentro il prato; se il prato finisce sul ponte, la strada si ferma prima del ponte */
-    const sideRuns=(pl,isMain)=>{ const d=[]; for(let i=0;i<pl.length-1;i++){ const a=pl[i], b=pl[i+1], n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/.6)); for(let k=0;k<n;k++) d.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n]); } d.push(pl[pl.length-1]); const out=[]; let cur=null; d.forEach((p,i)=>{ if(inPolyS(p,site)){ if(!cur){ cur={pts:[],s:i>0}; out.push(cur); } cur.pts.push(p); cur.e=i<d.length-1; } else cur=null; });
-      if(isMain&&BRG){ const zone=BRG.L/2+.55, nr=p=>Math.hypot(p[0]-BRG.at[0],p[1]-BRG.at[1])<zone; out.forEach(c=>{ if(c.e) while(c.pts.length&&nr(c.pts[c.pts.length-1])) c.pts.pop(); if(c.s) while(c.pts.length&&nr(c.pts[0])) c.pts.shift(); }); }
+    const sideRuns=(pl,isMain)=>{ const d=[]; for(let i=0;i<pl.length-1;i++){ const a=pl[i], b=pl[i+1], n=Math.max(1,Math.ceil(hyp(b[0]-a[0],b[1]-a[1])/.6)); for(let k=0;k<n;k++) d.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n]); } d.push(pl[pl.length-1]); const out=[]; let cur=null; d.forEach((p,i)=>{ if(inPolyS(p,site)){ if(!cur){ cur={pts:[],s:i>0}; out.push(cur); } cur.pts.push(p); cur.e=i<d.length-1; } else cur=null; });
+      if(isMain&&BRG){ const zone=BRG.L/2+.55, nr=p=>hyp(p[0]-BRG.at[0],p[1]-BRG.at[1])<zone; out.forEach(c=>{ if(c.e) while(c.pts.length&&nr(c.pts[c.pts.length-1])) c.pts.pop(); if(c.s) while(c.pts.length&&nr(c.pts[0])) c.pts.shift(); }); }
       return out.filter(c=>c.pts.length>2); };
     const P=[], RV=[], BAR=[]; RDS.forEach((r,i)=>{ const rs=sideRuns(r.p,i===0); const best=rs.reduce((m,c)=>!m||c.pts.length>m.pts.length?c:m,null); if(best){ const p=best.pts; P.push(off(p,r.hw+.25)); P.push(off(p,-(r.hw+.25))); RV.push(off(p,i%2?.24:-.24)); }
       if(!r.spur) rs.forEach(c=>{ const n=c.pts.length; if(c.s) BAR.push([c.pts[0],[c.pts[0][0]-c.pts[1][0],c.pts[0][1]-c.pts[1][1]],r.hw]); if(c.e) BAR.push([c.pts[n-1],[c.pts[n-1][0]-c.pts[n-2][0],c.pts[n-1][1]-c.pts[n-2][1]],r.hw]); }); });
-    BARL=BAR.map(b=>b[0].map(v=>+v.toFixed(1)).concat([b[2]])); BAR.forEach(b=>{ const L=Math.hypot(b[1][0],b[1][1])||1; barricade(b[0],[b[1][0]/L,b[1][1]/L],b[2]); }); const rects2=rects.map(r=>[r[0]-.3,r[1]-.3,r[2]+.3,r[3]+.3]); PARK=(()=>{ const ok=(x,z)=>inPolyS([x,z],site)&&!rects2.some(r=>x>r[0]&&x<r[2]&&z>r[1]&&z<r[3])&&!RDS.some(r=>dPL([x,z],r.p)<r.hw+.05)&&dPL([x,z],ring2)>.55&&(!SP||dPL([x,z],SP)>2.6)&&!tr.some(t=>Math.hypot(t.x-x,t.y-z)<.5); const seg=(x0,z0,x1,z1)=>{ const n=Math.ceil(Math.hypot(x1-x0,z1-z0)/.25); for(let i=1;i<=n;i++){ if(!ok(x0+(x1-x0)*i/n,z0+(z1-z0)*i/n)) return false; } return true; }; return {ok,legs:(x,z,n)=>{ for(let a=0;a<14;a++){ const pts=[]; let cx=x, cz=z, good=true; for(let k=0;k<(n||2)&&good;k++){ const ang=Math.random()*6.283, d=2+Math.random()*4.5, tx=cx+Math.cos(ang)*d, tz=cz+Math.sin(ang)*d; if(seg(cx,cz,tx,tz)){ pts.push([tx,tz]); cx=tx; cz=tz; } else good=false; } if(good&&seg(cx,cz,x,z)){ pts.push([x,z]); return pts; } } return null; }}; })();
-    people(P,STAFFOUT()); cats(P,3); rovers(RV.slice(0,2)); TOON.outlineStatic(built,{minDim:.045}); TOON.outlineEach(built,{minDim:.045}); if(R) R.shadowMap.needsUpdate=true;
+    BARL=BAR.map(b=>b[0].map(v=>+v.toFixed(1)).concat([b[2]])); BAR.forEach(b=>{ const L=hyp(b[1][0],b[1][1])||1; barricade(b[0],[b[1][0]/L,b[1][1]/L],b[2]); }); const rects2=rects.map(r=>[r[0]-.3,r[1]-.3,r[2]+.3,r[3]+.3]); PARK=(()=>{ const P2=[0,0]; /* chiamata a ogni fotogramma da parkSep: niente array, closure o hypot allocati */ const ok=(x,z)=>{ P2[0]=x; P2[1]=z; if(!inPolyS(P2,site)) return false; for(let i=0;i<rects2.length;i++){ const r=rects2[i]; if(x>r[0]&&x<r[2]&&z>r[1]&&z<r[3]) return false; } for(let i=0;i<RDS.length;i++) if(dPL(P2,RDS[i].p)<RDS[i].hw+.05) return false; if(dPL(P2,ring2)<=.55) return false; if(SP&&dPL(P2,SP)<=2.6) return false; for(let i=0;i<tr.length;i++){ const dx=tr[i].x-x, dz=tr[i].y-z; if(dx*dx+dz*dz<.25) return false; } return true; }; const seg=(x0,z0,x1,z1)=>{ const n=Math.ceil(hyp(x1-x0,z1-z0)/.25); for(let i=1;i<=n;i++){ if(!ok(x0+(x1-x0)*i/n,z0+(z1-z0)*i/n)) return false; } return true; }; return {ok,legs:(x,z,n)=>{ for(let a=0;a<14;a++){ const pts=[]; let cx=x, cz=z, good=true; for(let k=0;k<(n||2)&&good;k++){ const ang=Math.random()*6.283, d=2+Math.random()*4.5, tx=cx+Math.cos(ang)*d, tz=cz+Math.sin(ang)*d; if(seg(cx,cz,tx,tz)){ pts.push([tx,tz]); cx=tx; cz=tz; } else good=false; } if(good&&seg(cx,cz,x,z)){ pts.push([x,z]); return pts; } } return null; }}; })();
+    people(P,MOB?Math.min(STAFFOUT(),10):STAFFOUT()); cats(P,3); rovers(RV.slice(0,2)); TOON.outlineStatic(built,{minDim:.045}); TOON.outlineEach(built,{minDim:.045}); if(R) R.shadowMap.needsUpdate=true;
     return tops; }
   function envMap(){ const S=64, mk=(a,b,c)=>{ const cv=document.createElement('canvas'); cv.width=cv.height=S; const g=cv.getContext('2d'); const gr=g.createLinearGradient(0,0,0,S); gr.addColorStop(0,a); gr.addColorStop(.5,b); gr.addColorStop(1,c); g.fillStyle=gr; g.fillRect(0,0,S,S); return cv; };
     const side=mk('#8DBFE8','#F1F6F4','#5E9A3A'), top=mk('#7DB4E4','#8DBFE8','#9CC8EC'), bot=mk('#4E8A30','#4E8A30','#4E8A30'); const ct=new THREE.CubeTexture([side,side,top,bot,side,side]); ct.encoding=THREE.sRGBEncoding; ct.needsUpdate=true;
@@ -5436,10 +5870,24 @@ const C3=(()=>{
     R.domElement.className='c3cv'; scene=new THREE.Scene(); scene.background=col('#BFDDEB'); scene.fog=new THREE.Fog(col('#C7E0E6'),66,150); envMap();
     cam=new THREE.PerspectiveCamera(32,1,.5,400); cam.userData.olRef=18;
     HEMC=new THREE.HemisphereLight(col('#EAF4FF'),col('#4F7A2E'),.28); scene.add(HEMC);
-    const sun=new THREE.DirectionalLight(col('#FFE9C8'),1.7); SUNC=sun; sun.position.set(-18,34,-10); sun.target.position.set(13,0,8); sun.castShadow=true; const s=sun.shadow; s.mapSize.set(2048,2048); s.camera.left=-30; s.camera.right=30; s.camera.top=30; s.camera.bottom=-30; s.camera.near=1; s.camera.far=110; s.bias=-.0006; s.normalBias=.02; s.radius=4; scene.add(sun); scene.add(sun.target);
+    const sun=new THREE.DirectionalLight(col('#FFE9C8'),1.7); SUNC=sun; sun.position.set(-18,34,-10); sun.target.position.set(13,0,8); sun.castShadow=true; const s=sun.shadow; s.mapSize.set(MOB?1024:2048,MOB?1024:2048); s.camera.left=-30; s.camera.right=30; s.camera.top=30; s.camera.bottom=-30; s.camera.near=1; s.camera.far=110; s.bias=-.0006; s.normalBias=.02; s.radius=4; scene.add(sun); scene.add(sun.target);
     const fill=new THREE.DirectionalLight(col('#CFE0FF'),.25); fill.position.set(30,20,30); FILC=fill; scene.add(fill);
     { const n=160, pos=new Float32Array(n*3); for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, e=.12+Math.random()*1.3, r=260; pos[i*3]=13+Math.cos(a)*Math.cos(e)*r; pos[i*3+1]=Math.sin(e)*r; pos[i*3+2]=8+Math.sin(a)*Math.cos(e)*r; } const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); STARS=new THREE.Points(g,new THREE.PointsMaterial({color:0xFFFFFF,size:2.2,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false})); STARS.frustumCulled=false; STARS.visible=false; scene.add(STARS); } }
-  const MOB=matchMedia('(pointer:coarse)').matches; const PR=()=>document.body.classList.contains('ttl-on')?.45:Math.min(devicePixelRatio||1,MOB?1.3:1.75);
+  const QS=new URLSearchParams(location.search), MOB=matchMedia('(pointer:coarse)').matches||QS.get('mob')==='1', RMOTION=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* Governatore di qualità: 4 livelli (3 = massimo). Scende se i frame non reggono il ritmo dello schermo, risale con calma; ?q=0..3 lo fissa, ?perf=1 mostra i numeri. */
+  const LVL=[{pr:.75,every:20,cap:30},{pr:.7,every:4,cap:60},{pr:.85,every:2,cap:0},{pr:1,every:1,cap:0}];
+  const PF={ lvl:(()=>{ if(QS.has('q')){ const q=+QS.get('q'); if(q>=0&&q<=3) return q; } try{ const s=localStorage.getItem('gngQ'); if(s!=null&&+s>=0&&+s<=3) return Math.min(+s,MOB?2:3); }catch(e){} return MOB?2:3; })(), forced:QS.has('q'), work:0, gap:16.7, base:16.7, gaps:[], gn:0, slow:0, fast:0, warm:0, lock:0, lockLen:60000, rn:0, rt:0, fps:0, shn:0, ov:null, prev:0 };
+  const PR=()=>document.body.classList.contains('ttl-on')?.45:Math.max(MOB?1:.75,Math.min(devicePixelRatio||1,MOB?1.3:1.75)*LVL[PF.lvl].pr);
+  function perfSet(l){ PF.lvl=l; PF.slow=PF.fast=0; PF.warm=0; PF.shn=0; SHPOS=null; roverShadows(); R.setPixelRatio(PR()); size(); try{ localStorage.setItem('gngQ',String(l)); }catch(e){} }
+  function perfShow(){ if(!PF.ov){ const d=document.createElement('div'); d.style.cssText='position:fixed;left:8px;top:8px;z-index:99999;font:11px/1.35 monospace;background:rgba(0,0,0,.62);color:#9fff9f;padding:4px 7px;border-radius:6px;pointer-events:none;white-space:pre'; document.body.appendChild(d); PF.ov=d; }
+    const i=R.info.render; PF.ov.textContent='fps '+PF.fps.toFixed(0)+'   frame '+PF.gap.toFixed(1)+' ms   work '+PF.work.toFixed(1)+' ms\nquality '+PF.lvl+(PF.forced?' (forced)':'')+'   pixel ratio '+R.getPixelRatio().toFixed(2)+'   shadows 1/'+LVL[PF.lvl].every+'\ncalls '+i.calls+'   triangles '+i.triangles; }
+  function perfStep(gap,work,dt,ttl){ PF.work+=(work-PF.work)*.1; PF.rn++; const now=performance.now(); if(!PF.rt) PF.rt=now;
+    if(now-PF.rt>=500){ PF.fps=PF.rn*1000/(now-PF.rt); PF.rn=0; PF.rt=now; if(QS.has('perf')) perfShow(); }
+    if(PF.forced||RMOTION||ttl||gap>250) return; PF.warm+=dt; if(PF.warm<2.5) return;
+    const exp=Math.max(PF.base,LVL[PF.lvl].cap?1000/LVL[PF.lvl].cap:0);
+    if(PF.gap>exp*1.4){ PF.slow+=dt; PF.fast=0; if(PF.slow>1.5&&PF.lvl>0){ perfSet(PF.lvl-1); PF.lock=now+PF.lockLen; PF.lockLen=Math.min(600000,PF.lockLen*2); } }
+    else if(PF.gap<exp*1.12&&PF.work<exp*.5){ PF.fast+=dt; PF.slow=0; if(PF.fast>8&&PF.lvl<3&&now>PF.lock) perfSet(PF.lvl+1); }
+    else { PF.slow=0; PF.fast=0; } }
   function placeCam(){ const cp=Math.cos(T.pitch), spch=Math.sin(T.pitch); cam.position.set(T.x+Math.sin(T.yaw)*cp*T.d, spch*T.d, T.z+Math.cos(T.yaw)*cp*T.d); cam.lookAt(T.x,0,T.z); }
   function size(){ if(!host) return; const w=host.clientWidth||innerWidth, h=host.clientHeight||innerHeight; R.setSize(w,h,false); R.domElement.style.width=w+'px'; R.domElement.style.height=h+'px'; cam.aspect=w/h; cam.updateProjectionMatrix(); HSdirty=true; }
   /* hotspot DOM sopra gli edifici: servono al tocco, al tutorial e alle etichette */
@@ -5458,23 +5906,49 @@ const C3=(()=>{
       for(let k=0;k<8;k++){ V.set(k&1?x1:x0,k&4?o.top:0,k&2?z1:z0).project(cam); const sx=(V.x+1)/2*w, sy=(1-V.y)/2*h; if(sx<a)a=sx; if(sy<b)b=sy; if(sx>c)c=sx; if(sy>e)e=sy; }
       const W2=c-a, H2=e-b; o.b.style.transform='translate('+(a+W2*.12).toFixed(1)+'px,'+(b+H2*.1).toFixed(1)+'px)'; o.b.style.width=(W2*.76).toFixed(1)+'px'; o.b.style.height=(H2*.8).toFixed(1)+'px'; } }
   /* ciclo: giorno lungo, tramonto/alba brevissimi (stessa luce), notte breve (blu, non buia del tutto). Chiavi: [secondi, 0=giorno 1=tramonto/alba 2=notte] */
-  const TODK=[[0,0],[150,0],[158,1],[165,1],[173,2],[285,2],[293,1],[299,1],[307,0]], CYC=307, SKY=[{bg:'#BFDDEB',fog:'#C7E0E6',hs:'#EAF4FF',hg:'#4F7A2E',hi:.28,sc:'#FFE9C8',si:1.7,fc:'#CFE0FF',fi:.25,lamp:.5,win:0},{bg:'#F0A872',fog:'#EDB58C',hs:'#FFD9B8',hg:'#5C5C3C',hi:.27,sc:'#FF9A55',si:1.25,fc:'#8E9ACB',fi:.22,lamp:2.5,win:.3},{bg:'#1B2A4C',fog:'#24365C',hs:'#7F90CC',hg:'#24304A',hi:.36,sc:'#9DB4FF',si:.75,fc:'#5B6FA8',fi:.3,lamp:6,win:.8}];
+  const TODK=[[0,0],[150,0],[158,1],[165,1],[173,2],[285,2],[293,1],[299,1],[307,0]], CYC=307, SKY=[{bg:'#BFDDEB',fog:'#C7E0E6',hs:'#EAF4FF',hg:'#4F7A2E',hi:.28,sc:'#FFE9C8',si:1.7,fc:'#CFE0FF',fi:.25,lamp:.5,win:0},{bg:'#F0A872',fog:'#EDB58C',hs:'#FFD9B8',hg:'#5C5C3C',hi:.27,sc:'#FF9A55',si:1.25,fc:'#8E9ACB',fi:.22,lamp:2.5,win:.3},{bg:'#1B2A4C',fog:'#24365C',hs:'#7F90CC',hg:'#24304A',hi:.55,sc:'#9DB4FF',si:.08,fc:'#5B6FA8',fi:.3,lamp:6,win:.8}];
   const TCA=new THREE.Color(), TCB=new THREE.Color(); const mixC=(out,a,b,f)=>{ TCA.set(a).convertSRGBToLinear(); TCB.set(b).convertSRGBToLinear(); out.copy(TCA).lerp(TCB,f); };
-  function dayNight(ts){ if(!HEMC||!SUNC||!scene) return; const T=TODS!=null?TODS:((ts+30)%CYC); let i=0; while(i<TODK.length-2&&T>=TODK[i+1][0]) i++; const a=TODK[i], b=TODK[i+1], f0=Math.max(0,Math.min(1,(T-a[0])/(b[0]-a[0]))), f=f0*f0*(3-2*f0), A=SKY[a[1]], B=SKY[b[1]], L=(x,y)=>x+(y-x)*f;
-    mixC(scene.background,A.bg,B.bg,f); if(scene.fog) mixC(scene.fog.color,A.fog,B.fog,f); mixC(HEMC.color,A.hs,B.hs,f); mixC(HEMC.groundColor,A.hg,B.hg,f); HEMC.intensity=L(A.hi,B.hi); mixC(SUNC.color,A.sc,B.sc,f); SUNC.intensity=L(A.si,B.si); mixC(FILC.color,A.fc,B.fc,f); FILC.intensity=L(A.fi,B.fi);
-    const lamp=L(A.lamp,B.lamp), win=L(A.win,B.win); LAMPM.forEach(m=>{ m.emissiveIntensity=lamp; }); if(GLOWM) GLOWM.opacity=Math.max(0,(lamp-.5)/5.5)*.9; [GLASS,GLASSD].forEach(m=>{ if(m){ if(m.emissive) m.emissive.setHex(0xFFC873); m.emissiveIntensity=win; } });
-    if(STARS){ const ns=(a[1]===2?1:0)*(1-f)+(b[1]===2?1:0)*f; STARS.material.opacity=ns; STARS.visible=ns>.03; } }
+  /* Il sole attraversa il cielo dall'alba al tramonto e di notte la luna fa lo stesso: la luce direzionale si sposta e le ombre (rinfrescate dal governatore) la seguono.
+     A mezzogiorno la direzione è quella di sempre. Il sole non scende sotto 18°: oltre, le ombre diventerebbero troppo lunghe per la mappa d'ombra. */
+  const SUNT=new THREE.Vector3(13,0,8), SD=new THREE.Vector3(), PHI0=Math.atan2(-18,-31), D2R=Math.PI/180, T_RISE=290, T_SET=165, DAYLEN=CYC-T_RISE+T_SET;
+  /* Un solo sole: sorge, attraversa il cielo (ombre lunghe al mattino e alla sera, corte a mezzogiorno) e tramonta. Di notte continua il giro sotto l'orizzonte con luce quasi nulla
+     (la luce lunare e' nell'emisfero, non nella direzionale): niente "secondo giro" di ombre. A mezzogiorno la direzione e' quella di sempre; sotto 18° la mappa d'ombra non basterebbe. */
+  function sunPath(T){ const s=T>=T_RISE?T-T_RISE:T+CYC-T_RISE; let ph, el;
+    if(s<DAYLEN){ const u=s/DAYLEN; ph=PHI0+(u-.5)*Math.PI; el=(18+28*Math.sin(Math.PI*u))*D2R; } else { const u=(s-DAYLEN)/(CYC-DAYLEN); ph=PHI0+(.5+u)*Math.PI; el=18*D2R; }
+    SD.set(Math.cos(ph)*Math.cos(el),Math.sin(el),Math.sin(ph)*Math.cos(el)); SUNC.position.copy(SUNT).addScaledVector(SD,49); }
+  let SKYL=null; const lerpN=(x,y,f)=>x+(y-x)*f, mixL=(out,x,y,f)=>out.copy(x).lerp(y,f);
+  function dayNight(ts){ if(!HEMC||!SUNC||!scene) return; if(!SKYL) SKYL=SKY.map(s=>({bg:col(s.bg),fog:col(s.fog),hs:col(s.hs),hg:col(s.hg),sc:col(s.sc),fc:col(s.fc)}));
+    const T=TODS!=null?TODS:((ts+30)%CYC); let i=0; while(i<TODK.length-2&&T>=TODK[i+1][0]) i++; const a=TODK[i], b=TODK[i+1], f0=Math.max(0,Math.min(1,(T-a[0])/(b[0]-a[0]))), f=f0*f0*(3-2*f0), A=SKY[a[1]], B=SKY[b[1]], AL=SKYL[a[1]], BL=SKYL[b[1]];
+    mixL(scene.background,AL.bg,BL.bg,f); if(scene.fog) mixL(scene.fog.color,AL.fog,BL.fog,f); mixL(HEMC.color,AL.hs,BL.hs,f); mixL(HEMC.groundColor,AL.hg,BL.hg,f); HEMC.intensity=lerpN(A.hi,B.hi,f); mixL(SUNC.color,AL.sc,BL.sc,f); SUNC.intensity=lerpN(A.si,B.si,f); mixL(FILC.color,AL.fc,BL.fc,f); FILC.intensity=lerpN(A.fi,B.fi,f);
+    const night=(a[1]===2?1:0)*(1-f)+(b[1]===2?1:0)*f; sunPath(T);
+    const lamp=lerpN(A.lamp,B.lamp,f), win=lerpN(A.win,B.win,f); for(let k=0;k<LAMPM.length;k++) LAMPM[k].emissiveIntensity=lamp; if(GLOWM) GLOWM.opacity=Math.max(0,(lamp-.5)/5.5)*.9;
+    if(GLASS){ if(GLASS.emissive) GLASS.emissive.setHex(0xFFC873); GLASS.emissiveIntensity=win; } if(GLASSD){ if(GLASSD.emissive) GLASSD.emissive.setHex(0xFFC873); GLASSD.emissiveIntensity=win; }
+    if(STARS){ STARS.material.opacity=night; STARS.visible=night>.03; } }
+  /* bagliore arancione con la sagoma della facility: uno "scafo" arancione attorno ai pezzi dell'edificio (stessa tecnica del contorno cartoon di TOON,
+     ma piu' largo, trasparente e pulsante), al posto della macchia CSS sul bottone. Si accende sulle facility evidenziate dal tutorial (.coach-hl) e sulla rampa col razzo pronto (.b3rdy). */
+  let GLM=null; const GLOW={};
+  function glowMat(){ if(GLM) return GLM; const m=TOON.mat; GLM=new THREE.ShaderMaterial({uniforms:Object.assign({},m.uniforms,{uG:{value:4},uA:{value:.8},uC:{value:new THREE.Color('#EB7D44')}}),side:THREE.BackSide,transparent:true,depthWrite:false,fog:true,toneMapped:false,
+      vertexShader:m.vertexShader.replace('uniform float uW;','uniform float uW; uniform float uG;').replace('uW*k','uW*uG*k'),fragmentShader:'#include <fog_pars_fragment>\nuniform vec3 uC; uniform float uA;\nvoid main(){ gl_FragColor=vec4(uC,uA);\n#include <fog_fragment>\n}'}); return GLM; }
+  const GLSKIP={PlaneGeometry:1,CircleGeometry:1,RingGeometry:1,ShapeGeometry:1};
+  function glowOn(id){ const g=OBJ[id]; if(!g||GLOW[id]) return; const src=[], out=[]; g.traverse(o=>{ if(o.isMesh&&!o.isInstancedMesh&&!o.userData.ol&&o.geometry&&o.geometry.attributes.position&&!GLSKIP[o.geometry.type]) src.push(o); });
+    src.forEach(o=>{ TOON.onrm(o.geometry); const h=new THREE.Mesh(o.geometry,glowMat()); h.userData.ol=1; h.castShadow=h.receiveShadow=false; h.raycast=()=>{}; h.renderOrder=-1; o.add(h); out.push(h); }); GLOW[id]=out; }
+  function glowOff(id){ (GLOW[id]||[]).forEach(h=>{ if(h.parent) h.parent.remove(h); }); delete GLOW[id]; }
+  function glowSync(t){ const want={}; HS.forEach(h=>{ if(h.it&&h.b&&(h.b.classList.contains('coach-hl')||h.b.classList.contains('b3rdy'))) want[h.it.id]=1; });
+    Object.keys(GLOW).forEach(id=>{ if(!want[id]) glowOff(id); }); Object.keys(want).forEach(glowOn); if(GLM){ const p=.5+.5*Math.sin(t*3.9); GLM.uniforms.uA.value=.65+.35*p; GLM.uniforms.uG.value=4+3*p; } }
   function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); const ttl=document.body.classList.contains('ttl-on'); if(ttl!==ttlWas){ ttlWas=ttl; R.setPixelRatio(PR()); size(); }
-    const busy=ttl||PT.size>0||ts-lastIn<1200||Math.abs(T.yaw-YAW0)>.002; if(ts-last<(busy?33:80)) return; const dt=Math.min(.1,(ts-last)/1000); last=ts; const t=ts/1000;
-    if(ttl) T.yaw+=dt*.05; else { let dy=((T.yaw-YAW0)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; T.yaw=YAW0+dy*Math.pow(.02,dt); } dayNight(t); walk(dt,t); for(let i=0;i<anims.length;i++) anims[i](t); for(let i=0;i<flags.length;i++) flags[i].rotation.y=Math.sin(t*2+i)*.25; edit3(t);
-    placeCam(); R.render(scene,cam); project(); }
+    const raw=ts-PF.prev; PF.prev=ts; if(raw>0&&raw<250){ PF.gaps.push(raw); if(PF.gaps.length>90) PF.gaps.shift(); if(++PF.gn%30===0){ const s=PF.gaps.slice().sort((a,b)=>a-b); const p=s[Math.floor(s.length*.2)]; if(p<PF.base){ PF.base=p; PF.hiT=0; } else if(p>PF.base*1.3){ PF.hiT=(PF.hiT||0)+30; if(PF.hiT>1800){ PF.base=p; PF.hiT=0; } } else PF.hiT=0; /* ritmo dello schermo = il più veloce osservato; si adegua solo se resta lento a lungo */ } }
+    const busy=ttl||PT.size>0||ts-lastIn<1200||Math.abs(T.yaw-YAW0)>.002, lv=LVL[PF.lvl], gapMin=RMOTION?(busy?33:80):(lv.cap?1000/lv.cap-3:0); if(ts-last<gapMin) return;
+    const gap=ts-last; last=ts; PF.gap+=(Math.min(gap,100)-PF.gap)*.2; const dt=Math.min(.05,PF.gap/1000), w0=performance.now(); SIMT+=dt; const t=SIMT; /* dt mediato: i frame irregolari non diventano scatti */
+    if(ttl) T.yaw+=dt*.05; else { let dy=((T.yaw-YAW0)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; T.yaw=Math.abs(dy)<1e-4?YAW0:YAW0+dy*Math.pow(.02,dt); } dayNight(t); walk(dt,t); for(let i=0;i<anims.length;i++) anims[i](t); for(let i=0;i<flags.length;i++) flags[i].rotation.y=Math.sin(t*2+i)*.25; edit3(t);
+    if(PF.lvl>=3){ if(++PF.shn>=lv.every){ PF.shn=0; R.shadowMap.needsUpdate=true; } } else { if(!SHPOS) SHPOS=new THREE.Vector3(1e9,0,0); if(SUNC.position.distanceToSquared(SHPOS)>.12){ SHPOS.copy(SUNC.position); R.shadowMap.needsUpdate=true; } } /* livelli bassi: la mappa d'ombra si rifa solo quando il sole si e' mosso (nessun fotogramma pesante a turno); i rover hanno un'ombra a macchia */
+    glowSync(t); placeCam(); R.render(scene,cam); project(); perfStep(gap,performance.now()-w0,dt,ttl); }
   /* ---------- input: trascina, pizzica, rotellina ---------- */
   const PT=new Map(); let drag=null, pinch=null, moved=false;
   function clampT(){ const s=CAM.site(); let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9; s.forEach(p=>{ x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); z0=Math.min(z0,p[1]); z1=Math.max(z1,p[1]); }); T.x=Math.max(x0,Math.min(x1,T.x)); T.z=Math.max(z0,Math.min(z1,T.z)); T.d=Math.max(11,Math.min(58,T.d)); }
-  function onDown(e){ lastIn=performance.now(); if(e.target.closest&&e.target.closest('.cbar,.cpop,.chint,.ctools')) return; PT.set(e.pointerId,[e.clientX,e.clientY]); if(PT.size===1){ drag={x:e.clientX,y:e.clientY,tx:T.x,tz:T.z}; moved=false; } if(PT.size===2){ const p=[...PT.values()]; pinch={d0:Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]),z0:T.d}; drag=null; moved=true; } }
+  function onDown(e){ lastIn=performance.now(); if(e.target.closest&&e.target.closest('.cbar,.cpop,.chint,.ctools')) return; PT.set(e.pointerId,[e.clientX,e.clientY]); if(PT.size===1){ drag={x:e.clientX,y:e.clientY,tx:T.x,tz:T.z}; moved=false; } if(PT.size===2){ const p=[...PT.values()]; pinch={d0:hyp(p[0][0]-p[1][0],p[0][1]-p[1][1]),z0:T.d}; drag=null; moved=true; } }
   function onMove(e){ lastIn=performance.now(); if(CPLACE&&e.pointerType==='mouse'&&!PT.size&&e.target===R.domElement){ ghostAt(e); return; } if(!PT.has(e.pointerId)) return; PT.set(e.pointerId,[e.clientX,e.clientY]);
-    if(pinch&&PT.size>=2){ const p=[...PT.values()], d=Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]); T.d=pinch.z0*pinch.d0/Math.max(20,d); clampT(); return; }
-    if(drag){ const dx=e.clientX-drag.x, dy=e.clientY-drag.y; if(!moved&&Math.hypot(dx,dy)>7){ moved=true; host.classList.add('drag'); } if(moved){ const k=2*T.d*Math.tan(cam.fov*Math.PI/360)/host.clientHeight; const rx=Math.cos(T.yaw), rz=-Math.sin(T.yaw), fx=-Math.sin(T.yaw), fz=-Math.cos(T.yaw);
+    if(pinch&&PT.size>=2){ const p=[...PT.values()], d=hyp(p[0][0]-p[1][0],p[0][1]-p[1][1]); T.d=pinch.z0*pinch.d0/Math.max(20,d); clampT(); return; }
+    if(drag){ const dx=e.clientX-drag.x, dy=e.clientY-drag.y; if(!moved&&hyp(dx,dy)>7){ moved=true; host.classList.add('drag'); } if(moved){ const k=2*T.d*Math.tan(cam.fov*Math.PI/360)/host.clientHeight; const rx=Math.cos(T.yaw), rz=-Math.sin(T.yaw), fx=-Math.sin(T.yaw), fz=-Math.cos(T.yaw);
         T.x=drag.tx-(dx*rx)*k+(dy*fx)*k/Math.sin(T.pitch); T.z=drag.tz-(dx*rz)*k+(dy*fz)*k/Math.sin(T.pitch); clampT(); } } }
   function onUp(e){ lastIn=performance.now(); const wasTap=PT.has(e.pointerId)&&!moved&&PT.size===1&&e.target===R.domElement; PT.delete(e.pointerId); if(wasTap) tap(e); if(PT.size<2) pinch=null; if(!PT.size){ drag=null; host&&host.classList.remove('drag'); } }
   function onWheel(e){ e.preventDefault(); lastIn=performance.now(); T.d*=Math.exp(e.deltaY*.0012); clampT(); }
@@ -5512,7 +5986,7 @@ const C3=(()=>{
     if(!el.dataset.c3){ el.dataset.c3=1; el.addEventListener('pointerdown',onDown); el.addEventListener('pointermove',onMove); el.addEventListener('pointerup',onUp); el.addEventListener('pointercancel',onUp); el.addEventListener('wheel',onWheel,{passive:false}); el.addEventListener('click',onClick,true); }
     if(!mount.cam0){ mount.cam0=1; T.d=Math.min(44,30*Math.max(1,(el.clientHeight/Math.max(1,el.clientWidth))*1.8)); }
     running=true; document.body.classList.add('c3live'); if(!raf) raf=requestAnimationFrame(frame); return true; }
-  function stop(){ running=false; document.body.classList.remove('c3live'); }
+  function stop(){ running=false; document.body.classList.remove('c3live'); if(PF.ov){ PF.ov.remove(); PF.ov=null; } }
   addEventListener('resize',()=>{ if(running) size(); });
   /* Anteprima: costruisce l'edificio da solo in una scena a parte e ne restituisce un'immagine (messa in cache). */
    let SR=null, SS=null, SC=null; const SNC={};
@@ -5543,7 +6017,7 @@ const IR3=(()=>{
   const RW=18, RD=14, RH=3.6; const DEF={yaw:.32,pit:.74};
   let R=null, scene=null, cam=null, host=null, raf=0, running=false, okGL=null, dirty=true, lastT=0, built=null, sig='', ghostG=null, ghostK='';
   let CROWD=[], MACHP=[], NF=[], anims=[], walkers=[], HS=[], TG=[], hotEl=null, tagEl=null, PAR=null, FP=[], curRoom='', curSt=null, ro=null, hotEls=[], tagEls=[];
-  const CAM={yaw:DEF.yaw,pit:DEF.pit,zoom:1,tx:RW/2,tz:RD/2,dFit:30}; let camDirty=true; const WSAVE={}; let SUN=null, HEM=null, FILL=null, SK='room', MEET=null, LCH=null, liveShadow=false; const SKIND=r=>r==='meet'?'meet':r==='launch'?'launch':'room';
+  const CAM={yaw:DEF.yaw,pit:DEF.pit,zoom:1,tx:RW/2,tz:RD/2,dFit:30}; let camDirty=true, WG=null, yawTo=null; const WSAVE={}; let SUN=null, HEM=null, FILL=null, SK='room', MEET=null, LCH=null, liveShadow=false; const SKIND=r=>r==='meet'?'meet':r==='launch'?'launch':'room';
   const col=h=>new THREE.Color(h).convertSRGBToLinear();
   const MC={};
   function mat(h,o){ o=o||{}; const k=h+'|'+(o.r==null?.75:o.r)+'|'+(o.m||0)+'|'+(o.e||'')+'|'+(o.ei||'')+'|'+(o.t||'')+'|'+(o.b||'');
@@ -5729,17 +6203,35 @@ const IR3=(()=>{
       g.position.x=W.x; g.position.z=W.z; g.rotation.y=W.h; u.update(dt); }); }
 
   /* ---------- guscio della stanza ---------- */
+  /* quattro pareti intere, ognuna in un suo gruppo (y0 = fondo, x0 = sinistra, y1 = davanti, x1 = destra): wallsFor() nasconde quelle tra la camera e la stanza, cosi' la stanza si puo' ruotare */
   function shell(o){ bx(-.3,-.3,RW,RD,-.3,0,o.floor,{r:.9,cs:false}); const t=pl(0,0,RW,RD,.003,'#ffffff',{r:.9}); t.material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9,map:floorTex(o.floor,o.tileC||o.floor,[RW/(o.tile||1),RD/(o.tile||1)])}); t.receiveShadow=true;
-    bx(-.3,-.3,RW,0,0,RH,o.wallR,{r:.9}); bx(-.3,0,0,RD,0,RH,o.wallL,{r:.9}); bx(-.34,-.34,RW,.04,RH,RH+.12,o.cap,{r:.6}); bx(-.34,0,.04,RD,RH,RH+.12,o.cap,{r:.6});
-    bx(0,.0,RW,.02,.0,.14,o.skirt||'#C9CCC8',{r:.7,cs:false}); bx(.0,0,.02,RD,.0,.14,o.skirt||'#C9CCC8',{r:.7,cs:false});
-    if(o.stripe){ bx(0,.02,RW,.04,o.stripe[0],o.stripe[0]+.2,o.stripe[1],{r:.5,cs:false}); bx(.02,0,.04,RD,o.stripe[0],o.stripe[0]+.2,o.stripe[1],{r:.5,cs:false}); }
-    bx(RW,0,RW+.25,RD+.25,-.3,.38,o.cap,{r:.6}); bx(0,RD,RW,RD+.25,-.3,.38,o.cap,{r:.6}); }
-  function onWall(wall,a,b,z0,z1,c,o,depth){ o=o||{}; const d=depth||.05; return wall==='y'?bx(a,.0,b,d,z0,z1,c,Object.assign({cs:false},o)):bx(.0,a,d,b,z0,z1,c,Object.assign({cs:false},o)); }
+    WG={}; ['y0','x0','y1','x1'].forEach(k=>{ const g=new THREE.Group(); g.userData.dyn=true; PAR.add(g); WG[k]=g; });
+    const sk=o.skirt||'#C9CCC8', st=o.stripe;
+    inGrp(WG.y0,()=>{ bx(-.3,-.3,RW,0,0,RH,o.wallR,{r:.9}); bx(-.34,-.34,RW,.04,RH,RH+.12,o.cap,{r:.6}); bx(0,.0,RW,.02,.0,.14,sk,{r:.7,cs:false}); if(st) bx(0,.02,RW,.04,st[0],st[0]+.2,st[1],{r:.5,cs:false}); });
+    inGrp(WG.x0,()=>{ bx(-.3,0,0,RD,0,RH,o.wallL,{r:.9}); bx(-.34,0,.04,RD,RH,RH+.12,o.cap,{r:.6}); bx(.0,0,.02,RD,.0,.14,sk,{r:.7,cs:false}); if(st) bx(.02,0,.04,RD,st[0],st[0]+.2,st[1],{r:.5,cs:false}); });
+    /* le pareti davanti non fanno ombra: la luce le attraversa come prima, quando erano solo un bordino */
+    inGrp(WG.y1,()=>{ bx(-.3,RD,RW+.3,RD+.3,-.3,RH,o.wallR,{r:.9,cs:false}); bx(-.34,RD-.04,RW+.34,RD+.34,RH,RH+.12,o.cap,{r:.6,cs:false}); bx(0,RD-.02,RW,RD,.0,.14,sk,{r:.7,cs:false}); if(st) bx(0,RD-.04,RW,RD-.02,st[0],st[0]+.2,st[1],{r:.5,cs:false}); });
+    inGrp(WG.x1,()=>{ bx(RW,-.3,RW+.3,RD,-.3,RH,o.wallL,{r:.9,cs:false}); bx(RW-.04,-.34,RW+.34,RD,RH,RH+.12,o.cap,{r:.6,cs:false}); bx(RW-.02,0,RW,RD,.0,.14,sk,{r:.7,cs:false}); if(st) bx(RW-.04,0,RW-.02,RD,st[0],st[0]+.2,st[1],{r:.5,cs:false}); }); }
+  /* contorni e unione dei pezzi fatti parete per parete, cosi' ogni parete resta un blocco a se' che si puo' nascondere */
+  function wallsPrep(){ if(!WG) return; Object.values(WG).forEach(g=>{ g.userData.dyn=false; TOON.outlineStatic(g,{minDim:.05}); mergeStatic(g); g.userData.dyn=true; }); }
+  /* nasconde le pareti tra la camera e la stanza: conta solo la direzione da cui si guarda, non lo spostamento della vista */
+  function wallsFor(){ if(!WG) return; const s=Math.sin(CAM.yaw), c=Math.cos(CAM.yaw), e=.02, was=WG.y0.visible+''+WG.x0.visible+WG.y1.visible+WG.x1.visible;
+    WG.y1.visible=!(c>e); WG.y0.visible=!(c<-e); WG.x1.visible=!(s>e); WG.x0.visible=!(s<-e);
+    /* le ombre sono calcolate una volta sola: si rifanno solo quando una parete compare o sparisce, cosi' una parete nascosta non lascia la sua ombra */
+    if(R&&was!==WG.y0.visible+''+WG.x0.visible+WG.y1.visible+WG.x1.visible) R.shadowMap.needsUpdate=true; }
+  /* pareti: 'y' = fondo (y=0), 'x' = sinistra (x=0), 'y1' = davanti (y=RD), 'x1' = destra (x=RW); a..b e' il tratto lungo la parete, depth quanto sporge verso l'interno */
+  const WK={y:'y0',x:'x0',y1:'y1',x1:'x1'};
+  function onWall(wall,a,b,z0,z1,c,o,depth){ o=Object.assign({cs:false},o||{}); const d=depth||.05; let m; inGrp(WG[WK[wall]],()=>{ m=wall==='y'?bx(a,.0,b,d,z0,z1,c,o):wall==='x'?bx(.0,a,d,b,z0,z1,c,o):wall==='y1'?bx(a,RD-d,b,RD,z0,z1,c,o):bx(RW-d,a,RW,b,z0,z1,c,o); }); return m; }
+  /* piano (schermo o pannello) appeso alla parete, rivolto verso l'interno della stanza */
+  function onWallPlane(wall,m,a,b,z0,z1){ const c=(a+b)/2, zc=(z0+z1)/2; if(wall==='y') m.position.set(c,zc,.075); else if(wall==='x'){ m.rotation.y=Math.PI/2; m.position.set(.075,zc,c); } else if(wall==='y1'){ m.rotation.y=Math.PI; m.position.set(c,zc,RD-.075); } else { m.rotation.y=-Math.PI/2; m.position.set(RW-.075,zc,c); } WG[WK[wall]].add(m); }
+  /* porta a due ante con oblo' e insegna verde di uscita */
+  function door(wall,a,b){ const m=(a+b)/2, g={r:.1,e:'#5FA3C8',ei:.3}; onWall(wall,a-.12,b+.12,0,2.4,'#5B656D',{r:.6},.07); onWall(wall,a,m-.02,0,2.25,'#D9DEE2',{r:.5},.1); onWall(wall,m+.02,b,0,2.25,'#D9DEE2',{r:.5},.1);
+    onWall(wall,a+.18,m-.2,1.3,1.95,'#9CCBE3',g,.12); onWall(wall,m+.2,b-.18,1.3,1.95,'#9CCBE3',g,.12); onWall(wall,m-.12,m-.06,.95,1.1,'#2B2F36',{r:.4},.14); onWall(wall,m+.06,m+.12,.95,1.1,'#2B2F36',{r:.4},.14); onWall(wall,m-.35,m+.35,2.5,2.75,'#2FA35B',{e:'#2FA35B',ei:.8},.09); }
   function windows(wall,a,b,z0,z1,n){ const w=(b-a)/n; onWall(wall,a,b,z0,z1,'#2B3A44',{r:.5},.07); for(let i=0;i<n;i++){ onWall(wall,a+i*w+.06,a+(i+1)*w-.06,z0+.06,z1-.06,'#9CCBE3',{r:.1,e:'#5FA3C8',ei:.35,m:.2},.09); onWall(wall,a+i*w+w/2-.015,a+i*w+w/2+.015,z0+.06,z1-.06,'#2B3A44',{r:.5},.1); } onWall(wall,a,b,z0-.04,z0+.04,'#D9DDE0',{r:.5},.12); }
   function rollDoor(wall,a,b,z1){ onWall(wall,a-.1,b+.1,0,z1+.1,'#8A929A',{r:.6},.08); const n=Math.round(z1/.22); for(let i=0;i<n;i++) onWall(wall,a,b,i*.22+.02,i*.22+.2,i%2?'#D5D9DC':'#E4E7E9',{r:.5},.12); onWall(wall,(a+b)/2-.2,(a+b)/2+.2,.85,.95,'#2B2F36',{r:.4},.16); }
   function wallScreen(wall,a,b,z0,z1,kind,seed){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:screenTex(kind,seed)})); m.scale.set(b-a,z1-z0,1);
-    if(wall==='y'){ m.position.set((a+b)/2,(z0+z1)/2,.075); } else { m.rotation.y=Math.PI/2; m.position.set(.075,(z0+z1)/2,(a+b)/2); } PAR.add(m); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
-  function wallPanel(wall,a,b,z0,z1,tex){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tex})); m.scale.set(b-a,z1-z0,1); if(wall==='y') m.position.set((a+b)/2,(z0+z1)/2,.075); else { m.rotation.y=Math.PI/2; m.position.set(.075,(z0+z1)/2,(a+b)/2); } PAR.add(m); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
+    onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
+  function wallPanel(wall,a,b,z0,z1,tex){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tex})); m.scale.set(b-a,z1-z0,1); onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
   function textTex(lines,bg,fg){ return ctex(512,256,(g,w,h)=>{ g.fillStyle=bg||'#0B141C'; g.fillRect(0,0,w,h); g.font='700 44px monospace'; g.textBaseline='middle'; lines.forEach((l,i)=>{ g.fillStyle=l[1]||fg||'#43D3E0'; g.fillText(l[0],24,60+i*72); }); g.strokeStyle='#1A1F24'; g.lineWidth=12; g.strokeRect(0,0,w,h); }); }
 
   /* ---------- macchinari del laboratorio ---------- */
@@ -5845,7 +6337,23 @@ const IR3=(()=>{
       [[3.4,9],[6.8,10.4],[10.4,10.4],[13.8,9],[15.6,5.6]].forEach((p,i)=>{ podium(p[0],p[1],.9); if(st.sats&&st.sats[i]) satellite(p[0],p[1],.98,1.5,{wings:true}); else cy(p[0],p[1],.5,.98,1.6,'#BFE2EE',{t:.12,cs:false}); });
       [[2.4,12.2],[6,12.6],[9.6,12.6],[13.2,12.6],[16.4,12.2]].forEach(p=>{ cy(p[0],p[1],.08,0,.9,'#C9CED2'); sp(p[0],p[1],.95,.1,'#F2B544'); });
       walkers_('visit',6,['plain','coat','head','plain','vest','plain']); }
+    farDecor(room,st);
     (st.plants||[]).forEach((p,i)=>{ plant(p.x+.3,p.y+.3); FP.push([p.x,p.y,p.x+.6,p.y+.6,.15]); if(st.sel===i) pl(p.x-.1,p.y-.1,p.x+.7,p.y+.7,.03,'#45A9A3',{t:.55}); });
+  }
+  /* arredi delle due pareti che si vedono solo ruotando la stanza (davanti 'y1', destra 'x1'): una porta d'ingresso e qualcosa in tema, lontano dai mobili vicini al muro */
+  function farDecor(room,st){
+    if(room==='build'){ door('y1',4.6,6.4); windows('y1',8.6,17.4,2.2,3.3,10); wallScreen('x1',1.5,5.5,1.5,3.1,'bars',4); windows('x1',6.5,13.4,1.8,3.3,7); }
+    else if(room==='clean'){ for(let i=0;i<10;i++) onWall('y1',.5+i*1.75,1.95+i*1.75,2.5,3.05,'#FFFFFF',{r:.4},.05); for(let i=0;i<7;i++) onWall('x1',.5+i*1.9,1.95+i*1.9,2.5,3.05,'#FFFFFF',{r:.4},.05);
+      door('y1',6.8,8.4); wallScreen('y1',9.4,13.4,1.2,2.3,'gauges',5); wallScreen('x1',8.4,12.4,1.3,2.4,'chart',6); }
+    else if(room==='test'){ door('y1',5.6,7.4); windows('y1',8.6,17.4,2.2,3.3,9); wallScreen('x1',.8,4.8,1.5,3.1,'chart',7); wallScreen('x1',9.4,13.2,1.5,3.1,'gauges',8); }
+    else if(room==='mcc'){ onWall('y1',0,RW,3.3,RH,'#2E363E',{r:.6},.06); onWall('x1',0,RD,3.3,RH,'#262D34',{r:.6},.06);
+      for(let i=0;i<22;i++) onWall('y1',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1); for(let i=0;i<17;i++) onWall('x1',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1);
+      door('y1',5,6.6); wallScreen('y1',8,13.6,1.4,3.05,'globe',14); wallScreen('x1',1.2,6.4,1.4,3.05,'grid',15); wallScreen('x1',7,12.2,1.4,3.05,'chart',16); }
+    else if(room==='factory'){ door('y1',5,6.8); windows('y1',8,17.4,1.8,3.3,11); wallScreen('x1',1,5.6,1.4,3.1,'gauges',9); windows('x1',6.6,13.4,1.8,3.3,7); }
+    else if(room==='ground'){ door('y1',2.2,3.8); wallScreen('y1',5.5,12.5,1.6,3.3,'bars',10); wallScreen('x1',1,5.4,1.6,3.2,'sat',11); wallScreen('x1',6,10.4,1.6,3.2,'chart',12); }
+    else if(room==='rnd'){ door('y1',8.6,10.2); windows('y1',11.4,17.4,1.2,3.1,6); wallPanel('x1',1.5,5.5,1.3,2.8,textTex([['IDEA → TEST','#22313B'],['→ FLY','#8E5BB0']],'#FFFFFF')); wallScreen('x1',6.5,11.5,1.2,3,'chart',13); }
+    else if(room==='office'){ door('y1',.8,2.4); windows('y1',6.4,12.4,1.1,3.2,6); wallScreen('x1',4.6,9.6,1.2,3,'chart',9); }
+    else if(room==='visit'){ door('y1',7.2,8.8); wallPanel('y1',11,16,1.2,2.8,textTex([['Go No-Go','#22313B'],['space agency','#EB7D44']],'#F6F5F1')); wallScreen('x1',2,7,1.1,3.1,'globe',10); windows('x1',8,12.8,1.2,3,4); }
   }
 
 
@@ -6004,7 +6512,7 @@ const IR3=(()=>{
     if(room==='build'){ [[4.4,3],[7.6,3],[4.4,8],[7.6,8]].forEach((b,i)=>{ const m=(st.benches||[])[i]; addHS(m?'data-act="openyard" data-id="'+m.id+'"':'data-act="benchfree"',b[0],b[1],b[0]+2.6,b[1]+1.2,0,m?1.6:.9,m?m.label:'Free bench'); { const cm=cur(), hint=!!(m&&cm&&cm.id===m.id&&cm.phase==='B'&&cm.stage==='sat'); addTag(b[0]+1.3,b[1]+.6,m?2.0:1.2,hint?'Design table · click to open':m?m.label:'free bench',hint?'#EB7D44':m?m.col:'#9A9A90',hint?'on':'','',HS.length-1); } }); }
     if(room==='clean'){ [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>{ const m=(st.stations||[])[i]; addHS('data-act="station" data-i="'+i+'"',p[0]-1.1,p[1]-1.1,p[0]+1.1,p[1]+1.1,0,m?1.9:1.1,m?m.label:'Free station'); addTag(p[0],p[1],m?2.2+m.size*.4:1.5,m?m.label:'free station',m?m.col:'#9A9A90','','',HS.length-1); }); addTag(2,12,2.6,'Gowning','#45A9A3','','',null,1.5); addTag(16.1,12.2,2.9,'Air shower','#45A9A3','','',null,1.3); }
     if(room==='test'){ (st.machines||[]).forEach(m=>{ if(m.i===st.moveI) return; const f=IR.FOOT[m.k]||[2,2], h={vib:1.2,tvac:2.7,emc:2.4,mass:1.1,func:1.3,shock:2.8}[m.k]||1.5; addHS('data-act="mach" data-k="'+m.k+'"',m.x,m.y,m.x+f[0],m.y+f[1],0,h,m.n); addTag(m.x+f[0]/2,m.y+f[1]/2,h+.5,m.n+(m.lab?' · '+m.lab:''),m.col||'#45A9A3','','',HS.length-1); }); }
-    if(room==='mcc'){ addHS('data-act="mccwall"',0,0,RW,.1,1.3,3.2,'Control room screens'); addHS('data-act="mccwall"',0,0,.1,13.4,1.3,3.2,'Control room screens'); addTag(2.1,12,2.9,'Guest room','#45A9A3','','',null,1.6); }
+    if(room==='mcc'){ addHS('data-act="mccwall"',0,0,RW,.1,1.3,3.2,'Control room screens'); HS[HS.length-1].wall='y0'; addHS('data-act="mccwall"',0,0,.1,13.4,1.3,3.2,'Control room screens'); HS[HS.length-1].wall='x0'; addTag(2.1,12,2.9,'Guest room','#45A9A3','','',null,1.6); }
     if(room==='factory'){ addTag(9,6.5,3.2,'Integration line · times halved','#EB7D44','','',null,2.4); (st.sats||[]).forEach((m,i)=>{ if(m) addTag([3.4,8,12.6][i]+.6,6.5,2.5,m.label,'#EB7D44','','',null,1.2); }); }
     if(room==='ground') addTag(15.6,12.4,3.1,'Antenna model','#45A9A3','','',null,1.4);
     if(room==='rnd'){ addTag(14.8,9.8,3.1,'Prototype under test','#45A9A3','','',null,1.4); addTag(13.2,4.2,1.9,'3D printer','#8E5BB0','','',null,1.1); }
@@ -6029,13 +6537,13 @@ const IR3=(()=>{
   function clearBuilt(){ if(!built) return; scene.remove(built); const cached=new Set(Object.values(MC)), tcache=new Set(Object.values(TC)), shr=new Set(Object.values(SCRM).concat(Object.values(CELLM),[BLOBM]));
     built.traverse(o=>{ if(o.geometry&&SHARED.indexOf(o.geometry)<0) o.geometry.dispose(); const m=o.material; if(m&&!cached.has(m)&&!shr.has(m)){ if(m.map&&m.map!==BLOB&&!tcache.has(m.map)) m.map.dispose(); m.dispose(); } }); }
   function saveWalkers(){ if(curRoom&&walkers.length) WSAVE[curRoom]=walkers.map(w=>({x:w.x,z:w.z})); }
-  function rebuild(room,st){ if(room===curRoom) saveWalkers(); clearBuilt(); built=new THREE.Group(); scene.add(built); anims=[]; walkers=[]; FP=[]; NF=[]; MACHP=[]; MEET=null; LCH=null; clearGhost(); PAR=built; const kind=SKIND(room); applyScene(kind);
+  function rebuild(room,st){ if(room===curRoom) saveWalkers(); clearBuilt(); built=new THREE.Group(); scene.add(built); anims=[]; walkers=[]; FP=[]; NF=[]; MACHP=[]; MEET=null; LCH=null; WG=null; clearGhost(); PAR=built; const kind=SKIND(room); applyScene(kind);
     if(kind==='room'){ CROWD=[]; buildRoom(room,st); adjustCrowd(room); navBuild(); walkers.forEach(w=>{ if(w.fresh||!freeAt(w.x,w.z)){ const p=randFree(); w.x=p[0]; w.z=p[1]; w.fresh=false; } w.P.g.position.set(w.x,0,w.z); }); }
     else if(kind==='meet') buildMeet(st); else buildLaunch(st);
     if(kind!=='launch'){ const ao=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:aoTex(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2})); ao.rotation.x=-Math.PI/2; ao.scale.set(RW,RD,1); ao.position.set(RW/2,.012,RD/2); ao.userData.keep=true; built.add(ao); }
-    TOON.outlineStatic(built,{minDim:.05}); mergeStatic(built); TOON.outlineEach(built,{minDim:.05}); R.shadowMap.needsUpdate=true; dirty=true; }
+    wallsPrep(); TOON.outlineStatic(built,{minDim:.05}); mergeStatic(built); TOON.outlineEach(built,{minDim:.05}); wallsFor(); R.shadowMap.needsUpdate=true; dirty=true; }
   /* camera orbitale attorno al centro della stanza; la distanza base inquadra la stanza intera con un margine */
-  function placeCam(){ const cp=Math.cos(CAM.pit), d=CAM.dFit/CAM.zoom; cam.position.set(CAM.tx+Math.sin(CAM.yaw)*cp*d,.6+Math.sin(CAM.pit)*d,CAM.tz+Math.cos(CAM.yaw)*cp*d); cam.lookAt(CAM.tx,.6,CAM.tz); cam.updateMatrixWorld(true); cam.updateProjectionMatrix(); }
+  function placeCam(){ const cp=Math.cos(CAM.pit), d=CAM.dFit/CAM.zoom; cam.position.set(CAM.tx+Math.sin(CAM.yaw)*cp*d,.6+Math.sin(CAM.pit)*d,CAM.tz+Math.cos(CAM.yaw)*cp*d); cam.lookAt(CAM.tx,.6,CAM.tz); cam.updateMatrixWorld(true); cam.updateProjectionMatrix(); wallsFor(); }
   function fit(){ const w=host.clientWidth||900, h=host.clientHeight||560; R.setSize(w,h,false); R.domElement.style.width=w+'px'; R.domElement.style.height=h+'px'; cam.aspect=w/h; if(SK!=='room'){ fitFixed(); layout(); return; }
     const pts=[[0,0,0],[RW,0,0],[0,0,RD],[RW,0,RD],[0,RH,0],[RW,RH,0],[0,RH,RD],[RW,.4,RD],[RW,.4,0],[0,.4,RD]].map(p=>new THREE.Vector3(p[0],p[1],p[2])); const sv=[CAM.zoom,CAM.tx,CAM.tz,CAM.yaw,CAM.pit]; CAM.zoom=1; CAM.tx=RW/2; CAM.tz=RD/2; CAM.yaw=DEF.yaw; CAM.pit=DEF.pit;
     let d=14; for(let i=0;i<120;i++){ CAM.dFit=d; placeCam(); let ok=true; for(const p of pts){ V.copy(p).project(cam); if(Math.abs(V.x)>.97||V.y>.80||V.y<-.96){ ok=false; break; } } if(ok) break; d*=1.025; }
@@ -6045,22 +6553,26 @@ const IR3=(()=>{
   function setView(yaw,pit){ DEF.yaw=yaw; DEF.pit=pit; if(host){ CAM.yaw=yaw; CAM.pit=pit; fit(); } return host?cover():null; }
   function scr(x,y,z){ V.set(x,z,y).project(cam); return [(V.x+1)/2*host.clientWidth,(1-V.y)/2*host.clientHeight]; }
   function layout(){ if(!hotEl) return;
-    HS.forEach((h,k)=>{ const b=h.b, el=hotEls[k]; if(!el) return; let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; [b[0],b[2]].forEach(x=>[b[1],b[3]].forEach(y=>[b[4],b[5]].forEach(z=>{ const p=scr(x,y,z); x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); y0=Math.min(y0,p[1]); y1=Math.max(y1,p[1]); })));
+    HS.forEach((h,k)=>{ const b=h.b, el=hotEls[k]; if(!el) return; const off=!!(h.wall&&WG&&WG[h.wall]&&!WG[h.wall].visible); el.hidden=off; if(off) return; let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; [b[0],b[2]].forEach(x=>[b[1],b[3]].forEach(y=>[b[4],b[5]].forEach(z=>{ const p=scr(x,y,z); x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); y0=Math.min(y0,p[1]); y1=Math.max(y1,p[1]); })));
       const cd=cam.position.distanceTo(V.set((b[0]+b[2])/2,(b[4]+b[5])/2,(b[1]+b[3])/2)); const s=el.style; s.zIndex=String(Math.max(1,2000-Math.round(cd*20))); s.left=x0.toFixed(1)+'px'; s.top=y0.toFixed(1)+'px'; s.width=(x1-x0).toFixed(1)+'px'; s.height=(y1-y0).toFixed(1)+'px'; });
     TG.forEach((t,k)=>{ const el=tagEls[k]; if(!el) return; const p=scr(t.x,t.y,t.z); el.style.left=p[0].toFixed(1)+'px'; el.style.top=p[1].toFixed(1)+'px'; });
     const bub=document.getElementById('mbub'); if(bub&&MEET&&bub.dataset.seat!=null&&MSEATP[+bub.dataset.seat]){ const q=MSEATP[+bub.dataset.seat], p=scr(q.x,q.y,2.35), hr=host.getBoundingClientRect(), w=bub.offsetWidth||260, hud=document.getElementById('hud'); bub.style.left=Math.max(hr.left+w/2+8,Math.min(hr.right-w/2-8,hr.left+p[0]))+'px'; bub.style.top=Math.max(((hud&&hud.getBoundingClientRect().bottom)||60)+bub.offsetHeight+8,hr.top+p[1])+'px'; } }
-  function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); if(ts-lastT<33) return; const dt=Math.min(.25,(ts-lastT)/1000||.033); lastT=ts; const t=ts/1000;
+  function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); if(ts-lastT<33) return; const dt=Math.min(.05,(ts-lastT)/1000||.033); lastT=ts; const t=ts/1000; /* 30 fps regolari (con tolleranza), dt limitato a 50 ms */
+    if(yawTo!=null){ const k=Math.min(1,dt*9); CAM.yaw+=(yawTo-CAM.yaw)*k; if(Math.abs(yawTo-CAM.yaw)<.002){ CAM.yaw=yawTo; yawTo=null; } camDirty=true; }
     if(camDirty){ if(SK==='room') placeCam(); layout(); camDirty=false; dirty=true; } anims.forEach(f=>f(t,dt)); stepWalkers(dt,t); if(!anims.length&&!walkers.length&&!dirty) return; dirty=false; R.render(scene,cam); }
 
   /* ---------- controlli della camera: trascina per ruotare, rotella per lo zoom, tasto destro per spostare ---------- */
   const PT=new Map(); let drag=null, moved=false, pinch=null;
   const isPlacing=()=>host&&host.classList.contains('placing');
-  /* stessi gesti del campus: un dito sposta la vista (la stanza resta sotto il dito), due dita zoomano; col mouse tasto destro o Maiusc ruota */
-  function onDown(e){ if(!running||SK!=='room') return; PT.set(e.pointerId,[e.clientX,e.clientY]);
+  /* un dito sposta la vista (la stanza resta sotto il dito); due dita: allargarle o stringerle zooma, girarle come una manopola ruota la stanza (insieme, come nelle mappe); col mouse tasto destro o Maiusc ruota */
+  const fang=a=>Math.atan2(a[1][1]-a[0][1],a[1][0]-a[0][0]);
+  function onDown(e){ if(!running||SK!=='room') return; PT.set(e.pointerId,[e.clientX,e.clientY]); yawTo=null;
     if(PT.size===1){ moved=false; drag={x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,tx:CAM.tx,tz:CAM.tz,rot:e.button===2||e.shiftKey}; }
-    else if(PT.size===2){ const a=Array.from(PT.values()); pinch={d0:Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])),z0:CAM.zoom}; drag=null; moved=true; } }
+    else if(PT.size===2){ const a=Array.from(PT.values()); pinch={d0:Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])),z0:CAM.zoom,a:fang(a)}; drag=null; moved=true; } }
   function onMove(e){ if(!PT.has(e.pointerId)) return; PT.set(e.pointerId,[e.clientX,e.clientY]);
-    if(pinch&&PT.size>=2){ const a=Array.from(PT.values()), d=Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])); CAM.zoom=Math.max(.7,Math.min(3.2,pinch.z0*d/pinch.d0)); camDirty=true; return; }
+    if(pinch&&PT.size>=2){ const a=Array.from(PT.values()), d=Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])); CAM.zoom=Math.max(.7,Math.min(3.2,pinch.z0*d/pinch.d0));
+      /* rotazione libera: si somma il giro fatto dalle dita dall'ultimo movimento (girare in senso orario fa girare la stanza in senso orario) */
+      const an=fang(a); let da=an-pinch.a; if(da>Math.PI) da-=2*Math.PI; else if(da<-Math.PI) da+=2*Math.PI; pinch.a=an; CAM.yaw+=da; camDirty=true; return; }
     if(!drag) return; const dx=e.clientX-drag.x0, dy=e.clientY-drag.y0; if(!moved&&Math.hypot(dx,dy)<7) return; if(isPlacing()&&!drag.rot) return; moved=true;
     if(drag.rot){ CAM.yaw-=(e.clientX-drag.x)*.006; CAM.pit=Math.max(.4,Math.min(1.3,CAM.pit+(e.clientY-drag.y)*.005)); drag.x=e.clientX; drag.y=e.clientY; camDirty=true; return; }
     const hh=(host&&host.clientHeight)||innerHeight, k=2*(CAM.dFit/CAM.zoom)*Math.tan((cam?cam.fov:40)*Math.PI/360)/hh, c=Math.cos(CAM.yaw), sn=Math.sin(CAM.yaw), py=dy/Math.max(.5,Math.sin(CAM.pit));
@@ -6070,7 +6582,9 @@ const IR3=(()=>{
   function onWheel(e){ if(SK!=='room') return; e.preventDefault(); CAM.zoom=Math.max(.7,Math.min(3.2,CAM.zoom*Math.exp(-e.deltaY*.0012))); camDirty=true; }
   /* a livello di window, in cattura: arriva prima del gestore dei data-act e di quello del posizionamento */
   addEventListener('click',e=>{ if(moved&&e.target.closest&&e.target.closest('#roomsvg')){ e.stopPropagation(); e.preventDefault(); moved=false; } },true);
-  function resetCam(){ CAM.yaw=DEF.yaw; CAM.pit=DEF.pit; CAM.zoom=1; CAM.tx=RW/2; CAM.tz=RD/2; camDirty=true; }
+  function resetCam(){ yawTo=null; CAM.yaw=DEF.yaw; CAM.pit=DEF.pit; CAM.zoom=1; CAM.tx=RW/2; CAM.tz=RD/2; camDirty=true; }
+  /* pulsante ⟳: un quarto di giro in senso orario, con una breve animazione (i tocchi ripetuti si sommano) */
+  function turn(dir){ if(!running||SK!=='room') return; yawTo=(yawTo==null?CAM.yaw:yawTo)+(dir||1)*Math.PI/2; dirty=true; }
 
   /* ---------- API ---------- */
   function skey(room,st){ return skey0(room,st)+(room==='meet'||room==='launch'?'':'|s'+STAFFN(room)); }
@@ -6091,7 +6605,7 @@ const IR3=(()=>{
   function clearGhost(){ if(ghostG){ scene.remove(ghostG); ghostG.traverse(o=>{ if(o.material) o.material.dispose(); }); ghostG=null; } ghostK=''; dirty=true; }
   function setGhost(room,gh){ if(!running||room!==curRoom) return; if(!gh){ clearGhost(); return; } const k=gh?gh.k:''; if(k!==ghostK){ if(ghostG){ scene.remove(ghostG); ghostG=null; } ghostK=k; if(k){ const f=k==='plant'?[.6,.6]:(IR.FOOT[k]||[1,1]), h=k==='plant'?1:({vib:.8,tvac:2.5,emc:2.5,mass:.9,func:1.1,shock:2.8}[k]||1.2); ghostG=new THREE.Group(); const fl=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({color:0x37C26A,transparent:true,opacity:.7,depthWrite:false})); fl.rotation.x=-Math.PI/2; fl.scale.set(f[0],f[1],1); fl.position.set(f[0]/2,.05,f[1]/2); const gmod=ghostModel(k); ghostG.add(fl,gmod.g); ghostG.userData.m=[fl.material,gmod.m]; scene.add(ghostG); } }
     if(ghostG&&gh){ ghostG.position.set(gh.x,0,gh.y); const c=gh.ok?0x37C26A:0xE0483C; ghostG.userData.m.forEach(m=>m.color.setHex(c)); } dirty=true; }
-  return { launch:launchCtl, snap:snapMachine, focus:(x,z,zm,yaw,pit)=>{ CAM.tx=x; CAM.tz=z; CAM.zoom=zm; if(yaw!=null) CAM.yaw=yaw; if(pit!=null) CAM.pit=pit; camDirty=true; }, cover:()=>host?cover():null, setView, slam,info:()=>R?{tex:R.info.memory.textures,geo:R.info.memory.geometries,progs:R.info.programs.length,walkers:walkers.length,crowd:CROWD.length,cups:MEET?MEET.seats.map(r=>r&&r.cup?[+r.cup.position.y.toFixed(2),r.cupT==null?null:+r.cupT.toFixed(1)]:null):null,calls:R.info.render.calls,sc:scene.children.length,ghost:!!ghostG,pos:walkers.map(w=>[+w.x.toFixed(1),+w.z.toFixed(1),w.path?1:0])}:null, can, mount, update, sync, toGrid, ghost:setGhost, pending:null, stop:()=>{ running=false; } };
+  return { launch:launchCtl, snap:snapMachine, turn, focus:(x,z,zm,yaw,pit)=>{ CAM.tx=x; CAM.tz=z; CAM.zoom=zm; if(yaw!=null) CAM.yaw=yaw; if(pit!=null) CAM.pit=pit; camDirty=true; }, cover:()=>host?cover():null, setView, slam,info:()=>R?{tex:R.info.memory.textures,geo:R.info.memory.geometries,progs:R.info.programs.length,walkers:walkers.length,crowd:CROWD.length,cups:MEET?MEET.seats.map(r=>r&&r.cup?[+r.cup.position.y.toFixed(2),r.cupT==null?null:+r.cupT.toFixed(1)]:null):null,calls:R.info.render.calls,sc:scene.children.length,ghost:!!ghostG,pos:walkers.map(w=>[+w.x.toFixed(1),+w.z.toFixed(1),w.path?1:0])}:null, can, mount, update, sync, toGrid, ghost:setGhost, pending:null, stop:()=>{ running=false; } };
 })();
 
 /* ==========================================================================
@@ -6159,7 +6673,7 @@ function artSVG(kind){ const id='a'+kind;
   else if(kind==='multi'){ s+=stars(30)+'<path d="M0 230Q100 205 200 222T400 214V300H0Z" fill="#2B5A6E"/><g fill="#E9E3DC" stroke="#24414E" stroke-width="2"><rect x="70" y="170" width="60" height="50" rx="8"/><rect x="170" y="150" width="70" height="70" rx="10"/><rect x="280" y="176" width="54" height="44" rx="8"/></g><g stroke="#E9E3DC" stroke-width="7"><path d="M130 196H170M240 198H280"/></g><g fill="#F07B3F"><circle cx="100" cy="186" r="5"/><circle cx="205" cy="172" r="6"/><circle cx="307" cy="190" r="5"/></g>'; }
   return s+'</svg>'; }
 function logoSVG(){ return '<svg class="tlogo-m" viewBox="0 0 120 64" aria-hidden="true"><path d="M14 52A46 18 0 0 1 106 52" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M30 52A30 12 0 0 1 90 52" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" opacity=".7"/><rect x="51" y="6" width="18" height="18" rx="3" transform="rotate(45 60 15)" fill="none" stroke="currentColor" stroke-width="5"/><path d="M60 26V44" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>'; }
-const HEXI={home:'<path d="M5 12L12 6l7 6"/><path d="M7 11v8h10v-8"/><path d="M10.5 19v-4h3v4"/>',plus:'<path d="M12 5v14M5 12h14"/>',build:'<path d="M4 20h16"/><path d="M6 20V10l6-4 6 4v10"/><path d="M10 20v-5h4v5"/>',flag:'<path d="M6 21V4"/><path d="M6 5h11l-2.5 3.5L17 12H6"/>',menu:'<path d="M5 7h14M5 12h14M5 17h14"/>',folder:'<path d="M3 7h6l2 2h10v10H3z"/>',x:'<path d="M7 7l10 10M17 7L7 17"/>'};
+const HEXI={home:'<path d="M5 12L12 6l7 6"/><path d="M7 11v8h10v-8"/><path d="M10.5 19v-4h3v4"/>',plus:'<path d="M12 5v14M5 12h14"/>',build:'<path d="M4 20h16"/><path d="M6 20V10l6-4 6 4v10"/><path d="M10 20v-5h4v5"/>',cust:'<path d="M3 20h12"/><path d="M5 20v-9l5-3.5 5 3.5v9"/><path d="M8 20v-4h4v4"/><path d="M19 21V5"/><path d="M19 5h3.5l-1 1.7 1 1.7H19"/>',flag:'<path d="M6 21V4"/><path d="M6 5h11l-2.5 3.5L17 12H6"/>',menu:'<path d="M5 7h14M5 12h14M5 17h14"/>',folder:'<path d="M3 7h6l2 2h10v10H3z"/>',x:'<path d="M7 7l10 10M17 7L7 17"/>'};
 const hexB=(act,t,ic,on,extra)=>'<button class="hx6'+(on?' on':'')+'" data-act="'+act+'" title="'+t+'" aria-label="'+t+'"'+(extra||'')+'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+HEXI[ic]+'</svg></button>';
 /* ---------- schermate iniziali ---------- */
 let TTL={s:'main',mode:'career',diff:'normale',crew:'giulia',from:'title'};
@@ -6170,8 +6684,8 @@ const MODES=[
   {k:'sand',n:'Creative',s:'Everything unlocked and unlimited credits. Build and experiment freely.',ic:'<path d="M12 3l2.5 5.5L20 10l-4.5 3.5L17 20l-5-3-5 3 1.5-6.5L4 10l5.5-1.5z"/>'}];
 const DIFFS=[['facile','Easy','More money, fewer faults'],['normale','Medium','The intended experience'],['difficile','Hard','Tight budget, hidden defects']];
 function ttlEl(){ let el=$('#title'); if(!el){ el=document.createElement('div'); el.id='title'; el.className='ttl'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); document.body.appendChild(el); } return el; }
-function openTitle(s,from){ TTL.s=s||'main'; TTL.from=from||'title'; document.body.classList.add('ttl-on'); drawTitle(); if(G.tut) coach(); }
-function closeTitle(){ const el=$('#title'); if(el) el.remove(); document.body.classList.remove('ttl-on'); }
+function openTitle(s,from){ TTL.s=s||'main'; TTL.from=from||'title'; document.body.classList.add('ttl-on'); drawTitle(); if(G.tut&&from==='game') coach(); }
+function closeTitle(){ const el=$('#title'); if(el) el.remove(); document.body.classList.remove('ttl-on'); if(G&&G.tut) coach(); }
 function lvlBox(){ const lv=L.level(G.xp), a=L.LEVELS[lv-1], b=L.LEVELS[lv], pc=b?Math.round((G.xp-a)/(b-a)*100):100; return '<div class="tbox tlv"><b>'+TX('LIVELLO','LEVEL')+' '+lv+'</b><i><u style="width:'+pc+'%"></u></i><small>'+TX('Sali di livello per sbloccare destinazioni, tecnologie e agenzie','Level up to unlock destinations, technologies and agencies')+'</small></div>'; }
 function nextDest(){ const lv=L.level(G.xp); const ks=Object.keys(E.DEST).filter(k=>E.DEST[k].lvl>lv).sort((a,b)=>E.DEST[a].lvl-E.DEST[b].lvl); return ks.length?ks[0]:null; }
 function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
@@ -6192,7 +6706,7 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
   else if(s==='crew'){ const c=crewOf(TTL.crew), tut=TTL.mode==='tut';
     h='<div class="tcrew"><div class="tcl"><h2 class="tt box">'+'CHOOSE YOUR CHARACTER'+'</h2><div class="tlist">'+CREW.map(x=>'<button class="trow'+(x.id===c.id?' sel':'')+'" data-act="tcrew" data-k="'+x.id+'">'+faceSVG(x)+'<span><b>'+x.n+'</b><small>'+TX(x.r[0],x.r[1])+'</small><em>'+TX(x.p[0],x.p[1])+'</em></span></button>').join('')+'</div></div>'+
       '<div class="tcr"><h2 class="tt">'+'YOUR CHARACTER</h2><div class="tbox tsel"><div class="tbig">'+faceSVG(c,'big')+'<div><b>'+c.n+', '+c.age+'</b><small>'+TX(c.r[0],c.r[1])+'</small><p>'+TX(c.d[0],c.d[1])+'</p><em>'+TX(c.p[0],c.p[1])+'</em></div></div>'+
-      '<label for="tco">'+TX('Nome dell’agenzia','Agency name')+'</label><input type="text" id="tco" maxlength="28" value="'+esc(G.co||'Perigeo Labs')+'">'+
+      '<label for="tco">'+TX('Nome dell’agenzia','Agency name')+'</label><input type="text" id="tco" maxlength="28" value="" placeholder="'+TX('Es. Perigeo Labs','e.g. Perigeo Labs')+'" autocomplete="off">'+
       (tut?'<p class="tnote">The character bonus applies from your first real game.</p>':'')+'</div></div></div>'+foot(1,'tstart',tut?TX('INIZIA IL TUTORIAL','START TUTORIAL'):TX('INIZIA','START')); }
   else if(s==='settings'){ const fsOk=document.fullscreenEnabled||document.webkitFullscreenEnabled;
     const row=(t,d,act,v)=>'<div class="tset"><span><b>'+t+'</b><small>'+d+'</small></span><button class="tsw'+(v===true?' on':'')+'" data-act="'+act+'">'+(v===true?'ON':v===false?'OFF':v)+'</button></div>';
@@ -6233,7 +6747,7 @@ Object.assign(ACT,{
 function lvlRing(){ const lv=L.level(G.xp), a=L.LEVELS[lv-1], b=L.LEVELS[lv], pc=b?(G.xp-a)/(b-a):1, R=19, C=2*Math.PI*R;
   return '<button class="ring" data-act="road" title="'+G.xp+' XP · roadmap" aria-label="'+TX('Livello ','Level ')+lv+'"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="'+R+'" fill="rgba(20,18,22,.55)" stroke="rgba(255,255,255,.25)" stroke-width="4"/><circle cx="24" cy="24" r="'+R+'" fill="none" stroke="#F2EDE6" stroke-width="4" stroke-linecap="round" stroke-dasharray="'+(C*pc).toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 24 24)"/></svg><b>'+lv+'</b><small>'+TX('LIV','LV')+'</small></button>'; }
 const RICO={cr:'<svg viewBox="0 0 24 24" fill="none" stroke="#F2B640" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 5H17.5L6.5 19H17.5"/><path d="M4 10.3H15.5M4 13.7H15.5" stroke-width="2"/></svg>',sci:'<svg viewBox="0 0 24 24"><path d="M12 3l8 9-8 9-8-9z" fill="#8FD3FF"/><path d="M12 3v18M4 12h16" stroke="#3E8FC9" stroke-width="1.6"/></svg>',stf:'<svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4" fill="#E58BE0"/><path d="M4 21c0-5 3.5-8 8-8s8 3 8 8z" fill="#E58BE0"/></svg>'};
-function hudObjective(M){ if(!M) return TX('Crea una missione con +','Create a mission with +'); let h=I18N.tr(hint(M)||''); h=h.replace(/^(Fase|Phase) [0-9A-F]+(, (passo|step) \d)?:\s*/i,''); return h.charAt(0).toUpperCase()+h.slice(1); }
+function hudObjective(M){ if(!M) return TX('Crea una missione con +','Create a mission with +'); let h=I18N.tr(hint(M)||''); h=h.replace(/^(Pre-)?(Fase|Phase) [0-9A-F]+(, (passo|step) \d)?:\s*/i,''); return h.charAt(0).toUpperCase()+h.slice(1); }
 function hudFlagEl(){ return ''; }
 
 /* volto degli stakeholder al tavolo, coerente con il loro aspetto nella sala riunioni */
@@ -6248,8 +6762,8 @@ function stakeFace(id){ const P=PEO[id]; if(!P) return ''; const lk=IR.lookOf(id
   function pass(root){ const w=document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT|NodeFilter.SHOW_TEXT,{acceptNode(n){ if(n.nodeType===1){ const t=n.tagName; return (t==='SCRIPT'||t==='STYLE'||t==='svg'||t==='SVG'||t==='TEXTAREA'||t==='INPUT'||t==='CANVAS'||n.namespaceURI==='http://www.w3.org/2000/svg')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_SKIP; } return TEST.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_SKIP; }});
     const list=[]; let n; while((n=w.nextNode())) list.push(n);
     list.forEach(t=>{ const f=document.createDocumentFragment(); let last=0; const v=t.nodeValue; v.replace(RX,(m,e,i)=>{ if(i>last) f.appendChild(document.createTextNode(v.slice(last,i))); const ic=document.createElement('i'); ic.className='gi gi-'+MAP[e]; ic.setAttribute('aria-hidden','true'); f.appendChild(ic); last=i+m.length; return m; }); if(last<v.length) f.appendChild(document.createTextNode(v.slice(last))); t.parentNode&&t.parentNode.replaceChild(f,t); }); }
-  let q=0; const run=()=>{ q=0; try{ pass(document.body); }catch(e){} };
-  new MutationObserver(()=>{ if(!q) q=requestAnimationFrame(run); }).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+  let q=0; const dirty=new Set(); const run=()=>{ q=0; const nodes=[...dirty]; dirty.clear(); nodes.forEach(n=>{ if(n.isConnected){ try{ pass(n); }catch(e){} } }); };
+  new MutationObserver(ms=>{ for(let i=0;i<ms.length;i++){ const m=ms[i]; if(m.type==='characterData'){ if(m.target.parentNode) dirty.add(m.target.parentNode); } else m.addedNodes.forEach(n=>{ if(n.nodeType===1) dirty.add(n); else if(n.nodeType===3&&n.parentNode) dirty.add(n.parentNode); }); } if(dirty.size&&!q) q=requestAnimationFrame(run); }).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
   if(document.body) run(); })();
 
 /* ====================== ZORTY · aiuto contestuale ======================
@@ -6292,7 +6806,7 @@ const ZORTY=(()=>{
     tele:()=>[A('Telemetria','Telemetry'),A('I dati che il satellite ci rimanda a casa: batteria, temperature, posizione, stato dei sistemi. È il suo modo di dirci "sto bene" o "ho un problema".','The data the satellite sends back home: battery, temperatures, position, system health. It\'s the satellite\'s way of saying "I\'m fine" or "I\'ve got a problem".')],
     ride:()=>[A('Rideshare','Rideshare'),A('Dividere il razzo con altri satelliti: costa molto meno che prenotarne uno tutto per te, ma parti quando e dove parte il gruppo.','Sharing the rocket with other satellites: much cheaper than booking one just for you, but you go when and where the group goes.')],
     pad:()=>[A('Lanciatore','Launcher'),A('Il razzo che ci porta su. All\'inizio paghi un ente esterno; più avanti puoi costruirti una rampa tua e lanciare quando vuoi.','The rocket that takes us up. At first you pay an outside provider; later you can build your own pad and launch when you like.')],
-    phase:()=>[A('Le fasi (0, A, B… F)','The phases (0, A, B… F)'),A('Ogni missione spaziale si fa a tappe. 0 e A: capire cosa serve. B: progettare. C: congelare il progetto. D: costruire e provare. E: lanciare. F: far lavorare il satellite e chiudere bene.','Every space mission is done in steps. 0 and A: work out what\'s needed. B: design it. C: freeze the design. D: build and test. E: launch. F: operate it and wrap up properly.')],
+    phase:()=>[A('Le fasi NASA (pre-A, A, B… F)','The NASA phases (Pre-A, A, B… F)'),A('Ogni missione NASA si fa a tappe. Pre-fase A: studi di concetto. A: concetto e sviluppo tecnologico. B: progetto preliminare. C: progetto finale e fabbricazione. D: assemblaggio, integrazione, prove e lancio. E: operazioni. F: chiusura.','Every NASA mission is done in steps. Pre-Phase A: Concept Studies. A: Concept & Technology Development. B: Preliminary Design & Technology Completion. C: Final Design & Fabrication. D: System Assembly, Integration & Test, Launch & Checkout. E: Operations & Sustainment. F: Closeout.')],
     xp:()=>[A('Livello e punti scienza','Level and science points'),A('Ogni missione ti dà esperienza: salendo di livello sblocchi edifici, macchinari e tecnologie nuove. I punti scienza sono il tuo punteggio in classifica.','Every mission gives you experience: levelling up unlocks new buildings, machines and technologies. Science points are your score in the ranking.')],
     safe:()=>[A('Safe mode','Safe mode'),A('È la modalità di sicurezza che il satellite attiva DA SOLO quando qualcosa non va: spegne il superfluo, si orienta verso il Sole e aspetta istruzioni. Non la scegli tu: quando scatta, il gioco si ferma e ti chiede cosa fare.','It\'s the protective mode the satellite switches on BY ITSELF when something goes wrong: it shuts down the non-essentials, points at the Sun and waits for instructions. You don\'t choose it: when it kicks in, the game pauses and asks you what to do.')],
     cr:()=>[A('Crediti','Credits'),A('I soldi della tua agenzia. Li spendi per pezzi, prove e lanci, e li guadagni portando a termine le fasi e le missioni.','Your agency\'s money. You spend it on parts, tests and launches, and earn it by finishing phases and missions.')]
@@ -6304,8 +6818,9 @@ const ZORTY=(()=>{
   function tick(){ const M=cur(); if(!M) return; const p=M.phase, k=M.id||M.name, was=lastPhase[k]; if(was!=null&&was!==p&&p!=='0') celeb=Date.now()+60000; lastPhase[k]=p; }
   function scene(){ const M=cur(), ph=M?M.phase:null, st=M?M.stage:null, B=BN(), v=view; const o={M,ph,st,key:v,where:'',see:[],now:[],terms:[],pose:'benvenuto'};
     const hint0=M?I18N.tr(hint(M)||''):'';
-    const hintTxt=hint0?hint0.replace(/^(Fase|Phase) [0-9A-F]+(, (passo|step) \d)?:\s*/i,''):'';
-    const phaseWord={'0':A('Fase 0 · capire perché andiamo nello spazio e con chi','Phase 0 · working out why we\'re going to space and with whom'),A:A('Fase A · mettere nero su bianco cosa deve fare il satellite','Phase A · writing down what the satellite must do'),B:A('Fase B · progettare missione e satellite','Phase B · designing the mission and the satellite'),C:A('Fase C · progetto congelato: ultimi ritocchi e acquisto dei pezzi','Phase C · design frozen: last touches and buying the parts'),D:A('Fase D · costruire in camera bianca e fare le prove','Phase D · building in the clean room and running the tests'),E:A('Fase E · lancio e prime operazioni','Phase E · launch and first operations'),F:A('Fase F · il satellite lavora, poi si chiude la missione','Phase F · the satellite works, then the mission wraps up'),done:A('Missione completata','Mission complete')};
+    const hintTxt=hint0?hint0.replace(/^(Pre-)?(Fase|Phase) [0-9A-F]+(, (passo|step) \d)?:\s*/i,''):'';
+    /* nomi delle fasi secondo il ciclo di vita NASA (NPR 7120.5) */
+    const phaseWord={'0':A('Pre-fase A · studi di concetto: perché andiamo nello spazio e con chi','Pre-Phase A · Concept Studies: why we\'re going to space and with whom'),A:A('Fase A · concetto e sviluppo tecnologico: cosa deve fare il satellite','Phase A · Concept & Technology Development: what the satellite must do'),B:A('Fase B · progetto preliminare: missione e satellite','Phase B · Preliminary Design & Technology Completion: mission and satellite'),C:A('Fase C · progetto finale e fabbricazione: progetto congelato e acquisto dei pezzi','Phase C · Final Design & Fabrication: design frozen, parts bought'),D:A('Fase D · assemblaggio, integrazione, prove e lancio','Phase D · System Assembly, Integration & Test, Launch & Checkout'),E:A('Fase E · operazioni: il satellite lavora in orbita','Phase E · Operations & Sustainment: the satellite at work in orbit'),F:A('Fase F · chiusura della missione','Phase F · Closeout: the mission wraps up'),done:A('Missione completata','Mission complete')};
     const nowHint=()=>{ if(hintTxt) o.now.unshift(A('Il suggerimento del gioco: ','The game\'s hint: ')+hintTxt); };
     if(!M&&v!=='hub'&&v!=='fac'){ o.where=A('Non hai ancora una missione attiva.','You don\'t have an active mission yet.'); }
     switch(v){
@@ -6314,7 +6829,7 @@ const ZORTY=(()=>{
       else { o.pose=ph==='done'?'festa':'suggerisce'; o.where=(phaseWord[ph]||'')+(M.name?' ('+M.name+')':''); o.see=[A('Gli edifici del campus: ognuno serve in una fase diversa. Il punto esclamativo giallo indica dove devi andare adesso.','The campus buildings: each one is used in a different phase. The yellow exclamation mark shows where to go now.'),A('In alto a sinistra la missione in corso, a destra i tuoi punti, il personale e i crediti.','Top left is your current mission; top right your points, staff and credits.')]; const np=nextPlace(M); if(np&&B[np]) o.now.push(A('Prossima tappa: ','Next stop: ')+B[np]+'.'); nowHint(); o.terms=['phase','xp','cr']; if(riskInfo(M).hi) o.terms.unshift('risk'); }
       break;
     case 'admin':
-      o.pose='manager'; o.where=ph==='0'?(st==='meeting'?A('Sala riunioni: gli stakeholder sono seduti al tavolo e ti fanno le loro richieste.','Meeting room: the stakeholders are sitting at the table and making their requests.'):A('Edificio amministrativo, Fase 0: scegli chi coinvolgere nella missione.','Administration building, Phase 0: choose who to involve in the mission.')):(phaseWord[ph]||A('Edificio amministrativo','Administration building'));
+      o.pose='manager'; o.where=ph==='0'?(st==='meeting'?A('Sala riunioni: gli stakeholder sono seduti al tavolo e ti fanno le loro richieste.','Meeting room: the stakeholders are sitting at the table and making their requests.'):A('Edificio amministrativo, Pre-fase A: scegli chi coinvolgere nella missione.','Administration building, Pre-Phase A: choose who to involve in the mission.')):(phaseWord[ph]||A('Edificio amministrativo','Administration building'));
       o.see=st==='meeting'||ph==='A'?[A('Le persone intorno al tavolo sono gli stakeholder; chi parla ha il fumetto sopra la testa.','The people around the table are the stakeholders; whoever\'s speaking has the bubble above their head.'),A('Nella scheda in basso vedi cosa chiedono e quanto costerebbe dire di sì (crediti e chili).','The card at the bottom shows what they ask and what saying yes would cost (credits and kilos).'),A('Lo schermo alle spalle elenca i requisiti che hai già accettato.','The screen behind them lists the requirements you\'ve already accepted.')]:[A('Le carte delle agenzie: ognuna porta i suoi soldi e le sue richieste.','The agency cards: each brings its own money and its own requests.'),A('Gli sponsor in grigio si sbloccano salendo di livello.','The greyed-out sponsors unlock as you level up.')];
       o.now=st==='meeting'||ph==='A'?[A('Per ogni richiesta scegli: Accetta, Controproposta o Rifiuta. Guarda la barra di gradimento: un no pesa, soprattutto se è la richiesta principale.','For each request pick: Accept, Counter-proposal or Refuse. Watch the happiness bar: a no hurts, especially on their main request.'),A('Meno requisiti accetti, più facile sarà costruire il satellite.','The fewer requirements you accept, the easier the satellite will be to build.')]:[A('Tocca le carte degli stakeholder che vuoi al tavolo, poi "Convoca la riunione".','Tap the stakeholder cards you want at the table, then "Call the meeting".')]; nowHint(); o.terms=['stake','req','counter','phase']; break;
     case 'fd':
@@ -6357,7 +6872,7 @@ const ZORTY=(()=>{
   const ZE=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   function build(){ if(btn) return; btn=document.createElement('button'); btn.id='zbtn'; btn.type='button'; btn.innerHTML='<span aria-hidden="true">?</span>'; btn.setAttribute('aria-label',A('Aiuto: chiedi a Zorty','Help: ask Zorty')); btn.title=A('Aiuto: chiedi a Zorty','Help: ask Zorty'); btn.addEventListener('click',()=>toggle()); document.body.appendChild(btn);
     panel=document.createElement('div'); panel.id='zpanel'; panel.setAttribute('role','dialog'); panel.setAttribute('aria-label','Zorty'); panel.hidden=true; document.body.appendChild(panel);
-    panel.addEventListener('click',e=>{ const t=e.target.closest('[data-z]'); if(!t) return; if(t.dataset.z==='close') toggle(false); else if(t.dataset.z==='tip'){ tipI++; draw(); } });
+    panel.addEventListener('click',e=>{ const t=e.target.closest('[data-z]'); if(!t) return; if(t.dataset.z==='close') toggle(false); else if(t.dataset.z==='tip'){ tipI++; draw(); const zb=panel.querySelector('.zbody'), zt=panel.querySelector('.ztip'); if(zb&&zt) zb.scrollTop=Math.max(0,zt.offsetTop-zb.offsetTop-8); const nb=panel.querySelector('[data-z="tip"]'); if(nb) nb.focus({preventScroll:true}); } });
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&open){ toggle(false); } }); }
   function draw(){ if(!panel) return; if(custom){ const cp=SPR[custom.pose]?custom.pose:'dubbio'; panel.innerHTML='<div class="zhd"><img class="zsp" alt="" src="'+SPR[cp]+'"><div class="zbub"><b>Zorty</b><span>'+ZE(custom.greet||'')+'</span></div><button class="zx" data-z="close" aria-label="'+A('Chiudi','Close')+'">✕</button></div><div class="zbody">'+custom.sections.map(x=>'<section><h4>'+ZE(x[0])+'</h4><p>'+ZE(x[1])+'</p></section>').join('')+'</div><div class="zft"><button class="btn primary" data-z="close">'+A('Ho capito, grazie!','Got it, thanks!')+'</button></div>'; return; }
     const s=scene(), tips=TIPS(), tip=tips[tipI%tips.length]; const pose=SPR[s.pose]?s.pose:'benvenuto';

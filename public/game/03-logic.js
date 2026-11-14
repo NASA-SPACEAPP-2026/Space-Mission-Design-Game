@@ -181,7 +181,7 @@ const L = (function () {
   const MUST = ['avi', 'bat', 'com', 'adcs', 'ray'], OPT = ['nav', 'prop', 'pwr', 'rob', 'eol'];
   // un satellite a caso, con le regole di posizione rispettate: lo usano la verifica di fattibilità, il prezzo delle richieste e l'assistente
   function sampleSat(M, o, r, keep) { const R0 = E.RIDES[o.ride], occ = new Uint8Array(R0.cols * R0.rows), sols = availSol(M, o.ride); if (!sols.length) return null;
-    const d = { ride: o.ride, lv: o.lv, dest: M.sat.dest || 'leo', sol: keep && keep.sol || sols[Math.floor(r() * sols.length)], placed: {}, heat: {}, acc: {}, stake: M.stake, planDv: Math.round(o.dv), landKg: o.landKg, skK: o.skK, eclH: o.eclH, alt: o.alt };
+    const d = { ride: o.ride, lv: o.lv, dest: M.sat.dest || 'leo', sol: keep && keep.sol || sols[Math.floor(r() * sols.length)], placed: {}, heat: {}, acc: {}, stake: M.stake, planDv: Math.round(o.dv), landKg: o.landKg, skK: o.skK, eclH: o.eclH, skMs: o.skMs, alt: o.alt };
     const cats = MUST.slice(); OPT.forEach(c => { if ((c === 'prop' && o.dv > 1) || (keep && keep.placed[c]) || (!keep && r() < 0.35)) cats.push(c); });
     const pick = {}; for (const c of cats) { const ids = keep && keep.placed[c] ? [keep.placed[c].id] : availCat(M, c, o.ride); if (!ids.length) { if (MUST.indexOf(c) >= 0 || c === 'prop' && o.dv > 1) return null; continue; } const sid = ids.length > 1 ? ids.slice().sort((x, y) => (E.PARTS[x].m + (E.PARTS[x].propM || 0)) * 10 + E.PARTS[x].p - (E.PARTS[y].m + (E.PARTS[y].propM || 0)) * 10 - E.PARTS[y].p) : ids; pick[c] = sid[Math.floor(Math.pow(r(), 1.8) * sid.length)]; }
     for (const c of Object.keys(pick).sort((a, b) => E.nCells(pick[b], o.ride) - E.nCells(pick[a], o.ride) + (r() - 0.5) * 2)) { const id = pick[c], P = E.PARTS[id], opts = [];
@@ -192,8 +192,8 @@ const L = (function () {
     d.noProp = !d.placed.prop; E.layout(d).coldBad.forEach(c => { d.heat[c] = true; }); return d; }
   const baseOK = (d, b, o) => b.wet <= b.massLim && b.gen >= b.demand && b.wh > 0 && b.dod <= 1 && b.pt <= E.needPt(d) && !Object.keys(b.L.parts).some(c => !b.L.parts[c].ok) && (!(o.dv > 1) || b.fuel >= o.dv * 1.05 + 27 + E.skOf(d) * E.M.minMonths);
   // ---------- quanto costa dire di sì: il satellite più economico con e senza la richiesta ----------
-  function estDv(M, ride, lv) { const d = M.sat, keep = { ride: d.ride, lv: d.lv, planDv: d.planDv, planOk: d.planOk, landC: d.landC, landKg: d.landKg, skK: d.skK, eclH: d.eclH, alt: d.alt, noProp: d.noProp }; d.ride = ride; d.lv = lv;
-    let out = null; try { const p = O.plan(M); out = { dv: p.tot, landKg: d.landKg, skK: d.skK, eclH: d.eclH, alt: d.alt }; } catch (e) { out = { dv: E.dvNeed(d), landKg: 0, skK: 1, eclH: E.M.eclH, alt: 550 }; }
+  function estDv(M, ride, lv) { const d = M.sat, keep = { ride: d.ride, lv: d.lv, planDv: d.planDv, planOk: d.planOk, landC: d.landC, landKg: d.landKg, skK: d.skK, eclH: d.eclH, skMs: d.skMs, eclSrc: d.eclSrc, alt: d.alt, noProp: d.noProp }; d.ride = ride; d.lv = lv;
+    let out = null; try { const p = O.plan(M); out = { dv: p.tot, landKg: d.landKg, skK: d.skK, eclH: d.eclH, skMs: d.skMs, alt: d.alt }; } catch (e) { out = { dv: E.dvNeed(d), landKg: 0, skK: 1, eclH: E.M.eclH, alt: 550 }; }
     Object.assign(d, keep); return out; }
   function rideOpts(M) { const out = []; Object.keys(E.LV).filter(k => lvOK(M, k) && (!M.lvFixed || k === M.sat.lv)).forEach(lv => E.LV[lv].fits.filter(k => rideOK(M, k) && (!M.rideFixed || k === M.sat.ride)).forEach(ride => out.push(Object.assign({ ride, lv }, estDv(M, ride, lv))))); return out; }
   // come cheapest, ma si ferma al primo satellite valido: serve solo a sapere se esiste
@@ -310,6 +310,9 @@ const L = (function () {
   // Accetta o rifiuta. Ritorna chi lascia la missione, se qualcuno se ne va
   // una promessa rotta (deroga) pesa più di un no detto subito
   const JOY = { yes: 10, soft: 8, no: 25, noCore: 40, waive: 50 };
+  // Finestra di lancio rilassata (rifiuto di quella chiesta dagli stakeholder): UNICO posto dei due valori.
+  // joy = punti di soddisfazione persi da ogni stakeholder (stessa scala di JOY.no); pay = quota delle rate future che non viene più versata.
+  const LW = { joy: JOY.no, pay: 0.15 };
   function answer(M, id, yes, soft) { const r = R(id); M.queue = M.queue.filter(q => q !== id);
     if (yes && soft) { M.softs = M.softs || []; M.softs.push(id); register(M); M.joy[r.who] = Math.max(0, M.joy[r.who] - JOY.soft); }
     if (yes) { const n = M.reqs.filter(x => x.kind === (r.ph === '0' ? 'MIS' : 'SYS')).length + 1;
@@ -351,7 +354,7 @@ const L = (function () {
   // ---------- assistente di integrazione (solo nella prima missione): dispone i pezzi, o li sceglie ----------
   function autoDesign(M, mode, cash, ms) { const d0 = M.sat, r = E.rng((((M.seed || 1) ^ Math.imul((M.adN = (M.adN || 0) + 1), 2654435761)) >>> 0) || 1), t0 = Date.now();
     const reqs = M.reqs.filter(x => M.waived.indexOf(x.id) < 0).map(x => R(x.id)).filter(q => q && q.kind === 'design');
-    const o = { ride: d0.ride, lv: d0.lv, dv: d0.planDv || 0, landKg: d0.landKg, skK: d0.skK, eclH: d0.eclH, alt: d0.alt };
+    const o = { ride: d0.ride, lv: d0.lv, dv: d0.planDv || 0, landKg: d0.landKg, skK: d0.skK, eclH: d0.eclH, skMs: d0.skMs, alt: d0.alt };
     const score = d => { const b = E.budget(d), base = E.checks(d).list.filter(x => ['parts', 'place', 'mass', 'pow', 'bat', 'point'].indexOf(x.k) >= 0 && !x.ok).length, rq = reqs.filter(q => !q.chk(d, b, M)).length;
       return { bad: base + rq + (cash != null && b.cost > cash ? 1 : 0) + (o.dv > 1 && !d.placed.prop ? 1 : 0), cost: b.cost }; };
     let best = null;
@@ -461,12 +464,12 @@ const L = (function () {
   // Moltiplicatore delle rate (difficoltà e crew): lo imposta l'interfaccia. Vive qui, alla fonte, così vale per tutte e quattro le rate,
   // compresa l'ultima (MCR) che closeOut calcola direttamente.
   const SCALE = { inst: () => 1 };
-  function installment(M, gate, joy) { joy = joy || M.joy; return Math.round(M.stake.reduce((a, id) => a + fund(id, M) * PAY[gate] * joyK(joy[id] == null ? 60 : joy[id]), 0) * SCALE.inst()); }
+  function installment(M, gate, joy) { joy = joy || M.joy; return Math.round(M.stake.reduce((a, id) => a + fund(id, M) * PAY[gate] * joyK(joy[id] == null ? 60 : joy[id]), 0) * SCALE.inst() * (M.payK == null ? 1 : M.payK)); }
   const pledged = M => M.stake.reduce((a, id) => a + fund(id, M), 0);
   // Chiusura della missione: tutti i conti in un posto solo (li usa anche il "e se...")
   function closeOut(M, fl, visit) { const f = fl.f, months = f.month, mm = minMonths(M), ok = f.alive && f.impact === 'far' && months >= E.M.minMonths, joy = Object.assign({}, M.joy), quests = [];
     const missed = Math.max(0, M.duration - months), penalty = Math.min(MISSCAP, Math.round(pledged(M) * 0.25), missed * MISSED) + (ok ? 0 : Math.round(pledged(M) * 0.10));
-    M.stake.forEach(id => { const happy = ok && months >= mm; joy[id] = Math.max(0, Math.min(100, (joy[id] == null ? 60 : joy[id]) + (happy ? 15 : -30) - (missed ? 20 : 0) - (M.drm && M.drm.win === 'relaxed' ? 12 : 0))); const b = happy && joy[id] >= 50 ? Math.round(id === 'nasa' ? fund(id, M) * 0.35 : E.stk(id).bonus * 1.5) : 0; quests.push({ id, ok: happy, bonus: b }); });
+    M.stake.forEach(id => { const happy = ok && months >= mm; joy[id] = Math.max(0, Math.min(100, (joy[id] == null ? 60 : joy[id]) + (happy ? 15 : -30) - (missed ? 20 : 0) + (M.drm && M.drm.win === 'rush' ? 10 : 0))); const b = happy && joy[id] >= 50 ? Math.round(id === 'nasa' ? fund(id, M) * 0.35 : E.stk(id).bonus * 1.5) : 0; quests.push({ id, ok: happy, bonus: b }); });
     const bonus = quests.reduce((a, q) => a + q.bonus, 0), sciPay = Math.round(f.sci * 2.2), reward = Math.round((sciPay + bonus + (f.extra || 0)) * (visit ? 1.15 : 1)), inst = ok ? installment(M, 'MCR', joy) : 0, ops = OPS * months;
     return { ok, sci: Math.round(f.sci), months, missed, penalty, ops, inst, reward, sciPay, bonus, quests, joy, net: reward + inst - penalty - ops, impact: f.impact, cause: f.cause, alive: f.alive }; }
   // E se...? Rigioca il volo cambiando una sola cosa
@@ -491,6 +494,6 @@ const L = (function () {
     if (k === 5) { out.push('sci.total     = ' + Math.round(f.sci) + cm('+' + Math.round(10 * f.mult * f.bonus * (f.sciK || 1)) + ' al mese circa')); out.push(left < 2 ? 'if (prop.dv_left < 27) disposal.arm();   // si prepara la chiusura' : 'sched.downlink(next=' + Math.floor(1 + r() * 5) + 'h, dur=35min);'); }
     return out; }
 
-  return { TIERS, tierOf, sponsorSlots, maxActiveAt, SCALE, prewarm, memoClear, satOK, anySat, typeOK, ensureFeasible, TUTG, needsProp, fund, techOK, availCat, availSol, rideOK, lvOK, LOCN, effLvl, SPEC, sampleSat, JOY, softOf, cheapest, priceOf, decide, PAY, joyK, installment, pledged, closeOut, whatIf, OPS, MISSED, MISSCAP, mad, OWN, evLabel, kitPay, landing, autoDesign, INT, INTN, ONLY, fits4, interests, generate, register, feasible, TPL, SPONSORS, addSponsor, TESTS, LEVELS, XP, level, BUILD, defects, defectP, risks, TIME, START_MONEY, MACH, RUN, FIXC, STIFFC, PEOPLE, REQ, R, cast, newMission, minMonths, startMeeting, answer, leave, waive, status, flight, monthsNow, tele, transferNeed };
+  return { TIERS, tierOf, sponsorSlots, maxActiveAt, SCALE, prewarm, memoClear, satOK, anySat, typeOK, ensureFeasible, TUTG, needsProp, fund, techOK, availCat, availSol, rideOK, lvOK, LOCN, effLvl, SPEC, sampleSat, JOY, LW, softOf, cheapest, priceOf, decide, PAY, joyK, installment, pledged, closeOut, whatIf, OPS, MISSED, MISSCAP, mad, OWN, evLabel, kitPay, landing, autoDesign, INT, INTN, ONLY, fits4, interests, generate, register, feasible, TPL, SPONSORS, addSponsor, TESTS, LEVELS, XP, level, BUILD, defects, defectP, risks, TIME, START_MONEY, MACH, RUN, FIXC, STIFFC, PEOPLE, REQ, R, cast, newMission, minMonths, startMeeting, answer, leave, waive, status, flight, monthsNow, tele, transferNeed };
 })();
 if (typeof module !== 'undefined') module.exports = L;

@@ -3,3 +3,6 @@
 node_modules/
 dist/
 release.zip
+.env
+.env.*
+!.env.example

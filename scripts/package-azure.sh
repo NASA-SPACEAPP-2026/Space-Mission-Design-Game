@@ -2,8 +2,8 @@
 # Builds release.zip for Azure App Service from an already built frontend
 # (run `npm run build` first). The zip contains only what runs in production:
 #   dist/         static game (Vite output)
-#   server.mjs    minimal static file server, no API and no dependencies
-#   package.json  runtime manifest for App Service
+#   server.mjs    static files and authentication API
+#   package.json  runtime manifest and PostgreSQL dependencies
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -23,21 +23,13 @@ ls "$ROOT"/dist/assets/game-*.js >/dev/null 2>&1 || { echo "Missing dist/assets/
 
 cp -R "$ROOT/dist" "$STAGE/dist"
 cp "$ROOT/server.mjs" "$STAGE/server.mjs"
+cp -R "$ROOT/backend" "$STAGE/backend"
+cp -R "$ROOT/db" "$STAGE/db"
+mkdir -p "$STAGE/scripts"
+cp "$ROOT/scripts/migrate.mjs" "$STAGE/scripts/migrate.mjs"
+cp "$ROOT/package.json" "$ROOT/package-lock.json" "$STAGE/"
+(cd "$STAGE" && npm ci --omit=dev)
 
-cat > "$STAGE/package.json" <<'JSON'
-{
-  "name": "space-mission-design-game",
-  "private": true,
-  "version": "0.2.0",
-  "type": "module",
-  "engines": {
-    "node": ">=24"
-  },
-  "scripts": {
-    "start": "node server.mjs"
-  }
-}
-JSON
 
 rm -f "$OUT"
 (cd "$STAGE" && zip -qr "$OUT" .)
