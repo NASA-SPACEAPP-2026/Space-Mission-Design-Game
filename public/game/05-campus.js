@@ -105,6 +105,25 @@ const CAM = (() => {
   const R2 = [[6, 16.5], [6.25, 13.4], [6.5, 10.4], [6.2, 8.6], [4.6, 7.8], [1, 7.5], [-14, 6.6], [-130, -0.4]];
   const R3 = [[6.45, 9.4], [9.4, 8.7], [12.6, 8.5], [15.6, 8.4], [18.6, 8.5], [21.8, 8.8]];
   const ROADS = [[R1, 15], [R2, 11], [R3, 11]];
+  /* rete stradale come grafo. Un estremo di strada che tocca un'altra strada (entro tol) viene agganciato a un nodo condiviso:
+     un vertice esistente se vicino, altrimenti un vertice inserito nella strada ospite. Ogni strada si spezza nei nodi in archi;
+     ai nodi la coppia di archi piu' opposta ("passante") riceve la stessa tangente, cosi' dopo lo smussamento resta dritta. */
+  function roadGraph(roads, tol) { tol = tol || .6; const eq = (a, b) => Math.abs(a[0] - b[0]) < 1e-6 && Math.abs(a[1] - b[1]) < 1e-6;
+    const R = roads.map(r => ({ p: r[0].map(q => q.slice()), w: r[1] }));
+    R.forEach((r, ri) => [0, 1].forEach(end => { const ei = end ? r.p.length - 1 : 0, E = r.p[ei]; let best = null;
+      R.forEach((o, oi) => { if (oi === ri) return; for (let i = 0; i < o.p.length - 1; i++) { const a = o.p[i], b = o.p[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((E[0] - a[0]) * dx + (E[1] - a[1]) * dy) / (dx * dx + dy * dy || 1))), q = [a[0] + dx * t, a[1] + dy * t], d = Math.hypot(E[0] - q[0], E[1] - q[1]); if (d < tol && (!best || d < best.d)) best = { d, o, i, q }; } });
+      if (!best) return; const { o, i, q } = best; let v = [o.p[i], o.p[i + 1]].find(x => Math.hypot(x[0] - q[0], x[1] - q[1]) < .3);
+      if (!v) { v = q; o.p.splice(i + 1, 0, q.slice()); } r.p[ei] = v.slice(); }));
+    const N = [], nid = p => { let k = N.findIndex(n => eq(n.p, p)); if (k < 0) { k = N.length; N.push({ p: p.slice(), ends: [] }); } return k; };
+    R.forEach(r => { nid(r.p[0]); nid(r.p[r.p.length - 1]); });
+    const E = []; R.forEach((r, ri) => { let s = 0; for (let i = 1; i < r.p.length; i++) { if (i < r.p.length - 1 && !N.some(n => eq(n.p, r.p[i]))) continue; E.push({ p: r.p.slice(s, i + 1).map(q => q.slice()), w: r.w, road: ri, a: nid(r.p[s]), b: nid(r.p[i]) }); s = i; } });
+    E.forEach((e, k) => { N[e.a].ends.push([k, 0]); N[e.b].ends.push([k, 1]); });
+    const out = (e, end) => { const p = end ? e.p.slice().reverse() : e.p, dx = p[1][0] - p[0][0], dy = p[1][1] - p[0][1], L = Math.hypot(dx, dy) || 1; return [dx / L, dy / L, L]; };
+    N.forEach(n => { let pr = null; n.ends.forEach((x, i) => n.ends.forEach((y, j) => { if (j <= i) return; const u = out(E[x[0]], x[1]), v = out(E[y[0]], y[1]), d = u[0] * v[0] + u[1] * v[1]; if (d < -.5 && (!pr || d < pr.d)) pr = { d, x, y, u, v }; }));
+      n.through = pr ? [pr.x[0], pr.y[0]] : null; if (!pr) return; let tx = pr.u[0] - pr.v[0], ty = pr.u[1] - pr.v[1]; const tl = Math.hypot(tx, ty); tx /= tl; ty /= tl;
+      [[pr.x, pr.u, 1], [pr.y, pr.v, -1]].forEach(([[k, end], u, s]) => { const e = E[k], h = Math.min(1, u[2] * .35), H = [n.p[0] + tx * s * h, n.p[1] + ty * s * h]; if (end) e.p.splice(e.p.length - 1, 0, H); else e.p.splice(1, 0, H); }); });
+    return { nodes: N, edges: E }; }
+  const GRAPH = roadGraph(ROADS);
   const SITE0 = [[-4, -3], [6, -6], [16, -6.5], [24, -8], [31, -6], [32.5, 4], [30, 13], [25.5, 19], [16, 22], [5, 22.5], [-2.5, 20.5], [-5, 9]];
   let SITE = SITE0.map(p => p.slice()), SCALE = 1;
   const MR0F = Math.max(...SITE0.map(p => Math.hypot(p[0] - 13.75, p[1] - 7.25))) * 2.2, MRPF = MR0F + 18; /* le montagne stanno sempre qui, a ogni livello */
@@ -195,5 +214,5 @@ const CAM = (() => {
   function ghost(k, x, y, ok, ctx) { const d = K[k], r = rectOf(k, x, y); return '<g opacity=".72">' + d.draw(x, y, ctx || {}) + '</g>' + poly(gp([[r[0], r[1]], [r[2], r[1]], [r[2], r[3]], [r[0], r[3]]]), 'fill="' + (ok ? 'rgba(69,169,163,.22)' : 'rgba(207,94,76,.28)') + '" stroke="' + (ok ? TEAL : '#CF5E4C') + '" stroke-width="2.5" stroke-dasharray="8 5"'); }
   function toGrid(sx, sy) { const a = (sx - C.ox) / (C.tw / 2), b = (sy - C.oy) / (C.th / 2); return [(a + b) / 2, (b - a) / 2]; }
   function mini(k) { const keep = C; const d = K[k]; const sc = Math.min(1, 3.2 / Math.max(d.w, d.h, (d.top || 1) * .55)); C = { ox: 0, oy: 0, tw: 22 * sc, th: 11 * sc, tz: 11 * sc }; const g = P(d.w / 2, d.h / 2); const s = '<g transform="translate(' + f1(-g[0]) + ' ' + f1(-g[1] + 10) + ')">' + d.draw(0, 0, { rocket: 1, ang: -28 }) + '</g>'; C = keep; return s; }
-  return { R0max: () => MR0F, site: () => SITE, nat: () => nature(), roads: () => ROADS, stream: () => STREAM, setScale, K, DEFS, world, ghost, valid, toGrid, defaultWorld, rectOf, mini, crawler, P: (x, y, z) => P(x, y, z), C: () => C };
+  return { R0max: () => MR0F, site: () => SITE, nat: () => nature(), roads: () => ROADS, graph: () => GRAPH, roadGraph, stream: () => STREAM, setScale, K, DEFS, world, ghost, valid, toGrid, defaultWorld, rectOf, mini, crawler, P: (x, y, z) => P(x, y, z), C: () => C };
 })();
