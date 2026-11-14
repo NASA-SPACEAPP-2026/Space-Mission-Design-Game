@@ -1,44 +1,104 @@
-// Account UI is independent of the game and never stores credentials in localStorage.
-const style = document.createElement('style');
-style.textContent = `#account-open{position:fixed;bottom:12px;right:12px;z-index:1000;background:#15232d;color:#fff;border:1px solid #f07b3f;padding:10px 16px;border-radius:10px}#account-dialog{background:#15232d;color:#fff;border:1px solid #f07b3f;border-radius:16px;width:min(420px,90vw);padding:24px}#account-dialog::backdrop{background:#000a}#account-dialog input{display:block;width:100%;padding:10px;margin:5px 0 16px;background:#0e1820;color:white;border:1px solid #8192a3;border-radius:6px}#account-dialog button{padding:10px;margin:8px 8px 0 0}#account-message{margin:12px 0;min-height:24px}#account-dialog label{line-height:1.5}`;
-document.head.append(style);
-const open = document.createElement('button');
-open.id = 'account-open'; open.textContent = 'Account';
-const dialog = document.createElement('dialog');
-dialog.id = 'account-dialog'; dialog.setAttribute('aria-labelledby','account-heading');
-dialog.innerHTML = `<h2 id="account-heading">Il tuo account</h2><p>Le partite restano salvate in questo browser.</p><p id="account-message" role="status" aria-live="polite"></p><form id="account-form"><label id="account-login-label">Username o email<input name="login" autocomplete="username" required maxlength="254"></label><label id="account-username-label" hidden>Username<input name="username" autocomplete="username" pattern="[a-zA-Z0-9_]{3,24}" maxlength="24"></label><label id="account-email-label" hidden>Email<input name="email" type="email" autocomplete="email" maxlength="254"></label><label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label><button type="submit" id="account-submit">Accedi</button><button type="button" id="account-toggle">Crea account</button></form><button type="button" id="account-logout" hidden>Esci</button><button type="button" id="account-close">Chiudi</button>`;
-document.body.append(open, dialog);
-const get = id => dialog.querySelector(`#account-${id}`);
-const form = get('form'); let register = false;
-const message = text => { get('message').textContent = text; };
+// Account gate: the game's own title screen is the home page. The account form opens over it when the
+// player tries to enter the game (Continue / New game). Session tokens remain in HttpOnly cookies.
+const root = document.querySelector('#account-entry');
+const panel = root.querySelector('#entry-panel');
+const form = root.querySelector('#account-form');
+const message = root.querySelector('#account-message');
+const submit = root.querySelector('#account-submit');
+const back = root.querySelector('#account-back');
+const password = form.elements.password;
+let busy = false, sessionUser = null, waiting = null;
+let sessionError = '';
+const en = (() => { try { return localStorage.getItem('gngLang') === 'en'; } catch { return false; } })();
+const t = (it, eng) => en ? eng : it;
+root.querySelectorAll('[data-it]').forEach(el => { el.textContent = t(el.dataset.it, el.dataset.en); });
 function mode() {
-  get('login-label').hidden = register;
-  get('username-label').hidden = get('email-label').hidden = !register;
-  for (const name of ['login','username','email']) { form.elements[name].disabled = name === 'login' ? register : !register; form.elements[name].required = !form.elements[name].disabled; }
-  form.elements.password.minLength = register ? 15 : 1;
-  form.elements.password.autocomplete = register ? 'new-password' : 'current-password';
-  get('submit').textContent = register ? 'Registrati' : 'Accedi';
-  get('toggle').textContent = register ? 'Ho già un account' : 'Crea account';
-  message(register ? 'Password: almeno 15 caratteri. L’email non viene ancora verificata.' : '');
+  root.querySelector('#account-heading').textContent = t('Entra', 'Enter');
+  submit.textContent = t('Entra e gioca', 'Enter & play');
+  password.minLength = 1;
+  password.autocomplete = 'current-password';
+  message.textContent = sessionError;
 }
 async function request(path, data) {
-  const response = await fetch(`/api/auth/${path}`, data === undefined ? {} : { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'Servizio non disponibile');
-  return result;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(`/api/auth/${path}`, { signal: controller.signal, ...(data === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }) });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw Object.assign(new Error(result.error || t('Servizio account non disponibile. Riprova tra poco.', 'Account service unavailable. Please try again shortly.')), { status: response.status });
+    return result;
+  } catch (error) {
+    if (error.name === 'AbortError' || error instanceof TypeError) throw new Error(t('Connessione non disponibile. Controlla la rete e riprova.', 'Connection unavailable. Check your network and try again.'));
+    throw error;
+  } finally { clearTimeout(timeout); }
 }
-function userState(user) {
-  form.hidden = !!user; get('logout').hidden = !user;
-  open.textContent = user ? `Account: ${user.username}` : 'Account';
-  message(user ? `Accesso effettuato come ${user.username}` : '');
+const accountButton = document.createElement('button');
+accountButton.id = 'account-open'; accountButton.type = 'button'; accountButton.hidden = true;
+const dialog = document.createElement('dialog');
+dialog.id = 'account-dialog'; dialog.setAttribute('aria-labelledby', 'session-heading');
+dialog.innerHTML = `<h2 id="session-heading">${t('Il tuo account', 'Your account')}</h2><p id="session-user"></p><p>${t('Le partite restano in questo browser.', 'Missions stay in this browser.')}</p><p id="session-message" role="status"></p><button id="account-logout" type="button">${t('Esci dall’account', 'Sign out')}</button><button id="account-close" type="button">${t('Torna al gioco', 'Back to game')}</button>`;
+document.body.append(accountButton, dialog);
+function enter(user) {
+  if (!user?.username) throw new Error(t('Sessione non valida. Accedi di nuovo.', 'Invalid session. Please sign in again.'));
+  sessionUser = user;
+  window.gngUser = { username: user.username };
+  form.reset();
+  root.hidden = true;
+  accountButton.textContent = `Account: ${user.username}`;
+  accountButton.hidden = false;
+  dialog.querySelector('#session-user').textContent = user.username;
+  const done = waiting; waiting = null;
+  done?.(window.gngUser);
 }
-open.onclick = async () => { dialog.showModal(); try { userState((await request('me')).user); } catch (e) { form.hidden = true; message(e.message); } };
-get('close').onclick = () => { form.reset(); dialog.close(); };
-get('toggle').onclick = () => { register = !register; mode(); };
-form.onsubmit = async event => {
-  event.preventDefault(); get('submit').disabled = true;
-  try { userState((await request(register ? 'register' : 'login', Object.fromEntries(new FormData(form)))).user); form.reset(); }
-  catch(e) { message(e.message); } finally { get('submit').disabled = false; }
+const sessionReady = request('me').then(({user}) => { if (user?.username) enter(user); }).catch(error => { sessionError = error.message; });
+function cancel() {
+  if (busy || root.hidden) return;
+  root.hidden = true;
+  const done = waiting; waiting = null;
+  done?.(null);
+}
+// The game calls this before letting the player in. It resolves with the user, or null if the form is dismissed.
+window.gngRequireAccount = async () => {
+  await sessionReady;
+  if (sessionUser) return window.gngUser;
+  waiting?.(null);
+  return new Promise(resolve => {
+    waiting = resolve;
+    root.hidden = false;
+    mode();
+    // Do not summon a phone keyboard before the visitor chooses a field.
+    form.elements.username.focus({preventScroll:true});
+  });
 };
-get('logout').onclick = async () => { try { await request('logout', {}); userState(null); } catch(e) { message(e.message); } };
+back.addEventListener('click', cancel);
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && !root.hidden) cancel(); });
+form.addEventListener('submit', async event => {
+  event.preventDefault(); if (busy) return;
+  busy = true; submit.disabled = true; form.setAttribute('aria-busy', 'true');
+  submit.textContent = t('Prepariamo il lancio…', 'Preparing for launch…'); message.textContent = '';
+  try {
+    const username = form.elements.username.value.trim();
+    // One form for both cases: try to sign in; if the name is unknown, create the account.
+    try {
+      enter((await request('login', { login: username, password: password.value })).user);
+    } catch (error) {
+      if (error.status !== 401) throw error;
+      try {
+        enter((await request('register', { username, password: password.value })).user);
+      } catch (regError) {
+        if (regError.status !== 409) throw regError;
+        // The name exists but the password does not match.
+        throw new Error(t(`Il nome «${username}» esiste già e la password non corrisponde. Riprova la password oppure scegli un altro nome.`, `The name “${username}” already exists and the password doesn't match. Try the password again or pick another name.`));
+      }
+    }
+  } catch (error) { sessionError = error.message; mode(); password.focus({preventScroll:true}); }
+  finally { busy = false; submit.disabled = false; form.removeAttribute('aria-busy'); }
+});
+accountButton.onclick = () => dialog.showModal();
+dialog.querySelector('#account-close').onclick = () => dialog.close();
+dialog.querySelector('#account-logout').onclick = async event => {
+  event.currentTarget.disabled = true;
+  try { await request('logout', {}); location.reload(); }
+  catch (error) { dialog.querySelector('#session-message').textContent = error.message; event.currentTarget.disabled = false; }
+};
 mode();

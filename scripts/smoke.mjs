@@ -62,9 +62,20 @@ try {
   });
 
   await page.goto(baseUrl, { waitUntil: "load" });
-  await page.waitForSelector('#title [data-act="ttl"][data-s="modes"]', { timeout: 10_000 });
-  await page.click('#title [data-act="ttl"][data-s="modes"]');
-  await page.click('#title [data-act="tmode"][data-k="career"]');
+  if (!process.env.GNG_USERNAME || !process.env.GNG_PASSWORD) {
+    throw new Error('Set GNG_USERNAME and GNG_PASSWORD for an existing test account, or use node scripts/smoke-account.mjs for a temporary database.');
+  }
+  // The game's own title screen is the home page; entering the game requires an account.
+  const newGame = '#title [data-act="ttl"][data-s="modes"]';
+  await page.waitForSelector(newGame, { timeout: 20_000 });
+  await page.click(newGame);
+  await page.waitForSelector('#entry-panel', { state: 'visible', timeout: 20_000 });
+  await page.click('#account-toggle');
+  await page.fill('[name="username"]', process.env.GNG_USERNAME);
+  await page.fill('[name="password"]', process.env.GNG_PASSWORD);
+  await page.click('#account-submit');
+  await page.waitForSelector('#account-entry', { state: 'hidden', timeout: 20_000 });
+  await page.waitForSelector('#title .tmodes', { timeout: 10_000 });
   await page.click('#title [data-act="tnext"]');
   await page.click('#title [data-act="tstart"]');
   await page.waitForSelector('#title', { state: 'detached', timeout: 10_000 });
@@ -75,11 +86,11 @@ try {
     problems.push("HUD did not render after starting a game");
   }
 
-  await page.screenshot({ path: "/tmp/gng-smoke.png", fullPage: false });
+  await page.screenshot({ path: "dist/game-smoke.png", fullPage: false });
   console.log(`Smoke test at ${baseUrl}`);
   console.log(`Title: ${await page.title()}`);
   console.log(`HUD: ${hud.replace(/\s+/g, " ").slice(0, 160)}`);
-  console.log("Screenshot: /tmp/gng-smoke.png");
+  console.log("Screenshot: dist/game-smoke.png");
 
   if (problems.length) {
     console.error("Problems:");

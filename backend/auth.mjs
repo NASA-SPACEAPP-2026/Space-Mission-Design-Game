@@ -22,6 +22,15 @@ export async function passwordMatches(password, encoded) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 const publicUser = row => ({ id: row.id, username: row.username, email: row.email });
+const tokenOf = req => (req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith(`${cookieName}=`))?.slice(cookieName.length + 1) || '';
+async function userForToken(db, token) {
+  if (!/^[a-f0-9]{64}$/.test(token)) return null;
+  const result = await db.query(`SELECT u.id,u.username,u.email FROM users u JOIN sessions s
+    ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at > now()`, [hash(token)]);
+  return result.rows[0] || null;
+}
+// Shared with other API modules (consortia): the signed-in user of a request, or null.
+export const sessionUser = (db, req) => userForToken(db, tokenOf(req));
 
 export function createAuth({ db, origin, secure = true }) {
   if (!origin || new URL(origin).origin !== origin) throw new Error('APP_ORIGIN must be an exact origin');
@@ -36,12 +45,7 @@ export function createAuth({ db, origin, secure = true }) {
   function cookie(token, age) {
     return `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${age}${secure ? '; Secure' : ''}`;
   }
-  async function session(token) {
-    if (!/^[a-f0-9]{64}$/.test(token)) return null;
-    const result = await db.query(`SELECT u.id,u.username,u.email FROM users u JOIN sessions s
-      ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at > now()`, [hash(token)]);
-    return result.rows[0] || null;
-  }
+  const session = token => userForToken(db, token);
   async function limited(key, max) {
     const result = await db.query(`INSERT INTO auth_limits(key,attempts,expires_at)
       VALUES($1,1,now()+interval '15 minutes') ON CONFLICT(key) DO UPDATE SET
@@ -51,7 +55,7 @@ export function createAuth({ db, origin, secure = true }) {
     return result.rows[0].attempts > max;
   }
   return async (req, res, pathname) => {
-    const token = (req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith(`${cookieName}=`))?.slice(cookieName.length + 1) || '';
+    const token = tokenOf(req);
     try {
       if (pathname === '/api/auth/me' && req.method === 'GET') {
         await db.query('SELECT 1 FROM users LIMIT 0');
@@ -82,16 +86,16 @@ export function createAuth({ db, origin, secure = true }) {
       if (pathname.endsWith('/register')) {
         const { username, email, password } = body;
         if (typeof username !== 'string' || !/^[a-zA-Z0-9_]{3,24}$/.test(username) ||
-          typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 15) {
-          return send(res, 400, { error: 'Username: 3–24 lettere, numeri o _. Email valida e password di 15–128 caratteri.' });
+          (email != null && (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) || password.length < 1) {
+          return send(res, 400, { error: 'Username: 3–24 lettere, numeri o _. Password di 1–128 caratteri.' });
         }
         if (await limited('register:global', 30)) return send(res, 429, { error: 'Registrazioni temporaneamente limitate' });
         try {
           const result = await db.query('INSERT INTO users(id,username,email,password_hash) VALUES($1,$2,$3,$4) RETURNING id,username,email',
-            [randomUUID(), username, email.toLowerCase(), await passwordHash(password)]);
+            [randomUUID(), username, email?.toLowerCase() ?? null, await passwordHash(password)]);
           user = result.rows[0];
         } catch (error) {
-          if (error.code === '23505') return send(res, 409, { error: 'Registrazione non disponibile con questi dati' });
+          if (error.code === '23505') return send(res, 409, { error: 'Username già in uso' });
           throw error;
         }
       } else {

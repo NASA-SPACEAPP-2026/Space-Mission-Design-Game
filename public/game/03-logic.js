@@ -1,6 +1,7 @@
 /* ===== LOGICA v11 (CubeSat e crediti): campus, riunioni con gli stakeholder, missioni parallele in tempo reale. Usa E (engine2). Nessun DOM. ===== */
 const L = (function () {
-  const TIME = { month: 10000, build: 40000, test: 25000, fix: 15000, countdown: 6000, win: 30000 };
+  /* assemblaggio, prove e riparazioni quasi istantanei: niente attese durante la demo */
+  const TIME = { month: 10000, build: 1500, test: 1000, fix: 1000, countdown: 6000, win: 30000 };
   const START_MONEY = 400, RUN = 3, FIXC = 10, STIFFC = 15;
   // Macchinari del laboratorio: si installano in una baia vuota. Alcuni si sbloccano con il livello.
   const MACH = {
@@ -119,6 +120,10 @@ const L = (function () {
     pa2: { sf: 1, int: 'pa', mk: (M, s) => tReq(M, s ? ['vib'] : ['vib', 'tvac', 'func'], s ? 'Prima del lancio almeno la vibrazione, senza eccezioni.' : 'Prima del lancio: prove di {T}, senza eccezioni.') },
     pa1: { int: 'pa', when: M => lv_(M) >= 3, mk: () => ({ say: 'Niente prototipi nei sottosistemi vitali: computer, radio e propulsione almeno a TRL 8.', t: 'Computer, radio e propulsione con TRL ≥ 8', kind: 'design', chk: d => ['avi', 'com', 'prop'].every(c => !d.placed[c] || E.PARTS[d.placed[c].id].trl >= 8) }) },
     // ente regolatore: regole, non preferenze. Non si rifiutano e non si derogano.
+    /* solo per il tutorial su Marte */
+    tobs: { int: 'scienza', mk: () => ({ say: 'Vogliamo osservare Marte: a bordo serve una camera di osservazione.', t: 'Payload di osservazione a bordo', kind: 'design', chk: d => !!d.placed.ray && ((E.PARTS[d.placed.ray.id] || {}).pays || []).indexOf('obs') >= 0 }) },
+    ttrl: { int: 'pa', mk: () => ({ say: 'Su Marte non si ripara niente: ogni pezzo a bordo deve avere TRL almeno 8, cioè già qualificato o provato in volo.', t: 'Tutti i pezzi con TRL ≥ 8', kind: 'design', chk: d => Object.keys(d.placed).every(c => { const p = d.placed[c] && E.PARTS[d.placed[c].id]; return !p || p.trl >= 8; }) }) },
+    tdeo: { int: 'regole', mk: () => ({ say: 'Regola dei 5 anni, anche su Marte: entro 5 anni dalla fine della missione il satellite deve rientrare nell’atmosfera. A 300 km l’aria di Marte è troppo sottile: serve un piccolo motore per abbassare l’orbita.', t: 'Rientro entro 5 anni dalla fine', kind: 'design', rule: 1, chk: d => !!d.placed.prop }) },
     deorb: { int: 'regole', when: M => (M.sat.dest || 'leo') === 'leo', mk: () => ({ say: 'Regola dei 5 anni: a fine missione il satellite deve rientrare. Sotto i 600 km basta l’atmosfera, sopra servono propulsione o una vela di rientro.', t: 'Rientro entro 5 anni dalla fine', kind: 'design', rule: 1, chk: d => !!d.placed.prop || !!d.placed.eol || (d.alt || 0) <= E.M.eolAlt }) },
     freq: { int: 'regole', mk: () => ({ say: 'Le frequenze vanno coordinate: niente radio sperimentali sotto TRL 8.', t: 'Radio con TRL ≥ 8 (frequenze coordinate)', kind: 'design', rule: 1, chk: d => !!d.placed.com && E.PARTS[d.placed.com.id].trl >= 8 }) },
     vibreg: { int: 'regole', mk: () => ({ say: 'Chi vola insieme ad altri satelliti deve dimostrare di non rompersi: prova di vibrazione superata.', t: 'Prova di vibrazione per il lancio condiviso', kind: 'tests', rule: 1, tests: ['vib'] }) },
@@ -135,7 +140,7 @@ const L = (function () {
   function register(M) { ['0', 'A'].forEach(ph => ((M.gen && M.gen[ph]) || []).forEach(g => { const i = REQ.findIndex(r => r.id === g.id), r = build(g, M); if (i >= 0) REQ[i] = r; else REQ.push(r); })); }
   const interests = who => INT[who] || ['visibilita'];
   // missione tutorial: richieste fisse, niente a caso
-  const TUTG = { '0': [['nasa', 'cost'], ['sci', 'tvt'], ['reg', 'deorb']], 'A': [['sys', 'sys1']] };
+  const TUTG = { '0': [['nasa', 'cost'], ['sci', 'tobs'], ['sci', 'tvt'], ['nasa', 'm9'], ['reg', 'tdeo']], 'A': [['sys', 'ttrl']] };
   // ogni richiesta generata deve stare insieme a quelle già accettate e a quelle che la precedono; altrimenti si cambia con una fattibile
   function satOK(M, d, ids) { if (!d || (M.rideFixed && d.ride !== M.sat.ride) || (M.lvFixed && d.lv !== M.sat.lv)) return false; const Mx = Object.assign({}, M, { reqs: ids.map(id => ({ id })), waived: [] }), b = E.budget(d), mm = minMonths(Mx);
     if (d.placed.prop && b.fuel < (d.planDv || 0) * 1.05 + 27 + E.skOf(d) * mm) return false; return ids.map(R).filter(q => q && q.kind === 'design').every(q => q.chk(d, b, Mx)); }
@@ -172,6 +177,7 @@ const L = (function () {
   const LOCN = M => { const dest = (M.sat && M.sat.dest) || 'leo'; if (landing(M)) return dest === 'mars' ? 'Superficie di Marte' : 'Superficie lunare'; return E.DEST[dest].loc; };
   const effLvl = (M, o) => { const tip = o.db ? o.db.tip : ''; const early = (M.stake || []).some(s => { const S = E.stk(s); return S && S.spec && S.spec === tip; }); return o.lvl - (early ? 1 : 0); };
   function techOK(M, id, ride) { const o = E.PARTS[id] || E.SOLAR[id] || E.ACC[id]; if (!o) return false; const lv = M.lvlNow || M.lvl || 1;
+    if (M.tutP) return M.tutP.indexOf(id) >= 0 && (!ride || E.fitsRide(o, ride)); /* tutorial: solo i pezzi guidati */
     if (effLvl(M, o) > lv) return false; if (o.luo && o.luo !== 'Tutti' && o.luo.split(';').map(s => s.trim()).indexOf(LOCN(M)) < 0) return false;
     if (ride && !E.fitsRide(o, ride)) return false; if (E.PARTS[id] && E.PARTS[id].cat === 'ray' && !payOK(M, id)) return false; return true; }
   const availCat = (M, c, ride) => Object.keys(E.PARTS).filter(id => E.PARTS[id].cat === c && techOK(M, id, ride));
@@ -434,7 +440,7 @@ const L = (function () {
       if (!f.noProp && f.fuel - f.sk < 27) { f.early = true; f.endMonth = f.month + 1; at(f.month, 'Riserva di ΔV al limite: il controllo missione chiude al mese ' + f.month + ' per garantire il disposal.', 'bad', 'dur'); break; }
       let g = E.month(f); if (f.ionDelay && f.month <= f.ionDelay) { f.sci -= g; g = 0; } at(f.month, 'Mese ' + f.month + ': +' + Math.round(g) + ' scienza');
       if (f.nofuel) { at(f.month, 'Propellente finito: niente più mantenimento d’orbita.', 'bad', 'dur'); f.ended = true; break; }
-      if (f.month % 2 === 0 && f.month < M.duration) { let id = E.nextEvent(f); if (f.surface && id === 'mascon') id = E.nextEvent(f);
+      if (f.month % 2 === 0 && f.month < M.duration && !(M.tut && f.tutSt)) { let id = M.tut && !f.tutSt ? (f.tutSt = 1, 'tspe') : E.nextEvent(f); if (f.surface && id === 'mascon') id = E.nextEvent(f);
         const ev = E.EV[id], live = ev.opts(f).filter(o => !o.off), rem = M.duration - f.month, lab = evLabel(id, f, d); let k, cz = EVC[id];
         if (live.length <= 1) k = live.length ? live[0].k : choose(id, f, M, rem);
         else if (ch[f.month] != null) { k = ch[f.month]; cz = 'choice:' + f.month; }
@@ -446,7 +452,7 @@ const L = (function () {
       if (d.placed.eol || alt <= E.M.eolAlt) { f.impact = 'far'; at(f.endMonth, d.placed.eol ? 'La vela di rientro si apre: il satellite rientrerà in pochi mesi.' : 'A ' + Math.round(alt) + ' km l’atmosfera lo frena: rientrerà entro 5 anni.', 'good'); }
       else { f.impact = null; at(f.endMonth, 'A ' + Math.round(alt) + ' km resterà in orbita per decenni: l’ente regolatore apre una contestazione.', 'bad', 'dur'); } }
     if (f.alive && !f.ended && upto >= f.endMonth) { f.ended = true;
-      if (f.fuel >= 27 && r() >= (E.PARTS[d.placed.prop.id].stutter ? 0.02 : 0.005)) { f.fuel -= 27; f.impact = 'far'; at(f.endMonth, D.end, 'good'); }
+      if (f.fuel >= 27 && r() >= (E.PARTS[d.placed.prop.id].stutter ? 0.02 : 0.005)) { f.fuel -= 27; f.impact = 'far'; at(f.endMonth, d.dest === 'mars' && M.drm && M.drm.eol && M.drm.eol.k === 'reentry' ? 'Rientro distruttivo nell’atmosfera di Marte.' : D.end, 'good'); }
       else { f.impact = null; at(f.endMonth, 'Disposal non riuscito: il satellite resta in orbita come detrito.', 'bad', f.fuel < 27 ? 'dur' : 'random'); } }
     if (f.nofuel) f.impact = null;
     return { f, log };
