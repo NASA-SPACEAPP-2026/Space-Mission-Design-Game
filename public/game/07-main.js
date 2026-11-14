@@ -3458,7 +3458,9 @@ function hud(){ try{ staffPlan(); }catch(e){} document.documentElement.classList
     '<div class="hud-r"><div class="res"><button class="rs" data-act="rank" title="'+TX('Punti scienza · lega ','Science points · league ')+LEAGUES[leagueOf(G.sciTotal||0)][1]+'"><b>'+(G.sciTotal||0)+'</b>'+RICO.sci+'</button><button class="rs" data-act="staff" title="'+TX('Dipendenti / posti auto','Staff / parking')+'"><b>'+G.staff+'/'+spaces()+'</b>'+RICO.stf+'</button><div class="rs money'+(G.money<0?' neg':'')+'"><b>'+(G.sandbox?'∞':nf(Math.round(G.money),0))+'</b>'+RICO.cr+'</div></div>'+hexB('pause','Menu','menu')+lvlRing()+'</div>';
   $('#dock').innerHTML=dockHTML();
   }
-const dockHTML=()=>view!=='hub'?'<div class="hexs">'+hexB('home',TX('Torna al campus','Back to campus'),'home')+'</div>':
+/* il tasto casa lampeggia quando qui hai finito: il passo dopo della missione e' in un altro edificio */
+const homeBlink=()=>{ if(view==='hub') return false; const np=nextPlace(cur()); return !!np&&np!==view; };
+const dockHTML=()=>view!=='hub'?'<div class="hexs">'+hexB('home',TX('Torna al campus','Back to campus'),'home').replace('class="hx6','class="hx6'+(homeBlink()?' blink':''))+'</div>':
   '<div class="hexs dkc"><button class="hxn" data-act="newm" aria-label="'+TX('NUOVA MISSIONE','NEW MISSION')+'">'+ICO('plus')+'<span>'+TX('NUOVA','NEW')+'<br>'+TX('MISSIONE','MISSION')+'</span></button>'+
   '<button class="rhb'+(CUST?' on':'')+'" data-act="cust" aria-label="'+TX('Personalizza','Customize')+'" aria-expanded="'+!!CUST+'" aria-controls="cust-sheet">'+ICO('cust')+'</button></div>';
 function lvlChip(){ const lv=L.level(G.xp), a=L.LEVELS[lv-1], b=L.LEVELS[lv]; return '<div class="lvl" data-act="road" role="button" title="'+G.xp+' XP · tocca per la roadmap"><b>Liv '+lv+'</b><i><u style="width:'+(b?Math.round((G.xp-a)/(b-a)*100):100)+'%"></u></i></div>'; }
@@ -4640,6 +4642,7 @@ function folder(tab){ folder.tab=tab=tab||folder.tab||'mine'; const el=$('#drawe
 
 /* ---------- tempo che scorre ---------- */
 let TVS=0; function tick(){ if(!G) return; clock(); let dirty=false;
+  { const hb=homeBlink(), h=$('#dock [data-act="home"]'); if(h&&h.classList.contains('blink')!==hb) h.classList.toggle('blink',hb); }
   G.missions.forEach(M=>{
     if(M.phase==='D'&&M.stage==='assembly'&&M.buildEnd&&now()>=M.buildEnd&&!M.buildNote){ M.buildNote=true; dirty=true; toast(M.name+': assemblaggio completato. Portalo al laboratorio prove.'); sfx.ok(); }
     Object.keys(M.tr).forEach(t=>{ const r=M.tr[t]; if(r.res==='run'&&now()>=r.end){ dirty=true; const Lx=E.layout(M.sat); if(t==='vib'&&Lx.topHeavy&&!M.stiff) r.res='struct'; else if(M.defects[t]) r.res='defect'; else { r.res='pass'; M.tests[t]=true; } (r.res==='pass'?sfx.ok:sfx.bad)(); toast(M.name+': prova '+L.MACH[t].tn+(r.res==='pass'?' superata.':' con problemi.')); } });
@@ -4994,7 +4997,7 @@ function dEnd(e){ if(!DSAT) return; const D=DSAT; DSAT=null; D.el.remove(); cons
   if(best&&bd<110) dropOn(D,best); else { if(!ts.length) toast(D.kind==='clean'?'Le due postazioni sono occupate: aspetta che un satellite finisca.':'Nessun macchinario libero per questo satellite.'); else toast(D.kind==='clean'?'Lascialo sopra una postazione libera.':'Lascialo sopra un macchinario.'); render(); } }
 document.addEventListener('pointerup',dEnd); document.addEventListener('pointercancel',dEnd);
 function dropOn(D,t){ const i=G.missions.findIndex(m=>m.id===D.id), M=G.missions[i]; if(!M) return; G.cur=i;
-  if(D.kind==='clean'){ M.asmWait=false; M.station=+t.dataset.i; M.buildEnd=now()+(M.buildDur||L.TIME.build); sfx.put(); toast(M.name+' è sulla postazione: i tecnici iniziano l’assemblaggio.'); save(); render(); return; }
+  if(D.kind==='clean'){ M.asmWait=false; M.station=+t.dataset.i; M.buildEnd=now()+Math.min(M.buildDur||L.TIME.build,L.TIME.build); sfx.put(); toast(M.name+' è sulla postazione: i tecnici iniziano l’assemblaggio.'); save(); render(); return; }
   ACT.runtest({dataset:{k:t.dataset.k}}); }
 function labProg(M){ const run=Object.keys(M.tr).filter(k=>M.tr[k].res==='run'); if(!run.length) return ''; return '<div class="panel wprog">'+run.map(k=>{ const r=M.tr[k], p=Math.max(0,Math.min(1,1-(r.end-now())/(r.dur||1))), sec=Math.max(0,Math.ceil((r.end-now())/1000)); return '<div class="wp"><span>'+esc(L.MACH[k].n)+'</span><div class="mbar"><i style="width:'+Math.round(p*100)+'%"></i></div><span class="num">'+pct(p)+' · '+sec+' s</span></div>'; }).join('')+'</div>'; }
 function labMachines(){ const M=cur(), inLab=M&&M.phase==='D'&&M.stage!=='assembly'?M:null;
