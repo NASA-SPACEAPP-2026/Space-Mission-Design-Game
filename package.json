@@ -14,7 +14,7 @@
     "build": "vite build && node scripts/build-game.mjs && node scripts/precompress.mjs",
     "preview": "vite preview",
     "start": "node server.mjs",
-    "test": "vitest run",
+    "test": "vitest run --maxWorkers=2",
     "smoke": "node scripts/smoke.mjs",
     "check": "npm test && npm run build && node scripts/verify-build.mjs",
     "package:azure": "./scripts/package-azure.sh release.zip",

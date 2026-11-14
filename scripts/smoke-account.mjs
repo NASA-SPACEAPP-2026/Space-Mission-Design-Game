@@ -1,43 +1,98 @@
-// Optional real-browser account smoke against the production build and embedded PostgreSQL.
+// Real-browser entry/account smoke with temporary PostgreSQL. Never uses real accounts.
 import { PGlite } from '@electric-sql/pglite';
 import { chromium } from 'playwright-core';
-import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { createStaticServer } from '../server.mjs';
 import { createAuth } from '../backend/auth.mjs';
+import { migrate } from '../backend/database.mjs';
 const db = new PGlite(); await db.waitReady;
-await db.exec(await readFile(new URL('../db/001-auth.sql',import.meta.url),'utf8'));
+await migrate({query: sql => db.exec(sql)});
 let auth;
-const server=createStaticServer({auth:(...args)=>auth(...args)});
+const server = createStaticServer({auth:(...args)=>auth(...args)});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const origin=`http://127.0.0.1:${server.address().port}`;
-auth=createAuth({db,origin,secure:false});
+const origin = `http://127.0.0.1:${server.address().port}`;
+auth = createAuth({db,origin,secure:false});
 let browser;
 try {
-  browser=await chromium.launch({executablePath:process.env.CHROME_PATH,headless:true});
-  const context=await browser.newContext();const page=await context.newPage();
-  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  browser = await chromium.launch({executablePath:process.env.CHROME_PATH,headless:true});
+  const context = await browser.newContext({viewport:{width:1440,height:900}});
+  const page = await context.newPage(); const errors=[];
+  page.on('pageerror',error=>errors.push(error.message));
   await page.goto(origin);
+  await page.locator('#entry-splash').waitFor({state:'visible'});
+  assert.equal(await page.locator('#view').innerHTML(), '');
+  assert.ok(await page.locator('#entry-art svg').count());
+  await page.screenshot({path:'dist/entry-splash.png'});
+  // The splash must remain until the visitor chooses to continue.
+  await page.waitForTimeout(3000);
+  assert.ok(await page.locator('#entry-splash').isVisible());
+  assert.ok(await page.locator('#entry-panel').isHidden());
+  await page.locator('#entry-splash').click();
+  await page.locator('#entry-panel').waitFor({state:'visible',timeout:8000});
+  assert.equal(await page.locator('#account-form input').count(),2);
+  await page.screenshot({path:'dist/entry-register.png'});
+  await page.setViewportSize({width:390,height:844});
+  assert.ok(await page.locator('#account-submit').isVisible());
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.screenshot({path:'dist/entry-mobile.png'});
+  await page.locator('[name=username]').fill('BrowserPilot');
+  await page.locator('[name=password]').fill('my unique browser password 123');
+  await page.locator('#password-show').click();
+  assert.equal(await page.locator('[name=password]').getAttribute('type'),'text');
+  await page.locator('#account-submit').click();
+  await page.locator('#account-entry').waitFor({state:'detached'});
+  await page.waitForSelector('#view:not(:empty)');
+  assert.equal(await page.locator('#title').count(),0);
+  const cookie=(await context.cookies()).find(c=>c.name==='gng_session');
+  assert.equal(cookie.httpOnly,true); assert.equal(cookie.sameSite,'Lax');
+  assert.equal((await db.query('SELECT email FROM users')).rows[0].email,null);
+  await page.reload();
+  await page.locator('#entry-splash').click();
+  await page.locator('#account-entry').waitFor({state:'detached'});
   await page.locator('#account-open').click();
+  await page.locator('#account-logout').click();
+  await page.locator('#entry-splash').waitFor({state:'visible'});
+  await page.locator('#entry-splash').click();
+  await page.locator('#entry-panel').waitFor({state:'visible'});
   await page.locator('#account-toggle').click();
   await page.locator('[name=username]').fill('BrowserPilot');
-  await page.locator('[name=email]').fill('browser@example.com');
+  await page.locator('[name=password]').fill('wrong password');
+  await page.locator('#account-submit').click();
+  await page.waitForFunction(()=>document.querySelector('#account-message')?.textContent.includes('Credenziali'));
+  assert.ok(await page.locator('#account-entry').isVisible());
   await page.locator('[name=password]').fill('my unique browser password 123');
   await page.locator('#account-submit').click();
-  await page.waitForFunction(()=>document.querySelector('#account-open').textContent.includes('BrowserPilot'));
-  await page.locator('#account-close').click();
-  await page.reload();await page.locator('#account-open').click();
-  await page.waitForFunction(()=>document.querySelector('#account-message').textContent.includes('BrowserPilot'));
-  await page.locator('#account-logout').click();
-  await page.locator('#account-form').waitFor({state:'visible'});
-  await page.locator('[name=login]').fill('BrowserPilot');
-  await page.locator('[name=password]').fill('my unique browser password 123');
-  await page.locator('#account-submit').click();
-  await page.waitForFunction(()=>document.querySelector('#account-open').textContent.includes('BrowserPilot'));
-  const cookie=(await context.cookies()).find(c=>c.name==='gng_session');
-  assert.equal(cookie.httpOnly,true);assert.equal(cookie.sameSite,'Lax');
-  await page.setViewportSize({width:844,height:390});
-  assert.ok(await page.locator('#account-dialog').isVisible());
+  await page.locator('#account-entry').waitFor({state:'detached'});
+  // Service failure must not grant access or hide the form.
+  const other = await browser.newContext({viewport:{width:844,height:390}});
+  const failed = await other.newPage();
+  await failed.route('**/api/auth/**',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Servizio account temporaneamente non disponibile'})}));
+  await failed.goto(origin); await failed.locator('#entry-splash').click();
+  await failed.locator('#entry-panel').waitFor({state:'visible'});
+  await failed.locator('[name=username]').fill('Unavailable');
+  await failed.locator('[name=password]').fill('my unique browser password 123');
+  await failed.locator('#account-submit').click();
+  await failed.waitForFunction(()=>!document.querySelector('#account-submit').disabled);
+  assert.equal(await failed.locator('#view').innerHTML(),'');
+  assert.ok(await failed.locator('#account-message').innerText());
+  await other.close();
+  // Exercise the regular gameplay smoke against this disposable server/account too.
+  const gameplay = await promisify(execFile)(process.execPath, ['scripts/smoke.mjs'], {
+    env: {...process.env, BASE_URL:origin, GNG_USERNAME:'BrowserPilot', GNG_PASSWORD:'my unique browser password 123'},
+    timeout:60000
+  });
+  console.log(gameplay.stdout);
+  const english = await browser.newContext({reducedMotion:'reduce'});
+  await english.addInitScript(()=>localStorage.setItem('gngLang','en'));
+  const keyboard = await english.newPage();
+  await keyboard.goto(origin);
+  await keyboard.locator('#entry-splash').focus();
+  await keyboard.keyboard.press('Enter');
+  await keyboard.locator('#entry-panel').waitFor({state:'visible'});
+  assert.equal(await keyboard.locator('#account-submit').textContent(),'Create account & play');
+  await english.close();
   assert.deepEqual(errors,[]);
-  console.log('Account browser smoke passed: registration, reload, logout, login, cookie and mobile dialog');
-} finally { if(browser) await browser.close();await new Promise(resolve=>server.close(resolve));await db.close(); }
+  console.log('Entry smoke passed: artwork, persistent splash and click transition, username-only signup, direct game entry, session reload, logout, wrong password, service failure, mobile, cookies. Screenshots in dist/entry-*.png');
+} finally { if(browser) await browser.close(); await new Promise(resolve=>server.close(resolve)); await db.close(); }
