@@ -19,9 +19,9 @@ function mode() {
   root.querySelector('#account-description').textContent = register ? t('Crea il tuo account. Il prossimo lancio porta il tuo nome.', 'Create your account. The next launch has your name on it.') : t('La tua agenzia ti aspetta. Pronto al prossimo lancio?', 'Your agency awaits. Ready for the next launch?');
   submit.textContent = register ? t('Crea account e gioca', 'Create account & play') : t('Accedi e gioca', 'Sign in & play');
   toggle.textContent = register ? t('Hai già un account? Accedi', 'Already have an account? Sign in') : t('Prima missione? Crea un account', 'First mission? Create an account');
-  password.minLength = register ? 15 : 1;
+  password.minLength = 1;
   password.autocomplete = register ? 'new-password' : 'current-password';
-  root.querySelector('#password-hint').textContent = register ? t('Da 15 a 128 caratteri. Una frase lunga va benissimo.', '15–128 characters. A long phrase works great.') : t('Inserisci la password del tuo account.', 'Enter your account password.');
+  root.querySelector('#password-hint').textContent = register ? t('Fino a 128 caratteri. Una frase lunga va benissimo.', 'Up to 128 characters. A long phrase works great.') : t('Inserisci la password del tuo account.', 'Enter your account password.');
   form.elements.username.autocomplete = 'username';
   message.textContent = sessionError;
 }

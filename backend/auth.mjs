@@ -82,8 +82,8 @@ export function createAuth({ db, origin, secure = true }) {
       if (pathname.endsWith('/register')) {
         const { username, email, password } = body;
         if (typeof username !== 'string' || !/^[a-zA-Z0-9_]{3,24}$/.test(username) ||
-          (email != null && (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) || password.length < 15) {
-          return send(res, 400, { error: 'Username: 3–24 lettere, numeri o _. Password di 15–128 caratteri.' });
+          (email != null && (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) || password.length < 1) {
+          return send(res, 400, { error: 'Username: 3–24 lettere, numeri o _. Password di 1–128 caratteri.' });
         }
         if (await limited('register:global', 30)) return send(res, 429, { error: 'Registrazioni temporaneamente limitate' });
         try {
