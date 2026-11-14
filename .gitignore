@@ -6,3 +6,4 @@ release.zip
 .env
 .env.*
 !.env.example
+.gmat-target

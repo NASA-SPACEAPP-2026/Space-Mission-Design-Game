@@ -9,7 +9,7 @@
  * Text assets are served from build-time `.br`/`.gz` files when available,
  * with ETag/Last-Modified revalidation and Content-Length.
  */
-import { createReadStream } from "node:fs";
+import { createReadStream, readFileSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
@@ -329,7 +329,10 @@ if (isMain) {
   const db = process.env.DATABASE_URL ? database() : null;
   if (process.env.NODE_ENV === 'production' && !db) throw new Error('DATABASE_URL is required in production');
   const auth = db ? createAuth({ db, origin: process.env.APP_ORIGIN, secure: process.env.NODE_ENV === 'production' }) : null;
-  const server = createStaticServer({ auth, gmatUrl: process.env.GMAT_URL });
+  // GMAT service: GMAT_URL if set (GMAT_URL=off disables it), else the shared default in gmat-service.json, so a fresh deployment works without any setting.
+  let defaultGmat = ""; try { defaultGmat = JSON.parse(readFileSync(new URL("./gmat-service.json", import.meta.url), "utf8")).url || ""; } catch {}
+  const gmatUrl = process.env.GMAT_URL === "off" ? "" : process.env.GMAT_URL || defaultGmat;
+  const server = createStaticServer({ auth, gmatUrl });
   server.listen(port, "0.0.0.0", () => {
     console.log(`Go No-Go static server on http://0.0.0.0:${port} (root: ${DEFAULT_ROOT})`);
   });
