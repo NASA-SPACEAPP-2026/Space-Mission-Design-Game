@@ -5610,7 +5610,9 @@ const C3=(()=>{
       rslab(X0+w*.3,Y1+.02,1.2,.06,.02,0,H(3.2),M(DARK),0); const dr=rslab(X0+w*.3,Y1+.05,1.0,.04,.02,.05,H(3.0),M('#4A5560',{metalness:.4,roughness:.4}),0);
       roofCap(cx,cz,w-.1,d-.1,.4,Ht,.25);
       cyl(cx-.5,cz,.18,Ht+.25,.35,M('#D8D6CF'),16);
-      if(ctx&&ctx.flag){ const tx=new THREE.TextureLoader().load(ctx.flag); tx.encoding=THREE.sRGBEncoding; const f=new THREE.Mesh(new THREE.PlaneGeometry(1.5,.9),new THREE.MeshStandardMaterial({map:tx,roughness:.8})); f.position.set(X1+.04,Ht*.78,cz); f.rotation.y=Math.PI/2; built.add(f); }
+      if(ctx&&ctx.flag){ /* bandiera dell'agenzia sulla facciata che guarda la camera, sopra la porta: cornice scura e bandiera davanti alle nervature del muro */
+        const fw=1.7, fh=1.02, fx=X0+.95, fy=H(3.2)+.35+fh/2; add(new THREE.BoxGeometry(fw+.14,fh+.14,.05),M('#2B3138'),fx,fy,Y1+.1);
+        const tx=new THREE.TextureLoader().load(ctx.flag); tx.encoding=THREE.sRGBEncoding; tx.anisotropy=4; const f=new THREE.Mesh(new THREE.PlaneGeometry(fw,fh),new THREE.MeshStandardMaterial({map:tx,roughness:.8})); f.position.set(fx,fy,Y1+.13); f.userData.noOL=1; built.add(f); }
       top=Ht+.4; }
     else if(k==='test'){ apron(x,y,x+4.8,y+4.6,'#CFCBC0');
       /* capannone in lamiera ondulata argento */
