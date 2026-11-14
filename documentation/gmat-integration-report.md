@@ -31,7 +31,7 @@ To enter gameplay also start PostgreSQL and the backend, then register or sign i
 
 Docker Desktop must be running. `npm run dev` first attempts automatic startup: find the local base, pull from GHCR, or build locally. Failures do not stop Vite.
 
-Two Compose files coexist: `compose.yaml` for PostgreSQL and `docker-compose.yml` for GMAT. Automatic startup omits `-f`, so do not assume it selects the correct service. To prepare the base manually:
+Two Compose files coexist: `compose.yaml` for PostgreSQL and `docker-compose.yml` for GMAT. Automatic startup now explicitly selects `docker-compose.yml` and does not start PostgreSQL. To prepare the base manually:
 
 ```powershell
 docker pull --platform linux/amd64 ghcr.io/nasa-spaceapp-2026/smdg-gmat-base:r2025a
@@ -70,7 +70,7 @@ Dockerfile changes require rebuilding, rather than just restarting.
 | `POST /api/gmat/analysis` | Eclipses, contacts, and orbit evolution |
 | `POST /api/gmat/lifetime` | Lifetime for `nom`, `max`, `min`, or `sail` scenario |
 
-The HTTP server limits bodies to 32 KiB and allows 90 requests per minute per TCP peer using memory. These limits are separate from PostgreSQL account limits. Responses include `400` for invalid plans, `413` for oversized bodies, `429` for rate limiting, `503` for full queues, and `502` for computation failures.
+The HTTP server limits bodies to 32 KiB and allows 90 requests per minute per proxy-forwarded address (or TCP peer if absent) using memory. These limits are separate from PostgreSQL account limits. Responses include `400` for invalid plans, `413` for oversized bodies, `429` for rate limiting, `503` for full queues, and `502` for computation failures.
 
 The bridge has three separate queues, one per job type, each with one active job and at most five waiting. Timeouts are 30 seconds for transfers, 120 for analysis, and 240 for lifetime. Different job types may run concurrently. The bounded result cache is lost on restart.
 
@@ -133,4 +133,8 @@ The NASA distribution and model files are identified by the base Dockerfile and 
 
 `.github/workflows/gmat-base-image.yml` builds and publishes the GHCR base on manual dispatch or matching file changes. Defining that process does not prove a particular image is currently available or public.
 
-Development uses Vite's proxy. Azure requires separate container hosting and same-origin `/api/gmat*` routing; the current web package creates neither. Without the service, gameplay continues with the internal model.
+The Node server now forwards `/api/gmat`, `/api/gmat/analysis` and `/api/gmat/lifetime` to the configured service. Production uses `GMAT_URL`, otherwise `gmat-service.json`; `GMAT_URL=off` disables the proxy. No service returns `503 no-gmat`; an unreachable service returns `502 gmat-unreachable`. The container remains separate and is not included in the web ZIP.
+
+`npm run dev` attempts the local container using explicit `docker-compose.yml` and writes `.gmat-target`, ignored by Git. If Docker is unavailable or startup fails, it selects the shared service in `gmat-service.json`. Vite uses `GMAT_URL` when set to a value other than `off`, otherwise `.gmat-target`, then the shared service and finally localhost:8787. The production server handles `off` as disabling GMAT; it does not currently disable the Vite proxy. Defining a shared endpoint does not certify its remote availability in this branch validation.
+
+Separate provisioning uses `infra/gmat-image-push.sh` and `infra/azure-gmat.sh`: see [Deployment](deployment.md#gmat-on-azure-container-apps).

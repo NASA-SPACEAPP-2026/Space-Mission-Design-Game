@@ -6,7 +6,7 @@
 
 ## Componenti da distribuire
 
-L'applicazione principale comprende asset compilati e server Node. PostgreSQL è un servizio separato; GMAT è un ulteriore servizio opzionale. Il pacchetto Azure **non include il container GMAT** e `server.mjs` non inoltra `/api/gmat*`.
+L'applicazione principale comprende asset compilati e server Node. PostgreSQL è un servizio separato; GMAT è un ulteriore servizio opzionale. Il server Node inoltra ora `/api/gmat`, `/api/gmat/analysis` e `/api/gmat/lifetime` al servizio configurato. In produzione usa `GMAT_URL`, oppure il valore di `gmat-service.json`; `GMAT_URL=off` disabilita il proxy. Senza servizio risponde `503 no-gmat`, con servizio irraggiungibile `502 gmat-unreachable`. Il container resta separato e non è incluso nello ZIP web.
 
 | Componente | Esecuzione |
 | --- | --- |
@@ -35,7 +35,8 @@ Dopo `npm run build`, `npm run package:azure` usa Bash e `zip` per creare `relea
 ```text
 release.zip
   dist/                  HTML, bundle con hash, audio, font e file compressi
-  server.mjs             Server HTTP e routing account
+  server.mjs             Server HTTP, account e proxy GMAT
+  gmat-service.json      Target GMAT condiviso predefinito
   backend/               Autenticazione e connessione PostgreSQL
   db/                    Schema SQL
   scripts/migrate.mjs    Comando per applicare lo schema
@@ -137,9 +138,20 @@ In caso di errore:
 | Sonda positiva, account `503` | DB, DNS, firewall, certificati, credenziali e schema |
 | Account `403` | `APP_ORIGIN`, dominio personalizzato e protocollo effettivo |
 | HTML vecchio | Deploy effettivo, riavvio processo e URL del bundle |
-| GMAT `404` | Hosting e instradamento del servizio separato |
+| GMAT `503` / `502` | Configurazione `GMAT_URL` e disponibilità del servizio remoto |
 
 Un rollback distribuisce una release applicativa precedente; non ripristina lo schema né i dati PostgreSQL. Valuta la compatibilità della release con lo schema e verifica backup e ripristino prima delle migrazioni. Non cancellare tabelle o volumi per risolvere un errore di connessione.
+
+
+## GMAT su Azure Container Apps
+
+`infra/gmat-image-push.sh` costruisce e pubblica base e servizio `linux/amd64`: richiede Docker buildx, login al registry e `REPO`. Le immagini devono essere pubbliche per il provisioning attuale. `infra/azure-gmat.sh` richiede `IMAGE`, crea un ambiente Container Apps e un servizio con 1 vCPU, 2 GiB, ingresso esterno su 8787 e da 0 a 1 repliche. Imposta `GMAT_URL` sulle Web App trovate nel gruppo risorse.
+
+Questi script pubblicano immagini e creano risorse esterne: non vengono eseguiti per preparare questo branch. Il costo dipende dall’ambiente; lo scale-to-zero comporta avvio a freddo. Il file `gmat-service.json`, incluso nel pacchetto web, fornisce il target condiviso predefinito. Aggiornare quel file se il servizio cambia, oppure usare `GMAT_URL` per l’ambiente. `GMAT_URL=off` disabilita soltanto il proxy del server di produzione.
+
+Il server Node inoltra ora `/api/gmat`, `/api/gmat/analysis` e `/api/gmat/lifetime` al servizio configurato. In produzione usa `GMAT_URL`, oppure il valore di `gmat-service.json`; `GMAT_URL=off` disabilita il proxy. Senza servizio risponde `503 no-gmat`, con servizio irraggiungibile `502 gmat-unreachable`. Il container resta separato e non è incluso nello ZIP web.
+
+`npm run dev` tenta il container locale usando esplicitamente `docker-compose.yml` e scrive il target in `.gmat-target`, escluso da Git. Se Docker non è disponibile o l’avvio fallisce, sceglie il servizio condiviso di `gmat-service.json`. Vite usa `GMAT_URL` se impostato a un valore diverso da `off`, altrimenti `.gmat-target`, poi il servizio condiviso e infine localhost:8787. L’opzione `off` è gestita come disattivazione dal server di produzione; non disabilita attualmente il proxy Vite. Il codice definisce un servizio condiviso, ma questa verifica del branch non ne certifica la disponibilità remota.
 
 ## Rimozione risorse
 

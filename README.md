@@ -122,7 +122,9 @@ The game produces immediate estimates and can request more detailed results from
 
 Results appear in orbital analysis, budgets, reviews, and reports, with their source identified. When GMAT is unavailable, the internal model remains in use.
 
-**Compose file caveat:** `compose.yaml` defines PostgreSQL, while `docker-compose.yml` defines GMAT. The automatic startup calls `docker compose` without `-f`; with both files present, default selection can exclude GMAT. For predictable startup, select both explicitly:
+`npm run dev` attempts the local container using explicit `docker-compose.yml` and writes `.gmat-target`, ignored by Git. If Docker is unavailable or startup fails, it selects the shared service in `gmat-service.json`. Vite uses `GMAT_URL` when set to a value other than `off`, otherwise `.gmat-target`, then the shared service and finally localhost:8787. The production server handles `off` as disabling GMAT; it does not currently disable the Vite proxy. Defining a shared endpoint does not certify its remote availability in this branch validation.
+
+To start the separate services manually:
 
 ```powershell
 docker compose -f compose.yaml -f docker-compose.yml up -d --build gmat
@@ -136,7 +138,7 @@ After editing mounted `scripts/gmat-*.mjs` files or `public/game/02-orbit.js`:
 docker compose -f compose.yaml -f docker-compose.yml restart gmat
 ```
 
-Vite forwards `/api/gmat*` to port **8787**. Production `server.mjs` does not implement this proxy: deploying the Azure web package alone does not make GMAT available online.
+The Node server now forwards `/api/gmat`, `/api/gmat/analysis` and `/api/gmat/lifetime` to the configured service. Production uses `GMAT_URL`, otherwise `gmat-service.json`; `GMAT_URL=off` disables the proxy. No service returns `503 no-gmat`; an unreachable service returns `502 gmat-unreachable`. The container remains separate and is not included in the web ZIP.
 
 ## Architecture and database
 
@@ -262,8 +264,8 @@ Account tests use **temporary PGlite**, without the Docker database or real user
 | Accounts unavailable | Running backend, valid `DATABASE_URL`, PostgreSQL up, schema applied |
 | Account `403` | `APP_ORIGIN` matches browser protocol, host, and port |
 | Account `503` | Distinguish missing DB configuration from unreachable DB/schema; check backend logs |
-| GMAT does not start | Docker running, base image available, explicit Compose files |
-| No GMAT in Azure | Web package neither hosts nor proxies the separate GMAT service |
+| GMAT does not start | Check `.gmat-target`, local Docker or shared service and their logs |
+| No GMAT in Azure | Check `GMAT_URL`, shared service configuration and separate container availability |
 | Mission missing after login | Check browser, profile, and origin: there is no cloud save |
 | `npm start` ignores `.env` | Supply environment variables or use Node with `--env-file-if-exists` |
 | No browser for smoke tests | Set `CHROME_PATH` to the installed Chromium/Chrome executable |

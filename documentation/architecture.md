@@ -24,7 +24,7 @@ flowchart TB
   NODE --> DIST[Compiled files in dist]
 ```
 
-Vite supplies GMAT routing during development. Production `server.mjs` handles accounts but returns `404` for other unknown APIs: GMAT routing must be supplied separately.
+The Node server now forwards `/api/gmat`, `/api/gmat/analysis` and `/api/gmat/lifetime` to the configured service. Production uses `GMAT_URL`, otherwise `gmat-service.json`; `GMAT_URL=off` disables the proxy. No service returns `503 no-gmat`; an unreachable service returns `502 gmat-unreachable`. The container remains separate and is not included in the web ZIP.
 
 ## Frontend and script order
 
@@ -76,7 +76,7 @@ See [save format](legacy-save-format.md) and [PostgreSQL schema](authentication.
 | Path/port | Destination |
 | --- | --- |
 | `localhost:5173` | Vite, frontend files, and development reload |
-| `/api/gmat*` through Vite | `http://localhost:8787` |
+| `/api/gmat*` through Vite | Configured local or shared target |
 | Other `/api*` through Vite | `http://127.0.0.1:8080` |
 | `localhost:8080` | Node server, account APIs, and `dist/` |
 | `localhost:4173` | Vite preview, without proxies defined under `server` |
@@ -114,3 +114,7 @@ File handling supports GET/HEAD, MIME types, precompressed or dynamic Brotli/gzi
 An ES module/TypeScript refactor could separate state, simulation, rendering, and screens. This is a proposal rather than the current layout: there is no completed new `src/` architecture replacing the classic scripts.
 
 Before moving shared code, identify global dependencies and verify load order, saves, and actual screens. Cloud saves would require DB schema, per-user authorization, versioning, and an explicit decision on importing existing local games.
+
+### GMAT service selection
+
+`npm run dev` attempts the local container using explicit `docker-compose.yml` and writes `.gmat-target`, ignored by Git. If Docker is unavailable or startup fails, it selects the shared service in `gmat-service.json`. Vite uses `GMAT_URL` when set to a value other than `off`, otherwise `.gmat-target`, then the shared service and finally localhost:8787. The production server handles `off` as disabling GMAT; it does not currently disable the Vite proxy. Defining a shared endpoint does not certify its remote availability in this branch validation.

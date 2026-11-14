@@ -13,6 +13,8 @@ npm ci
 npm run check
 ```
 
+La suite limita i worker a due per contenere la contesa di CPU e memoria durante PGlite, scrypt e compressione. I timeout e le asserzioni rimangono invariati.
+
 `check` esegue Vitest, build di produzione e `scripts/verify-build.mjs` in sequenza; un errore interrompe il comando. La CI esegue anche `npm run package:azure` su Linux: servono Bash, npm, zip e una build già presente.
 
 | File di test | Copertura |
@@ -20,6 +22,7 @@ npm run check
 | `tests/content.test.mjs` | HTML, ordine script, salvataggi, risorse, renderer e contratti di missione |
 | `tests/server.test.mjs` | File, sonda, cache, compressione, HEAD, fallback e percorsi non validi |
 | `tests/auth.test.mjs` | Password, univocità, cookie, sessioni, CSRF, limiti, registrazione senza email e aggiornamento ripetibile di DB esistenti |
+| `tests/gmat-proxy.test.mjs` | Proxy HTTP GMAT, metodi, indirizzo inoltrato, assenza servizio e upstream non raggiungibile |
 | `tests/gmat.test.mjs` | Generazione script GMAT, validazione e parser |
 | `tests/gmat-bridge.test.mjs` | Bridge con eseguibile simulato, code e risultati |
 

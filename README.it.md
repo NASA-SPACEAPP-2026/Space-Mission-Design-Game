@@ -122,7 +122,9 @@ Il gioco calcola subito le proprie stime e può chiedere a **NASA GMAT R2025a** 
 
 I risultati vengono mostrati nell'analisi orbitale, nei bilanci, nelle revisioni e nei rapporti, con indicazione della fonte. Se GMAT non è disponibile, rimane il modello interno.
 
-**Attenzione ai file Compose:** `compose.yaml` definisce PostgreSQL, mentre `docker-compose.yml` definisce GMAT. L'avvio automatico usa `docker compose` senza `-f`: con entrambi i file presenti la selezione predefinita può escludere GMAT. Per un avvio riproducibile usa entrambi esplicitamente:
+`npm run dev` tenta il container locale usando esplicitamente `docker-compose.yml` e scrive il target in `.gmat-target`, escluso da Git. Se Docker non è disponibile o l’avvio fallisce, sceglie il servizio condiviso di `gmat-service.json`. Vite usa `GMAT_URL` se impostato a un valore diverso da `off`, altrimenti `.gmat-target`, poi il servizio condiviso e infine localhost:8787. L’opzione `off` è gestita come disattivazione dal server di produzione; non disabilita attualmente il proxy Vite. Il codice definisce un servizio condiviso, ma questa verifica del branch non ne certifica la disponibilità remota.
+
+Per un avvio manuale dei servizi separati:
 
 ```powershell
 docker compose -f compose.yaml -f docker-compose.yml up -d --build gmat
@@ -136,7 +138,7 @@ Dopo modifiche ai file montati `scripts/gmat-*.mjs` o `public/game/02-orbit.js`:
 docker compose -f compose.yaml -f docker-compose.yml restart gmat
 ```
 
-Vite inoltra `/api/gmat*` alla porta **8787**. Il server di produzione `server.mjs` non contiene questo proxy: pubblicare soltanto il pacchetto Azure non rende GMAT disponibile online.
+Il server Node inoltra ora `/api/gmat`, `/api/gmat/analysis` e `/api/gmat/lifetime` al servizio configurato. In produzione usa `GMAT_URL`, oppure il valore di `gmat-service.json`; `GMAT_URL=off` disabilita il proxy. Senza servizio risponde `503 no-gmat`, con servizio irraggiungibile `502 gmat-unreachable`. Il container resta separato e non è incluso nello ZIP web.
 
 ## Architettura e database
 
@@ -262,8 +264,8 @@ I test account usano **PGlite temporaneo**, senza richiedere il DB Docker né us
 | Account non disponibili | Backend attivo, `DATABASE_URL` corretta, PostgreSQL avviato, migrazione applicata |
 | `403` agli account | `APP_ORIGIN` uguale a protocollo, host e porta del browser |
 | `503` agli account | Distinguere DB non configurato da DB/schema irraggiungibile; consultare log backend |
-| GMAT non si avvia | Docker attivo, immagine base disponibile e file Compose espliciti |
-| GMAT assente in Azure | Il pacchetto applicativo non ospita né inoltra il servizio GMAT |
+| GMAT non si avvia | Controllare target `.gmat-target`, Docker locale o servizio condiviso e relativi log |
+| GMAT assente in Azure | Verificare `GMAT_URL`, servizio condiviso e disponibilità del container separato |
 | Partita assente dopo il login | Verificare browser, profilo e origine: non esiste salvataggio cloud |
 | `npm start` ignora `.env` | Usare variabili di ambiente o il comando Node con `--env-file-if-exists` |
 | Smoke test senza browser | Impostare `CHROME_PATH` al percorso dell'eseguibile Chromium/Chrome |

@@ -24,7 +24,7 @@ flowchart TB
   NODE --> DIST[File compilati in dist]
 ```
 
-Il proxy verso GMAT è presente in Vite durante lo sviluppo. In produzione `server.mjs` gestisce gli account, ma risponde `404` alle altre API sconosciute: l'instradamento GMAT va predisposto separatamente.
+Il server Node inoltra ora `/api/gmat`, `/api/gmat/analysis` e `/api/gmat/lifetime` al servizio configurato. In produzione usa `GMAT_URL`, oppure il valore di `gmat-service.json`; `GMAT_URL=off` disabilita il proxy. Senza servizio risponde `503 no-gmat`, con servizio irraggiungibile `502 gmat-unreachable`. Il container resta separato e non è incluso nello ZIP web.
 
 ## Frontend e ordine degli script
 
@@ -76,7 +76,7 @@ Consulta [formato dei salvataggi](legacy-save-format.it.md) e [schema PostgreSQL
 | Percorso/porta | Destinazione |
 | --- | --- |
 | `localhost:5173` | Vite, file frontend e ricaricamento sviluppo |
-| `/api/gmat*` da Vite | `http://localhost:8787` |
+| `/api/gmat*` da Vite | Target locale o condiviso scelto dalla configurazione |
 | Altri `/api*` da Vite | `http://127.0.0.1:8080` |
 | `localhost:8080` | Server Node, API account e `dist/` |
 | `localhost:4173` | Anteprima Vite, senza i proxy definiti per `server` |
@@ -114,3 +114,7 @@ La chiusura su `SIGTERM`/`SIGINT` attende la chiusura del server e del pool Post
 Una conversione a moduli ES/TypeScript può separare stato, simulazione, renderer e schermate. È una proposta, non la struttura attuale: non esiste già una nuova architettura `src/` da usare al posto degli script.
 
 Prima di spostare codice condiviso, individuare dipendenze globali e verificare ordine, salvataggi e schermate reali. L'eventuale introduzione di salvataggi cloud richiederà schema DB, autorizzazione per utente, versionamento e una decisione esplicita sul trasferimento dei salvataggi locali.
+
+### Selezione del servizio GMAT
+
+`npm run dev` tenta il container locale usando esplicitamente `docker-compose.yml` e scrive il target in `.gmat-target`, escluso da Git. Se Docker non è disponibile o l’avvio fallisce, sceglie il servizio condiviso di `gmat-service.json`. Vite usa `GMAT_URL` se impostato a un valore diverso da `off`, altrimenti `.gmat-target`, poi il servizio condiviso e infine localhost:8787. L’opzione `off` è gestita come disattivazione dal server di produzione; non disabilita attualmente il proxy Vite. Il codice definisce un servizio condiviso, ma questa verifica del branch non ne certifica la disponibilità remota.
