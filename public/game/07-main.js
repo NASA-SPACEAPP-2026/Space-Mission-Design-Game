@@ -4449,6 +4449,20 @@ function planetCanvas(k){ if(PLAN[k]) return PLAN[k]; const S=256, cv=document.c
 let mccRaf=0;
 /** Ferma l'animazione dell'orbita MCC (chiamata anche a ogni nuovo avvio e quando #orb esce dal DOM). */
 function mccStop(){ if(mccRaf){ cancelAnimationFrame(mccRaf); mccRaf=0; } }
+/* sala controllo 3D, schermo in alto a sinistra: il satellite in volo gira sulla sua orbita, come nel Centro di dinamica del volo.
+   Se un volo aspetta una decisione (o ha un problema), lo schermo si illumina di rosso e invita a toccarlo. */
+const FLYS={ang:0,last:0,id:''};
+function flyScreen(c,w,h,t){ const fly=G.missions.filter(m=>m.phase==='E'||m.phase==='F'), cm=cur(), M=fly.indexOf(cm)>=0?cm:fly[0], al=G.missions.some(m=>m.pauseAt||m.alert), dt=Math.min(.5,Math.max(0,t-FLYS.last)); FLYS.last=t;
+  c.fillStyle='#0B1626'; c.fillRect(0,0,w,h); STARS.forEach(s2=>{ c.fillStyle='rgba(220,230,255,.6)'; c.fillRect(s2[0]*w,s2[1]*h,s2[2]*1.6,s2[2]*1.6); });
+  c.textBaseline='alphabetic'; c.font='700 20px IBM Plex Mono, monospace'; c.fillStyle='#43D3E0';
+  if(!M){ const r=h*.26; c.drawImage(planetCanvas('leo'),w/2-r,h/2-r+8,r*2,r*2); c.fillText(TX('NESSUN SATELLITE IN VOLO','NO SATELLITE IN FLIGHT'),16,32); }
+  else { if(FLYS.id!==M.id){ FLYS.id=M.id; FLYS.ang=0; } const dest=M.sat.dest||'leo', B=O.BODY[dest], el=O.plan(M).final, rp=B.R+el.pe, ra=B.R+(isFinite(el.ap)?el.ap:el.pe), a=(rp+ra)/2, e=(ra-rp)/(ra+rp), bb=a*Math.sqrt(1-e*e), sc=Math.min(w,h-40)/2*.86/ra, cx=w/2, cy=h/2+14;
+    c.drawImage(planetCanvas(dest),cx-B.R*sc-3,cy-B.R*sc-3,(B.R*sc+3)*2,(B.R*sc+3)*2);
+    c.strokeStyle='rgba(111,168,255,.9)'; c.lineWidth=2; c.beginPath(); c.ellipse(cx-a*e*sc,cy,a*sc,bb*sc,0,0,7); c.stroke();
+    if(!M.pauseAt){ /* velocita' scalata sul raggio del pianeta: un'orbita bassa fa un giro in ~15 s, quelle alte piu' lente (terza legge di Keplero) */ const n=.42*Math.pow(B.R/a,1.5); FLYS.ang+=dt*n*(1+e*Math.cos(FLYS.ang))**2; }
+    const r2=a*(1-e*e)/(1+e*Math.cos(FLYS.ang)), x=cx+r2*Math.cos(FLYS.ang)*sc, y=cy-r2*Math.sin(FLYS.ang)*sc; c.fillStyle='#F0B43A'; c.fillRect(x-5,y-5,10,10);
+    c.fillText(TX('VOLO · ','FLIGHT · ')+String(M.name).toUpperCase(),16,32); c.font='600 15px IBM Plex Mono, monospace'; c.fillStyle='rgba(207,227,255,.85)'; c.fillText(O.fmt(el),16,54); }
+  if(al){ const on=Math.floor(t*2)%2===0; c.strokeStyle=on?'#FF3B2F':'#8A1C14'; c.lineWidth=16; c.strokeRect(8,8,w-16,h-16); c.fillStyle=on?'rgba(255,59,47,.92)':'rgba(160,30,24,.92)'; c.fillRect(0,h-58,w,58); c.fillStyle='#fff'; c.font='800 21px IBM Plex Mono, monospace'; c.fillText(TX('⚠ PROBLEMA IN VOLO · TOCCA LO SCHERMO','⚠ FLIGHT PROBLEM · TAP THE SCREEN'),16,h-21); } }
 function mccLoop(){ mccStop(); const cv=$('#orb'); if(!cv) return; let last=0, ang=0;
   (function loop(ts){ if(!cv.isConnected||$('#orb')!==cv){ mccRaf=0; return; } mccRaf=requestAnimationFrame(loop); const dt=Math.min(.05,(ts-last)/1000||0); last=ts; const M=cur(), w=cv.clientWidth, h=cv.clientHeight, dpr=Math.min(2,window.devicePixelRatio||1);
     if(cv.width!==Math.round(w*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); } const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.fillStyle='#0E1A2E'; c.fillRect(0,0,w,h);
@@ -6235,6 +6249,9 @@ const IR3=(()=>{
   function rollDoor(wall,a,b,z1){ onWall(wall,a-.1,b+.1,0,z1+.1,'#8A929A',{r:.6},.08); const n=Math.round(z1/.22); for(let i=0;i<n;i++) onWall(wall,a,b,i*.22+.02,i*.22+.2,i%2?'#D5D9DC':'#E4E7E9',{r:.5},.12); onWall(wall,(a+b)/2-.2,(a+b)/2+.2,.85,.95,'#2B2F36',{r:.4},.16); }
   function wallScreen(wall,a,b,z0,z1,kind,seed){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:screenTex(kind,seed)})); m.scale.set(b-a,z1-z0,1);
     onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
+  function liveScreen(wall,a,b,z0,z1,draw){ const cv=document.createElement('canvas'); cv.width=512; cv.height=320; const g=cv.getContext('2d'), tx=new THREE.CanvasTexture(cv); tx.encoding=THREE.sRGBEncoding; tx.anisotropy=4;
+    const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tx})); m.scale.set(b-a,z1-z0,1); onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06);
+    let last=-1; const paint=t=>{ try{ draw(g,cv.width,cv.height,t); }catch(e){} tx.needsUpdate=true; }; paint(0); anims.push(t=>{ if(t-last<.1) return; last=t; paint(t); dirty=true; }); }
   function wallPanel(wall,a,b,z0,z1,tex){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tex})); m.scale.set(b-a,z1-z0,1); onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
   function textTex(lines,bg,fg){ return ctex(512,256,(g,w,h)=>{ g.fillStyle=bg||'#0B141C'; g.fillRect(0,0,w,h); g.font='700 44px monospace'; g.textBaseline='middle'; lines.forEach((l,i)=>{ g.fillStyle=l[1]||fg||'#43D3E0'; g.fillText(l[0],24,60+i*72); }); g.strokeStyle='#1A1F24'; g.lineWidth=12; g.strokeRect(0,0,w,h); }); }
 
@@ -6296,7 +6313,7 @@ const IR3=(()=>{
     else if(room==='mcc'){ shell({floor:'#8E959B',tile:1,tileC:'#838A90',wallR:'#C5CAD0',wallL:'#B6BCC3',skirt:'#7D858D',cap:'#2A323A'});
       onWall('y',0,RW,3.3,RH,'#2E363E',{r:.6},.06); onWall('x',0,RD,3.3,RH,'#262D34',{r:.6},.06);
       for(let i=0;i<22;i++) onWall('y',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1); for(let i=0;i<17;i++) onWall('x',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1);
-      [[.6,3.6,'sat'],[3.9,9.4,'globe'],[12.5,17.4,'chart']].forEach((v,i)=>wallScreen('y',v[0],v[1],1.4,3.15,v[2],i+1)); wallScreen('y',9.7,12.2,2.35,3.15,'clock',9); wallScreen('y',9.7,12.2,1.4,2.15,'bars',8);
+      liveScreen('y',.6,3.6,1.4,3.15,flyScreen); [[3.9,9.4,'globe',2],[12.5,17.4,'chart',3]].forEach(v=>wallScreen('y',v[0],v[1],1.4,3.15,v[2],v[3])); wallScreen('y',9.7,12.2,2.35,3.15,'clock',9); wallScreen('y',9.7,12.2,1.4,2.15,'bars',8);
       wallScreen('x',.6,6,1.3,3.15,'grid',11); wallScreen('x',6.4,10.6,1.4,3.05,'gauges',12); wallScreen('x',11,13.4,1.6,2.9,'bars',13);
       /* 3 file di postazioni, ciascuna in 3 sezioni staccate da corridoi (come in un vero MCC); in ogni sezione siede una sola persona, gli altri girano in piedi */
       const cx=9, cy0=20.5, RR=[11.4,13.9,16.4], inst=[];
