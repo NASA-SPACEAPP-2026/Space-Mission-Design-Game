@@ -11,7 +11,9 @@ export const CREST = {
   shapes: ['shield', 'circle', 'hexagon', 'star', 'diamond'],
   symbols: ['rocket', 'satellite', 'planet', 'moon', 'star', 'comet', 'telescope', 'orbit']
 };
-export const LIMITS = { members: 20, text: 300, motto: 60, request: 140, missionScience: 1000, page: 50, inactiveDays: 14 };
+export const LIMITS = { members: 20, text: 300, motto: 60, request: 140, missionScience: 1000, page: 50, inactiveDays: 14,
+  // spectate: compressed game state (base64), request body for PUT /live, how long a viewer keeps the stream on, when a player counts as gone
+  liveState: 160_000, liveBody: 200_000, watchSeconds: 20, liveSeconds: 60 };
 // System message codes (data.code): founded, joined, left, kicked, promoted, demoted, new_director,
 // settings, science, launch, success, failure. The game turns them into translated sentences.
 
@@ -117,7 +119,7 @@ const summary = r => ({ id: r.id, name: r.name, crest: r.crest, motto: r.motto, 
 const message = r => r.deleted
   ? { id: r.id, kind: r.kind, author: r.author, at: r.created_at, deleted: true }
   : { id: r.id, kind: r.kind, author: r.author, role: r.author_role, at: r.created_at,
-    ...(r.kind === 'text' ? { text: r.body } : r.kind === 'sticker' ? { sticker: r.body } : { data: r.data }) };
+    ...(r.kind === 'text' ? { text: r.body } : r.kind === 'sticker' ? { sticker: r.body, ...(r.data && r.data.to ? { to: r.data.to } : {}) } : { data: r.data }) };
 const MESSAGE_COLUMNS = `m.id::float8 AS id, m.kind, m.body, m.data, m.created_at, m.deleted_at IS NOT NULL AS deleted,
   u.username AS author, cm.role AS author_role FROM consortium_messages m LEFT JOIN users u ON u.id = m.author_id
   LEFT JOIN consortium_members cm ON cm.user_id = m.author_id AND cm.consortium_id = m.consortium_id`;
@@ -130,11 +132,11 @@ export function createConsortia({ db, origin }) {
       'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
     res.end(JSON.stringify(body));
   }
-  async function readJson(req) {
+  async function readJson(req, max = 4096) {
     const chunks = []; let bytes = 0;
     for await (const chunk of req) {
       bytes += chunk.length;
-      if (bytes > 4096) throw new Fail(413, 'too_large');
+      if (bytes > max) throw new Fail(413, 'too_large');
       chunks.push(chunk);
     }
     if (!bytes) return {};
@@ -315,6 +317,7 @@ export function createConsortia({ db, origin }) {
       if (typeof body.spectate !== 'boolean') throw bad('spectate');
       await touch(user.id);
       await db.query('UPDATE consortium_members SET spectate_allowed=$2 WHERE user_id=$1', [user.id, body.spectate]);
+      if (!body.spectate) await db.query(`UPDATE live_sessions SET state=state - 'pack', watched_until=NULL WHERE user_id=$1`, [user.id]);
       return { body: { spectate: body.spectate } };
     },
 
@@ -457,6 +460,8 @@ export function createConsortia({ db, origin }) {
       } else if (kind === 'sticker') {
         if (!STICKERS.includes(body.sticker)) throw bad('sticker');
         text = body.sticker;
+        // A sticker sent while watching a teammate is addressed to them: it pops up on their screen.
+        if (body.to !== undefined && (typeof body.to !== 'string' || !/^[A-Za-z0-9_]{3,24}$/.test(body.to))) throw bad('to');
       } else if (kind === 'mission') {
         data = missionCard(body.mission);
       } else throw bad('kind');
@@ -469,6 +474,12 @@ export function createConsortia({ db, origin }) {
         const recent = await rows(t, `SELECT 1 FROM consortium_messages WHERE author_id=$1
           AND created_at > now() - interval '2 seconds' LIMIT 1`, [user.id]);
         if (recent.length) throw new Fail(429, 'slow_down');
+        if (kind === 'sticker' && body.to !== undefined) {
+          const [to] = await rows(t, `SELECT u.username FROM consortium_members m JOIN users u ON u.id=m.user_id
+            WHERE lower(u.username)=lower($1) AND m.consortium_id=$2`, [body.to, me.cid]);
+          if (!to) throw new Fail(404, 'member_not_found');
+          data = { to: to.username };
+        }
         await t.query('UPDATE consortium_members SET last_seen_at=now() WHERE user_id=$1', [user.id]);
         const [m] = await rows(t, `INSERT INTO consortium_messages(consortium_id,author_id,kind,body,data)
           VALUES($1,$2,$3,$4,$5::jsonb) RETURNING id::float8 AS id, kind, body, data, created_at, false AS deleted`,
@@ -497,6 +508,55 @@ export function createConsortia({ db, origin }) {
       await limit(`activity:${user.id}`, 30);
       await system(db, me.cid, { code: body.type, user: user.username, mission });
       return { status: 201, body: { posted: true } };
+    },
+
+    // Spectate, player side: a heartbeat every few seconds (view + mission name). The compressed game state is added
+    // only while someone watches (the reply says so). Stickers addressed to the player come back in the reply.
+    async live({ user, body }) {
+      const view = body.view ?? '';
+      if (typeof view !== 'string' || !/^[a-z]{0,12}$/.test(view)) throw bad('view');
+      if (body.mission !== undefined && typeof body.mission !== 'string') throw bad('mission');
+      const mission = clean(body.mission || '').slice(0, 24);
+      const since = body.since ?? 0;
+      if (!int(since, 0, 1e15)) throw bad('since');
+      let pack = null;
+      if (body.state != null) {
+        const s = body.state;
+        if (typeof s !== 'object' || !['gz', 'raw'].includes(s.enc) || typeof s.data !== 'string' || !s.data ||
+          s.data.length > LIMITS.liveState || !/^[A-Za-z0-9+/]+={0,2}$/.test(s.data)) throw bad('state');
+        pack = { enc: s.enc, data: s.data };
+      }
+      const [me] = await rows(db, `UPDATE consortium_members SET last_seen_at=now() WHERE user_id=$1
+        RETURNING consortium_id AS cid, spectate_allowed AS ok`, [user.id]);
+      if (!me) throw new Fail(404, 'no_consortium');
+      if (!me.ok) pack = null; // spectate switched off: never keep a game state for others
+      const mode = pack ? 'set' : me.ok ? 'keep' : 'drop';
+      const state = { view, mission, at: new Date().toISOString(), ...(pack ? { pack } : {}) };
+      const [r] = await rows(db, `INSERT INTO live_sessions(user_id,consortium_id,state,updated_at) VALUES($1,$2,$3::jsonb,now())
+        ON CONFLICT (user_id) DO UPDATE SET consortium_id=EXCLUDED.consortium_id, updated_at=now(),
+        state = CASE WHEN $4='keep' AND live_sessions.consortium_id=EXCLUDED.consortium_id THEN coalesce(live_sessions.state,'{}'::jsonb) || EXCLUDED.state ELSE EXCLUDED.state END
+        RETURNING coalesce(watched_until > now(), false) AS watched`, [user.id, me.cid, JSON.stringify(state), mode]);
+      const reactions = await rows(db, `SELECT m.id::float8 AS id, m.body AS sticker, u.username AS author
+        FROM consortium_messages m JOIN users u ON u.id=m.author_id WHERE m.consortium_id=$1 AND m.kind='sticker'
+        AND m.deleted_at IS NULL AND m.data->>'to'=$2 AND m.id>$3 AND m.created_at > now() - interval '30 seconds'
+        ORDER BY m.id LIMIT 10`, [me.cid, user.username, since]);
+      return { body: { watched: !!(me.ok && r.watched), reactions, lastId: reactions.length ? reactions[reactions.length - 1].id : since } };
+    },
+
+    // Spectate, viewer side: only a teammate, only if they allow it and are playing now. Reading keeps the stream on.
+    async watch({ user, params: [username] }) {
+      const me = await touch(user.id);
+      const [t] = await rows(db, `SELECT u.id, u.username, m.spectate_allowed AS ok, l.state,
+        coalesce(l.updated_at > now() - interval '${LIMITS.liveSeconds} seconds', false) AS live
+        FROM users u JOIN consortium_members m ON m.user_id=u.id AND m.consortium_id=$2
+        LEFT JOIN live_sessions l ON l.user_id=u.id AND l.consortium_id=$2 WHERE lower(u.username)=lower($1)`, [username, me.cid]);
+      if (!t) throw new Fail(404, 'member_not_found');
+      if (t.id === user.id) throw new Fail(400, 'self');
+      if (!t.ok) throw new Fail(403, 'spectate_off');
+      if (!t.live) throw new Fail(404, 'not_live');
+      await db.query(`UPDATE live_sessions SET watched_until=now() + interval '${LIMITS.watchSeconds} seconds' WHERE user_id=$1`, [t.id]);
+      const s = t.state || {};
+      return { body: { username: t.username, view: s.view || '', mission: s.mission || '', at: s.at || null, state: s.pack || null } };
     },
 
     // Science points of a finished mission: counted once per (player, mission), for the player and their consortium.
@@ -532,6 +592,7 @@ export function createConsortia({ db, origin }) {
     ['DELETE', '/mine/messages/(\\d{1,15})', 'remove'],
     ['GET', '/mine/unread', 'unread'], ['POST', '/mine/activity', 'activity'],
     ['POST', '/leave', 'leave'], ['POST', '/science', 'science'],
+    ['PUT', '/live', 'live'], ['GET', '/live/([A-Za-z0-9_]{3,24})', 'watch'],
     ['GET', `/${UUID}`, 'profile'], ['POST', `/${UUID}/join`, 'join']
   ].map(([method, path, name]) => ({ method, pattern: new RegExp(`^${path}$`), run: handlers[name] }));
 
@@ -548,9 +609,9 @@ export function createConsortia({ db, origin }) {
       const user = await sessionUser(db, req);
       if (!user) return send(res, 401, { error: 'login_required' });
       let body = {};
-      if (req.method === 'POST' || req.method === 'PATCH') {
+      if (req.method === 'POST' || req.method === 'PATCH' || req.method === 'PUT') {
         if (req.headers['content-type']?.split(';')[0] !== 'application/json') return send(res, 415, { error: 'json_required' });
-        body = await readJson(req);
+        body = await readJson(req, sub === '/live' ? LIMITS.liveBody : 4096);
       }
       const query = new URL(req.url ?? '/', 'http://localhost').searchParams;
       const out = await route.run({ user, body, query, params: sub.match(route.pattern).slice(1) });

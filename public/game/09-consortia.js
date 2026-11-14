@@ -333,23 +333,24 @@ window.GNGCLAN = (function () {
   }
   // Lo sticker appena arrivato compare grande per un paio di secondi, sopra il pannello (fuori dal suo innerHTML).
   let popEl = null, popT = 0;
-  function popSticker(code) {
-    if (!S.open || !Object.prototype.hasOwnProperty.call(STICKERS, code)) return;
-    if (!popEl) { popEl = document.createElement('div'); popEl.id = 'clpop'; popEl.setAttribute('aria-hidden', 'true'); document.body.appendChild(popEl); }
-    popEl.innerHTML = stickerHTML(code, Math.min(180, Math.round(innerHeight * .5))); popEl.hidden = false;
+  // force: anche a pannello chiuso (sticker mandati da chi ti guarda, o da te mentre guardi); from: chi l'ha mandato
+  function popSticker(code, from, force) {
+    if ((!S.open && !force) || !Object.prototype.hasOwnProperty.call(STICKERS, code)) return;
+    if (!popEl) { popEl = document.createElement('div'); popEl.id = 'clpop'; popEl.setAttribute('aria-hidden', 'true'); popEl.setAttribute('translate', 'no'); document.body.appendChild(popEl); }
+    popEl.innerHTML = '<div class="clpopin">' + stickerHTML(code, Math.min(180, Math.round(innerHeight * .5))) + (from ? '<b class="clpopby">' + esc(from) + '</b>' : '') + '</div>'; popEl.hidden = false;
     clearTimeout(popT); popT = setTimeout(() => { popEl.hidden = true; popEl.innerHTML = ''; }, 1900);
     try { host.sfx('tap'); } catch (e) {}
   }
   // Il server accetta un messaggio ogni 2 secondi: i bottoni degli sticker si spengono per lo stesso tempo.
   function cooldown() {
     S.coolUntil = Date.now() + 2000;
-    const set = off => root && root.querySelectorAll('[data-cl="stk"]').forEach(b => { b.disabled = off; });
+    const set = off => document.querySelectorAll('#clan [data-cl="stk"],#spect [data-sp="stk"]').forEach(b => { b.disabled = off; });
     set(true); setTimeout(() => set(false), 2050);
   }
   function msgHTML(m) {
     const me = m.author && m.author === myName();
     if (m.kind === 'system') return '<li class="clsys">' + esc(sysText(m.data)) + ' <time>' + timeOf(m.at) + '</time></li>';
-    const head = '<span class="clwho"><b class="r-' + esc(m.role || 'member') + '">' + esc(m.author || '?') + '</b> <time>' + timeOf(m.at) + '</time>' +
+    const head = '<span class="clwho"><b class="r-' + esc(m.role || 'member') + '">' + esc(m.author || '?') + '</b>' + (m.to ? ' → ' + esc(m.to) : '') + ' <time>' + timeOf(m.at) + '</time>' +
       (!m.deleted && (me || lead()) ? ' <button class="cldel" data-cl="del" data-id="' + m.id + '" aria-label="' + T('Elimina', 'Delete') + '">×</button>' : '') + '</span>';
     let inner;
     if (m.deleted) inner = '<em class="clgone">' + T('Messaggio eliminato', 'Message deleted') + '</em>';
@@ -367,8 +368,12 @@ window.GNGCLAN = (function () {
   function drawSide() {
     const a = root && root.querySelector('.clside'); if (!a || !member()) return;
     a.innerHTML = '<h3>' + T('Membri', 'Members') + ' <small>' + S.mine.members.filter(m => m.status !== 'offline').length + ' online</small></h3><ul>' +
-      S.mine.members.map(m => '<li>' + status(m.status) + '<b class="r-' + esc(m.role) + '">' + esc(m.username) + '</b><small>' + roleName(m.role) + '</small></li>').join('') + '</ul>';
+      S.mine.members.map(m => '<li>' + status(m.status) + '<b class="r-' + esc(m.role) + '">' + esc(m.username) + '</b>' + watchBtn(m) + '<small>' + roleName(m.role) + '</small></li>').join('') + '</ul>';
   }
+  // «Guarda»: solo un compagno che sta giocando adesso e che lo permette
+  const EYE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const watchBtn = m => m.status === 'playing' && m.spectate !== false && m.username !== myName()
+    ? '<button class="clbtn sm clwatch" data-cl="watch" data-u="' + esc(m.username) + '" aria-label="' + esc(T('Guarda ', 'Watch ') + m.username) + '">' + EYE + ' ' + T('Guarda', 'Watch') + '</button>' : '';
   function memberActions(m) {
     if (m.username === myName()) return '';
     const R = rank(myRole()), Tg = rank(m.role), out = [];
@@ -384,7 +389,7 @@ window.GNGCLAN = (function () {
     return '<div class="clmembers">' + (reqs.length ? '<h3>' + T('Richieste di ingresso', 'Join requests') + '</h3>' + reqs.map(r => '<article class="clreq"><b>' + esc(r.username) + '</b><small>' + r.science + ' ◆' + (r.message ? ' · «' + esc(r.message) + '»' : '') + '</small>' +
       '<div class="clacts"><button class="clbtn sm pri" data-cl="req" data-id="' + r.id + '" data-ok="1">' + T('Accetta', 'Accept') + '</button><button class="clbtn sm" data-cl="req" data-id="' + r.id + '" data-ok="0">' + T('Rifiuta', 'Reject') + '</button></div></article>').join('') : '') +
       '<h3>' + T('Membri', 'Members') + ' · ' + S.mine.members.length + '/' + S.mine.consortium.maxMembers + '</h3>' +
-      S.mine.members.map(m => '<article class="clmem">' + status(m.status) + '<div><b class="r-' + esc(m.role) + '">' + esc(m.username) + (m.username === myName() ? ' <small>(' + T('tu', 'you') + ')</small>' : '') + '</b><small>' + roleName(m.role) + ' · ' + m.science + ' ◆</small></div>' + memberActions(m) + '</article>').join('') + '</div>';
+      S.mine.members.map(m => '<article class="clmem">' + status(m.status) + '<div><b class="r-' + esc(m.role) + '">' + esc(m.username) + (m.username === myName() ? ' <small>(' + T('tu', 'you') + ')</small>' : '') + '</b><small>' + roleName(m.role) + ' · ' + m.science + ' ◆</small></div>' + watchBtn(m) + memberActions(m) + '</article>').join('') + '</div>';
   }
   function infoView() {
     const c = S.mine.consortium, ed = lead();
@@ -430,6 +435,7 @@ window.GNGCLAN = (function () {
       draw(); return;
     }
     if (a === 'share') { S.share = !S.share; draw(); return; }
+    if (a === 'watch') return watch(b.dataset.u);
     if (a === 'stk') {
       const code = b.dataset.k; if (!STICKERS[code] || Date.now() < S.coolUntil) return;
       popSticker(code); cooldown();
@@ -492,6 +498,128 @@ window.GNGCLAN = (function () {
     }
   }
 
+  /* ---------- spectate: guardare un compagno mentre gioca ---------- */
+  // Lo stato della partita viaggia compresso (gzip, base64). Senza CompressionStream si manda in chiaro.
+  const b64 = {
+    enc: u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); },
+    dec: s => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  };
+  async function pack(json) {
+    const raw = new TextEncoder().encode(json);
+    if (typeof CompressionStream === 'function') {
+      const buf = await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
+      return { enc: 'gz', data: b64.enc(new Uint8Array(buf)) };
+    }
+    return { enc: 'raw', data: b64.enc(raw) };
+  }
+  async function unpack(p) {
+    const u = b64.dec(p.data);
+    if (p.enc === 'gz') return new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    return new TextDecoder().decode(u);
+  }
+  const MAX_STATE = 160000;
+
+  // Chi gioca: un battito ogni 5 s (piccolo); se qualcuno guarda, con la partita. Gli sticker di chi guarda tornano nella risposta.
+  const LIVE = { t: 0, watched: false, since: 0, warned: false };
+  async function liveBeat() {
+    clearTimeout(LIVE.t);
+    let next = 5000;
+    try {
+      const snap = !DEMO && loggedIn() && member() && !W.user && host.liveState ? host.liveState() : null;
+      if (snap) {
+        const allowed = !(S.mine.me && S.mine.me.spectate === false), body = { view: snap.view, mission: snap.mission, since: LIVE.since };
+        if (LIVE.watched && allowed) {
+          const p = await pack(snap.json);
+          if (p.data.length <= MAX_STATE) body.state = p; else if (!LIVE.warned) { LIVE.warned = true; console.warn('spectate: game state too large', p.data.length); }
+        }
+        const r = await api('PUT', '/live', body);
+        if (r.status === 200) {
+          const was = LIVE.watched; LIVE.watched = !!r.data.watched; LIVE.since = r.data.lastId || LIVE.since;
+          (r.data.reactions || []).forEach((x, i) => setTimeout(() => popSticker(x.sticker, x.author, true), i * 1000));
+          if (LIVE.watched && !was) host.toast(T('Un compagno di consorzio ti sta guardando 👀', 'A teammate is watching you 👀'));
+          if (LIVE.watched) next = body.state ? 5000 : 300; // qualcuno ha appena cominciato a guardare: la partita parte subito
+        } else if (r.status === 404 || r.status === 401) next = 30000;
+      } else next = 5000; // nessuna richiesta in questo caso: si ricontrolla presto (per esempio appena entri in un consorzio)
+    } catch (e) { next = 15000; }
+    LIVE.t = setTimeout(liveBeat, next);
+  }
+
+  // Chi guarda: legge ogni 5 s; il gioco disegna la partita del compagno con il suo motore, a comandi spenti.
+  const VIEW_N = { hub: ['Campus', 'Campus'], admin: ['Amministrazione', 'Administration'], build: ['Costruzione', 'Assembly'], test: ['Prove', 'Testing'], mcc: ['Sala controllo', 'Mission control'], pad: ['Rampa di lancio', 'Launch pad'], fd: ['Dinamica del volo', 'Flight dynamics'] };
+  const W = { user: null, t: 0, key: '', got: false, view: '', mission: '', fails: 0, demo: null };
+  let spectEl = null, shieldEl = null;
+  function onSpectKey(e) {
+    if (!W.user || (spectEl && spectEl.contains(e.target))) return;
+    e.stopPropagation(); e.preventDefault();
+    if (e.key === 'Escape') stopWatch();
+  }
+  function spectBar() {
+    if (!spectEl) return;
+    const where = W.got ? (W.mission ? W.mission + ' · ' : '') + T(...(VIEW_N[W.view] || VIEW_N.hub)) : T('In collegamento…', 'Connecting…');
+    spectEl.innerHTML = '<span class="spl"><i class="spdot' + (W.got ? ' on' : '') + '"></i><span><b>' + esc(T('Stai guardando ', 'Watching ') + W.user) + '</b><small>' + esc(where) + '</small></span></span>' +
+      '<div class="clstks" role="group" aria-label="Sticker">' + Object.keys(STICKERS).map(k => '<button type="button" data-sp="stk" data-k="' + k + '" aria-label="' + esc(T(...STICKERS[k].n)) + '"' + (Date.now() < S.coolUntil ? ' disabled' : '') + '>' + stickerHTML(k, 34) + '</button>').join('') + '</div>' +
+      '<button class="clbtn" data-sp="exit">' + T('Esci', 'Leave') + '</button>';
+  }
+  function spectUI(on) {
+    injectCss();
+    if (on) {
+      if (!shieldEl) { shieldEl = document.createElement('div'); shieldEl.id = 'spectshield'; shieldEl.setAttribute('aria-hidden', 'true'); document.body.appendChild(shieldEl); }
+      if (!spectEl) {
+        spectEl = document.createElement('div'); spectEl.id = 'spect'; spectEl.setAttribute('role', 'region'); spectEl.setAttribute('translate', 'no'); document.body.appendChild(spectEl);
+        spectEl.addEventListener('click', e => {
+          const b = e.target.closest('[data-sp]'); if (!b) return;
+          if (b.dataset.sp === 'exit') return stopWatch();
+          if (b.dataset.sp === 'stk') react(b.dataset.k);
+        });
+      }
+      spectEl.setAttribute('aria-label', T('Spettatore', 'Spectator'));
+      shieldEl.hidden = spectEl.hidden = false; document.body.classList.add('spect');
+      document.addEventListener('keydown', onSpectKey, true);
+      spectBar();
+    } else {
+      if (spectEl) spectEl.hidden = true; if (shieldEl) shieldEl.hidden = true; document.body.classList.remove('spect');
+      document.removeEventListener('keydown', onSpectKey, true);
+    }
+  }
+  async function watch(name) {
+    if (!member() || W.user || !host.spectate) return;
+    W.demo = DEMO && host.liveState ? host.liveState() : null; // demo: la tua partita al posto di quella del compagno
+    close(); Object.assign(W, { user: name, key: '', got: false, view: '', mission: '', fails: 0 });
+    spectUI(true); await watchTick();
+  }
+  async function watchTick() {
+    clearTimeout(W.t); if (!W.user) return;
+    const name = W.user, r = await api('GET', '/live/' + encodeURIComponent(name));
+    if (W.user !== name) return;
+    if (r.status === 200) {
+      W.fails = 0; W.view = r.data.view || 'hub'; W.mission = r.data.mission || '';
+      let st = r.data.state, json = null;
+      if (r.data.demo && W.demo) { json = W.demo.json; W.view = W.demo.view; st = { data: 'demo' }; }
+      const key = st ? W.view + ':' + st.data.length + ':' + st.data.slice(-80) : '';
+      if (st && key !== W.key) {
+        try { if (!json) json = await unpack(st); if (W.user === name && host.spectate.show(JSON.parse(json), W.view)) { W.key = key; W.got = true; } }
+        catch (e) { console.warn('spectate: cannot read the game state', e); }
+      }
+      // finche' non arriva la prima immagine si chiede piu' spesso: chi gioca la manda appena sa di essere guardato
+      spectBar(); W.t = setTimeout(watchTick, W.got ? 5000 : 1500); return;
+    }
+    if ((r.status === 0 || r.status >= 500) && ++W.fails < 4) { W.t = setTimeout(watchTick, 5000); return; }
+    const e = r.data && r.data.error;
+    stopWatch(e === 'not_live' ? T(name + ' ha smesso di giocare.', name + ' stopped playing.') : e === 'spectate_off' ? T(name + ' ha disattivato lo spettatore.', name + ' turned spectating off.') : errText(r));
+  }
+  function stopWatch(msg) {
+    clearTimeout(W.t); if (!W.user) return;
+    W.user = null; W.demo = null; spectUI(false);
+    try { host.spectate.end(); } catch (e) {}
+    if (msg) host.toast(msg);
+    clearTimeout(LIVE.t); LIVE.t = setTimeout(liveBeat, 1000);
+  }
+  function react(code) {
+    if (!W.user || !Object.prototype.hasOwnProperty.call(STICKERS, code) || Date.now() < S.coolUntil) return;
+    popSticker(code, null, true); cooldown();
+    api('POST', '/mine/messages', { kind: 'sticker', sticker: code, to: W.user }).then(r => { if (r.status !== 201) host.toast(errText(r)); });
+  }
+
   /* ---------- badge dei non letti, anche a pannello chiuso ---------- */
   async function poll() {
     if (!loggedIn() || (S.open && S.tab === 'chat' && member())) return;
@@ -506,6 +634,7 @@ window.GNGCLAN = (function () {
     clearInterval(pollT);
     pollT = setInterval(() => { if (document.visibilityState !== 'hidden') poll().then(flushPending); }, 30000);
     setTimeout(() => { poll().then(flushPending); }, 2500);
+    clearTimeout(LIVE.t); LIVE.t = setTimeout(liveBeat, 4000);
   }
   function setDemo(on) { DEMO = !!on; try { if (on) localStorage.setItem('gng.clanDemo', '1'); else localStorage.removeItem('gng.clanDemo'); } catch (e) {} }
   const badgeHTML = () => '<b class="clbdg" data-clan-badge' + (S.unread ? '' : ' hidden') + '>' + (S.unread > 9 ? '9+' : S.unread || '') + '</b>';
@@ -620,6 +749,10 @@ window.GNGCLAN = (function () {
         if (counted) { db.me = (db.me || 0) + (body.points | 0); if (c && body.points > 0) { me.science += body.points | 0; c.science += body.points | 0; sys(c, { code: 'science', user: myName(), mission: body.name || '', points: body.points | 0 }); } }
         return R(200, { counted, player: { science: db.me }, consortium: c ? { science: c.science } : null });
       }
+      if (!c && p.startsWith('/live')) return R(404, { error: 'no_consortium' });
+      const live = p.match(/^\/live\/(.+)$/);
+      if (method === 'GET' && live) { const t = c.members.find(x => x.username === decodeURIComponent(live[1])); return t && t.status !== 'offline' ? R(200, { username: t.username, view: 'hub', mission: 'LUNA-ICE', state: null, demo: true }) : R(404, { error: 'not_live' }); }
+      if (method === 'PUT' && p === '/live') return R(200, { watched: false, reactions: [], lastId: 0 });
       if (method === 'POST' && p === '/mine/activity') { sys(c, { code: body.type, user: myName(), mission: body.mission }); return R(201, { posted: true }); }
       return R(404, { error: 'not_found' });
     }
@@ -633,7 +766,7 @@ window.GNGCLAN = (function () {
     s.textContent = `
 #clan{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;background:rgba(10,12,16,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
 #clan[hidden]{display:none}
-body.clan-open #tbub,body.clan-open #zq{display:none!important}
+body.clan-open #tbub,body.clan-open #zbtn,body.clan-open #zpanel{display:none!important}
 #clan .clw{width:min(980px,100%);height:min(620px,100%);display:flex;flex-direction:column;background:#15171D;color:#F1ECE6;border-radius:12px;box-shadow:0 0 0 2px #2E3442,0 20px 50px rgba(0,0,0,.6);overflow:hidden;font-size:14px}
 #clan .clh{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 12px;border-bottom:1px solid #262B36;flex:none}
 #clan .clt{display:flex;flex-direction:column;min-width:0;flex:1}
@@ -692,9 +825,29 @@ body.clan-open #tbub,body.clan-open #zq{display:none!important}
 #clan .clstks button{background:#222631;border:0;border-radius:10px;padding:3px;cursor:pointer;min-width:44px;min-height:44px;display:grid;place-items:center;transition:transform .08s}
 #clan .clstks button:active{transform:scale(.9)}#clan .clstks button:disabled{opacity:.4;cursor:default}
 #clpop{position:fixed;inset:0;z-index:152;display:grid;place-items:center;pointer-events:none}#clpop[hidden]{display:none}
-#clpop .clz{animation:clzpop 1.85s ease-out forwards;filter:drop-shadow(0 12px 26px rgba(0,0,0,.5))}
+#clpop .clpopin{display:flex;flex-direction:column;align-items:center;gap:8px;animation:clzpop 1.85s ease-out forwards}
+#clpop .clz{filter:drop-shadow(0 12px 26px rgba(0,0,0,.5))}
+#clpop .clpopby{background:rgba(21,23,29,.92);color:#fff;padding:4px 14px;border-radius:999px;font:700 15px/1.2 Inter,system-ui,sans-serif}
+#spectshield{position:fixed;inset:0;z-index:148;background:transparent;touch-action:none}
+#spectshield[hidden],#spect[hidden]{display:none}
+#spect{position:fixed;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:151;display:flex;align-items:center;gap:10px;background:rgba(21,23,29,.94);color:#F1ECE6;border-radius:14px;padding:6px 8px 6px 12px;box-shadow:0 0 0 2px #F07B3F,0 10px 30px rgba(0,0,0,.5);max-width:calc(100vw - 16px);font:14px/1.2 Inter,system-ui,sans-serif}
+#spect .spl{display:flex;align-items:center;gap:8px;min-width:0}
+#spect .spl>span{display:flex;flex-direction:column;min-width:0}
+#spect b,#spect small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#spect small{color:#ADA49C;font-size:12px}
+#spect .spdot{width:10px;height:10px;border-radius:50%;background:#7A736C;flex:none}
+#spect .spdot.on{background:#E5322B;animation:sppulse 1.4s infinite}
+@keyframes sppulse{0%{box-shadow:0 0 0 0 rgba(229,50,43,.55)}100%{box-shadow:0 0 0 9px rgba(229,50,43,0)}}
+#spect .clstks{display:flex;gap:4px}
+#spect .clstks button{background:#222631;border:0;border-radius:10px;padding:2px;cursor:pointer;min-width:40px;min-height:40px;display:grid;place-items:center}
+#spect .clstks button:disabled{opacity:.4;cursor:default}
+#spect .clbtn{background:#2A2F3B;color:#F1ECE6;border:0;border-radius:8px;padding:8px 14px;font:700 13px/1.1 inherit;cursor:pointer;min-height:38px}
+#spect button:focus-visible{outline:2px solid #7FD8CC;outline-offset:2px}
+body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect #coach,body.spect #chand,body.spect #clan{display:none!important}
+#clan .clwatch{background:rgba(229,50,43,.18);color:#FFB4AB;display:inline-flex;align-items:center;gap:4px}
+@media (max-width:520px){#spect .spl small{display:none}}
 @keyframes clzpop{0%{transform:scale(.3);opacity:0}12%{transform:scale(1.12);opacity:1}22%{transform:scale(1)}78%{opacity:1;transform:scale(1)}100%{transform:scale(.92) translateY(-18px);opacity:0}}
-@media (prefers-reduced-motion:reduce){#clpop .clz{animation:clzfade 1.85s linear forwards}@keyframes clzfade{0%,78%{opacity:1}100%{opacity:0}}}
+@media (prefers-reduced-motion:reduce){#clpop .clpopin{animation:clzfade 1.85s linear forwards}@keyframes clzfade{0%,78%{opacity:1}100%{opacity:0}}}
 #clan .clmis{display:flex;flex-direction:column;background:#15171D;border:1px solid #2E3442;border-radius:8px;padding:6px 10px}
 #clan .clmis em{font-style:normal;font-size:12px;font-weight:700}#clan .clmis em.ok{color:#5FD38D}#clan .clmis em.ko{color:#FF8A7E}
 #clan .clgone{color:#7A736C}
@@ -708,8 +861,8 @@ body.clan-open #tbub,body.clan-open #zq{display:none!important}
 #clan .clshare button{background:#222631;color:#F1ECE6;border:0;border-radius:6px;padding:8px;text-align:left;cursor:pointer}
 #clan .clside{flex:0 0 190px;background:#1C1F27;border-radius:10px;padding:4px 10px;overflow:auto}
 #clan .clside ul{list-style:none;margin:0;padding:0}
-#clan .clside li{display:grid;grid-template-columns:12px 1fr;column-gap:6px;padding:4px 0}
-#clan .clside li small{grid-column:2}
+#clan .clside li{display:grid;grid-template-columns:12px 1fr auto;align-items:center;column-gap:6px;padding:4px 0}
+#clan .clside li small{grid-column:2}#clan .clside li .clwatch{grid-row:span 2;padding:4px 8px;min-height:26px}
 #clan .cldot{width:9px;height:9px;border-radius:50%;background:#555B66;display:inline-block;align-self:center;flex:none}
 #clan .cldot.on{background:#5FD38D}#clan .cldot.play{background:#F2B83A;box-shadow:0 0 0 3px rgba(242,184,58,.25)}
 #clan .r-director{color:#F2B83A}#clan .r-vice{color:#7FD8CC}#clan .r-chief_engineer{color:#9DB8FF}
@@ -738,6 +891,6 @@ body.clan-open #tbub,body.clan-open #zq{display:none!important}
   }
 
   return { init, open, close, isOpen: () => S.open, unread: () => S.unread, badgeHTML, crestSVG, science, activity, setDemo,
-    stickerHTML, stickers: () => Object.keys(STICKERS),
-    _test: { sysText, errText, demo, state: S, loadMine } };
+    stickerHTML, stickers: () => Object.keys(STICKERS), watching: () => W.user, stopWatch: () => stopWatch(),
+    _test: { sysText, errText, demo, state: S, loadMine, pack, unpack } };
 })();

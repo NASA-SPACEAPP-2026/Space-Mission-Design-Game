@@ -13,10 +13,12 @@ const CMLN=['','Cocktail Napkin','Initial Feasibility','Trade Space','Point Desi
 function cmlOf(M){ if(!M) return null; const p=M.phase, n=p==='0'?(M.stage==='partners'?1:2):p==='A'?3:p==='B'?4:p==='C'||p==='D'?5:6; return {n, name:CMLN[n], mdl:MDLN[n]||null}; }
 const cmlTag=M=>{ const c=cmlOf(M); return c?'CML '+c.n+' · '+c.name+(c.mdl?' · MDL '+c.mdl:''):''; };
 let G=null, view='hub', sel=null, raf=0, teleTick=0; const evShown={};
+/* spectate (consorzio): mentre guardi un compagno qui c'e' la tua partita, e G e' la sua, in sola lettura */
+let SPECT=null;
 
 /* ---------- salvataggio ---------- */
 function payPhase(){ if(!G||G.tut||G.sandbox||!G.missions) return; G.missions.forEach(M=>{ if(M.tut) return; const ph=M.phase==='D'&&M.ready?'E':M.phase; if(['A','B','C','D','E'].indexOf(ph)<0) return; M.payd=M.payd||[]; if(M.payd.indexOf(ph)>=0) return; M.payd.push(ph); const p=Math.round(G.staff*SAL); if(p>0){ G.money-=p; setTimeout(()=>{ toast('Stipendi della '+PHN[ph]+' di '+M.name+': −'+keur(p)+' ('+G.staff+' dipendenti).'); hud(); },1400); } }); }
-function save(){ payPhase(); try{ localStorage.setItem('gng32.save',JSON.stringify(G)); }catch(e){} }
+function save(){ if(SPECT) return; /* mentre guardi un compagno G e' la sua partita: mai salvarla al posto della tua */ payPhase(); try{ localStorage.setItem('gng32.save',JSON.stringify(G)); }catch(e){} }
 function load(){ try{ const g=JSON.parse(localStorage.getItem('gng32.save')||'null'); if(g&&g.v===32) return g; }catch(e){} return null; }
 function now(){ return G.vt; }
 function clock(){ const r=Date.now(); G.vt+=(r-G.lastReal)*G.speed; G.lastReal=r; }
@@ -3529,10 +3531,22 @@ function riskMini(M){ const R=riskList(M), col=(p,i)=>p*i>=6?'#F2B8AE':p*i>=3?'#
   return s+'</svg>'; }
 /* consorzio (clan): bottone con il badge dei messaggi non letti; senza login apre l'invito a registrarsi */
 let CLANST={auth:false,member:false,unread:0,name:'',crest:null};
+/* spectate: viste che si possono mostrare senza lo stato temporaneo di chi gioca (stanza scelta, conto alla rovescia...) */
+const SPECT_VIEWS=['hub','admin','build','test','mcc','pad','fd'];
+function spectShow(remote,v){ if(!remote||typeof remote!=='object'||!Array.isArray(remote.missions)||!remote.world) return false;
+  if(!SPECT){ SPECT={g:G,view}; if(CUST) custSet(null); CPLACE=null; CSEL=null; $('#ov').hidden=true; $('#pop').hidden=true; try{ ZORTY.closeCustom(); }catch(e){} }
+  remote.cedit=false; G=remote; const nv=SPECT_VIEWS.indexOf(v)>=0?v:'hub';
+  if(nv!==view){ BROOM=null; BVIEW='room'; MCCV=null; RSEL=null; RPLACE=null; } view=nv; sel=null;
+  try{ render(); }catch(e){ view='hub'; try{ render(); }catch(e2){ console.warn('spectate',e2); } } return true; }
+function spectEnd(){ if(!SPECT) return; G=SPECT.g; view='hub'; BROOM=null; BVIEW='room'; MCCV=null; RSEL=null; RPLACE=null; sel=null; SPECT=null; render(); }
 function clanInit(){ if(!window.GNGCLAN) return; const en=()=>TX('it','en')==='en';
   GNGCLAN.init({ en, toast:t=>toast(t), sfx:k=>{ try{ sfx[k](); }catch(e){} },
     /* immagini di Zorty per gli sticker della chat */
     sprite:p=>(ZORTY.SPR&&ZORTY.SPR[p])||'',
+    /* spectate, chi gioca: dove sei e la tua partita (null se sei nel menu iniziale o stai guardando qualcuno) */
+    liveState:()=>{ if(!G||SPECT||$('#title')) return null; const M=cur(); return {view:SPECT_VIEWS.indexOf(view)>=0?view:'hub',mission:M?String(M.name||'').slice(0,24):'',json:JSON.stringify(G)}; },
+    /* spectate, chi guarda: la partita del compagno al posto della tua, finche' non esci */
+    spectate:{ show:spectShow, end:spectEnd, active:()=>!!SPECT },
     /* missioni concluse da condividere in chat come scheda */
     missions:()=>G.missions.filter(m=>m.phase==='done'&&!m.tut&&m.result).map(m=>{ const dn=(E.DEST[m.sat&&m.sat.dest]||{}).n||''; return {name:String(m.name||'').slice(0,24),type:String(m.type||'sci').slice(0,16),dest:String(en()?I18N.tr(dn):dn).slice(0,24),sci:Math.max(0,m.result.sci|0),months:Math.max(0,Math.min(600,m.result.months|0)),ok:!!m.result.ok}; }),
     onState:st=>{ const was=CLANST; CLANST=st; if(view==='hub'&&(was.member!==st.member||was.unread!==st.unread||was.name!==st.name||JSON.stringify(was.crest)!==JSON.stringify(st.crest))) C3.hall(st,cCtx().labels.council); } }); }
@@ -4730,7 +4744,7 @@ function folder(tab){ folder.tab=tab=tab||folder.tab||'mine'; const el=$('#drawe
     (tab==='mine'?(mine||'<div class="empty">Nessuna missione.</div>'):(board.length?board.map(m=>'<article class="entry"><div>'+m.stake.map(emb).join('')+'</div><div><b>'+esc(m.name)+'</b><div class="fine">'+esc(m.co)+' · '+esc(O.TYPES[m.ty].n)+' · '+esc(E.DEST[m.dest].n)+' · '+m.months+' mesi · '+m.reqs+' requisiti</div>'+(m.st?'<p class="stmt">'+esc(m.st)+'</p>':'')+'<div class="num">'+m.sci+' scienza</div>'+(m.mine||ISOWN?'<div class="row" style="margin-top:6px"><button class="btn small no" data-act="unpub" data-id="'+esc(m._id)+'">'+(m.mine?'Rimuovi la mia missione':'Rimuovi (moderazione)')+'</button></div>':'')+'</div></article>').join(''):'<div class="empty">'+(shared?'Nessuna missione pubblicata. Completa una missione e pubblicala: sarà la prima.':'La bacheca online si vede dalla pagina pubblicata.')+'</div>'))+'</div>'; el.hidden=false; }
 
 /* ---------- tempo che scorre ---------- */
-let TVS=0; function tick(){ if(!G) return; clock(); let dirty=false;
+let TVS=0; function tick(){ if(!G||SPECT) return; clock(); let dirty=false;
   { const hb=homeBlink(), h=$('#dock [data-act="home"]'); if(h&&h.classList.contains('blink')!==hb) h.classList.toggle('blink',hb); }
   G.missions.forEach(M=>{
     if(M.phase==='D'&&M.stage==='assembly'&&M.buildEnd&&now()>=M.buildEnd&&!M.buildNote){ M.buildNote=true; dirty=true; toast(M.name+': assemblaggio completato. Portalo al laboratorio prove.'); sfx.ok(); }
@@ -5273,7 +5287,7 @@ function tutBub(stp){ let b=$('#tbub'); const txt=stp&&stp.t?String(stp.t):'';
   if(!txt){ b.hidden=true; return; }
   if(txt!==tutBub.last){ tutBub.last=txt; b.querySelector('.tb-s').textContent=txt; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
   b.hidden=tutBub.closed===txt; }
-function coach(){ const box=$('#coach'), hand=$('#chand'); if(box&&!box.hidden) box.hidden=true; if(hand&&!hand.hidden) hand.hidden=true; const prev=document.querySelector('.coach-hl');
+function coach(){ if(SPECT) return; const box=$('#coach'), hand=$('#chand'); if(box&&!box.hidden) box.hidden=true; if(hand&&!hand.hidden) hand.hidden=true; const prev=document.querySelector('.coach-hl');
   if(document.body.classList.contains('ttl-on')||!G||!G.tut){ if(prev) prev.classList.remove('coach-hl'); tutBub(null); document.body.classList.toggle('tutmode',!!(G&&G.tut&&!document.body.classList.contains('ttl-on'))); return; }
   document.body.classList.add('tutmode'); G.sdSeen=G.sdSeen||{};
   const M=G.missions[0], nw=tutUnlock(); if(nw.length){ nw.forEach(k=>{ if(SD_NEW[k]) sdSay(SD_NEW[k][0],SD_NEW[k][1]); }); if(view==='hub') render(); }
@@ -5286,7 +5300,7 @@ function coach(){ const box=$('#coach'), hand=$('#chand'); if(box&&!box.hidden) 
   if($('#ov').hidden){ const k=tutKey(); if(SD_LINE[k]&&!G.sdSeen[k]){ G.sdSeen[k]=1; sdSay(SD_LINE[k][0],SD_LINE[k][1],k==='hub'); } }
   /* dopo 30 s senza azioni, un promemoria gentile se c'e' un passo evidenziato */
   if(el&&!SD.cur&&!SD.q.length&&Date.now()-SD.last>30000){ SD.last=Date.now(); const m=SD_IDLE[SD.ni++%SD_IDLE.length]; sdSay(m[0],m[1],SD.ni===1); } }
-setInterval(()=>{ if(G) coach(); },300);
+setInterval(()=>{ if(G&&!SPECT) coach(); },300);
 
 /* ---------- avvio ---------- */
 function newG(){ return {v:32,staff:12,sciTotal:0,labPos:[],rooms:{build:{plants:[{x:17,y:.4}]},clean:{plants:[]},test:{plants:[]},mcc:{plants:[{x:16.9,y:12.9}]}},world:CAM.defaultWorld(),flag:null,cedit:false,myBoard:[],tut:false,tutDone:false,fresh:[],pad:false,co:'',money:L.START_MONEY,xp:0,missions:[],cur:0,lab:[],plots:[],recruited:[],speed:1,vt:0,lastReal:Date.now()}; }
