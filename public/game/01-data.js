@@ -46,7 +46,7 @@ const E = (function () {
   };
   const dvK = d => { const L = LV[d.lv]; if (!L) return 1; return typeof L.dvK === 'number' ? L.dvK : (L.dvK[d.dest || 'leo'] != null ? L.dvK[d.dest || 'leo'] : 1); };
   const dvNeed = d => Math.round(DEST[d.dest || 'leo'].dv * dvK(d));
-  const skOf = d => (d.noProp ? 0 : DEST[d.dest || 'leo'].sk) * (d.skK || 1);
+  const skOf = d => d.noProp ? 0 : d.skMs != null ? d.skMs : DEST[d.dest || 'leo'].sk * (d.skK || 1); // d.skMs: ΔV mensile di mantenimento calcolato da GMAT (resistenza dell'atmosfera)
   const eclOf = d => d.eclH || M.eclH;
   const lvCost = d => { const L = LV[d.lv]; if (!L) return 0; return typeof L.c === 'number' ? L.c : (L.c[d.ride] || 0); };
   // ---------- pezzi dal database ----------

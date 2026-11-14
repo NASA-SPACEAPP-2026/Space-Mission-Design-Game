@@ -54,6 +54,37 @@ The scripts are classic scripts loaded in order, so the global bindings stay com
 the code is split. The next refactor step converts them to ES modules/TypeScript under `src/`
 (see [architecture](documentation/architecture.md)).
 
+## NASA GMAT (optional, automatic)
+
+The game asks NASA's [General Mission Analysis Tool](https://software.nasa.gov/software/GSC-19468-1) to compute
+the ΔV of every transfer, plus the real **eclipse time, ground-station contacts and orbit decay** of the player's
+working orbit around **Earth, the Moon, Mars and Venus** (shown in the *GMAT analysis* card of the Orbit Budget, the build gauges,
+the PDR and the report). A separate background job flies the orbit to re-entry (Earth, Mars), impact (Moon) or the atmosphere (Venus) to
+get the **orbit lifetime**: three solar-activity levels for Earth, and the end-of-life rule (re-entry within 5 years, or a drag sail,
+or a disposal burn) now depends on it.
+GMAT runs in a Docker container; `npm run dev` starts it for you (`scripts/gmat-up.mjs`). Without Docker the game
+quietly falls back to its own numbers, and every value says which source it came from.
+
+- First run pulls the prebuilt base image from GitHub Container Registry, or builds it once (about 420 MB download).
+- The base image is published by `.github/workflows/gmat-base-image.yml` (manual run, or when `docker/gmat/Dockerfile.base` changes).
+- After editing `scripts/gmat-*.mjs` or `public/game/02-orbit.js`: `docker compose restart gmat`.
+
+## Smoothness and quality
+
+The 3D campus renders at the screen's refresh rate, with the sun and moon crossing the sky (shadows follow them and anything that moves).
+A small quality governor lowers the pixel ratio and the shadow refresh rate if a device cannot keep up, and raises them again when it can.
+
+- `?perf=1` shows a small overlay (fps, frame time, draw calls, quality level).
+- `?q=0..3` forces a quality level (3 = best) for testing. The last level used is remembered in `localStorage` (`gngQ`).
+- `?mob=1` forces the mobile code paths on a desktop browser (1024 px shadow map, fewer and simpler walkers).
+- `prefers-reduced-motion` keeps the old low frame rate.
+
+## Standalone single-file build
+
+`npm run package:single` builds the game and writes **`Go No-Go.html`**: one file with the game script, CSS and fonts inlined, so it
+opens by double-click or from any static host. The soundtrack stays a separate file (`public/audio/theme.mp3`; for a movable folder use
+`node scripts/build-single-file.mjs --bundle out/`). Regenerate it whenever the source changes: it is not rebuilt automatically.
+
 ## Branches and deployment
 
 Work goes into `dev` through pull requests; every push to `dev` deploys to **staging**. Merging
