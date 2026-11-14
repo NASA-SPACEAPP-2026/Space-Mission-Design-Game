@@ -95,7 +95,8 @@ const O = (function () {
     const t2 = add(mul(th, Math.cos(d)), mul(crs(rh, th), Math.sin(d))), v2 = mul(t2, vm), dv = nrm(sub(v2, s.v)) * 1000;
     const out = elements(s.r, v2, B); return { el: { pe: out.pe, ap: out.ap, i: out.i, raan: out.raan, argp: out.argp }, dv, at: s.r, alt: rm - B.R }; }
 
-  function target(M) { const d = M.sat, B = BODY[d.dest || 'moon'], T = TYPES[M.type || 'sci'], z = zoneOf(M);
+  function target(M) { if (M.tutOrb) { const o = M.tutOrb; return { pe: [o.pe - 15, o.pe + 15], ap: [o.ap - 100, o.ap + 100], i: [o.i - 3, o.i + 3] }; }
+    const d = M.sat, B = BODY[d.dest || 'moon'], T = TYPES[M.type || 'sci'], z = zoneOf(M);
     if (z && z.moon && z.alt) return { pe: [Math.round(z.alt * 0.97), Math.round(z.alt * 1.03)], ap: [Math.round(z.alt * 0.97), Math.round(z.alt * 1.03)], i: [0, z.i + 3] };
     const band = z && z.band ? z.band : (z && z.surf ? ZONES[d.dest || 'moon'][0].band : [Math.round(B.R * 0.05), Math.round(B.R * 1.5)]), iR = z && z.iFix ? z.iFix.slice() : T.tgt ? T.tgt.i.slice() : [0, 180];
     if (T.tgt || z.surf) return { pe: band.slice(), ap: band.slice(), i: z.surf ? [0, 180] : iR };
@@ -104,7 +105,8 @@ const O = (function () {
   const mid = r => (r[0] + r[1]) / 2;
   function nominal(t) { const pe = mid(t.pe), ap = Math.max(pe, Math.min(t.ap[1], Math.max(t.ap[0], pe * 1.0001 + (t.ap[0] > pe ? (t.ap[0] - pe) * 1.15 : 0)))); return { pe, ap: Math.max(pe, ap), i: t.i[1] >= 180 ? 30 : mid(t.i), raan: 0, argp: 0 }; }
   // Orbita in cui ti lascia il lanciatore
-  function initial(M) { const d = M.sat, dest = d.dest || 'moon', t = target(M), L = E.LV[d.lv];
+  function initial(M) { if (M.tutOrb) { const o = M.tutOrb; return { el: { pe: o.pe, ap: o.ap, i: o.i, raan: 0, argp: 0 }, cap: 0, why: 'Il razzo per Marte frena per te e ti lascia già nell’orbita di lavoro: ' + o.pe + ' × ' + o.ap.toLocaleString('it-IT') + ' km, inclinata di ' + o.i + '°.' }; }
+    const d = M.sat, dest = d.dest || 'moon', t = target(M), L = E.LV[d.lv];
     if (L && L.surf) return { el: { pe: 100, ap: 100, i: 90, raan: 0, argp: 0 }, cap: 0, why: 'Il lander commerciale ti porta fino al suolo.' };
     const k = !L ? 1 : typeof L.dvK === 'number' ? L.dvK : (L.dvK[dest] != null ? L.dvK[dest] : 1);
     if (k === 0) { const n = t.debris ? { pe: t.debris.pe, ap: t.debris.ap, i: t.debris.i, raan: 0, argp: 0 } : nominal(t); if (!t.debris && work(M).slider) Object.assign(n, workEl(M, t)); return { el: n, cap: 0, why: 'Il lanciatore dedicato ti porta già nell’orbita di lavoro.' }; }

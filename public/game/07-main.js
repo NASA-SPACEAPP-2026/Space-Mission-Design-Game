@@ -32,6 +32,40 @@ const LANG='en';
 const I18N=(()=>{ const RAW=`Particelle solari in arrivo: il satellite è passato da solo in safe mode per proteggersi. Riaccendi gli strumenti per misurare la tempesta?	Solar particles incoming: the satellite switched to safe mode by itself to protect itself. Switch the instruments back on to measure the storm?
 Riaccendi e misura	Switch on and measure
 Resta in safe mode	Stay in safe mode
+Gli stakeholder chiedono questa finestra di lancio: accettala.	The stakeholders ask for this launch window: accept it.
+Il razzo ti lascia a {n} × {n} km: nessun’altra orbita serve, rispondi No.	The rocket drops you at {n} × {n} km: no other orbit is needed, answer No.
+Il razzo ti lascia a {n} km: nessun’altra orbita serve, rispondi No.	The rocket drops you at {n} km: no other orbit is needed, answer No.
+Fine missione: entro {n} anni l’orbita va liberata. Scegli il rientro.	End of mission: within {n} years the orbit must be cleared. Choose re-entry.
+Questo è lo schema base della tua missione. Premi OK.	This is the basic scheme of your mission. Press OK.
+Fase A: rientra nell’edificio amministrativo per scegliere il satellite. Tocca l’edificio sulla mappa.	Phase A: go back into the administration building to choose the satellite. Tap the building on the map.
+Il payload è il motivo per cui si vola: una camera che osserva Marte. Toccala per montarla.	The payload is why we fly: a camera that observes Mars. Tap it to mount it.
+La batteria tiene acceso il satellite quando passa nell’ombra di Marte (eclisse). Toccala.	The battery keeps the satellite on when it passes into the shadow of Mars (eclipse). Tap it.
+Da Marte la Terra è lontanissima: serve la radio in banda X per mandare i dati a casa. Toccala.	From Mars the Earth is very far away: you need the X-band radio to send the data home. Tap it.
+La radio in banda X va puntata con precisione verso la Terra: lo star tracker guarda le stelle e dice al satellite dove è girato. Toccalo.	The X-band radio must point precisely at the Earth: the star tracker looks at the stars and tells the satellite which way it is facing. Tap it.
+Marte non ha un campo magnetico utile: per orientare il satellite servono le ruote di reazione. Toccale.	Mars has no useful magnetic field: you need reaction wheels to point the satellite. Tap them.
+Il piccolo motore elettrico ha due compiti: a {n} km l’aria di Marte frena il satellite, quindi ogni mese lo riporta in quota; a fine missione abbassa l’orbita per il rientro. Toccalo.	The small electric thruster has two jobs: at {n} km the Martian air slows the satellite down, so every month it raises it back up; at the end of the mission it lowers the orbit for re-entry. Tap it.
+Rientro distruttivo nell’atmosfera di Marte.	Destructive re-entry into the Martian atmosphere.
+Il mio primo CubeSat su Marte: osservare il pianeta da un’orbita ellittica.	My first CubeSat at Mars: observing the planet from an elliptical orbit.
+Scegli un CubeSat 12U: dodici cubi da 10 cm. È l’unico che il razzo per Marte può portare.	Pick a 12U CubeSat: twelve 10 cm cubes. It is the only size the Mars rocket can carry.
+Il razzo per Marte ti lascia già nell’orbita di lavoro: {n} × {n} km, inclinata di {n}°. Nessuna manovra: a fine missione il piccolo motore abbassa l’orbita per il rientro. Chiedi la revisione PDR.	The Mars rocket drops you right into the working orbit: {n} × {n} km, inclined {n}°. No maneuvers: at the end of the mission the small thruster lowers the orbit for re-entry. Ask for the PDR review.
+Il razzo per Marte frena per te e ti lascia già nell’orbita di lavoro: {n} × {n} km, inclinata di {n}°.	The Mars rocket brakes for you and drops you right into the working orbit: {n} × {n} km, inclined {n}°.
+Tempesta solare! Scegli tu: cambi assetto per schermare la camera, e costa crediti, oppure la spegni e perdi i dati finché dura.	Solar storm! Your call: turn the satellite to shield the camera, which costs credits, or switch the camera off and lose data while it lasts.
+Tempesta solare: le particelle del Sole hanno mandato il satellite in safe mode. Puoi ruotarlo per mettere la camera all’ombra del suo corpo, oppure spegnere la camera finché la tempesta passa.	Solar storm: particles from the Sun have put the satellite in safe mode. You can turn it so the camera sits in the shadow of its body, or switch the camera off until the storm passes.
+Cambia assetto e scherma la camera	Change attitude and shield the camera
+la camera resta accesa	the camera stays on
+Spegni la camera	Switch the camera off
+gratis · niente scienza finché dura la tempesta	free · no science while the storm lasts
+niente scienza finché dura la tempesta	no science while the storm lasts
+Camera spenta: niente dati finché passa la tempesta.	Camera off: no data until the storm passes.
+Assetto cambiato: il corpo del satellite scherma la camera, che continua a osservare Marte.	Attitude changed: the satellite body shields the camera, which keeps observing Mars.
+Vogliamo osservare Marte: a bordo serve una camera di osservazione.	We want to observe Mars: an observation camera must be on board.
+Payload di osservazione a bordo	Observation payload on board
+Su Marte non si ripara niente: ogni pezzo a bordo deve avere TRL almeno 8, cioè già qualificato o provato in volo.	Nothing gets repaired at Mars: every part on board must be at least TRL 8, meaning already qualified or flight-proven.
+Su Marte non si ripara niente: ogni pezzo a bordo deve avere TRL almeno {n}, cioè già qualificato o provato in volo.	Nothing gets repaired at Mars: every part on board must be at least TRL {n}, meaning already qualified or flight-proven.
+Tutti i pezzi con TRL ≥ {n}	All parts at TRL ≥ {n}
+Regola dei 5 anni, anche su Marte: entro 5 anni dalla fine della missione il satellite deve rientrare nell’atmosfera. A 300 km l’aria di Marte è troppo sottile: serve un piccolo motore per abbassare l’orbita.	The 5-year rule applies at Mars too: within 5 years of the mission end the satellite must re-enter the atmosphere. At 300 km the Martian air is too thin: a small thruster is needed to lower the orbit.
+Regola dei {n} anni, anche su Marte: entro {n} anni dalla fine della missione il satellite deve rientrare nell’atmosfera. A {n} km l’aria di Marte è troppo sottile: serve un piccolo motore per abbassare l’orbita.	The {n}-year rule applies at Mars too: within {n} years of the mission end the satellite must re-enter the atmosphere. At {n} km the Martian air is too thin: a small thruster is needed to lower the orbit.
+Era una prova: non dà punti e non va in bacheca. Adesso parte la modalità che hai scelto, da zero: le richieste cambiano ogni volta e decidi tu.	It was a practice run: no points and nothing on the board. Now the mode you chose starts from scratch: requests change every time and you decide.
 Rientro nell’atmosfera	Atmospheric re-entry
 Ingresso nell’atmosfera	Atmosphere entry
 Impatto sulla superficie	Impact on the surface
@@ -3531,7 +3565,7 @@ function setHudH(){ const h=$('#hud'); if(h){ const b=h.getBoundingClientRect().
 function placeBub(){ const b=$('#mbub'), svg=$('#meetsvg'); if(!b||!svg||!svg.getScreenCTM) return; const m=svg.getScreenCTM(); if(!m) return; const pt=svg.createSVGPoint(); pt.x=+b.dataset.x; pt.y=+b.dataset.y; const q=pt.matrixTransform(m), sb=svg.getBoundingClientRect(), w=b.offsetWidth||260;
   b.style.left=Math.max(sb.left+w/2+8,Math.min(sb.right-w/2-8,q.x))+'px'; b.style.top=Math.max(($('#hud').getBoundingClientRect().bottom||60)+b.offsetHeight+8,q.y)+'px'; }
 addEventListener('resize',()=>{ setHudH(); placeBub(); });
-function render(){ cancelAnimationFrame(raf); const lvN=L.level(G.xp); G.missions.forEach(m=>{ m.lvlNow=lvN; m.padOwned=!!G.pad; }); hud(); const v=$('#view'); syncAgencies(); syncSite(); const v0=$('#view'); v0.className=''; v0.removeAttribute('style'); document.body.classList.add('fs'); if(cur()&&cur().phase==='done'&&view==='hub'&&$('#ov').hidden){ const ia=G.missions.findIndex(m=>m.phase!=='done'); if(ia>=0) G.cur=ia; } setHudH(); if(view!=='hub') C3.stop(); ({launch:vLaunchView,hub:vHub,admin:vAdmin,build:vBuild,test:vTest,mcc:vMcc,pad:vPad,fac:vFac,fd:vFD})[view](v); if(!v.classList.contains('scn')) v.classList.add('page'); addBack(v); IR3.sync(); setHudH(); setHeadH(); placeBub(); $('#dock').innerHTML=dockHTML(); if(G.tut) setTimeout(coach,0); try{ ZORTY.refresh(); }catch(e){} try{ MZOOM.close(); }catch(e){} if(view!=='mcc') document.body.classList.remove('decon'); save(); }
+function render(){ cancelAnimationFrame(raf); const lvN=L.level(G.xp); G.missions.forEach(m=>{ m.lvlNow=m.tut?Math.max(lvN,m.lvl||1):lvN; m.padOwned=!!G.pad; }); hud(); const v=$('#view'); syncAgencies(); syncSite(); const v0=$('#view'); v0.className=''; v0.removeAttribute('style'); document.body.classList.add('fs'); if(cur()&&cur().phase==='done'&&view==='hub'&&$('#ov').hidden){ const ia=G.missions.findIndex(m=>m.phase!=='done'); if(ia>=0) G.cur=ia; } setHudH(); if(view!=='hub') C3.stop(); ({launch:vLaunchView,hub:vHub,admin:vAdmin,build:vBuild,test:vTest,mcc:vMcc,pad:vPad,fac:vFac,fd:vFD})[view](v); if(!v.classList.contains('scn')) v.classList.add('page'); addBack(v); IR3.sync(); setHudH(); setHeadH(); placeBub(); $('#dock').innerHTML=dockHTML(); if(G.tut) setTimeout(coach,0); try{ ZORTY.refresh(); }catch(e){} try{ MZOOM.close(); }catch(e){} if(view!=='mcc') document.body.classList.remove('decon'); save(); }
 function addMoney(x,why){ G.money+=x; if(x>0) sfx.cash(); hud(); if(x){ const m=$('#hud .money'); if(m){ const r=m.getBoundingClientRect(), f=document.createElement('div'); f.className='mfloat '+(x>0?'p':'m'); f.textContent=(x>0?'+':'−')+keur(Math.abs(x)); f.style.right=(innerWidth-r.right+4)+'px'; f.style.top=(r.bottom+4+18*document.querySelectorAll('.mfloat').length)+'px'; document.body.appendChild(f); setTimeout(()=>f.remove(),1300); m.classList.remove('pulse'); void m.offsetWidth; m.classList.add('pulse'); } } if(why) toast(why); }
 
 /* ---------- edificio amministrativo ---------- */
@@ -3544,7 +3578,7 @@ function vAdmin(v){ let M=cur(); const rdy=G.missions.find(m=>m.phase==='D'&&m.r
 const RIDEC={};
 function rideFeas(M,k){ const acc=M.reqs.filter(x=>M.waived.indexOf(x.id)<0).map(x=>x.id), key=M.id+'|'+k+'|'+acc.join(','); if(key in RIDEC) return RIDEC[key];
   const Mx=Object.assign({},M,{rideFixed:true,sat:Object.assign({},M.sat,{ride:k})}); let ok=!!(M.wit&&M.wit.ride===k&&L.satOK(Mx,M.wit,acc)); if(!ok) try{ ok=!!(L.anySat(Mx,acc,400,0x77)||L.anySat(Mx,acc,800,0x78)); }catch(e){ ok=true; } return RIDEC[key]=ok; }
-function vSatType(v,M){ const lvN=L.level(G.xp), dest=M.sat.dest||'leo', why=k=>{ const R=E.RIDES[k]; if(lvN<R.lvl) return '🔒 livello '+R.lvl; if(!Object.keys(E.LV).some(l=>E.LV[l].fits.indexOf(k)>=0&&E.LV[l].dest.indexOf(dest)>=0&&!!E.LV[l].surf===L.landing(M))) return TX('nessun lanciatore per '+I18N.tr(E.DEST[dest].n)+' accetta questa taglia','no launcher to '+I18N.tr(E.DEST[dest].n)+' accepts this size'); if(!M.tut&&!rideFeas(M,k)) return '⚠ con i requisiti accettati non basta'; return ''; };
+function vSatType(v,M){ const lvN=Math.max(L.level(G.xp),M.tut?(M.lvl||1):0), dest=M.sat.dest||'leo', why=k=>{ const R=E.RIDES[k]; if(lvN<R.lvl) return '🔒 livello '+R.lvl; if(!Object.keys(E.LV).some(l=>E.LV[l].fits.indexOf(k)>=0&&E.LV[l].dest.indexOf(dest)>=0&&!!E.LV[l].surf===L.landing(M))) return TX('nessun lanciatore per '+I18N.tr(E.DEST[dest].n)+' accetta questa taglia','no launcher to '+I18N.tr(E.DEST[dest].n)+' accepts this size'); if(!M.tut&&!rideFeas(M,k)) return '⚠ con i requisiti accettati non basta'; return ''; };
   v.innerHTML=meetBg(M)+'<div class="head"><div><h3>Edificio amministrativo · Fase A</h3><h1>Che satellite costruisci?</h1></div></div>'+
     '<h3 style="margin:4px 0 8px">CubeSat</h3><div class="sts">'+Object.keys(E.RIDES).map(k=>{ const R=E.RIDES[k], w=why(k); return '<button class="stc'+(M.sat.ride===k&&M.rideFixed?' sel':'')+(w?' lock':'')+'" data-act="pickType" data-k="'+k+'"'+(w?' disabled':'')+'>'+structIcon(k)+'<b>'+R.n+'</b><span class="fine">'+R.s+'</span><ul class="kv"><li><span>Struttura</span><b>'+keur(R.c)+'</b></li><li><span>Massa massima</span><b>'+R.massLim+' kg</b></li><li><span>Griglia</span><b>'+R.cols+' × '+R.rows+' caselle</b></li></ul>'+(w?'<small class="lk">'+w+'</small>':'')+'</button>'; }).join('')+'</div>'+
     '<h3 style="margin:18px 0 8px">Altre classi</h3><div class="sts"><div class="stc lock"><b>Microsatellite</b><span class="fine">Classe ESPA, fino a circa 180 kg</span><small class="lk">🔒 in arrivo</small></div>'+
@@ -3636,7 +3670,7 @@ function benchPanel(M){ const C=G.missions.filter(m=>m.phase==='C'), soon=G.miss
 function cleanPanel(){ const A=G.missions.filter(m=>m.phase==='D'&&m.stage==='assembly');
   return '<div class="panel" id="cleanp"><h3 style="margin:0">In assemblaggio</h3><div class="mlist">'+(A.length?A.map(m=>{ const done=now()>=m.buildEnd, p=Math.min(1,1-(m.buildEnd-now())/(m.buildDur||L.TIME.build));
     return '<div class="mli'+(m===cur()?' on':'')+'" data-act="pick" data-id="'+m.id+'"><span><b>'+esc(m.name)+'</b><div class="fine" id="cl-t-'+m.id+'">'+(done?'integrazione completata':'integrazione '+pct(Math.max(0,p))+' · '+Math.ceil((m.buildEnd-now())/1000/G.speed)+' s')+'</div></span><span id="cl-a-'+m.id+'" data-s="'+(done?'d':'w')+'">'+(done?'<button class="btn small primary" data-act="cdrm" data-id="'+m.id+'">Al laboratorio →</button>':'')+'</span><div class="prog"><i id="cl-b-'+m.id+'" style="width:'+Math.max(0,p)*100+'%"></i></div></div>'; }).join(''):'<p class="fine">Nessun satellite in assemblaggio. Ci arrivano dopo la CDR, in fase D. Più satelliti possono essere assemblati insieme.</p>')+'</div></div>'; }
-function lvLock(k,M){ const o=E.LV[k], lv=L.level(G.xp); if(lv<o.lvl) return '🔒 livello '+o.lvl; if(o.pad&&!G.pad) return '🔒 costruisci la tua rampa di lancio'; return ''; }
+function lvLock(k,M){ const o=E.LV[k], lv=Math.max(L.level(G.xp),(M&&M.tut&&M.lvl)||0); if(lv<o.lvl) return '🔒 livello '+o.lvl; if(o.pad&&!G.pad) return '🔒 costruisci la tua rampa di lancio'; return ''; }
 const lvShown=(k,M)=>{ const o=E.LV[k]; return o.dest.indexOf(M.sat.dest||'leo')>=0&&!!o.surf===L.landing(M); };
 function lvCostTxt(o){ if(o.surf) return TX('1.200 cr per kg','1,200 cr per kg'); return typeof o.c==='number'?keur(o.c):TX('da ','from ')+keur(Math.min.apply(null,Object.keys(o.c).map(k=>o.c[k]))); }
 function vLaunchers(v,M){ const D=E.DEST[M.sat.dest||'leo'];
@@ -3729,7 +3763,7 @@ const drmIn=(M,h)=>{ const b=drmBand(M); return !!b&&h>=b[0]-1&&h<=b[1]+1; };
 const drmLand=M=>!!(E.LV[M.sat.lv]&&E.LV[M.sat.lv].surf);
 function drmInit(M){ if(M.drm&&M.drm.v===1) return M.drm; const r=drmRel(M), b=drmBand(M), mm=L.minMonths(M);
   const D={v:1,relMo:mm,star:-1,orbits:[],eol:null,done:false};
-  if(!(r.circ&&drmIn(M,(r.pe+r.ap)/2))&&b){ D.orbits.push({h:drmNice(Math.sqrt(b[0]*b[1])),mo:mm}); D.star=0; D.relMo=0; }
+  if(!M.tutOrb&&!(r.circ&&drmIn(M,(r.pe+r.ap)/2))&&b){ D.orbits.push({h:drmNice(Math.sqrt(b[0]*b[1])),mo:mm}); D.star=0; D.relMo=0; }
   M.drm=D; drmSync(M); return D; }
 function drmStarH(M){ const D=M.drm; if(!D) return null; if(D.star<0){ const r=drmRel(M); return (r.pe+r.ap)/2; } const o=D.orbits[D.star]; return o?o.h:null; }
 function drmSync(M){ const D=M.drm, b=drmBand(M), h=drmStarH(M); if(!D||!b||h==null) return; M.traj=M.traj||{}; if(D.star<0){ delete M.traj.frac; return; } M.traj.frac=Math.max(0,Math.min(1,(h-b[0])/(b[1]-b[0]))); }
@@ -4508,6 +4542,7 @@ function mccRefresh(full){ const M=cur(); if(view!=='mcc') return; const fl=M&&M
 // Il giocatore al posto dell'autopilota: ogni evento con più strade si ferma qui
 /* problema in volo con una soluzione consigliata: si paga in crediti per farla, altrimenti si sceglie l'opzione rischiosa */
 function decFix(M,p){ const ev=E.EV&&E.EV[p.id], fx=ev&&ev.fix; if(!fx) return ''; const ro=p.opts.find(o=>o.k===fx.k&&!o.off), rk=p.opts.find(o=>o.k===fx.risk); if(!ro||!rk) return ''; const c=fx.cost, poor=G.money<c;
+  if(fx.own) return '<div class="dops own"><button class="btn primary" data-act="decfix" data-k="'+fx.k+'" data-c="'+c+'"'+(poor?' disabled':'')+'><b>'+esc(ro.l)+' · −'+keur(c)+'</b><small>'+esc(ro.h||'')+(poor?' · '+TX('crediti insufficienti','not enough credits'):'')+'</small></button><button class="btn" data-act="decide" data-k="'+fx.risk+'"><b>'+esc(rk.l)+'</b><small>'+esc(rk.h||'')+'</small></button></div>';
   return '<p class="dfix">'+TX('Il controllo missione consiglia: ','Mission control recommends: ')+'<b>'+esc(ro.l)+'</b></p><div class="dops"><button class="btn primary" data-act="decfix" data-k="'+fx.k+'" data-c="'+c+'"'+(poor?' disabled':'')+'><b>'+TX('Fallo','Do it')+' · −'+keur(c)+'</b><small>'+esc(ro.h||'')+(poor?' · '+TX('crediti insufficienti','not enough credits'):'')+'</small></button><button class="btn" data-act="decide" data-k="'+fx.risk+'"><b>'+TX('Non farlo','Don’t')+'</b><small>'+esc(rk.h||'')+' · '+TX('rischi che la missione fallisca','you risk the mission failing')+'</small></button></div>'; }
 function decCard(M,fl){ const el=$('#dec'); if(!el){ document.body.classList.remove('decon'); return; } const p=fl&&fl.pending; if(!p){ document.body.classList.remove('decon'); if(!el.hidden){ el.hidden=true; el.dataset.k=''; } return; }
   document.body.classList.add('decon'); $('#toast').hidden=true; const key=M.id+p.m; if(el.dataset.k===key&&!el.hidden) return; el.dataset.k=key; el.hidden=false;
@@ -4656,7 +4691,7 @@ function nmSync(){ const z=O.ZONES[nmState.dest].find(x=>x.k===nmState.zone), ln
   $('#mtd').textContent=Array.from(sel.options).some(o=>o.disabled&&!(lnd&&['tel','com','deb'].indexOf(o.value)>=0))?O.TYPES[sel.value].s+' I tipi con il lucchetto non hanno ancora un payload o un propulsore adatto al tuo livello: si sbloccano salendo.':lnd?'On the surface the payload is a '+(z.surf?'rover':'lander with a drill')+': you need science, observation or demonstration missions.':O.TYPES[sel.value].s;
   const ms=$('#ms'); if(ms.dataset.auto==='1') ms.value=nmStmt(); }
 const maxActive=()=>L.maxActiveAt(L.level(G.xp)), activeN=()=>G.missions.filter(m=>m.phase!=='done').length;
-function newMission(){ if(activeN()>=maxActive()){ toast('Al livello '+L.level(G.xp)+' puoi gestire al massimo '+maxActive()+' missioni aperte. Chiudine una o sali di livello.'); sfx.bad(); return; } const el=$('#ov'), lv=L.level(G.xp); nmState.dest='leo'; nmState.zone='low';
+function newMission(){ if(tutFirst()) return; if(activeN()>=maxActive()){ toast('Al livello '+L.level(G.xp)+' puoi gestire al massimo '+maxActive()+' missioni aperte. Chiudine una o sali di livello.'); sfx.bad(); return; } const el=$('#ov'), lv=L.level(G.xp); nmState.dest='leo'; nmState.zone='low';
   el.innerHTML='<div class="rv wide" role="dialog" aria-modal="true"><div id="nmMain"><h3>Nuova missione</h3><h2>Che missione vuoi fare?</h2><div class="nm"><div><label for="mn">Titolo</label><input type="text" id="mn" maxlength="18" value="'+esc(['AURASAT','SELENE-1','LUX','ORBIS','ARTEMIDE','HERMES'][G.missions.length%6])+'">'+
     '<label for="mt" style="margin-top:14px">Tipo di missione</label><select id="mt">'+Object.keys(O.TYPES).map(k=>'<option value="'+k+'">'+O.TYPES[k].n+'</option>').join('')+'</select><p class="fine" id="mtd" hidden></p>'+
     '<label for="ms" style="margin-top:14px">Mission statement</label><textarea id="ms" rows="3" maxlength="280" data-auto="1"></textarea></div>'+
@@ -5087,11 +5122,13 @@ function rankModal(){ const me=G.sciTotal|0, li=leagueOf(me), nx=LEAGUES[li+1], 
 function pushRank(){ if(!db||!shared||!MYID||G.tut||G.sandbox||!(G.sciTotal>0)) return; db.collection('agencies').doc(MYID).set({co:String(G.co||'Agenzia').slice(0,28),sci:G.sciTotal|0,lg:leagueOf(G.sciTotal),ts:Date.now()}).catch(()=>{}); }
 function leagueUp(i){ sfx.stamp(); review({eb:'Nuova lega',name:'Lega '+LEAGUES[i][1],code:'—',nasa:'Promotion',body:'<div class="row" style="gap:14px;align-items:center">'+badge(i).replace('<svg ','<svg style="width:72px;height:72px" ')+'<p>La tua agenzia ha raggiunto <b>'+LEAGUES[i][0]+' punti scienza</b> ed entra nella <b>Lega '+LEAGUES[i][1]+'</b>.</p></div>',actions:'<button class="btn primary" data-act="rank">Vedi la classifica</button><button class="btn" data-act="closeov">Continua</button>'}); }
 /* ---------- tutorial: prima missione guidata, tutto fissato ---------- */
-const TUT={ seed:7, capC:320, parts:['BASE-DOSE','BASE-OBC','BASE-BAT20','BASE-UHF','BASE-MAG'], sol:'BASE-SOL3D',
-  layout:{ bat:{id:'BASE-BAT20',x:0,y:2,rot:1}, avi:{id:'BASE-OBC',x:1,y:5,rot:3}, ray:{id:'BASE-DOSE',x:1,y:0,rot:1}, com:{id:'BASE-UHF',x:1,y:1,rot:1}, adcs:{id:'BASE-MAG',x:0,y:5,rot:0} },
-  say:{ 'BASE-DOSE':'Il payload è il motivo per cui si vola: un dosimetro che misura la radiazione. Toccalo per montarlo in cima, verso lo spazio.',
-    'BASE-OBC':'Il computer di bordo comanda tutto il satellite. Toccalo.', 'BASE-BAT20':'La batteria tiene acceso il satellite quando passa nell’ombra della Terra (eclisse). Toccala.',
-    'BASE-UHF':'La radio UHF manda i dati a terra. Toccala.', 'BASE-MAG':'Le bobine magnetiche orientano il satellite usando il campo magnetico terrestre. Toccale.' } };
+/* tutorial su Marte: missione di osservazione, CubeSat 12U, orbita 300 × 2.145 km (e = 0,2) inclinata di 120° */
+const TUT={ seed:7, capC:4000, money:6000, lvl:12, orb:{pe:300,ap:2145,i:120}, parts:['BASE-CAM','BASE-OBC','BASE-BAT40','BASE-XBAND','BASE-STT','BASE-RW','BASE-EP'], sol:'BASE-SOL12D',
+  layout:{ ray:{id:'BASE-CAM',x:0,y:0,rot:0}, com:{id:'BASE-XBAND',x:1,y:0,rot:0}, nav:{id:'BASE-STT',x:2,y:0,rot:0}, avi:{id:'BASE-OBC',x:0,y:1,rot:0}, bat:{id:'BASE-BAT40',x:1,y:5,rot:0}, adcs:{id:'BASE-RW',x:2,y:5,rot:0}, prop:{id:'BASE-EP',x:0,y:4,rot:0} },
+  say:{ 'BASE-CAM':'Il payload è il motivo per cui si vola: una camera che osserva Marte. Toccala per montarla.',
+    'BASE-OBC':'Il computer di bordo comanda tutto il satellite. Toccalo.', 'BASE-BAT40':'La batteria tiene acceso il satellite quando passa nell’ombra di Marte (eclisse). Toccala.',
+    'BASE-XBAND':'Da Marte la Terra è lontanissima: serve la radio in banda X per mandare i dati a casa. Toccala.', 'BASE-STT':'La radio in banda X va puntata con precisione verso la Terra: lo star tracker guarda le stelle e dice al satellite dove è girato. Toccalo.', 'BASE-RW':'Marte non ha un campo magnetico utile: per orientare il satellite servono le ruote di reazione. Toccale.',
+    'BASE-EP':'Il piccolo motore elettrico ha due compiti: a 300 km l’aria di Marte frena il satellite, quindi ogni mese lo riporta in quota; a fine missione abbassa l’orbita per il rientro. Toccalo.' } };
 const once=(M,k)=>{ M.once=M.once||{}; if(M.once[k]) return false; M.once[k]=1; return true; };
 const costDue=M=>Math.max(0,E.budget(M.sat).cost-(M.lvPaid||0)-(M.partsCredit||0));
 const PHN2={'0':'pre-fase A · studi di concetto','A':'A · concetto e sviluppo tecnologico','B':'B · progetto preliminare','C':'C · progetto finale e fabbricazione','D':'D · assemblaggio, integrazione, prove e lancio'};
@@ -5113,13 +5150,13 @@ function backGo(){ const M=cur(), b=backInfo(M); if(!b||G.money<b.fee) return; c
   if(b.to==='B'){ M.lvPaid=0; M.lvFixed=false; M.phase='B'; M.stage='drm'; }
   if(b.to==='C'){ M.partsCredit=Math.round((M.partsVal||M.paid||0)*.6); M.tests={}; M.tr={}; M.defects=null; M.ready=false; M.buildEnd=0; M.phase='C'; M.stage='design'; }
   M.log=M.log||[]; M.backs=(M.backs||0)+1; sfx.leave(); go('hub'); toast('Sei tornato alla fase '+b.to+'.'); }
-function startTutorial(){ const M=L.newMission('FIRST FLIGHT','tut'+Date.now().toString(36)); Object.assign(M,{tut:true,first:true,seed:TUT.seed,capC:TUT.capC,type:'sci',zone:'low',stake:['nasa'],lvl:1,statement:'Il mio primo CubeSat: misurare la radiazione in orbita bassa.'});
-  M.sat.dest='leo'; M.sat.stake=M.stake; G.missions.push(M); G.cur=G.missions.length-1; G.tut=true; coach.ended=false; coach.mcr=false; view='hub'; render(); }
-function endTutorial(skipped){ const co=G.co, av=G.avatar, mu=G.music, bg=G.big; let prev=null; try{ prev=JSON.parse(localStorage.getItem('gngPrev')||'null'); localStorage.removeItem('gngPrev'); }catch(e){} if(prev){ G=prev; G.recruited=G.recruited||[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m)); closeOv(); view='hub'; render(); save(); coach(); toast(TX('Tutorial finito: torni alla tua partita.','Tutorial done: back to your game.')); return; } G=newG(); G.co=co; G.avatar=av; G.crew=[av||'giulia']; G.music=mu; G.big=bg; applyStartPerks(); G.tutDone=true; closeOv(); view='hub'; render(); save(); coach();
+function startTutorial(){ const M=L.newMission('FIRST FLIGHT','tut'+Date.now().toString(36)); Object.assign(M,{tut:true,first:true,seed:TUT.seed,capC:TUT.capC,type:'obs',zone:'low',stake:['nasa'],lvl:TUT.lvl,lvlNow:TUT.lvl,tutOrb:Object.assign({},TUT.orb),tutP:TUT.parts.concat([TUT.sol]),statement:'Il mio primo CubeSat su Marte: osservare il pianeta da un’orbita ellittica.'});
+  M.sat.dest='mars'; M.sat.lv='MARS'; M.sat.tutB=TUT.capC; M.lvFixed=true; M.sat.stake=M.stake; G.money=TUT.money; G.missions.push(M); G.cur=G.missions.length-1; G.tut=true; coach.ended=false; coach.mcr=false; view='hub'; render(); }
+function endTutorial(skipped){ const co=G.co, av=G.avatar, mu=G.music, bg=G.big; let prev=null; tutMark(); try{ localStorage.removeItem('gngPrev'); }catch(e){} /* il tutorial ora riparte sempre dalla modalità scelta: niente più partita parcheggiata */ if(prev){ G=prev; G.recruited=G.recruited||[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m)); closeOv(); view='hub'; render(); save(); coach(); toast(TX('Tutorial finito: torni alla tua partita.','Tutorial done: back to your game.')); return; } const af=G.after||{m:'career',diff:'normale'}; G=newG(); G.co=co; G.avatar=av; G.crew=[av||'giulia']; G.music=mu; G.big=bg; setupMode(af.m,af.diff); closeOv(); view='hub'; render(); save(); coach();
   if(skipped) toast(TX('Tutorial saltato. Crea la tua prima missione con il tasto + in basso a sinistra.','Tutorial skipped. Create your first mission with the + button bottom left.')); else setTimeout(newMission,200); }
 function tutEndModal(){ const M=G.missions[0], r=M.result||{};
   $('#ov').innerHTML='<div class="rv" role="dialog" aria-modal="true"><h3>Tutorial completato</h3><h2>'+(r.ok?'Primo volo riuscito!':'Fine del primo volo')+'</h2><p>Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (pre-fase A), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio, prove e lancio (D), operazioni in volo (E) e chiusura (F).</p>'+
-    '<p>Era una prova: non dà punti, non va in bacheca e la tua agenzia riparte da '+keur(L.START_MONEY)+', come se l’avessi saltato. Da adesso le missioni sono vere: le richieste cambiano ogni volta e decidi tu.</p><div class="row"><button class="btn primary" data-act="tutend">Crea la tua prima missione</button></div></div>'; $('#ov').hidden=false; }
+    '<p>Era una prova: non dà punti e non va in bacheca. Adesso parte la modalità che hai scelto, da zero: le richieste cambiano ogni volta e decidi tu.</p><div class="row"><button class="btn primary" data-act="tutend">Crea la tua prima missione</button></div></div>'; $('#ov').hidden=false; }
 let coachEl=null;
 function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d=M.sat, ph=M.phase, st=M.stage, ovOn=!$('#ov').hidden, S=(sel,t,n)=>({sel,t,n}), here=k=>view===k, go2=(k,t,n)=>view!=='hub'?S('[data-act="home"]',t.replace(/\.$/,'')+'. Prima torna al campus: tocca la casetta.',n):S('.b3h[data-k="'+k+'"],#camsvg .wobj[data-act="enter"][data-k="'+k+'"]',t.replace(/\.$/,'')+'. Tocca l’edificio sulla mappa.',n);
   if(ovOn){ const has=q=>$('#ov '+q);
@@ -5145,7 +5182,7 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
       return S('[data-act="yes"]','Ogni richiesta accettata diventa un requisito di missione (MIS). Accettala.',0); }
     return S('[data-act="endmeet"]','Hai i requisiti di missione. Chiudi la riunione: segue la revisione MCR.',1); }
   if(ph==='A'){ if(!here('admin')) return go2('admin','Fase A: rientra nell’edificio amministrativo per scegliere il satellite.',2);
-    if(st==='type') return S('[data-act="pickType"][data-k="S3"]','Scegli un CubeSat 3U: tre cubi da 10 cm, al massimo 6 kg.',2);
+    if(st==='type') return S('[data-act="pickType"][data-k="S12"]','Scegli un CubeSat 12U: dodici cubi da 10 cm. È l’unico che il razzo per Marte può portare.',2);
     return M.queue.length?S('[data-act="yes"]','Adesso parla lo staff tecnico: i suoi sono requisiti di sistema (SYS). Accetta.',2):S('[data-act="endmeet"]','Chiudi la riunione: segue la revisione SRR.',3); }
   if(ph==='B'){ const dr=M.drm||{};
     if(st==='sat'){ if(!here('build')) return go2('build','Passo 2: progetta il satellite nell’edificio di costruzione.',5);
@@ -5156,7 +5193,7 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
       return S('.assist [data-act="bstep"][data-k="orb"]','Il satellite è completo: massa, potenza ed eclisse sono in verde. Passa al passo 3, le orbite in dettaglio.',5); }
     if(st==='drm'&&ZD&&ZD.sel&&document.getElementById('zdlg')) return S(ZD.sel,ZD.tt,4);
     if(!here('fd')) return go2('fd',st==='orb'?'Passo 3: torna al Centro di dinamica del volo':'Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM).',4);
-    if(st==='orb') return S('.fdgo[data-act="pdrB"]','Il razzo ti lascia a 550 km, già nella fascia obiettivo: nessuna manovra, e il rientro avviene da solo per l’attrito dell’aria. Chiedi la revisione PDR.',5);
+    if(st==='orb') return S('.fdgo[data-act="pdrB"]','Il razzo per Marte ti lascia già nell’orbita di lavoro: '+M.tutOrb.pe+' × '+nf(M.tutOrb.ap)+' km, inclinata di '+M.tutOrb.i+'°. Nessuna manovra: a fine missione il piccolo motore abbassa l’orbita per il rientro. Chiedi la revisione PDR.',5);
     return S('.fdgo[data-act="mdredone"]','Orbite pronte. Premi Fatto per continuare con la fine vita.',4); }
   if(ph==='C'){ if(!here('build')) return go2('build','Fase C: il progetto si congela. Entra nell’edificio di costruzione.',6);
     if(BVIEW!=='yard') return S('#roomsvg [data-act="openyard"]','Tocca il banco di '+M.name+'.',6);
@@ -5172,7 +5209,8 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
     return S('[data-act="frr"]','Prova superata. Al livello 1 hai solo la tavola vibrante: gli altri macchinari si sbloccano salendo di livello. Chiedi la revisione FRR: decide se il satellite può volare.',8); }
   if(ph==='E'){ if(!here('mcc')) return go2('mcc','Il satellite è in orbita! Seguilo dalla sala controllo.',9);
     if(MCCV!=='wall') return S('#roomsvg [data-act="mccwall"]','Il satellite è in orbita! Tocca gli schermi della sala controllo per seguire la telemetria.',9);
-    const db=$('#dec:not([hidden]) [data-act="decide"]'); if(db) return S('#dec:not([hidden]) [data-act="decide"]','Un imprevisto: scegli tu cosa fare. Ogni opzione ha un costo e un rischio.',9);
+    const db=$('#dec:not([hidden]) [data-act="decide"]'); if(db&&!$('#dec:not([hidden]) .dops.own')) return S('#dec:not([hidden]) [data-act="decide"]','Un imprevisto: scegli tu cosa fare. Ogni opzione ha un costo e un rischio.',9);
+    if(db) return S('#dec:not([hidden]) .dops.own','Tempesta solare! Scegli tu: cambi assetto per schermare la camera, e costa crediti, oppure la spegni e perdi i dati finché dura.',9);
     return S(null,'Ogni mese il satellite raccoglie dati scientifici. Aspetta la fine della missione: nel tutorial il tempo scorre più veloce.',9); }
   if(ph==='F'){ if(!here('mcc')) return go2('mcc','Missione nominale compiuta: torna in sala controllo per la chiusura.',10); if(MCCV!=='wall') return S('#roomsvg [data-act="mccwall"]','Tocca gli schermi per seguire la chiusura della missione.',10); return S(null,'Fase F: la missione ha raggiunto la durata promessa. Il controllo missione chiude le operazioni e prepara il rientro.',10); }
   if(ph==='done') return S(null,'',10);
@@ -5192,10 +5230,10 @@ function tutItems(items){ if(!G||!G.tut) return items; tutUnlock(); const u=G.tu
 const SD_WHO={hale:{n:'Dr. Hale',f:()=>stakeFace('nasa')},giulia:{n:'Giulia',c:'giulia'},marco:{n:'Marco',c:'marco'},aiko:{n:'Aiko',c:'aiko'},kwame:{n:'Kwame',c:'kwame'}};
 const SD_LINE={ hub:['hale','Welcome to the agency. AURASAT is our first mission, and it starts with the stakeholders. Follow the glow.'],
   admin:['giulia','Take a seat. NASA, the scientists and the regulator each want something: accept what we can realistically deliver.'],
-  build:['marco','This is the workshop. Open the design bench and pick parts for AURASAT: a 3U is small, so watch mass and power.'],
+  build:['marco','This is the workshop. Open the design bench and pick parts for AURASAT: Mars is far from the Sun, so watch mass and power.'],
   yard:['marco','Drop the parts on the bench. If it doesn’t fit or doesn’t power up, it won’t fly.'],
   clean:['kwame','Clean room. Nothing leaves here until every part is on the satellite and checked.'],
-  fd:['aiko','Here we choose the orbit. Pick one that serves the science, and decide how AURASAT ends its life.'],
+  fd:['aiko','Here we plan the orbit around Mars. The rocket drops us right on it: decide how AURASAT ends its life.'],
   test:['kwame','We shake it and we check it. Install the vibration table and the functional bench, then run the tests.'],
   launch:['hale','Everything is in the rocket’s hands now. Take a breath: we are Go.'], pad:['hale','Everything is in the rocket’s hands now. Take a breath: we are Go.'],
   mcc:['aiko','First signal incoming. Watch the telemetry, and if something looks wrong, tell us.'] };
@@ -6783,11 +6821,17 @@ const HEXI={home:'<path d="M5 12L12 6l7 6"/><path d="M7 11v8h10v-8"/><path d="M1
 const hexB=(act,t,ic,on,extra)=>'<button class="hx6'+(on?' on':'')+'" data-act="'+act+'" title="'+t+'" aria-label="'+t+'"'+(extra||'')+'>'+ICO(({x:'close',build:'home'})[ic]||ic)+'</button>';
 /* ---------- schermate iniziali ---------- */
 let TTL={s:'main',mode:'career',diff:'normale',crew:'giulia',from:'title'};
+<<<<<<< HEAD
+/* il tutorial si fa una volta per giocatore: il segno resta anche se si cancella la partita (la chiave non comincia con "gng") */
+const TUTK='goNoGo.tutorialSeen', tutSeen=()=>{ try{ return localStorage.getItem(TUTK)==='1'; }catch(e){ return false; } }, tutMark=()=>{ try{ localStorage.setItem(TUTK,'1'); }catch(e){} };
+/* prima missione di un giocatore nuovo (anche dopo il login, che salta il menu): prima si fa il tutorial, poi riparte la stessa modalità da zero */
+function tutFirst(){ if(!G||G.tut) return false; if(tutSeen()) return false; if(G.missions.length||G.xp>0&&!G.sandbox){ tutMark(); return false; } const keep={co:G.co,av:G.avatar,mu:G.music,bg:G.big,m:G.sandbox?'sand':'career',diff:G.diff||'normale'}; G=newG(); G.co=keep.co; G.avatar=keep.av; G.crew=[keep.av||'giulia']; G.music=keep.mu; G.big=keep.bg; G.after={m:keep.m,diff:keep.diff}; closeOv(); sfx.ok(); startTutorial(); save(); return true; }
+=======
 /* L'account serve per entrare nel gioco (CONTINUA / NEW GAME). Il menu iniziale resta la homepage; il modulo account si apre sopra. */
 function gate(next){ if(window.gngUser) return true; if(window.gngRequireAccount) window.gngRequireAccount().then(u=>{ if(u) next(); }); return false; }
+>>>>>>> origin/dev
 function hasSave(){ return !!(G&&(G.tut||G.tutDone&&(G.missions.length||G.xp>0||G.co))); }
 const MODES=[
-  {k:'tut',n:'Tutorial',s:'Learn the basics with one guided mission, about 10 minutes.',ic:'<path d="M12 3l10 5-10 5L2 8z"/><path d="M6 10.5V16c3 2.5 9 2.5 12 0v-5.5"/><path d="M22 8v6"/>'},
   {k:'career',n:'Career',s:'Run your agency from one CubeSat to the stars. Level up to unlock new worlds.',ic:'<path d="M12 2c3 3 4 7 3 11l-3 3-3-3c-1-4 0-8 3-11z"/><path d="M9 13l-3 2 1 4 3-2M15 13l3 2-1 4-3-2M12 16v5"/>'},
   {k:'sand',n:'Creative',s:'Everything unlocked and unlimited credits. Build and experiment freely.',ic:'<path d="M12 3l2.5 5.5L20 10l-4.5 3.5L17 20l-5-3-5 3 1.5-6.5L4 10l5.5-1.5z"/>'}];
 const DIFFS=[['facile','Easy','More money, fewer faults'],['normale','Medium','The intended experience'],['difficile','Hard','Tight budget, hidden defects']];
@@ -6811,11 +6855,11 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
   else if(s==='modes'||s==='modes2'){ const car=TTL.mode==='career';
     h='<div class="tsec"><h2 class="tt">SELECT A MODE</h2>'+(hasSave()&&!G.tut?'<p class="twarn">A new game replaces your saved game.</p>':'')+'<div class="tmodes">'+MODES.map(m=>'<button class="tmode'+(TTL.mode===m.k?' sel':'')+'" data-act="tmode" data-k="'+m.k+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+m.ic+'</svg><b>'+m.n+'</b><small>'+m.s+'</small></button>').join('')+'</div>'+
       '<div class="tdiff'+(car?'':' off')+'"><span>DIFFICULTY</span>'+DIFFS.map(d=>'<button class="'+(TTL.diff===d[0]?'sel':'')+'" data-act="tdiff" data-k="'+d[0]+'"'+(car?'':' disabled')+'><b>'+d[1]+'</b><small>'+d[2]+'</small></button>').join('')+'</div></div>'+foot(1,'tnext','CHOOSE'); }
-  else if(s==='crew'){ const c=crewOf(TTL.crew), tut=TTL.mode==='tut';
+  else if(s==='crew'){ const c=crewOf(TTL.crew), tut=!tutSeen()&&!(G&&G.tutDone&&(G.missions.length||G.xp>0));
     h='<div class="tcrew"><div class="tcl"><h2 class="tt box">'+'CHOOSE YOUR CHARACTER'+'</h2><div class="tlist">'+CREW.map(x=>'<button class="trow'+(x.id===c.id?' sel':'')+'" data-act="tcrew" data-k="'+x.id+'">'+faceSVG(x)+'<span><b>'+x.n+'</b><small>'+TX(x.r[0],x.r[1])+'</small><em>'+TX(x.p[0],x.p[1])+'</em></span></button>').join('')+'</div></div>'+
       '<div class="tcr"><h2 class="tt">'+'YOUR CHARACTER</h2><div class="tbox tsel"><div class="tbig">'+faceSVG(c,'big')+'<div><b>'+c.n+', '+c.age+'</b><small>'+TX(c.r[0],c.r[1])+'</small><p>'+TX(c.d[0],c.d[1])+'</p><em>'+TX(c.p[0],c.p[1])+'</em></div></div>'+
       '<label for="tco">'+TX('Nome dell’agenzia','Agency name')+'</label><input type="text" id="tco" maxlength="28" value="" placeholder="'+TX('Es. Perigeo Labs','e.g. Perigeo Labs')+'" autocomplete="off">'+
-      (tut?'<p class="tnote">The character bonus applies from your first real game.</p>':'')+'</div></div></div>'+foot(1,'tstart',tut?TX('INIZIA IL TUTORIAL','START TUTORIAL'):TX('INIZIA','START')); }
+      (tut?'<p class="tnote">'+TX('Prima partita: si comincia con un breve tutorial guidato su Marte, poi parte la modalità che hai scelto.','First game: you start with a short guided tutorial on Mars, then the mode you chose begins.')+'</p>':'')+'</div></div></div>'+foot(1,'tstart',tut?TX('INIZIA IL TUTORIAL','START TUTORIAL'):TX('INIZIA','START')); }
   else if(s==='settings'){ const fsOk=document.fullscreenEnabled||document.webkitFullscreenEnabled;
     const row=(t,d,act,v)=>'<div class="tset"><span><b>'+t+'</b><small>'+d+'</small></span><button class="tsw'+(v===true?' on':'')+'" data-act="'+act+'">'+(v===true?'ON':v===false?'OFF':v)+'</button></div>';
     h='<div class="tsec narrow"><h2 class="tt">'+TX('IMPOSTAZIONI','SETTINGS')+'</h2><div class="tbox tsets">'+row(TX('Musica','Music'),TX('Tema principale in loop','Main theme on loop'),'tmusic',G.music!==false)+row(TX('Testo grande','Large text'),TX('Ingrandisce i testi di gioco','Makes game text larger'),'ttsize',!!G.big)+(fsOk?row(TX('Schermo intero','Full screen'),TX('Nasconde le barre del browser','Hides the browser bars'),'tfull',!!(document.fullscreenElement||document.webkitFullscreenElement)):'')+
@@ -6825,12 +6869,16 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
   el.className='ttl s-'+s+(inGame?' ingame':''); el.innerHTML=bg+h;
   const sel=el.querySelector('.tcard.sel,.trow.sel'); if(sel) sel.scrollIntoView({block:'nearest',inline:'center'}); }
 function beginGame(){ const m=TTL.mode, co=(($('#tco')&&$('#tco').value)||'Perigeo Labs').trim().slice(0,28)||'Perigeo Labs', av=TTL.crew, keepMusic=G.music, big=G.big;
-  if(m==='tut'){ try{ if(G&&G.tutDone&&(G.missions.length||G.xp>0)) localStorage.setItem('gngPrev',JSON.stringify(G)); }catch(e){} G=newG(); G.co=co; G.avatar=av; G.crew=[av]; G.music=keepMusic; G.big=big; closeTitle(); sfx.ok(); startTutorial(); return; }
+  const mode=m==='sand'?'sand':'career', dd=TTL.diff||'normale';
   try{ localStorage.removeItem('gngPrev'); }catch(e){}
-  G=newG(); G.co=co; G.avatar=av; G.crew=[av]; G.music=keepMusic; G.big=big; G.tutDone=true;
-  if(m==='sand'){ WDIFF='facile'; G.sandbox=true; G.diff='facile'; G.xp=L.LEVELS[L.LEVELS.length-1]+1; G.money=1000000; G.pad=true; ['factory','ground','rnd','office','visit'].forEach(k=>{ if(G.plots.indexOf(k)<0) G.plots.push(k); }); fixPlots(); }
-  else { const dd=TTL.diff||'normale'; WDIFF=dd; G.diff=dd; G.money=Math.round(L.START_MONEY*dif().money); applyStartPerks(); }
+  if(G&&G.tutDone&&(G.missions.length||G.xp>0)) tutMark(); /* chi ha già giocato prima di questa versione non rifà il tutorial */
+  G=newG(); G.co=co; G.avatar=av; G.crew=[av]; G.music=keepMusic; G.big=big;
+  if(!tutSeen()){ G.after={m:mode,diff:dd}; closeTitle(); sfx.ok(); startTutorial(); return; }
+  setupMode(mode,dd);
   closeTitle(); view='hub'; sfx.ok(); render(); save(); toast(m==='sand'?TX('Modalità libera: tutto sbloccato. Non conta per la classifica.','Sandbox: everything unlocked. Does not count for the leaderboard.'):TX('Crea la tua prima missione con il tasto + in basso a sinistra.','Create your first mission with the + button bottom left.')); }
+function setupMode(m,dd){ G.tutDone=true; delete G.after;
+  if(m==='sand'){ WDIFF='facile'; G.sandbox=true; G.diff='facile'; G.xp=L.LEVELS[L.LEVELS.length-1]+1; G.money=1000000; G.pad=true; ['factory','ground','rnd','office','visit'].forEach(k=>{ if(G.plots.indexOf(k)<0) G.plots.push(k); }); fixPlots(); }
+  else { WDIFF=dd||'normale'; G.diff=WDIFF; G.money=Math.round(L.START_MONEY*dif().money); applyStartPerks(); } }
 function applyStartPerks(){ const c=crewOf(G.avatar); if(c.k==='money') G.money+=c.v; if(c.k==='staff') G.staff+=c.v; }
 Object.assign(ACT,{
   ttl(t){ if(t.dataset.s==='modes'&&!gate(()=>ACT.ttl(t))) return; TTL.del=false; if(t.dataset.s==='modes2') TTL.s='modes'; openTitle(t.dataset.s==='modes2'?'modes':t.dataset.s, TTL.from); sfx.tap(); },
