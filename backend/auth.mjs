@@ -22,6 +22,15 @@ export async function passwordMatches(password, encoded) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 const publicUser = row => ({ id: row.id, username: row.username, email: row.email });
+const tokenOf = req => (req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith(`${cookieName}=`))?.slice(cookieName.length + 1) || '';
+async function userForToken(db, token) {
+  if (!/^[a-f0-9]{64}$/.test(token)) return null;
+  const result = await db.query(`SELECT u.id,u.username,u.email FROM users u JOIN sessions s
+    ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at > now()`, [hash(token)]);
+  return result.rows[0] || null;
+}
+// Shared with other API modules (consortia): the signed-in user of a request, or null.
+export const sessionUser = (db, req) => userForToken(db, tokenOf(req));
 
 export function createAuth({ db, origin, secure = true }) {
   if (!origin || new URL(origin).origin !== origin) throw new Error('APP_ORIGIN must be an exact origin');
@@ -36,12 +45,7 @@ export function createAuth({ db, origin, secure = true }) {
   function cookie(token, age) {
     return `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${age}${secure ? '; Secure' : ''}`;
   }
-  async function session(token) {
-    if (!/^[a-f0-9]{64}$/.test(token)) return null;
-    const result = await db.query(`SELECT u.id,u.username,u.email FROM users u JOIN sessions s
-      ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at > now()`, [hash(token)]);
-    return result.rows[0] || null;
-  }
+  const session = token => userForToken(db, token);
   async function limited(key, max) {
     const result = await db.query(`INSERT INTO auth_limits(key,attempts,expires_at)
       VALUES($1,1,now()+interval '15 minutes') ON CONFLICT(key) DO UPDATE SET
@@ -51,7 +55,7 @@ export function createAuth({ db, origin, secure = true }) {
     return result.rows[0].attempts > max;
   }
   return async (req, res, pathname) => {
-    const token = (req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith(`${cookieName}=`))?.slice(cookieName.length + 1) || '';
+    const token = tokenOf(req);
     try {
       if (pathname === '/api/auth/me' && req.method === 'GET') {
         await db.query('SELECT 1 FROM users LIMIT 0');

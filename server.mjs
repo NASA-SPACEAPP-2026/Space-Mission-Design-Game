@@ -17,6 +17,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { createBrotliCompress, createGzip } from "node:zlib";
 import { database } from './backend/database.mjs';
 import { createAuth } from './backend/auth.mjs';
+import { createConsortia } from './backend/consortia.mjs';
 
 export const DEFAULT_ROOT = resolve(fileURLToPath(new URL("./dist", import.meta.url)));
 
@@ -264,7 +265,7 @@ const proxyGmat = async (request, response, pathname, gmatUrl) => {
 };
 
 /**
- * @param {{ root?: string, health?: boolean, auth?: Function, gmatUrl?: string }} [options]
+ * @param {{ root?: string, health?: boolean, auth?: Function, consortia?: Function, gmatUrl?: string }} [options]
  */
 export const createStaticServer = (options = {}) => {
   const root = resolve(options.root ?? DEFAULT_ROOT);
@@ -274,6 +275,11 @@ export const createStaticServer = (options = {}) => {
     if (pathname.startsWith('/api/auth/')) {
       if (options.auth) return options.auth(request, response, pathname);
       sendJson(response, 503, { error: 'Account non configurati' });
+      return;
+    }
+    if (pathname === '/api/consortia' || pathname.startsWith('/api/consortia/')) {
+      if (options.consortia) return options.consortia(request, response, pathname);
+      sendJson(response, 503, { error: 'unavailable' });
       return;
     }
     if (GMAT_PATHS.has(pathname)) return proxyGmat(request, response, pathname, options.gmatUrl);
@@ -329,10 +335,11 @@ if (isMain) {
   const db = process.env.DATABASE_URL ? database() : null;
   if (process.env.NODE_ENV === 'production' && !db) throw new Error('DATABASE_URL is required in production');
   const auth = db ? createAuth({ db, origin: process.env.APP_ORIGIN, secure: process.env.NODE_ENV === 'production' }) : null;
+  const consortia = db ? createConsortia({ db, origin: process.env.APP_ORIGIN }) : null;
   // GMAT service: GMAT_URL if set (GMAT_URL=off disables it), else the shared default in gmat-service.json, so a fresh deployment works without any setting.
   let defaultGmat = ""; try { defaultGmat = JSON.parse(readFileSync(new URL("./gmat-service.json", import.meta.url), "utf8")).url || ""; } catch {}
   const gmatUrl = process.env.GMAT_URL === "off" ? "" : process.env.GMAT_URL || defaultGmat;
-  const server = createStaticServer({ auth, gmatUrl });
+  const server = createStaticServer({ auth, consortia, gmatUrl });
   server.listen(port, "0.0.0.0", () => {
     console.log(`Go No-Go static server on http://0.0.0.0:${port} (root: ${DEFAULT_ROOT})`);
   });

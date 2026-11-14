@@ -15,7 +15,7 @@ export function database(env = process.env) {
 }
 
 export async function migrate(db) {
-  const files = ['001-auth.sql', '002-username-accounts.sql'];
+  const files = ['001-auth.sql', '002-username-accounts.sql', '003-consortia.sql'];
   const sql = await Promise.all(files.map(file => readFile(new URL(`../db/${file}`, import.meta.url), 'utf8')));
   // Explicit ordered, repeatable migrations, including upgrades of existing databases.
   await db.query(`BEGIN; ${sql.join('\n')} COMMIT;`);
