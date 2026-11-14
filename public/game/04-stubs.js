@@ -215,7 +215,10 @@ const FD3 = (function () {
   function ring(el, B, n) { const out = []; for (let k = 0; k < n; k++) out.push(V(O.state(el, k * 360 / n, B).r, 1 / B.R)); return out; }
   function clear() { while (world.children.length) { const c = world.children[0]; world.remove(c); c.traverse(x => { if (x.geometry) x.geometry.dispose(); }); } picks = []; }
   function show(p, s, dest) { if (!R) init(); pl = p; sel = s || 0; const B = p.B, sc = 1 / B.R; clear();
-    if (bodyKey !== dest) { bodyKey = dest; body = new T.Mesh(new T.SphereGeometry(1, 48, 32), new T.MeshStandardMaterial({ map: tex(dest), roughness: 0.95 })); }
+    if (bodyKey !== dest) { bodyKey = dest; body = new T.Mesh(new T.SphereGeometry(1, 48, 32), new T.MeshStandardMaterial({ map: tex(dest), roughness: 0.95 }));
+      /* mappa NASA vera (public/tex), se si carica: sostituisce la texture disegnata dal codice */
+      const real = { leo: 'earth', moon: 'moon', mars: 'mars', venus: 'venus' }[dest], mb = body;
+      if (real && T.TextureLoader) new T.TextureLoader().load('tex/' + real + '.jpg', t => { if (T.sRGBEncoding) t.encoding = T.sRGBEncoding; mb.material.map = t; mb.material.needsUpdate = true; }); }
     world.add(body); if (dest === 'leo' || dest === 'venus') { const col = dest === 'leo' ? 0x6FB4FF : 0xFFE2A0; world.add(new T.Mesh(new T.SphereGeometry(1.012, 48, 32), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.10, depthWrite: false }))); world.add(new T.Mesh(new T.SphereGeometry(1.06, 48, 32), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.22, side: T.BackSide, blending: T.AdditiveBlending, depthWrite: false }))); }
     world.add(new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(0, -1.5, 0), new T.Vector3(0, 1.5, 0)]), new T.LineBasicMaterial({ color: 0x6B7785 })));
     let maxR = 2; const th = Math.max(0.012, 0.006 * (dist / 6));

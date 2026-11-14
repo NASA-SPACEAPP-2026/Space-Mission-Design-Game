@@ -3840,6 +3840,17 @@ function obPlayStep(n){ const now=performance.now(), dt=OBV.last?(now-OBV.last)/
 function obPos(el,B,nu){ const k=O.kep(el,B), [P,Q]=O.pqK(k), p=k.a*(1-k.e*k.e), r=p/(1+k.e*Math.cos(nu)), c=Math.cos(nu)*r, s=Math.sin(nu)*r; return [P[0]*c+Q[0]*s,P[1]*c+Q[1]*s,P[2]*c+Q[2]*s,r]; }
 function obItems(M,p){ const it=[]; p.orbits.forEach((o,k)=>{ if(o.mid) it.push({el:o.mid,col:OBMID,dash:[3,5],w:1.3,tag:''}); it.push({el:o.el,col:obCol(k),dash:[],w:k===OBSEL?3.2:k===p.si?2.4:1.7,tag:k===0?'R':String(k+1),star:k===p.si,k}); });
   if(p.eol){ if(p.eol.mid) it.push({el:p.eol.mid,col:OBMID,dash:[3,5],w:1.3,tag:''}); if(p.eol.el&&p.eol.el!==p.orbits[p.orbits.length-1].el) it.push({el:p.eol.el,col:OBFIN,dash:[7,5],w:1.7,tag:'F'}); } return it; }
+/* pianeta con le mappe NASA vere (public/tex): l'immagine equirettangolare si avvolge sulla sfera con la stessa rotazione delle orbite (az/tilt),
+   con la luce del Sole da in alto a sinistra. Si ridisegna solo quando cambiano vista o dimensione; finche' l'immagine non e' caricata resta il disegno a sfumatura. */
+const PTEX={}, GLB={c:null,key:''};
+function ptex(dest){ const k={leo:'earth',moon:'moon',mars:'mars',venus:'venus'}[dest]; if(!k) return null; let t=PTEX[k]; if(t) return t.ok?t:null; t=PTEX[k]={ok:false};
+  const im=new Image(); im.onload=()=>{ try{ const W=Math.min(1024,im.naturalWidth), H=Math.round(W/2), c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d'); x.drawImage(im,0,0,W,H); t.d=x.getImageData(0,0,W,H).data; t.w=W; t.h=H; t.ok=true; GLB.key=''; }catch(e){} }; im.src='tex/'+k+'.jpg'; return null; }
+function globe(dest,Rp,az,tilt){ const t=ptex(dest); if(!t||!(Rp>0)) return null; /* diametro a passi di 8 px e al massimo 480 px (poi ingrandito): poco lavoro e niente ricalcoli mentre lo zoom si assesta */ const R=Math.max(8,Math.min(240,Math.round(Rp/4)*4)), key=dest+'|'+R+'|'+az.toFixed(0)+'|'+tilt.toFixed(0); if(GLB.key===key) return GLB.c;
+  const S=R*2, c=GLB.c&&GLB.c.width===S?GLB.c:document.createElement('canvas'); c.width=S; c.height=S; const x=c.getContext('2d'), img=x.createImageData(S,S), o=img.data, D=Math.PI/180, ca=Math.cos(az*D), sa=Math.sin(az*D), ct=Math.cos(tilt*D), st=Math.sin(tilt*D), tw=t.w, th=t.h, td=t.d, L0=-.45, L1=.5, L2=.74, P2=2*Math.PI;
+  for(let py=0;py<S;py++){ const yy=(R-py-.5)/R; for(let px=0;px<S;px++){ const xx=(px+.5-R)/R, r2=xx*xx+yy*yy; if(r2>1) continue; const z=Math.sqrt(1-r2), y=yy*ct+z*st, Z=-yy*st+z*ct, X=xx*ca+y*sa, Y=-xx*sa+y*ca;
+    /* nel sistema del gioco il polo +Z punta verso il basso dello schermo: si gira la mappa di 180 gradi (Z e Y opposti) per avere il nord in alto senza specchiarla */ const u=Math.atan2(-Y,X)/P2+.5, v=.5+Math.asin(Z>1?1:Z<-1?-1:Z)/Math.PI, ti=((Math.min(th-1,(v*th)|0))*tw+Math.min(tw-1,(u*tw)|0))*4, d=xx*L0+yy*L1+z*L2, sh=.18+1.0*(d>0?d:0), i=(py*S+px)*4;
+    o[i]=Math.min(255,td[ti]*sh); o[i+1]=Math.min(255,td[ti+1]*sh); o[i+2]=Math.min(255,td[ti+2]*sh); o[i+3]=r2>.985?Math.round(255*(1-(r2-.985)/.015)):255; } }
+  x.putImageData(img,0,0); GLB.c=c; GLB.key=key; return c; }
 function obDraw(){ const cv=$('#obcv'), M=cur(); if(!cv||!M||!document.body.contains(cv)) return false; const p=O.plan(M), B=obBody(M), dest=M.sat.dest||'leo', W=cv.clientWidth, H=cv.clientHeight, dpr=Math.min(2,window.devicePixelRatio||1);
   if(!W||!H) return true; if(cv.width!==Math.round(W*dpr)) { cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); } const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
   g.fillStyle='#050912'; g.fillRect(0,0,W,H); for(let k=0;k<120;k++){ const a=Math.sin(k*91.7)*43758.5, b=Math.sin(k*12.9)*24634.6; g.fillStyle='rgba(200,215,240,'+(0.2+((k*37)%10)/25)+')'; g.fillRect((a-Math.floor(a))*W,(b-Math.floor(b))*H,1.2,1.2); }
@@ -3849,7 +3860,7 @@ function obDraw(){ const cv=$('#obcv'), M=cur(); if(!cv||!M||!document.body.cont
   const A=O.ATMH[dest], atmR=A?(B.R+A[1])*sc:0;
   const pal={leo:['#4b8fd1','#14416f'],moon:['#c4c4ca','#5e5e66'],mars:['#d9744a','#7a2a0c'],venus:['#ecd08e','#9c7a3c']}[dest]||['#888','#444'];
   if(A){ const ga=g.createRadialGradient(cx,cy,Rp,cx,cy,atmR); ga.addColorStop(0,'rgba(120,190,255,.35)'); ga.addColorStop(1,'rgba(120,190,255,0)'); if(dest!=='leo'){ ga.addColorStop(0,'rgba(255,170,110,.35)'); } g.fillStyle=ga; g.beginPath(); g.arc(cx,cy,atmR,0,7); g.fill(); }
-  const gr=g.createRadialGradient(cx-Rp*.35,cy-Rp*.35,Rp*.1,cx,cy,Rp); gr.addColorStop(0,pal[0]); gr.addColorStop(1,pal[1]); g.fillStyle=gr; g.beginPath(); g.arc(cx,cy,Rp,0,7); g.fill();
+  { const gl=globe(dest,Rp,OBV.az,OBV.tilt); if(gl) g.drawImage(gl,cx-Rp,cy-Rp,Rp*2,Rp*2); else { const gr=g.createRadialGradient(cx-Rp*.35,cy-Rp*.35,Rp*.1,cx,cy,Rp); gr.addColorStop(0,pal[0]); gr.addColorStop(1,pal[1]); g.fillStyle=gr; g.beginPath(); g.arc(cx,cy,Rp,0,7); g.fill(); } }
   g.strokeStyle='rgba(255,255,255,.22)'; g.lineWidth=1; g.beginPath(); g.ellipse(cx,cy,Rp,Math.max(.5,Rp*ct),0,0,7); g.stroke();
   const stroke=it=>{ const k=O.kep(it.el,B), [P,Q]=O.pqK(k), pp=k.a*(1-k.e*k.e), n=360; let pen=false, last=null;
     for(let j=0;j<=n;j++){ const nu=j/n*2*Math.PI, r=pp/(1+k.e*Math.cos(nu)), c=Math.cos(nu)*r, s=Math.sin(nu)*r, q=proj([P[0]*c+Q[0]*s,P[1]*c+Q[1]*s,P[2]*c+Q[2]*s]), inA=A&&r<B.R+A[1], bad=r<B.R;
