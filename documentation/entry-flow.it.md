@@ -40,6 +40,8 @@ Il migratore applica nell'ordine `001-auth.sql` e `002-username-accounts.sql` de
 
 In un ambiente già attivo applicare la migrazione prima di distribuire il nuovo backend. Il programma non la esegue all'avvio. La registrazione API usa ora `{username,password}`; il campo email resta facoltativo per compatibilità e l'accesso API con email esistente continua a funzionare.
 
+La porta host di PostgreSQL è configurabile con `POSTGRES_PORT` (default `5432`). Se scegli `15432`, aggiorna anche la porta in `DATABASE_URL` e riesegui `docker compose -f compose.yaml up -d --wait postgres`. Il `.env` locale non va committato.
+
 ## Verifiche
 
 `npm run check` esegue test, build e verifica del bundle. I test account coprono anche registrazioni senza email, più utenti senza email, unicità senza distinzione di maiuscole e compatibilità dei login precedenti.

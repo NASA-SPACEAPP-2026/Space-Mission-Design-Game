@@ -40,6 +40,8 @@ The migration runner applies `001-auth.sql`, then `002-username-accounts.sql`, i
 
 For an existing environment, apply migration before deploying the new backend. Startup does not run it automatically. The registration API now uses `{username,password}`; email remains optional for compatibility, and API login with an existing email still works.
 
+The PostgreSQL host port is configurable with `POSTGRES_PORT` (default `5432`). If choosing `15432`, also update the port in `DATABASE_URL` and rerun `docker compose -f compose.yaml up -d --wait postgres`. Never commit local `.env`.
+
 ## Validation
 
 `npm run check` runs tests, build, and bundle verification. Account tests also cover registration without email, multiple email-less users, case-insensitive uniqueness, and existing login compatibility.

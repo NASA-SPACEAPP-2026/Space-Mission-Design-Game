@@ -2,6 +2,8 @@
 import { PGlite } from '@electric-sql/pglite';
 import { chromium } from 'playwright-core';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { createStaticServer } from '../server.mjs';
 import { createAuth } from '../backend/auth.mjs';
 import { migrate } from '../backend/database.mjs';
@@ -76,6 +78,21 @@ try {
   assert.equal(await failed.locator('#view').innerHTML(),'');
   assert.ok(await failed.locator('#account-message').innerText());
   await other.close();
+  // Exercise the regular gameplay smoke against this disposable server/account too.
+  const gameplay = await promisify(execFile)(process.execPath, ['scripts/smoke.mjs'], {
+    env: {...process.env, BASE_URL:origin, GNG_USERNAME:'BrowserPilot', GNG_PASSWORD:'my unique browser password 123'},
+    timeout:60000
+  });
+  console.log(gameplay.stdout);
+  const english = await browser.newContext({reducedMotion:'reduce'});
+  await english.addInitScript(()=>localStorage.setItem('gngLang','en'));
+  const keyboard = await english.newPage();
+  await keyboard.goto(origin);
+  await keyboard.locator('#entry-splash').focus();
+  await keyboard.keyboard.press('Enter');
+  await keyboard.locator('#entry-panel').waitFor({state:'visible'});
+  assert.equal(await keyboard.locator('#account-submit').textContent(),'Create account & play');
+  await english.close();
   assert.deepEqual(errors,[]);
   console.log('Entry smoke passed: artwork, persistent splash and click transition, username-only signup, direct game entry, session reload, logout, wrong password, service failure, mobile, cookies. Screenshots in dist/entry-*.png');
 } finally { if(browser) await browser.close(); await new Promise(resolve=>server.close(resolve)); await db.close(); }

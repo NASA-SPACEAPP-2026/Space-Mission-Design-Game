@@ -79,11 +79,11 @@ try {
     problems.push("HUD did not render after starting a game");
   }
 
-  await page.screenshot({ path: "/tmp/gng-smoke.png", fullPage: false });
+  await page.screenshot({ path: "dist/game-smoke.png", fullPage: false });
   console.log(`Smoke test at ${baseUrl}`);
   console.log(`Title: ${await page.title()}`);
   console.log(`HUD: ${hud.replace(/\s+/g, " ").slice(0, 160)}`);
-  console.log("Screenshot: /tmp/gng-smoke.png");
+  console.log("Screenshot: dist/game-smoke.png");
 
   if (problems.length) {
     console.error("Problems:");
