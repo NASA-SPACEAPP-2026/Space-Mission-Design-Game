@@ -81,9 +81,9 @@ A small quality governor lowers the pixel ratio and the shadow refresh rate if a
 
 ## Standalone single-file build
 
-`npm run package:single` builds the game and writes **`Go No-Go.html`**: one file with the game script, CSS and fonts inlined, so it
-opens by double-click or from any static host. The soundtrack stays a separate file (`public/audio/theme.mp3`; for a movable folder use
-`node scripts/build-single-file.mjs --bundle out/`). Regenerate it whenever the source changes: it is not rebuilt automatically.
+`npm run package:single` builds the game and writes **`dist/Go No-Go.html`**: one file with the game script, CSS and fonts inlined, so it
+opens by double-click or from any static host. The soundtrack stays a separate file (`dist/audio/theme.mp3`; for a movable folder use
+`node scripts/build-single-file.mjs --bundle out/`). The standalone file is generated and not tracked; make changes in `index.html` and `public/game/`.
 
 ## Branches and deployment
 
