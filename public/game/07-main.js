@@ -1038,6 +1038,8 @@ Trascina lo sfondo per girare la vista, rotella o due dita per lo zoom. Trascina
 Trascina {s} su un macchinario per provarlo ({n} cr a prova). Ogni prova scopre un tipo di difetto prima che lo scopra lo spazio.	Drag {s} onto a machine to test it ({n} cr per test). Every test uncovers a type of defect before space does.
 Trascinalo su un macchinario	Drag it onto a machine
 Trascinalo su una postazione	Drag it onto a station
+Toccalo per metterlo sul tavolo	Tap it to put it on the table
+Tocca o trascina il satellite	Tap or drag the satellite
 Tratto {n}	Leg {n}
 Tubo di calore stampato in {n}D	{n}D-printed heat pipe
 Tubo di calore stampato in {n}D per CubeSat.	{n}D-printed heat pipe for CubeSats.
@@ -4249,7 +4251,7 @@ function cleanStations(){ const SZ={S3:1.5,S6:1.9,S12:2.2}, cols=['#45A9A3','#EB
     out[i]={id:m.id,label:m.name+' · '+(p>=1?'pronto ✓':pct(Math.max(0,p))),size:SZ[m.sat.ride]||1.5,n:Math.max(1,Math.min(5,Math.ceil(p*5))),col:cols[i],img:satImg(m,p>=1?nc:n)}; }); return out; }
 function vCleanroom(v,M){ const A=G.missions.filter(m=>m.phase==='D'&&m.stage==='assembly'&&!m.asmWait);
   v.innerHTML='<div class="head"><div><h3>Edificio di costruzione · Fase D</h3><h1>Camera bianca</h1><div class="rtabs"><button class="btn small" data-act="broom" data-k="build">Officina</button><button class="btn small on" data-act="broom" data-k="clean">Camera bianca</button></div></div></div>'+
-    stage(roomBox('clean',{stations:cleanStations()},(()=>{ const W=G.missions.filter(m=>m.phase==='D'&&m.stage==='assembly'&&m.asmWait), m=W.indexOf(cur())>=0?cur():W[0]; return m?dsatHTML('clean',m,'Trascinalo su una postazione'):''; })()),'rbx'); scn(v,{}); }
+    stage(roomBox('clean',{stations:cleanStations()},(()=>{ const W=G.missions.filter(m=>m.phase==='D'&&m.stage==='assembly'&&m.asmWait), m=W.indexOf(cur())>=0?cur():W[0]; return m?dsatHTML('clean',m,'Toccalo per metterlo sul tavolo'):''; })()),'rbx'); scn(v,{}); }
 function cleanSat(M,only){ if(!S3.ok) return satSVG(M.sat,{only}); return '<img src="'+S3.snap(M.sat,420,{only,png:true})+'" alt="Satellite in integrazione" style="width:100%;display:block">'; }
 function cleanUpdate(){ if(view!=='build') return; { const h3=$('#roomsvg'); if(h3&&h3.hasAttribute('data-3d')){ if(h3.dataset.room==='clean'&&!RPLACE){ const st3=cleanStations(), k3=st3.map(x=>x?x.label+(x.img?'i':''):'-').join(','); if(h3.dataset.k3!==k3){ h3.dataset.k3=k3; IR3.update('clean',roomSt('clean',{stations:st3})); } } return; } } const st=cleanStations(), key=st.map(x=>x?x.label+(x.img?'i':''):'-').join(','), svg=$('#roomsvg'); if(svg&&svg.dataset.room==='clean'&&svg.dataset.k!==key&&!RPLACE){ svg.dataset.k=key; svg.innerHTML=(()=>{ const st0=roomSt('clean',{stations:st}); IR.setWalkers(wkScene('clean',st0)); return IR.clean(st0); })()+'<g id="rghost"></g>'; } }
 
@@ -4922,17 +4924,19 @@ let RPLACE=null, RSEL=null, MCCV=null, BROOM=null, BVIEW='room', RANK=[];
 const SNAPC={};
 function satImg(M,n){ if(!S3.ok||!M) return null; const cats=Object.keys(M.sat.placed); n=n==null?cats.length:Math.max(1,Math.min(cats.length,n)); const key=M.id+'|'+n+'|'+cats.map(c=>M.sat.placed[c].id).join(',')+'|'+(M.sat.sol||''); if(key in SNAPC) return SNAPC[key];
   try{ SNAPC[key]=S3.snap(M.sat,220,{only:cats.slice(0,n),png:true}); }catch(e){ SNAPC[key]=null; } return SNAPC[key]; }
-function dsatHTML(kind,M,hint){ const img=satImg(M); return '<div class="dsat" data-drag="'+kind+'" data-id="'+M.id+'" title="Trascina il satellite">'+(img?'<img src="'+img+'" alt="">':'<div class="ph">🛰</div>')+'<b>'+esc(M.name)+'</b><small>'+hint+'</small></div>'; }
+function dsatHTML(kind,M,hint){ const img=satImg(M); return '<div class="dsat" data-drag="'+kind+'" data-id="'+M.id+'" title="Tocca o trascina il satellite">'+(img?'<img src="'+img+'" alt="">':'<div class="ph">🛰</div>')+'<b>'+esc(M.name)+'</b><small>'+hint+'</small></div>'; }
 function dTargets(kind,id){ const M=G.missions.find(m=>m.id===id); if(!M) return [];
   if(kind==='clean'){ const st=cleanStations(); return $$('#roomsvg [data-act="station"]').filter(g=>!st[+g.dataset.i]); }
   const run=Object.keys(M.tr).some(x=>M.tr[x].res==='run'); return run?[]:$$('#roomsvg [data-act="mach"]').filter(g=>!M.tr[g.dataset.k]); }
 let DSAT=null;
-document.addEventListener('pointerdown',e=>{ const d=e.target.closest&&e.target.closest('.dsat'); if(!d||e.button>0) return; e.preventDefault(); const r=d.getBoundingClientRect(); DSAT={el:d,kind:d.dataset.drag,id:d.dataset.id}; document.body.appendChild(d); d.classList.add('drag'); d.style.left=e.clientX+'px'; d.style.top=e.clientY+'px'; d.style.bottom='auto';
+document.addEventListener('pointerdown',e=>{ const d=e.target.closest&&e.target.closest('.dsat'); if(!d||e.button>0) return; e.preventDefault(); const r=d.getBoundingClientRect(); DSAT={el:d,kind:d.dataset.drag,id:d.dataset.id,x0:e.clientX,y0:e.clientY}; document.body.appendChild(d); d.classList.add('drag'); d.style.left=e.clientX+'px'; d.style.top=e.clientY+'px'; d.style.bottom='auto';
   dTargets(DSAT.kind,DSAT.id).forEach(t=>t.classList.add('dtgt')); sfx.tap(); });
 document.addEventListener('pointermove',e=>{ if(!DSAT) return; DSAT.el.style.left=e.clientX+'px'; DSAT.el.style.top=e.clientY+'px'; });
 function dEnd(e){ if(!DSAT) return; const D=DSAT; DSAT=null; D.el.remove(); const ts=dTargets(D.kind,D.id); let best=null, bd=1e9;
   ts.forEach(t=>{ const r=t.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, inside=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom, dd=inside?-1:Math.hypot(e.clientX-cx,e.clientY-cy); if(dd<bd){ bd=dd; best=t; } });
   $$('.dtgt').forEach(t=>t.classList.remove('dtgt'));
+  /* un tocco senza trascinare: in camera bianca il satellite va sul primo tavolo libero */
+  if(D.kind==='clean'&&ts.length&&Math.hypot(e.clientX-D.x0,e.clientY-D.y0)<8){ dropOn(D,ts[0]); return; }
   if(best&&bd<110) dropOn(D,best); else { if(!ts.length) toast(D.kind==='clean'?'Le due postazioni sono occupate: aspetta che un satellite finisca.':'Nessun macchinario libero per questo satellite.'); else toast(D.kind==='clean'?'Lascialo sopra una postazione libera.':'Lascialo sopra un macchinario.'); render(); } }
 document.addEventListener('pointerup',dEnd); document.addEventListener('pointercancel',dEnd);
 function dropOn(D,t){ const i=G.missions.findIndex(m=>m.id===D.id), M=G.missions[i]; if(!M) return; G.cur=i;
@@ -6278,7 +6282,7 @@ const IR3=(()=>{
       pl(3,2.2,8.2,7,.006,'#9CC9A3'); pl(10.2,2.2,15.4,7,.006,'#9CC9A3'); [[2.8,2,8.4,7.2],[10,2,15.6,7.2]].forEach(r=>{ pl(r[0],r[1],r[2],r[1]+.12,.008,'#F2C14E'); pl(r[0],r[3]-.12,r[2],r[3],.008,'#F2C14E'); pl(r[0],r[1],r[0]+.12,r[3],.008,'#F2C14E'); pl(r[2]-.12,r[1],r[2],r[3],.008,'#F2C14E'); });
       for(let i=0;i<10;i++) onWall('y',.5+i*1.75,1.95+i*1.75,2.5,3.05,'#FFFFFF',{r:.4},.05); for(let i=0;i<7;i++) onWall('x',.5+i*1.9,1.95+i*1.9,2.5,3.05,'#FFFFFF',{r:.4},.05);
       windows('y',11,17.4,.9,2.3,7); onWall('y',.8,2.8,1,1.9,'#2F8580',{r:.5},.06); wallScreen('x',9,12.5,1.3,2.6,'chart',4);
-      [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>{ const m=(st.stations||[])[i]; cy(p[0],p[1],1.1,0,.12,'#C9D3DD',{fp:.3,m:.2}); cy(p[0],p[1],.3,.12,1,'#9AA9B6',{m:.3}); for(let k=0;k<4;k++){ const a=k*1.57+.78; cy(p[0]+Math.cos(a)*.9,p[1]+Math.sin(a)*.9,.05,.12,1.9,'#9AA9B6'); } rb(p[0]-.65,p[1]-.65,p[0]+.65,p[1]+.65,1,1.08,'#D9E0E5'); bx(p[0]-.5,p[1]-.5,p[0]+.5,p[1]+.5,1.08,1.1,'#7FB6C8',{cs:false}); if(m) satellite(p[0],p[1],1.1,m.size*1.4,{wings:m.n>=5}); });
+      [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>{ const m=(st.stations||[])[i]; cy(p[0],p[1],1.1,0,.12,'#C9D3DD',{fp:.3,m:.2}); cy(p[0],p[1],.3,.12,1,'#9AA9B6',{m:.3}); for(let k=0;k<4;k++){ const a=k*1.57+.78; cy(p[0]+Math.cos(a)*.9,p[1]+Math.sin(a)*.9,.05,.12,1,'#9AA9B6'); } rb(p[0]-.65,p[1]-.65,p[0]+.65,p[1]+.65,1,1.08,'#D9E0E5'); bx(p[0]-.5,p[1]-.5,p[0]+.5,p[1]+.5,1.08,1.1,'#7FB6C8',{cs:false}); if(m) satellite(p[0],p[1],1.1,m.size*1.4,{wings:m.n>=5}); });
       rb(.3,10.4,3.6,13.6,0,.04,'#DCE6EA',{cs:false}); [[.3,10.4,3.6,10.45],[3.55,10.4,3.6,13.6]].forEach(r=>bx(r[0],r[1],r[2],r[3],0,2.4,'#BFE2EE',{t:.35})); FP.push([.3,10.4,3.6,13.6,.2]); rb(.5,11,1.3,12.8,0,.5,'#E9EEF2'); rb(2.2,12.6,3.3,13.4,0,1.9,'#BFE2EE',{t:.6});
       shelf(.4,.3,4,1.1,2.2,3,['#E9EEF2','#DCE6EA','#BFE2EE','#F4F7F8']); workstation(.5,4.8,2.4,6.4,.82,'x1',[{suit:1,skin:SKIN[1]}],{n:1,laptop:true});
       [[8.9,2],[16.4,2],[9,8.4]].forEach((c,i)=>{ rb(c[0],c[1],c[0]+1.2,c[1]+.8,.6,.66,'#F4F7F8',{fp:.2}); [[0,0],[1.05,0],[0,.65],[1.05,.65]].forEach(q=>bx(c[0]+q[0],c[1]+q[1],c[0]+q[0]+.1,c[1]+q[1]+.1,0,.6,'#9AA9B6')); rb(c[0]+.3,c[1]+.2,c[0]+.6,c[1]+.5,.66,.9,['#F06EAA','#7C8CFF','#F0B43A'][i]); });

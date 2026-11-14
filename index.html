@@ -1558,7 +1558,10 @@ body.fs .dockR .lvc .kv li{padding:1px 0!important}
 /* sottotitolo sotto il nome della missione: via */
 .hud .mcard em{display:none!important}
 /* satellite da trascinare in basso: via, ora si tocca la postazione o il macchinario */
-.dsat{display:none!important}
+.dsat:not([data-drag="clean"]){display:none!important}
+/* camera bianca: il satellite costruito resta in basso a sinistra, accanto al tasto casa; toccandolo va sul tavolo libero */
+#view .dsat[data-drag="clean"]{left:calc(72px + env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px))}#view .dsat[data-drag="clean"] b{color:#22313B}
+body:has(.dsat[data-drag="clean"]) #tbub{bottom:calc(190px + env(safe-area-inset-bottom,0px))}
 /* finestra aperta: i tasti agli angoli non coprono i bottoni */
 body.ovon #zbtn,body.ovon #dock{visibility:hidden!important}
 /* aiuto di Zorty: sfondo sfocato */
