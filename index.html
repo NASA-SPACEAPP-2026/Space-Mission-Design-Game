@@ -660,7 +660,7 @@ body.fs .dockR{bottom:84px}
   body.fs #view.scn>.head .btn.small{padding:4px 8px;font-size:12px}
   .hback{font-size:12px}
   .rail.L{left:calc(var(--sl,0px) + 8px);top:calc(var(--hudh) + var(--headh,40px) + 8px);gap:6px}
-  .rail.R{right:calc(var(--sr,0px) + 8px);top:calc(var(--hudh) + 4px);gap:6px}
+  .rail.R{right:calc(var(--sr,0px) + 8px);top:calc(var(--hudh) + var(--headh,40px) + 8px);gap:6px}
   .rb{width:46px;min-height:42px;padding:4px 2px}
   body.fs .dockL,body.fs .dockR{top:calc(var(--hudh) + 2px);bottom:8px}
   body.fs .dockR{bottom:62px}
@@ -760,7 +760,7 @@ body.fs:has(.acts .ask) .toast{top:calc(var(--hudh) + 8px)!important;bottom:auto
 @media (max-width:560px){.hud-r{gap:5px}.hud-l{min-width:0;flex:1 1 auto}.hud .mcard{min-width:0;max-width:150px}.hud .mcard b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px}.hud .rmx span{display:none}.hud .mcard{min-width:74px}.hud .mcard .pill,.hud .mcard small{display:none}.hico.lang,.hico[data-act="music"]{position:fixed;left:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));pointer-events:auto;z-index:31}.hico[data-act="music"]{left:62px}}
 .rail{position:absolute;z-index:5;display:flex;flex-direction:column;gap:8px}
 .rail.L{left:calc(var(--sl,0px) + 12px);top:calc(var(--hudh) + var(--headh,64px) + 12px)}
-.rail.R{right:calc(var(--sr,0px) + 12px);top:calc(var(--hudh) + 6px)}
+.rail.R{right:calc(var(--sr,0px) + 12px);top:calc(var(--hudh) + var(--headh,64px) + 12px)}
 .rb{width:60px;min-height:56px;border:0;border-radius:16px;background:rgba(29,29,14,0.85);box-shadow:0 4px 14px rgba(30,42,58,.16);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:6px 3px;color:var(--ink);position:relative}
 .rb i{font-style:normal;font-size:21px;line-height:1}.rb small{font:700 9.5px/1.1 var(--f-b);text-align:center;letter-spacing:.01em}
 .rb.on{background:#23706B;color:#fff}.rb .bd{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;font:700 11px/18px var(--f-b);padding:0 4px}
@@ -789,7 +789,7 @@ body.tutmode .coach.nudge{animation:nudge .4s}
   #view.openL,#view.openR{--sl:0px;--sr:0px;--sb:50vh}
   #view.hasL:not(.openL):not(.openR),#view.hasR:not(.openL):not(.openR){--sb:0px}
   body.fs #view:not(.openL):not(.openR) .docks{display:none}
-  .rail.L{top:calc(var(--hudh) + var(--headh,64px) + 8px)}
+  .rail.L,.rail.R{top:calc(var(--hudh) + var(--headh,64px) + 8px)}
   .acts .ask{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-height:520px){ .rb{width:50px;min-height:46px;border-radius:13px}.rb i{font-size:18px}.rb small{font-size:8.5px} .acts{bottom:8px} .acts>.panel{padding:8px 10px;gap:6px} .acts .ask q{font-size:13px} .acts .ask .to{display:none} }
@@ -1504,7 +1504,7 @@ body.zon::before{content:"";position:fixed;inset:0;z-index:155;background:rgba(1
 #view .cpop .fine{display:none}
 #view .cpop .btn{min-height:36px;white-space:nowrap}
 /* negozio dei pezzi: la barra verde resta ferma, scorrono solo i pezzi */
-.dockL:has(.shelf){overflow:hidden!important;display:flex!important;flex-direction:column}
+.dockL:has(.shelf){overflow:hidden!important;flex-direction:column}#view.openL .dockL:has(.shelf){display:flex!important}
 .dockL:has(.shelf)>.dclose{position:relative!important;top:auto!important;align-self:flex-end;flex:0 0 auto!important;margin:4px 6px 2px!important}
 .dockL .shelf #ptiles{grid-auto-rows:max-content!important}
 .dockL .shelf #ptiles>.tile{min-height:max-content}
