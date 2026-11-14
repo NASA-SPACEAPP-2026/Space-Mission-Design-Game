@@ -7,6 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
+    "predev": "node scripts/gmat-up.mjs",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
     "dev:api": "node --env-file-if-exists=.env --watch server.mjs",
     "dev": "vite",
@@ -16,7 +17,8 @@
     "test": "vitest run",
     "smoke": "node scripts/smoke.mjs",
     "check": "npm test && npm run build && node scripts/verify-build.mjs",
-    "package:azure": "./scripts/package-azure.sh release.zip"
+    "package:azure": "./scripts/package-azure.sh release.zip",
+    "package:single": "npm run build && node scripts/build-single-file.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.16",
