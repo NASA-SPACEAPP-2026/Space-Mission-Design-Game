@@ -3450,7 +3450,9 @@ const dcl=s=>'<button class="dclose" data-act="drw" data-k="'+s+'" aria-label="C
 const docks=(Lh,Rh)=>'<div class="docks">'+(Lh?'<aside class="dockL">'+dcl('L')+Lh+'</aside>':'')+(Rh?'<aside class="dockR">'+dcl('R')+Rh+'</aside>':'')+'</div>';
 let DRW={}, LDUR=null, LBUSY=false, PICKST=null;
 const drwKey=o=>view+':'+(o&&o.key||'');
-function drwOpen(key,side){ const k=key+side; return DRW[k]==null?((!!G.tut&&innerHeight>520)||(innerWidth>=1100&&innerHeight>500)):DRW[k]; }
+/* tasto per andare avanti nel Centro di dinamica del volo: sempre visibile in basso a destra, fuori dai pannelli */
+function fdGo(act,k,on,label){ return '<button class="btn primary fdgo" data-act="'+act+'"'+(k?' data-k="'+k+'"':'')+(on?'':' disabled')+'>'+label+'</button>'; }
+function drwOpen(key,side){ const k=key+side; if(key==='fd:'&&side==='R'&&DRW[k]==null) return false; return DRW[k]==null?((!!G.tut&&innerHeight>520)||(innerWidth>=1100&&innerHeight>500)):DRW[k]; }
 function scn(v,o){ v.classList.add('scn'); v.querySelectorAll('.dockL,.dockR').forEach(d=>{ if(!d.querySelector(':scope>.dclose')) d.insertAdjacentHTML('afterbegin',dcl(d.classList.contains('dockL')?'L':'R')); }); if(o.L) v.classList.add('hasL'); if(o.R) v.classList.add('hasR'); v.style.setProperty('--stbg',o.bg||'#E9EDE6'); const key=drwKey(o); v.dataset.key=key;
   if(o.L&&drwOpen(key,'L')) v.classList.add('openL'); if(o.R&&drwOpen(key,'R')) v.classList.add('openR');
   const RIC={'🧩':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>','🧭':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M7 18h6a3 3 0 0 0 0-6h-2a3 3 0 0 1 0-6h6"/></svg>','📏':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 17l4-5"/><path d="M4 21h16"/></svg>','📋':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg>','🤝':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 4 3 3-2 4 3 3-1"/><path d="M7 15l3 3 2-1 2 2 3-3"/></svg>','＋':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>','📈':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4"/><path d="M4 20h16"/><path d="M7 15l4-4 3 3 5-6"/><path d="M15 8h4v4"/></svg>','🛰':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="6" height="6" rx="1" transform="rotate(45 12 12)"/><path d="M6 3.5l3.2 3.2M17.3 14.8l3.2 3.2M3.5 6l3.2 3.2M14.8 17.3l3.2 3.2M12 12l4-4M15.5 8.5l2.5-2.5"/></svg>'};
@@ -3778,13 +3780,12 @@ function drmPanel(M){ const D=M.drm, dest=M.sat.dest||'leo', land=drmLand(M), re
   if(!land&&ed) h+='<button class="btn primary dadd'+(DRMADD?' on':'')+'" data-act="drmadd">'+(DRMADD?'✕ Annulla':'＋ Aggiungi orbita')+'</button>'+(DRMADD?'<p class="fine">Muovi il puntatore (o il dito) sullo schema e rilascia alla quota che vuoi.</p>':'')+
     '';
   h+='<div class="dtot"><span>Durata totale</span><b class="num">'+(land?D.relMo:drmMonths(M))+' mesi</b></div>';
-  if(ed) h+='<button class="btn primary" style="width:100%" data-act="mdredone"'+(drmStarH(M)!=null?'':' disabled')+'>'+TX('Fatto · continua','Done · continue')+'</button>';
   h+='</div>';
   return h; }
 function vDRM(v,M){ const D=drmInit(M); DRMH=Math.round(Math.max(400,Math.min(600,1000/(innerWidth/Math.max(1,innerHeight))*1.05))); if(drmLand(M)){ D.eol={k:'surf'}; D.orbits=[]; }
   v.innerHTML='<div class="head"><div><h3>Centro di dinamica del volo · Fase B · passo 1 di 3</h3><h1>Design Reference Mission</h1>'+bSteps(M)+'</div></div>'+
     stage('<section class="drm3 fsc" style="--ar:1000/'+DRMH+'"><svg id="drmsvg" class="'+(DRMADD?'adding':'')+'" viewBox="0 0 1000 '+DRMH+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schema della missione">'+drmSVG(M,{H:DRMH})+'</svg></section>','rbx')+
-    docks(drmPanel(M),null); scn(v,{L:1,bg:'#FBFCFD',railL:[{ic:'🧭',t:'Sequenza',side:'L'}]}); setTimeout(()=>mdrShow(cur()),0); }
+    docks(drmPanel(M),null)+(mdrState(M)==='edit'?fdGo('mdredone','',drmStarH(M)!=null,TX('Fatto · continua','Done · continue')):''); scn(v,{L:1,bg:'#FBFCFD',railL:[{ic:'🧭',t:'Sequenza',side:'L'}]}); setTimeout(()=>mdrShow(cur()),0); }
 function drmRedraw(){ const M=cur(), sv=$('#drmsvg'); if(!sv||!M) return; sv.innerHTML=drmSVG(M,{H:DRMH}); }
 function drmPt(e){ const sv=$('#drmsvg'); if(!sv) return null; const pt=sv.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const m=sv.getScreenCTM(); if(!m) return null; const p=pt.matrixTransform(m.inverse()); return p; }
 function drmGhost(e){ const M=cur(); if(!DRMADD||!M||!M.drm) return; const p=drmPt(e); if(!p) return; const S=drmScale(M,DRMH), h=drmNice(S.h(p.y)); let why='', ok=true;
@@ -3797,13 +3798,14 @@ document.addEventListener('pointerup',e=>{ if(!DRMADD||!(e.target.closest&&e.tar
   DRMADD=false; DRMG=null; D.done=false; drmSync(M); sfx.put(); save(); render(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&DRMADD){ DRMADD=false; DRMG=null; render(); } });
 // ---- Δv della DRM (passo 3): il tratto fino all'orbita di lavoro viene dal piano 3D, il resto da trasferimenti di Hohmann ----
-function drmDv(M,p){ const D=M.drm; if(!D||drmLand(M)) return {rows:[],extra:0}; if(p&&p.ob){ const rows=[]; if(p.ini.cap) rows.push({t:'Frenata di cattura',dv:p.capDv}); p.orbits.forEach((o,k)=>{ if(k) rows.push({t:'Verso '+o.name+(k===p.si?' ★':''),dv:o.dv}); }); if(p.eol&&p.eol.k) rows.push({t:p.eol.t,dv:p.eol.dv}); return {rows,extra:p.after}; } const B=O.BODY[M.sat.dest||'leo'], mu=B.mu, R=B.R, rel=drmRel(M), hs=[rel.h].concat(D.orbits.map(o=>o.h)), si=D.star<0?0:D.star+1, rows=[];
+function drmDv(M,p){ const D=M.drm; if(!D||drmLand(M)) return {rows:[],extra:0}; if(p&&p.ob){ const rows=[]; if(p.ini.cap) rows.push({t:'Frenata di cattura',dv:p.capDv}); p.orbits.forEach((o,k)=>{ if(k) rows.push({t:'Verso '+o.name+(k===p.si?' ★':''),dv:o.dv}); }); if(p.eol&&p.eol.k) rows.push(M.sat.placed.prop?{t:p.eol.t,dv:p.eol.dv}:{t:natLife(M,p),dv:0}); return {rows,extra:p.after}; } const B=O.BODY[M.sat.dest||'leo'], mu=B.mu, R=B.R, rel=drmRel(M), hs=[rel.h].concat(D.orbits.map(o=>o.h)), si=D.star<0?0:D.star+1, rows=[];
   const vc=r=>Math.sqrt(mu/r), hoh=(h1,h2)=>{ const r1=R+h1, r2=R+h2, a=(r1+r2)/2; return 1000*(Math.abs(Math.sqrt(mu*(2/r1-1/a))-vc(r1))+Math.abs(vc(r2)-Math.sqrt(mu*(2/r2-1/a)))); };
   const dvDown=(h,hp)=>{ const r=R+h, rp=R+hp, a=(r+rp)/2; return 1000*(vc(r)-Math.sqrt(mu*(2/r-1/a))); };
   rows.push({t:'Dal rilascio all’orbita di lavoro ★',dv:p.tot,src:'piano 3D'}); let extra=0;
   for(let i=si;i<hs.length-1;i++){ const dv=hoh(hs[i],hs[i+1]); extra+=dv; rows.push({t:'Da '+drmKm(hs[i])+' a '+drmKm(hs[i+1]),dv}); }
   const last=hs[hs.length-1];
-  if(D.eol){ let dv=0, t=''; if(D.eol.k==='reentry'){ const nat=(M.sat.dest||'leo')==='leo'&&last<=600; dv=nat?0:dvDown(last,(M.sat.dest||'leo')==='leo'?60:50); t=nat?'Rientro naturale: l’atmosfera frena il satellite':'Rientro in atmosfera'; } else if(D.eol.k==='impact'){ dv=dvDown(last,0); t='Impatto controllato'; } else if(D.eol.k==='grave'){ dv=hoh(last,drmGrave(M)); t='Verso l’orbita cimitero'; } extra+=dv; rows.push({t,dv}); }
+  if(D.eol&&!M.sat.placed.prop){ rows.push({t:natLife(M,p,last),dv:0}); }
+  else if(D.eol){ let dv=0, t=''; if(D.eol.k==='reentry'){ const nat=(M.sat.dest||'leo')==='leo'&&last<=600; dv=nat?0:dvDown(last,(M.sat.dest||'leo')==='leo'?60:50); t=nat?'Rientro naturale: l’atmosfera frena il satellite':'Rientro in atmosfera'; } else if(D.eol.k==='impact'){ dv=dvDown(last,0); t='Impatto controllato'; } else if(D.eol.k==='grave'){ dv=hoh(last,drmGrave(M)); t='Verso l’orbita cimitero'; } extra+=dv; rows.push({t,dv}); }
   return {rows,extra}; }
 function drmTable(M,p){ const D=M.drm; if(!D) return ''; if(drmLand(M)) return '<div class="panel"><h3>Dalla DRM</h3><p class="fine">Missione con lander: il lancio porta il satellite fino al suolo.</p></div>';
   const dd=drmDv(M,p), tot=p.tot*1.05+dd.extra, av=p.dvAvail, bad=tot>av+1;
@@ -3860,6 +3862,12 @@ O.hook.gmatLf=(M,req)=>{ const r=Object.assign({},req); delete r.sail; const bas
   lfScenarios(req).forEach(s=>{ const k=base+'|'+s+'|l1', hit=GML.cache[k]||(M.gmatL&&M.gmatL[k]); if(hit){ GML.cache[k]=hit; out[s]=hit; } else miss.push(s); });
   if(GML.capture){ GML.req=req; GML.miss=miss; GML.base=base; return out; }
   if(miss.length) gmlAsk(); return out; };
+/* senza propulsore: niente manovra di fine vita. In orbita terrestre si calcola solo quanto ci mette a rientrare (GMAT se ha risposto, altrimenti una stima) */
+function natLife(M,p,alt){ const dest=M.sat.dest||'leo'; if(dest!=='leo') return TX('Nessun propulsore: nessuna manovra di fine vita, il satellite resta in orbita','No propulsion: no end-of-life manoeuvre, the satellite stays in orbit');
+  const w=p&&p.lf&&(p.lf.nom||p.lf.max); let d, src='GMAT';
+  if(w&&w.days!==undefined){ d=w.days; } else { const o=p&&p.orbits&&p.orbits.length?p.orbits[p.orbits.length-1].el:null, h=alt!=null?alt:o?(o.pe+(isFinite(o.ap)?o.ap:o.pe))/2:null, b=E.budget(M.sat); d=h==null?null:O.decayDays(h,b.wet,O.satArea(M.sat)); src=TX('stima','estimate'); }
+  const life=d==null?TX('oltre 100 anni','more than 100 years'):d<60?nf(d,0)+TX(' giorni',' days'):d<730?nf(d/30.4,0)+TX(' mesi',' months'):nf(d/365,1)+TX(' anni',' years');
+  return TX('Nessun propulsore: rientro naturale in circa ','No propulsion: natural re-entry in about ')+life+' ('+src+')'; }
 const fmtLife=(r,over)=>!r?'GMAT sta calcolando…':r.days==null?over:r.days<60?nf(r.days,0)+' giorni':r.days<730?nf(r.days/30.4,0)+' mesi':nf(r.days/365,1)+' anni';
 function anRows(M,p){ const an=p.an, lf=p.lf||{}, rows=[], dest=M.sat.dest||'leo', ev=an&&an.evolution; if(!an) return rows; const e=an.eclipse;
   rows.push(['Periodo orbitale',nf(an.period/60,0)+' min','gmat']);
@@ -3899,6 +3907,17 @@ function obPlayStep(n){ const now=performance.now(), dt=OBV.last?(now-OBV.last)/
 function obPos(el,B,nu){ const k=O.kep(el,B), [P,Q]=O.pqK(k), p=k.a*(1-k.e*k.e), r=p/(1+k.e*Math.cos(nu)), c=Math.cos(nu)*r, s=Math.sin(nu)*r; return [P[0]*c+Q[0]*s,P[1]*c+Q[1]*s,P[2]*c+Q[2]*s,r]; }
 function obItems(M,p){ const it=[]; p.orbits.forEach((o,k)=>{ if(o.mid) it.push({el:o.mid,col:OBMID,dash:[3,5],w:1.3,tag:''}); it.push({el:o.el,col:obCol(k),dash:[],w:k===OBSEL?3.2:k===p.si?2.4:1.7,tag:k===0?'R':String(k+1),star:k===p.si,k}); });
   if(p.eol){ if(p.eol.mid) it.push({el:p.eol.mid,col:OBMID,dash:[3,5],w:1.3,tag:''}); if(p.eol.el&&p.eol.el!==p.orbits[p.orbits.length-1].el) it.push({el:p.eol.el,col:OBFIN,dash:[7,5],w:1.7,tag:'F'}); } return it; }
+/* pianeta con le mappe NASA vere (public/tex): l'immagine equirettangolare si avvolge sulla sfera con la stessa rotazione delle orbite (az/tilt),
+   con la luce del Sole da in alto a sinistra. Si ridisegna solo quando cambiano vista o dimensione; finche' l'immagine non e' caricata resta il disegno a sfumatura. */
+const PTEX={}, GLB={c:null,key:''};
+function ptex(dest){ const k={leo:'earth',moon:'moon',mars:'mars',venus:'venus'}[dest]; if(!k) return null; let t=PTEX[k]; if(t) return t.ok?t:null; t=PTEX[k]={ok:false};
+  const im=new Image(); im.onload=()=>{ try{ const W=Math.min(1024,im.naturalWidth), H=Math.round(W/2), c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d'); x.drawImage(im,0,0,W,H); t.d=x.getImageData(0,0,W,H).data; t.w=W; t.h=H; t.ok=true; GLB.key=''; }catch(e){} }; im.src='tex/'+k+'.jpg'; return null; }
+function globe(dest,Rp,az,tilt){ const t=ptex(dest); if(!t||!(Rp>0)) return null; /* diametro a passi di 8 px e al massimo 480 px (poi ingrandito): poco lavoro e niente ricalcoli mentre lo zoom si assesta */ const R=Math.max(8,Math.min(240,Math.round(Rp/4)*4)), key=dest+'|'+R+'|'+az.toFixed(0)+'|'+tilt.toFixed(0); if(GLB.key===key) return GLB.c;
+  const S=R*2, c=GLB.c&&GLB.c.width===S?GLB.c:document.createElement('canvas'); c.width=S; c.height=S; const x=c.getContext('2d'), img=x.createImageData(S,S), o=img.data, D=Math.PI/180, ca=Math.cos(az*D), sa=Math.sin(az*D), ct=Math.cos(tilt*D), st=Math.sin(tilt*D), tw=t.w, th=t.h, td=t.d, L0=-.45, L1=.5, L2=.74, P2=2*Math.PI;
+  for(let py=0;py<S;py++){ const yy=(R-py-.5)/R; for(let px=0;px<S;px++){ const xx=(px+.5-R)/R, r2=xx*xx+yy*yy; if(r2>1) continue; const z=Math.sqrt(1-r2), y=yy*ct+z*st, Z=-yy*st+z*ct, X=xx*ca+y*sa, Y=-xx*sa+y*ca;
+    /* nel sistema del gioco il polo +Z punta verso il basso dello schermo: si gira la mappa di 180 gradi (Z e Y opposti) per avere il nord in alto senza specchiarla */ const u=Math.atan2(-Y,X)/P2+.5, v=.5+Math.asin(Z>1?1:Z<-1?-1:Z)/Math.PI, ti=((Math.min(th-1,(v*th)|0))*tw+Math.min(tw-1,(u*tw)|0))*4, d=xx*L0+yy*L1+z*L2, sh=.18+1.0*(d>0?d:0), i=(py*S+px)*4;
+    o[i]=Math.min(255,td[ti]*sh); o[i+1]=Math.min(255,td[ti+1]*sh); o[i+2]=Math.min(255,td[ti+2]*sh); o[i+3]=r2>.985?Math.round(255*(1-(r2-.985)/.015)):255; } }
+  x.putImageData(img,0,0); GLB.c=c; GLB.key=key; return c; }
 function obDraw(){ const cv=$('#obcv'), M=cur(); if(!cv||!M||!document.body.contains(cv)) return false; const p=O.plan(M), B=obBody(M), dest=M.sat.dest||'leo', W=cv.clientWidth, H=cv.clientHeight, dpr=Math.min(2,window.devicePixelRatio||1);
   if(!W||!H) return true; if(cv.width!==Math.round(W*dpr)) { cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); } const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
   g.fillStyle='#050912'; g.fillRect(0,0,W,H); for(let k=0;k<120;k++){ const a=Math.sin(k*91.7)*43758.5, b=Math.sin(k*12.9)*24634.6; g.fillStyle='rgba(200,215,240,'+(0.2+((k*37)%10)/25)+')'; g.fillRect((a-Math.floor(a))*W,(b-Math.floor(b))*H,1.2,1.2); }
@@ -3908,7 +3927,7 @@ function obDraw(){ const cv=$('#obcv'), M=cur(); if(!cv||!M||!document.body.cont
   const A=O.ATMH[dest], atmR=A?(B.R+A[1])*sc:0;
   const pal={leo:['#4b8fd1','#14416f'],moon:['#c4c4ca','#5e5e66'],mars:['#d9744a','#7a2a0c'],venus:['#ecd08e','#9c7a3c']}[dest]||(E.EXT[dest]&&E.EXT[dest].pal)||['#888','#444'];
   if(A){ const ga=g.createRadialGradient(cx,cy,Rp,cx,cy,atmR); ga.addColorStop(0,'rgba(120,190,255,.35)'); ga.addColorStop(1,'rgba(120,190,255,0)'); if(dest!=='leo'){ ga.addColorStop(0,'rgba(255,170,110,.35)'); } g.fillStyle=ga; g.beginPath(); g.arc(cx,cy,atmR,0,7); g.fill(); }
-  const gr=g.createRadialGradient(cx-Rp*.35,cy-Rp*.35,Rp*.1,cx,cy,Rp); gr.addColorStop(0,pal[0]); gr.addColorStop(1,pal[1]); g.fillStyle=gr; g.beginPath(); g.arc(cx,cy,Rp,0,7); g.fill();
+  { const gl=globe(dest,Rp,OBV.az,OBV.tilt); if(gl) g.drawImage(gl,cx-Rp,cy-Rp,Rp*2,Rp*2); else { const gr=g.createRadialGradient(cx-Rp*.35,cy-Rp*.35,Rp*.1,cx,cy,Rp); gr.addColorStop(0,pal[0]); gr.addColorStop(1,pal[1]); g.fillStyle=gr; g.beginPath(); g.arc(cx,cy,Rp,0,7); g.fill(); } }
   g.strokeStyle='rgba(255,255,255,.22)'; g.lineWidth=1; g.beginPath(); g.ellipse(cx,cy,Rp,Math.max(.5,Rp*ct),0,0,7); g.stroke();
   const stroke=it=>{ const k=O.kep(it.el,B), [P,Q]=O.pqK(k), pp=k.a*(1-k.e*k.e), n=360; let pen=false, last=null;
     for(let j=0;j<=n;j++){ const nu=j/n*2*Math.PI, r=pp/(1+k.e*Math.cos(nu)), c=Math.cos(nu)*r, s=Math.sin(nu)*r, q=proj([P[0]*c+Q[0]*s,P[1]*c+Q[1]*s,P[2]*c+Q[2]*s]), inA=A&&r<B.R+A[1], bad=r<B.R;
@@ -3956,17 +3975,16 @@ function obPanel(M,p){ const lk=fdLocked(M); let h='<div id="obst">'+obStatus(M,
   p.orbits.forEach((o,k)=>{ if(k>0) h+='<div class="oblink">↓ ΔV <b id="obdv'+k+'">'+nf(o.dv,0)+' m/s</b>'+(o.mid?' <span class="fine" id="obvia'+k+'">via '+obSum(o.mid)+'</span>':'<span id="obvia'+k+'"></span>')+'</div>';
     const on=k===OBSEL&&k>0; h+='<article class="obc'+(on?' on':'')+'" style="--c:'+obCol(k)+'"><div class="obh"'+(k>0?' data-act="obsel" data-k="'+k+'" role="button" tabindex="0"':'')+'><span class="dot"></span><b>'+(k===0?'Rilascio':esc(o.name))+(k===p.si?' ★':'')+'</b><span class="sum num" id="obs'+k+'">'+obSum(o.el)+' · i '+nf(o.el.i,1)+'°</span></div>'+
       (k===0?'<p class="fine" style="margin:0 10px 8px">'+esc(p.ini.why)+(M.sat.lv?'':' Scegli il lanciatore qui sopra.')+'</p>':'')+(on?obEditor(M,p,k):'')+'</article>'; });
-  if(p.eol&&p.eol.k){ h+='<div class="oblink">↓ ΔV <b id="obdvF">'+nf(p.eol.dv,0)+' m/s</b></div><article class="obc fin" style="--c:'+OBFIN+'"><div class="obh"><span class="dot"></span><b>Fine vita</b><span class="sum" id="obsF">'+esc(p.eol.t)+'</span></div></article>'; }
+  if(p.eol&&p.eol.k){ h+='<div class="oblink">↓ ΔV <b id="obdvF">'+nf(p.eol.dv,0)+' m/s</b></div><article class="obc fin" style="--c:'+OBFIN+'"><div class="obh"><span class="dot"></span><b>Fine vita</b><span class="sum" id="obsF">'+esc(M.sat.placed.prop?p.eol.t:natLife(M,p))+'</span></div></article>'; }
   h+='</div>';
   if(p.st.cap.length||p.st.tr.length){ const kg=dv=>p.wet*(1-Math.exp(-dv/(p.isp*9.80665))), cardS=(leg,o,base)=>{ const on=(leg==='cap'?p.sc:p.strn)===o, dv=base*o.f; return '<button class="stg'+(on?' sel':'')+(o.off?' lock':'')+'" data-act="strat" data-leg="'+leg+'" data-k="'+o.k+'"'+(o.off||lk?' disabled':'')+'><b>'+o.n+'</b><span>'+o.s+'</span><ul class="kv"><li><span>ΔV</span><b>'+Math.round(dv)+' m/s</b></li><li><span>Propellente</span><b>'+(o.k==='ion'?'pochissimo':nf(kg(dv),2)+' kg')+'</b></li><li><span>Rischio</span><b class="'+(o.risk?'bad':'')+'">'+(o.risk?Math.round(o.risk*100)+'% di perdere il satellite':'nessuno')+'</b></li></ul>'+(o.off?'<small class="lk">🔒 '+o.off+'</small>':'')+'</button>'; };
     h+='<details class="obstr"><summary>Come eseguire le manovre</summary>'+(p.st.cap.length?'<h3>Cattura all’arrivo</h3><div class="stgs">'+p.st.cap.map(o=>cardS('cap',o,p.ini.cap)).join('')+'</div>':'')+(p.st.tr.length?'<h3>Trasferimenti fino all’orbita ★</h3><div class="stgs">'+p.st.tr.map(o=>cardS('tr',o,p.raw.trDv)).join('')+'</div>':'')+'</details>'; }
 
-  if(M.phase==='B') h+='<button class="btn primary" data-act="pdrB" style="margin-top:10px;width:100%">Revisione PDR</button>';
   return h; }
 function obLive(M){ const p=O.plan(M), s=(id,t,html)=>{ const e=$('#'+id); if(e){ if(html) setH(e,t); else setT(e,t); } };
   s('obst',obStatus(M,p),1); s('obmeter',obMeter(M,p),1);
   p.orbits.forEach((o,k)=>{ s('obs'+k,obSum(o.el)+' · i '+nf(o.el.i,1)+'°'); if(k){ s('obdv'+k,nf(o.dv,0)+' m/s'); s('obvia'+k,o.mid?'via '+obSum(o.mid):''); } });
-  if(p.eol){ s('obdvF',nf(p.eol.dv,0)+' m/s'); s('obsF',p.eol.t); }
+  if(p.eol){ s('obdvF',nf(p.eol.dv,0)+' m/s'); s('obsF',M.sat.placed.prop?p.eol.t:natLife(M,p)); }
   const o=p.orbits[OBSEL]; if(o&&OBSEL>0){ const B=obBody(M), dest=M.sat.dest||'leo', r=O.atmRisk(dest,o.el.pe); s('obpa'+OBSEL,'Pericentro <b>'+nf(o.el.pe,0)+' km</b> · apocentro <b>'+nf(o.el.ap,0)+' km</b>'+(o.el.pe<=0?' · <b class="bad">tocca la superficie</b>':r>0?' · <b class="bad">nell’atmosfera: '+pct(Math.min(.95,r*(OBSEL===p.si?1.5:1)))+' di rientro</b>':''),1); s('obtle'+OBSEL,obTLE(M,o.el,OBSEL),1);
     const L2=M.ob.legs[o.leg]; ['e','i','raan','argp','ma'].forEach(q=>{ [ 'ob'+q+OBSEL,'obn'+q+OBSEL ].forEach(id=>{ const e=$('#'+id); if(e&&document.activeElement!==e) e.value=q==='e'&&id.indexOf('obn')===0?(+L2[q]||0).toFixed(3):(L2[q]||0); }); }); }
   return p; }
@@ -3975,7 +3993,7 @@ function obView(v,M){ const p=O.plan(M); OBSEL=Math.max(1,Math.min(OBSEL,p.orbit
     stage('<div id="obw" class="s3w fdw fill full obw"><canvas id="obcv" aria-label="Vista orbitale: trascina per ruotarla"></canvas><div class="obmeter" id="obmeter">'+obMeter(M,p)+'</div><div class="obhint">Trascina per ruotare · doppio clic per riportare la vista</div></div>'+
       '<div class="fdleg obplay"><button class="btn small" id="obplay" data-act="obplay">▶ Rivedi la missione</button> <input type="range" id="obscr" min="0" max="1000" value="'+Math.round(OBV.pos*1000)+'" aria-label="Posizione nella missione" style="width:min(60%,420px);vertical-align:middle"></div>'+
       '<div class="fdleg"><div class="legend"><span><i style="background:'+OBREL+'"></i>rilascio</span><span><i style="background:'+OBC[0]+'"></i>orbite della DRM</span><span><i style="background:'+OBMID+'"></i>trasferimenti</span><span><i style="background:'+OBFIN+'"></i>fine vita</span><span><i style="background:#FF4D3D"></i>dentro l’atmosfera</span></div></div>')+
-    docks(null,fdLaunch(M)+'<div class="panel" id="fdp">'+obPanel(M,p)+'</div>'); scn(v,{R:1,bg:'#0B1626',railR:[{ic:'🛰',t:'Orbite',side:'R'}]});
+    docks(null,fdLaunch(M)+'<div class="panel" id="fdp">'+obPanel(M,p)+'</div>')+(M.phase==='B'?fdGo('pdrB','',true,'Revisione PDR'):''); scn(v,{R:1,bg:'#0B1626',railR:[{ic:'🛰',t:'Orbite',side:'R'}]});
   obBind(); obLive(M); obLoop(); }
 function obSet(k,key,val){ const M=cur(); if(!M||!M.ob||fdLocked(M)) return; const p=O.plan(M), o=p.orbits[k]; if(!o||o.leg==null) return; const Lg=M.ob.legs[o.leg]; if(key==='e') val=Math.max(0,Math.min(O.eMax(o.h,obBody(M)),val)); if(key==='i') val=Math.max(0,Math.min(180,val)); if(key!=='e'&&key!=='i') val=((val%360)+360)%360; Lg[key]=Math.round(val*1000)/1000; obLive(M); }
 document.addEventListener('input',e=>{ const t=e.target; if(t.id==='obscr'){ OBV.pos=(+t.value)/1000; OBV.on=false; const b=$('#obplay'); if(b) b.textContent='▶ Rivedi la missione'; return; } if(!t.dataset||!t.dataset.ob) return; const x=+t.value; if(!isFinite(x)) return; obSet(+t.dataset.k,t.dataset.ob,x); });
@@ -3989,7 +4007,7 @@ function vFD(v){ const M=cur(); if(M&&M.phase==='B'&&M.stage!=='orb') return vDR
     stage((FD3.ok?'<div id="fdw" class="s3w fdw fill full"></div>':'<div class="empty">La vista 3D non è disponibile su questo dispositivo: usa i comandi a destra.</div>')+
     '<div class="fdleg"><div class="legend"><span><i style="background:#9AA6B4"></i>orbita di rilascio</span><span><i style="background:#5B8DEF"></i>orbite intermedie</span><span><i style="background:#F07B3F"></i>orbita finale e punti di burn</span><span><i style="background:#2F6FD6"></i>lato opposto, trascinabile</span><span><i style="background:#1E9E5A"></i>orbita obiettivo</span></div>'+
     '<p>Trascina lo sfondo per girare la vista, rotella o due dita per lo zoom. Trascina il punto arancione per scegliere dove accendere il motore, quello blu per alzare o abbassare il lato opposto.</p></div>')+
-    docks(null,(M.phase==='B'?drmTable(M,p):'')+fdLaunch(M)+'<div class="panel" id="fdp"></div>'); scn(v,{R:1,bg:'#0B1626',railR:[{ic:'🛰',t:'Piano di volo',side:'R'}]});
+    docks(null,(M.phase==='B'?drmTable(M,p):'')+fdLaunch(M)+'<div class="panel" id="fdp"></div>')+(M.phase==='B'?fdGo('pdrB','',true,'Revisione PDR'):''); scn(v,{R:1,bg:'#0B1626',railR:[{ic:'🛰',t:'Piano di volo',side:'R'}]});
   if(FD3.ok) FD3.mount($('#fdw'),{onNu:(k,nu)=>setBurn(k,'nu',nu),onH:(k,h)=>setBurn(k,'h',h),onSel:k=>{ fdSel=k; fdRefresh(true); },onEnd:()=>fdRefresh(true)});
   fdRefresh(true); }
 // il servizio di lancio si sceglie in fase B e si prenota alla PDR
@@ -4031,7 +4049,6 @@ function fdStrat(M,p){ const lk=fdLocked(M), kg=dv=>p.wet*(1-Math.exp(-dv/(p.isp
     '<ul class="kv"><li><span>Orbita di lavoro</span><b id="wkO">'+O.fmt(p.final)+'</b></li><li><span>Resa scientifica</span><b id="wkQ">'+pct(wk.q)+'</b></li><li><span>Mantenimento d’orbita</span><b id="wkS">'+nf(E.skOf(M.sat),1)+' m/s al mese</b></li><li><span>ΔV del piano</span><b id="wkD">'+Math.round(p.tot)+' m/s</b></li></ul><p class="fine">'+esc(wk.why)+'.'+(wk.drag?' '+esc(wk.drag)+': più ΔV ogni mese.':'')+'</p></div>'; }
   h+='<h3>Le orbite</h3><ul class="tgl">'+p.orbits.map((o,k)=>'<li><span class="dot2" style="background:'+(k===0?'#9AA6B4':k===p.orbits.length-1?'#F07B3F':'#5B8DEF')+'"></span><span>'+(k===0?'Rilascio':'Accensione '+k)+'</span><span class="num">'+O.fmt(o.el)+'</span></li>').join('')+'</ul>';
   if(!lk) h+='<button class="lnk small" data-act="expert">Modalità esperto: disegna tu le manovre →</button>';
-  if(M.phase==='B') h+='<button class="btn primary" data-act="pdrB" style="margin-top:10px;width:100%">Revisione PDR</button>';
   return h; }
 function fdNums(M,p){ $('#fdsum').innerHTML=fdSum(M,p); M.fd.burns.forEach((b,i)=>{ const k=i+1, o=p.orbits[k]; if(!o) return; const s=(id,t)=>{ const e=$('#'+id); if(e) e.textContent=t; };
   s('fdv'+k,Math.round(o.dv)+' m/s · '+nf(p.used[k],2)+' kg'); s('fdo'+k,O.fmt(o.el)); s('fnv'+k,apsName(b.nu)); s('fpv'+k,Math.round(b.dp||0)+'°');
@@ -5056,8 +5073,8 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
       return S('.assist [data-act="bstep"][data-k="orb"]','Il satellite è completo: massa, potenza ed eclisse sono in verde. Passa al passo 3, le orbite in dettaglio.',5); }
     if(st==='drm'&&ZD&&ZD.sel&&document.getElementById('zdlg')) return S(ZD.sel,ZD.tt,4);
     if(!here('fd')) return go2('fd',st==='orb'?'Passo 3: torna al Centro di dinamica del volo':'Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM).',4);
-    if(st==='orb') return S('#fdp [data-act="pdrB"]','Il razzo ti lascia a 550 km, già nella fascia obiettivo: nessuna manovra, e il rientro avviene da solo per l’attrito dell’aria. Chiedi la revisione PDR.',5);
-    return S('.drmp [data-act="mdredone"]','Orbite pronte. Premi Fatto per continuare con la fine vita.',4); }
+    if(st==='orb') return S('.fdgo[data-act="pdrB"]','Il razzo ti lascia a 550 km, già nella fascia obiettivo: nessuna manovra, e il rientro avviene da solo per l’attrito dell’aria. Chiedi la revisione PDR.',5);
+    return S('.fdgo[data-act="mdredone"]','Orbite pronte. Premi Fatto per continuare con la fine vita.',4); }
   if(ph==='C'){ if(!here('build')) return go2('build','Fase C: il progetto si congela. Entra nell’edificio di costruzione.',6);
     if(BVIEW!=='yard') return S('#roomsvg [data-act="openyard"]','Tocca il banco di '+M.name+'.',6);
     return S('[data-act="pdr"]','Fase C: progetto congelato. Con la revisione CDR compri i pezzi.',6); }
