@@ -5519,7 +5519,8 @@ const C3=(()=>{
   const col=h=>new THREE.Color(h).convertSRGBToLinear();
   const MC={}; function mat(h,o){ const k=h+'|'+JSON.stringify(o||{}); if(MC[k]) return MC[k]; return MC[k]=new THREE.MeshStandardMaterial(Object.assign({color:col(h),roughness:.85,metalness:0,envMapIntensity:.5},o||{})); }
   function can(){ if(okGL!=null) return okGL; try{ const c=document.createElement('canvas'); okGL=!!(window.THREE&&(c.getContext('webgl2')||c.getContext('webgl'))); }catch(e){ okGL=false; } return okGL; }
-  const sh=m=>{ /* le cose piccole o sottili (listelli, pali, ruote, righe) ricevono ombra ma non la proiettano: non si vedrebbe e costa */ const g=m.geometry; let cast=true; if(g){ if(!g.boundingBox) g.computeBoundingBox(); const b=g.boundingBox, d=[b.max.x-b.min.x,b.max.y-b.min.y,b.max.z-b.min.z].sort((x,y)=>x-y); cast=d[2]*d[1]>=.08; } m.castShadow=cast; m.receiveShadow=true; return m; };
+  let SHW=.2; /* larghezza minima per proiettare ombra = 4 texel della mappa d'ombra (fissata in setup): piu' sottile, l'ombra uscirebbe a pezzi e striscerebbe col sole (listelli dei muri, pali) */
+  const sh=m=>{ /* le cose piccole o sottili (listelli, pali, ruote, righe) ricevono ombra ma non la proiettano: non si vedrebbe e costa */ const g=m.geometry; let cast=true; if(g){ if(!g.boundingBox) g.computeBoundingBox(); const b=g.boundingBox, d=[b.max.x-b.min.x,b.max.y-b.min.y,b.max.z-b.min.z].sort((x,y)=>x-y); cast=d[2]*d[1]>=.08&&d[1]>=SHW; } m.castShadow=cast; m.receiveShadow=true; return m; };
   function add(g,m,x,y,z,p){ const o=sh(new THREE.Mesh(g,m)); o.position.set(x,y,z); (p||built).add(o); return o; }
   /* ==========================================================================
      Kit grafico in stile «Surviving Mars» sulla Terra: architettura spaziale
@@ -5606,7 +5607,7 @@ const C3=(()=>{
         add(new THREE.CircleGeometry(.85,24,0,Math.PI),M('#ECE9E2',{side:THREE.DoubleSide}),x+1.45,0,Y1); add(new THREE.BoxGeometry(.9,.75,.03),M('#3A4048',{metalness:.4}),x+1.45,.38,Y1+.01); }
       rslab(cx,cz,w,d,.45,0,Ht,WHITE(),.06); rslab(cx,cz,w+.04,d+.04,.47,Ht-.25,.12,M(TRIM),0);
       for(let i=1;i<6;i++){ add(new THREE.BoxGeometry(.07,Ht-.6,.08),M('#E1DED6'),X0+i*w/6,Ht/2,Y1+.02); add(new THREE.BoxGeometry(.08,Ht-.6,.07),M('#E1DED6'),X1+.02,Ht/2,Y0+i*d/6); }
-      add(new THREE.BoxGeometry(.3,Ht-.5,.06),M(TEAL),X0+w*.66,Ht/2,Y1+.03); add(new THREE.BoxGeometry(.42,Ht-.5,.06),M(ORA),X0+w*.8,Ht/2,Y1+.03);
+      add(new THREE.BoxGeometry(.3,Ht-.5,.06),M(TEAL),X0+w*.66,Ht/2,Y1+.045); add(new THREE.BoxGeometry(.42,Ht-.5,.06),M(ORA),X0+w*.8,Ht/2,Y1+.045); /* fronte a Y1+.075, davanti ai listelli (Y1+.06): niente z-fighting */
       rslab(X0+w*.3,Y1+.02,1.2,.06,.02,0,H(3.2),M(DARK),0); const dr=rslab(X0+w*.3,Y1+.05,1.0,.04,.02,.05,H(3.0),M('#4A5560',{metalness:.4,roughness:.4}),0);
       roofCap(cx,cz,w-.1,d-.1,.4,Ht,.25);
       cyl(cx-.5,cz,.18,Ht+.25,.35,M('#D8D6CF'),16);
@@ -5969,7 +5970,7 @@ const C3=(()=>{
     R.domElement.className='c3cv'; scene=new THREE.Scene(); scene.background=col('#BFDDEB'); scene.fog=new THREE.Fog(col('#C7E0E6'),66,150); envMap();
     cam=new THREE.PerspectiveCamera(32,1,.5,400); cam.userData.olRef=18;
     HEMC=new THREE.HemisphereLight(col('#EAF4FF'),col('#4F7A2E'),.28); scene.add(HEMC);
-    const sun=new THREE.DirectionalLight(col('#FFE9C8'),1.7); SUNC=sun; sun.position.set(-18,34,-10); sun.target.position.set(13,0,8); sun.castShadow=true; const s=sun.shadow; const MS=MOB?2048:Math.min(4096,R.capabilities.maxTextureSize||2048); s.mapSize.set(MS,MS); s.camera.left=-30; s.camera.right=30; s.camera.top=30; s.camera.bottom=-30; s.camera.near=1; s.camera.far=110; s.bias=-.0006; s.normalBias=.02; s.radius=4; scene.add(sun); scene.add(sun.target);
+    const sun=new THREE.DirectionalLight(col('#FFE9C8'),1.7); SUNC=sun; sun.position.set(-18,34,-10); sun.target.position.set(13,0,8); sun.castShadow=true; const s=sun.shadow; const MS=MOB?2048:Math.min(4096,R.capabilities.maxTextureSize||2048); s.mapSize.set(MS,MS); SHW=4*2*52/MS; /* 52 = mezzo lato massimo del frustum d'ombra */ s.camera.left=-30; s.camera.right=30; s.camera.top=30; s.camera.bottom=-30; s.camera.near=1; s.camera.far=110; s.bias=-.0006; s.normalBias=.02; s.radius=4; scene.add(sun); scene.add(sun.target);
     const fill=new THREE.DirectionalLight(col('#CFE0FF'),.25); fill.position.set(30,20,30); FILC=fill; scene.add(fill);
     { const n=160, pos=new Float32Array(n*3); for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, e=.12+Math.random()*1.3, r=260; pos[i*3]=13+Math.cos(a)*Math.cos(e)*r; pos[i*3+1]=Math.sin(e)*r; pos[i*3+2]=8+Math.sin(a)*Math.cos(e)*r; } const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); STARS=new THREE.Points(g,new THREE.PointsMaterial({color:0xFFFFFF,size:2.2,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false})); STARS.frustumCulled=false; STARS.visible=false; scene.add(STARS); } }
   const QS=new URLSearchParams(location.search), MOB=matchMedia('(pointer:coarse)').matches||QS.get('mob')==='1', RMOTION=matchMedia('(prefers-reduced-motion: reduce)').matches;
