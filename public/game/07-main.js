@@ -5582,7 +5582,7 @@ const C3=(()=>{
       ring(sx,sz,1.155,1.8,.05,M(RED)); dome(sx,sz,.5,2.05,GLASSD,.55);
       for(let i=0;i<12;i++){ const a=i/12*Math.PI*2; const l=add(new THREE.SphereGeometry(.035,6,5),EMI('#FFE9A8'),sx+Math.cos(a)*.98,1.66,sz+Math.sin(a)*.98); l.castShadow=false; }
       /* vasca d'acqua e bandiere davanti all'ingresso */
-      rslab(x+1.25,y+3.55,1.7,.75,.37,.06,.1,waterMat(),0).castShadow=false;
+      rslab(x+1.25,y+3.55,1.7,.75,.37,.06,.1,waterMat({hx:.85,hz:.375,r:.37}),0).castShadow=false;
       ['#2E86C1','#EB7D44','#1FA2A8'].forEach((c,i)=>{ const px=x+2.55+i*.3, pz=y+4.05; add(new THREE.CylinderGeometry(.022,.022,1.9,6),M('#D8D7D2'),px,.95,pz); const f=new THREE.Mesh(new THREE.PlaneGeometry(.42,.26,6,1),M(c,{side:THREE.DoubleSide})); f.position.set(px+.21,1.72,pz); f.userData.dyn=1; built.add(f); flags.push(f); });
       top=2.5; }
     else if(k==='mcc'){ apron(x,y,x+3.4,y+2.6); const cx=x+1.7, cz=y+1.3; const gl=glassMat();
@@ -5672,11 +5672,35 @@ const C3=(()=>{
       const cg=['#E04A3C','#7BC043','#F2B83A','#2E86C1','#EB7D44','#1FA2A8']; const PLG=new THREE.Group(); [0,1,3,4,5].forEach((i,j)=>{ const g=rover(); g.children[4].material=M(cg[(i+1)%6]); g.position.set(x+.6+i*.9,.06,y+.8); g.rotation.y=Math.PI/2; flat(PLG,g); }); [1,2,4].forEach((i,j)=>{ const g=rover(); g.children[4].material=M(cg[(i+3)%6]); g.position.set(x+.6+i*.9,.06,y+2.2); g.rotation.y=-Math.PI/2; flat(PLG,g); }); mergeGroup(PLG); built.add(PLG); top=.6; }
     else if(k==='dish'){ dish(it.x+.5,it.y+.5,0,.48,.8,-.7); top=1.3; }
     else if(k==='pond'){ const cx=x+1.8, cz=y+1.4; const rim=rslab(cx,cz,3.5,2.7,1.3,0,.12,M('#D9D3C2',{roughness:.9}),.04); rim.castShadow=false;
-      const w=rslab(cx,cz,3.15,2.35,1.15,.06,.08,waterMat(),0); w.castShadow=false; [[1.1,1],[2.3,1.6],[1.6,1.9],[2.6,.9],[.9,1.7]].forEach(p=>{ const l=add(new THREE.CylinderGeometry(.13,.13,.02,10),M('#5FA63A'),x+p[0],.15,y+p[1]); l.castShadow=false; });
+      const w=rslab(cx,cz,3.15,2.35,1.15,.06,.08,waterMat({hx:1.575,hz:1.175,r:1.15}),0); w.castShadow=false; [[1.1,1],[2.3,1.6],[1.6,1.9],[2.6,.9],[.9,1.7]].forEach(p=>{ const l=add(new THREE.CylinderGeometry(.13,.13,.02,10),M('#5FA63A'),x+p[0],.15,y+p[1]); l.castShadow=false; });
       [[.4,.5],[3.1,.5],[3.2,2.3],[.5,2.3]].forEach(p=>{ for(let i=0;i<5;i++) add(new THREE.CylinderGeometry(.012,.018,.45,4),M('#4F7F2C'),x+p[0]+Math.cos(i*1.3)*.1,.25,y+p[1]+Math.sin(i*1.3)*.1); }); top=.3; }
     return top; }
-  let WATER=null; function waterMat(){ if(WATER) return WATER; const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d'); g.fillStyle='#2F8FA8'; g.fillRect(0,0,128,128); g.strokeStyle='rgba(255,255,255,.22)'; g.lineWidth=1.5; for(let i=0;i<26;i++){ const x=(i*47)%128, y=(i*29)%128; g.beginPath(); g.moveTo(x,y); g.quadraticCurveTo(x+6,y-3,x+14,y); g.stroke(); }
-    const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(.6,.6); t.encoding=THREE.sRGBEncoding; WATER=new THREE.MeshStandardMaterial({map:t,color:col('#9ED8E6'),metalness:.25,roughness:.18,envMapIntensity:1.3,side:THREE.DoubleSide}); return WATER; }
+  /* ---------- acqua: MeshStandardMaterial (luci, ombre, nebbia, giorno/notte) + onBeforeCompile per il look:
+     colore da basso (riva) a profondo (centro), schiuma a riva, increspature animate, scintille di sole.
+     La distanza dalla riva si ricava dagli UV, senza depth buffer: fiume -> u attraverso il nastro (uvRibbon: u = 0..larghezza/2.5);
+     laghetto e vasca (rslab) -> UV = coordinate della forma centrata: distanza esatta da un rettangolo arrotondato */
+  let WNOISE=null; const WATERS=[];
+  function waterNoise(){ if(WNOISE) return WNOISE; const S=128, c=document.createElement('canvas'); c.width=c.height=S; const g=c.getContext('2d'), im=g.createImageData(S,S); let sd=7; const rnd=()=>{ sd=(sd*1664525+1013904223)>>>0; return sd/4294967296; };
+    const oct=n=>{ const v=[]; for(let i=0;i<n*n;i++) v.push(rnd()); return (x,y)=>{ const fx=x/S*n, fy=y/S*n, x0=Math.floor(fx), y0=Math.floor(fy), tx=fx-x0, ty=fy-y0, sx=tx*tx*(3-2*tx), sy=ty*ty*(3-2*ty), at=(i,j)=>v[((j+n)%n)*n+((i+n)%n)]; return (at(x0,y0)*(1-sx)+at(x0+1,y0)*sx)*(1-sy)+(at(x0,y0+1)*(1-sx)+at(x0+1,y0+1)*sx)*sy; }; }; /* rumore a valori che si ripete senza cuciture */
+    const a=oct(8), b=oct(16), d=oct(32); for(let y=0;y<S;y++) for(let x=0;x<S;x++){ const k=(y*S+x)*4; im.data[k]=255*(a(x,y)*.65+b(x,y)*.35); im.data[k+1]=255*(b(x,y)*.6+d(x,y)*.4); im.data[k+2]=255*d(x,y); im.data[k+3]=255; } g.putImageData(im,0,0);
+    const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return WNOISE=t; }
+  /* o = {w: larghezza del fiume} oppure {hx,hz,r: mezze misure e raggio d'angolo di laghetto/vasca} */
+  function waterMat(o){ const river=o.w!=null, U={uTime:{value:0},uSun:{value:1},uNoise:{value:waterNoise()},uMode:{value:river?0:1},uK:{value:river?2.5:1},uW:{value:o.w||0},uHalf:{value:new THREE.Vector2(o.hx||0,o.hz||0)},uR:{value:o.r||0},uFlow:{value:river?new THREE.Vector2(.03,-.2):new THREE.Vector2(.025,.018)},uSt:{value:river?new THREE.Vector2(2.4,.28):new THREE.Vector2(.7,.7)},uRip:{value:river?.22:.12}} /* acqua ferma: increspature piu' larghe e tenui */; /* uSt: sul fiume le increspature si allungano nel verso della corrente */
+    const m=new THREE.MeshStandardMaterial({color:0xffffff,map:waterNoise(),metalness:.1,roughness:.22,envMapIntensity:1.1,side:THREE.DoubleSide}); m.userData.u=U;
+    m.onBeforeCompile=sh=>{ Object.assign(sh.uniforms,m.userData.u);
+      sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',`
+        vec2 wp=vUv*uK; float sd;
+        if(uMode<.5) sd=min(wp.x,uW-wp.x); else { vec2 q=abs(wp)-uHalf+uR; sd=-(length(max(q,0.))+min(max(q.x,q.y),0.)-uR); }
+        sd=max(sd,0.);
+        float n1=texture2D(uNoise,wp*uSt*.32+uFlow*uTime).r, n2=texture2D(uNoise,wp*uSt*.5*vec2(1.,1.25)-uFlow.yx*uTime*.8+.37).g, n3=texture2D(uNoise,wp*1.1+uFlow*uTime*1.7+.71).b;
+        vec3 shal=vec3(.11,.50,.57), deep=vec3(.012,.13,.24); vec3 wc=mix(shal,deep,smoothstep(.05,.95,sd)); /* lineari (sRGB ~#5DBDC5 -> #1C6585) */
+        float rip=n1*.6+n2*.4; float st=smoothstep(.60,.625,rip)*(1.-smoothstep(.65,.68,rip)); wc=mix(wc,vec3(.55,.80,.88),st*uRip); /* increspature: anelli chiari a gradino (toon) */
+        float fe=.09+.08*n2; float foam=1.-smoothstep(fe-.012,fe+.012,sd); wc=mix(wc,vec3(.92,.97,.98),foam*.92); /* schiuma a riva, bordo che ondeggia */
+        float wGl=smoothstep(.72,.75,n3*(.55+.45*n1))*uSun*(1.-foam); /* scintille di sole */
+        diffuseColor.rgb=wc;`)
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n        totalEmissiveRadiance+=vec3(1.,.97,.88)*wGl*1.4;')
+      .replace('void main() {','uniform float uTime, uSun, uMode, uK, uW, uR, uRip; uniform vec2 uHalf, uFlow, uSt; uniform sampler2D uNoise;\nvoid main() {'); };
+    WATERS.push(m); return m; }
   /* auto del parcheggio e rover a sei ruote */
   function car(c){ const g=new THREE.Group(); const b=new THREE.Mesh(new THREE.ExtrudeGeometry(rr(.62,.3,.12),{depth:.12,bevelEnabled:true,bevelThickness:.04,bevelSize:.03,bevelSegments:2}),M(c,{roughness:.3})); b.geometry.rotateX(-Math.PI/2); b.position.y=.07; b.castShadow=true; g.add(b);
     const cab=new THREE.Mesh(new THREE.SphereGeometry(.15,14,10,0,Math.PI*2,0,Math.PI/2),glassMat()); cab.scale.set(1.3,.75,.85); cab.position.set(-.04,.24,0); g.add(cab);
@@ -5871,7 +5895,7 @@ const C3=(()=>{
   function mergeGroup(g){ TOON.outlineStatic(g,{minDim:.045}); const B={}; g.children.slice().forEach(o=>{ if(!o.isMesh||o.isInstancedMesh||Array.isArray(o.material)||o.userData.dyn) return; const k=o.material.uuid+(o.castShadow?'|c':''); (B[k]=B[k]||[]).push(o); }); /* per materiale E per proiezione: un dettaglio non eredita l'ombra del corpo con cui condivide il colore */
     Object.values(B).forEach(list=>{ if(list.length<2) return; const pos=[], nor=[], uv=[]; list.forEach(o=>{ o.updateMatrix(); let geo=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone(); geo.applyMatrix4(o.matrix); const p=geo.attributes.position, n=geo.attributes.normal, u=geo.attributes.uv; for(let i=0;i<p.count;i++){ pos.push(p.getX(i),p.getY(i),p.getZ(i)); if(n) nor.push(n.getX(i),n.getY(i),n.getZ(i)); else nor.push(0,1,0); if(u) uv.push(u.getX(i),u.getY(i)); else uv.push(0,0); } geo.dispose(); g.remove(o); o.geometry.dispose(); });
       const mg=new THREE.BufferGeometry(); mg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); mg.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3)); mg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); const m=new THREE.Mesh(mg,list[0].material); m.userData.noOL=1; m.castShadow=list.some(o=>o.castShadow); m.receiveShadow=list.every(o=>o.receiveShadow); g.add(m); }); }
-  function buildScene(items,ctx){ if(built){ scene.remove(built); built.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } TREEIM=[]; built=new THREE.Group(); scene.add(built); anims.length=0; walkers.length=0; RVL.length=0; flags.length=0;
+  function buildScene(items,ctx){ if(built){ scene.remove(built); built.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } TREEIM=[]; built=new THREE.Group(); scene.add(built); anims.length=0; WATERS.length=0; walkers.length=0; RVL.length=0; flags.length=0;
     const site=CAM.site(), nat=CAM.nat(), roads=CAM.roads();
     // prato con chiazze
     const gg=new THREE.PlaneGeometry(260,260,90,90); gg.rotateX(-Math.PI/2); const cc=[], C=new THREE.Color(); const pa=gg.attributes.position;
@@ -5884,7 +5908,7 @@ const C3=(()=>{
     const MCX=13.75, MCY=7.25, MR0=CAM.R0max(), MRP=MR0+18, rad=p=>hyp(p[0]-MCX,p[1]-MCY);
     const SPd=(()=>{ const s=smoothPl(CAM.stream()), o=[]; for(let i=0;i<s.length-1;i++){ const a=s[i], b=s[i+1], n=Math.max(1,Math.ceil(hyp(b[0]-a[0],b[1]-a[1])/1.2)); for(let k=0;k<n;k++) o.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n]); } o.push(s[s.length-1]); return o; })();
     let si0=0, si1=SPd.length-1; while(si0<SPd.length-1&&rad(SPd[si0])>MRP+2.6) si0++; while(si1>0&&rad(SPd[si1])>MRP+2.6) si1--;
-    const SP=SPd.slice(si0,si1+1); ribbon(SP,3.1,.008,'#7DAF4A'); ribbon(SP,2.55,.012,'#D9CBA0'); uvRibbon(SP,1.95,.03,waterMat()); anims.push(tt=>{ if(WATER) WATER.map.offset.set(tt*.015,-tt*.09); });
+    const SP=SPd.slice(si0,si1+1); ribbon(SP,3.1,.008,'#7DAF4A'); ribbon(SP,2.55,.012,'#D9CBA0'); uvRibbon(SP,1.95,.03,waterMat({w:3.9})); anims.push(tt=>{ const sun=SUNC?Math.min(1,SUNC.intensity/1.7):1; for(let i=0;i<WATERS.length;i++){ WATERS[i].userData.u.uTime.value=tt; WATERS[i].userData.u.uSun.value=sun; } });
     nat.hills.forEach(h=>{ const m=add(new THREE.SphereGeometry(1,20,12,0,Math.PI*2,0,Math.PI/2),mat('#4F9A32',{roughness:1}),h.x,0,h.y); m.scale.set(h.r,h.h/11*.55,h.r*.9); });
     const cw=CAM.crawler(items); if(cw){ const p=smoothPl(cw,2); ribbon(p,.75,.02,'#D9D2BC'); ribbon(p,.25,.025,'#9BB46A'); }
     const cwP=cw?smoothPl(cw,2):null, pdist=(x,z,pl)=>{ let m=1e9; for(let i=0;i<pl.length-1;i++){ const a=pl[i], b=pl[i+1], dx=b[0]-a[0], dz=b[1]-a[1], L2=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/L2)); m=Math.min(m,hyp(x-a[0]-dx*t,z-a[1]-dz*t)); } return m; };
