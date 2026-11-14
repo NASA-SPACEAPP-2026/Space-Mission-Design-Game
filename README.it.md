@@ -66,3 +66,7 @@ di `dev` in `main` deploya in **production**. Dettagli in
 - [Deployment](documentation/deployment.md)
 - [Formato salvataggi](documentation/legacy-save-format.md)
 - [Brief della challenge](documentation/challenge.it.md)
+
+## Account e database
+
+Vedi [mappa concettuale, schema PostgreSQL, API e configurazione Azure](./documentation/authentication.md).

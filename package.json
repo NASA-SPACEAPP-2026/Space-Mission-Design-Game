@@ -7,6 +7,8 @@
     "node": ">=24"
   },
   "scripts": {
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
+    "dev:api": "node --env-file-if-exists=.env --watch server.mjs",
     "dev": "vite",
     "build": "vite build && node scripts/build-game.mjs && node scripts/precompress.mjs",
     "preview": "vite preview",
@@ -17,9 +19,13 @@
     "package:azure": "./scripts/package-azure.sh release.zip"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "esbuild": "^0.28.2",
     "playwright-core": "^1.65.0",
     "vite": "^7.2.2",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
   }
 }

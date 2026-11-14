@@ -4,7 +4,7 @@
 
 The game is a static application. The campus and rooms use 2D SVG, while the satellite
 and orbit editors use the locally bundled Three.js renderer when WebGL is available.
-There is no server-side mission state: the game saves to `localStorage`.
+The game saves to `localStorage`. Accounts and sessions are stored in PostgreSQL; see [Account e database](./authentication.md).
 
 ## Current layout and runtime
 
@@ -14,7 +14,7 @@ There is no server-side mission state: the game saves to `localStorage`.
 - `public/audio/theme.mp3` contains the soundtrack and is loaded on demand.
 - `public/fonts/` contains the self-hosted fonts used by the shell; the newer interface
   also requests the Barlow families from Google Fonts.
-- `server.mjs` serves the production build and the health endpoint.
+- `server.mjs` serves the production build, the health endpoint and account APIs.
 - `tests/` and `scripts/` contain static/server checks, build tools and a browser smoke test.
 
 The source is adapted from `Go No-Go.html`. The 3D editors fall back to the available 2D
@@ -38,7 +38,7 @@ is larger than the earlier 2D-only version.
   conditional requests with `304`;
 - long-lived cache for hashed `/assets/*`, `no-cache` for the shell and `/game/*`;
 - `GET /api/health` returns `{"status":"ok"}` only as a liveness probe for the existing Azure
-  smoke test. It is not a game API.
+  smoke test. Account endpoints live under `/api/auth/`; mission state remains local.
 
 ## Next refactor step
 
@@ -61,7 +61,7 @@ Rules for that step:
 - move code with `git mv` to preserve history;
 - add characterization tests before moving logic;
 - keep one working commit per module;
-- do not reintroduce a bundler-only runtime requirement: the build must stay a static site.
+- do not reintroduce a bundler-only runtime requirement: the game assets must remain statically buildable; authentication runs in Node.
 
 ## Tests
 
