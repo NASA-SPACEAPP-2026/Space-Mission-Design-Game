@@ -1,35 +1,37 @@
-# Account e database
+# Account e database PostgreSQL
 
-## Mappa concettuale
+[Indice](README.md) · [Avvio completo](../README.md#avvio-completo-con-account) · [Salvataggi](legacy-save-format.md) · [Distribuzione](deployment.md)
+
+## Cosa fa il database oggi
+
+PostgreSQL gestisce **identità, sessioni e limiti ai tentativi**. Non conserva missioni, componenti, crediti, progressione o rapporti di gioco. Questi dati rimangono nel browser, nel salvataggio `gng32.save`.
+
+La registrazione usa il backend del progetto, senza Entra External ID o un fornitore OAuth. Il login accetta username oppure email. L'interfaccia account è in `public/account.js`, separata dal motore di gioco: il giocatore può continuare come ospite.
 
 ```mermaid
 flowchart TD
-  A[Giocatore] --> B[Gioco nel browser]
-  B --> C[Account: registrazione, accesso, uscita]
-  C -->|HTTPS, JSON, stessa origine| D[API Node su Azure App Service]
-  D --> E[Validazione e limiti ai tentativi]
-  E --> F[PostgreSQL Flexible Server]
-  F --> U[users: profilo e hash password]
-  F --> S[sessions: hash token e scadenza]
-  F --> L[auth_limits: contatori condivisi]
-  D -->|Cookie HttpOnly, Secure, SameSite| B
-  B --> P[Partite in localStorage: gng32.save]
+  B[Browser] -->|JSON, stessa origine| A[API Node: backend/auth.mjs]
+  A --> V[Validazione origine, input e limiti]
+  V --> D[(PostgreSQL)]
+  D --> U[users: identità e hash password]
+  D --> S[sessions: hash token e scadenza]
+  D --> L[auth_limits: contatori condivisi]
+  A -->|Cookie HttpOnly| B
+  B --> P[localStorage: partita e preferenze]
 ```
 
-Le credenziali sono gestite dal backend del progetto. Entra External ID non è
-utilizzato: questa implementazione consente accesso con username oppure email.
-Il database è PostgreSQL anche in sviluppo; SQLite non è necessario.
+## Schema dati
 
-## Modello dati
+Lo schema eseguibile è [`db/001-auth.sql`](../db/001-auth.sql).
 
 ```mermaid
 erDiagram
   users ||--o{ sessions : possiede
   users {
     uuid id PK
-    text username "univoco senza distinzione maiuscole"
-    text email "univoca senza distinzione maiuscole"
-    text password_hash "scrypt, sale casuale"
+    text username
+    text email
+    text password_hash
     timestamptz created_at
   }
   sessions {
@@ -38,150 +40,165 @@ erDiagram
     timestamptz expires_at
   }
   auth_limits {
-    text key PK "SHA256 della chiave del limite"
+    text key PK
     integer attempts
     timestamptz expires_at
   }
 ```
 
-Schema eseguibile: [001-auth.sql](../db/001-auth.sql). Il comando di migrazione è
-idempotente e transazionale. Per modifiche future aggiungere migrazioni versionate:
-non cambiare semplicemente questo schema per trasformare tabelle già esistenti.
+### `users`
 
-Username: 3–24 caratteri ASCII, lettere, numeri e underscore. Password: 15–128
-caratteri, senza troncamenti. Hash scrypt con N=32768, r=8, p=3, sale di 16 byte e
-chiave di 64 byte. Nel DB non sono memorizzate password leggibili.
+| Campo | Regola | Significato |
+| --- | --- | --- |
+| `id` | UUID, chiave primaria | Generato con `randomUUID()` dal backend |
+| `username` | Obbligatorio, controllo SQL sul formato | Da 3 a 24 lettere ASCII, cifre o underscore |
+| `email` | Obbligatoria | Validata dal backend e salvata in minuscolo |
+| `password_hash` | Obbligatorio | Valore `scrypt$sale$hash`, mai password leggibile |
+| `created_at` | `timestamptz`, predefinito `now()` | Data di creazione |
 
-La sessione dura sette giorni; il browser riceve 32 byte casuali in formato hex e
-il DB conserva solo SHA256 del token. Login e registrazione sostituiscono la sessione
-corrente, logout la revoca. La scadenza è verificata a ogni richiesta autenticata.
-La cancellazione di un utente cancella le sue sessioni tramite foreign key.
+Gli indici univoci su `lower(username)` e `lower(email)` impediscono duplicati anche con maiuscole diverse. L'email deve avere formato accettato dal backend e lunghezza massima di 254 caratteri; non viene verificato il possesso della casella.
 
-## Avvio locale
+### `sessions`
 
-Prerequisiti: Node 24 e Docker Desktop avviato. In PowerShell usare `npm.cmd` se
-l'esecuzione degli script PowerShell è disabilitata.
+`token_hash` è la chiave primaria e contiene SHA-256 del token di sessione. `user_id` fa riferimento a `users.id`: eliminare un utente elimina le sue sessioni con `ON DELETE CASCADE`. `expires_at` è la scadenza assoluta.
 
-```powershell
-npm.cmd ci
-docker compose up -d --wait
-Copy-Item .env.example .env
-npm.cmd run db:migrate
-npm.cmd run dev:api
-```
+Sono presenti indici su scadenza e utente. Una persona può avere più sessioni, per esempio su browser diversi. Login e registrazione sostituiscono soltanto la sessione indicata dal cookie della richiesta corrente, non tutte le sessioni dell'utente.
 
-In un secondo terminale eseguire `npm.cmd run dev` e aprire
-`http://localhost:5173`. Vite inoltra `/api` alla porta 8080 del backend.
-Il pulsante Account apre la registrazione e il login; il gioco rimane accessibile
-agli ospiti. Il backend serve il gioco compilato quando si usa `npm run build`.
-Per provarlo direttamente sulla porta 8080 impostare `APP_ORIGIN=http://localhost:8080`
-nel `.env`, riavviare il backend e aprire quell'indirizzo.
+### `auth_limits`
 
-Le credenziali in compose e `.env.example` sono esclusivamente locali.
-Non eseguire `docker compose down -v` se si vogliono conservare gli account locali.
+Ogni riga contiene una chiave trasformata in SHA-256, un contatore e una scadenza. Un `INSERT ... ON CONFLICT DO UPDATE` aggiorna il contatore nel DB: i limiti sono condivisi fra processi e worker che usano lo stesso database.
+
+Quando una finestra è scaduta, il tentativo successivo riporta il contatore a 1 e apre una nuova finestra di 15 minuti. Il successo di un login non azzera automaticamente i contatori.
+
+## Registrazione, accesso e uscita
+
+1. Il browser invia JSON all'API sulla stessa origine.
+2. Il backend verifica metodo, origine, formato e limiti; per registrazione e login accetta al massimo 4.096 byte di corpo.
+3. Alla registrazione valida username, email e password, calcola scrypt e inserisce l'utente. Username/email duplicati producono `409`.
+4. Al login normalizza l'identificativo con minuscole e rimozione degli spazi esterni, cerca l'utente e confronta gli hash della password. Per utenti assenti esegue comunque un calcolo con hash fittizio.
+5. Dopo registrazione o login genera **32 byte casuali**, codificati in 64 caratteri esadecimali. Salva solo SHA-256 del token, con scadenza a sette giorni, ed elimina la sessione precedente se era presente un cookie.
+6. Il browser riceve il token nel cookie `gng_session`; il JSON contiene solo `{id, username, email}` dentro `user`.
+7. `GET /api/auth/me` legge il cookie, cerca una sessione non scaduta tramite hash e restituisce l'utente oppure `null`.
+8. Il logout elimina la sessione indicata dal cookie e invia un cookie con `Max-Age=0`.
+
+Le operazioni di registrazione e creazione sessione sono query separate, senza una transazione comune: se la creazione sessione fallisce dopo l'inserimento, l'utente può già esistere. La scadenza non viene prolungata dalla semplice lettura di `/me`.
+
+## Password e cookie
+
+| Proprietà | Implementazione |
+| --- | --- |
+| Lunghezza password in registrazione | Da 15 a 128 caratteri, senza troncamento |
+| Derivazione | scrypt, `N=32768`, `r=8`, `p=3`, `maxmem=64 MiB` |
+| Sale | 16 byte casuali, codificati hex |
+| Chiave derivata | 64 byte |
+| Confronto | `timingSafeEqual` su buffer della stessa lunghezza |
+| Parallelismo hash | Al massimo quattro calcoli attivi per processo |
+| Cookie | `Path=/; HttpOnly; SameSite=Lax; Max-Age=604800` |
+| Cookie in produzione | Aggiunge `Secure` |
+
+Il frontend non conserva credenziali o token nel `localStorage`. `HttpOnly` impedisce agli script della pagina di leggere il cookie. In sviluppo `secure:false` permette HTTP locale; in produzione sono richiesti origine HTTPS e cookie `Secure`.
 
 ## Contratto API
 
-| Endpoint | Metodo | Input / risultato |
+| Metodo e percorso | Corpo | Risposta positiva |
 | --- | --- | --- |
-| `/api/auth/register` | POST | `{username,email,password}` → 201, utente e cookie |
-| `/api/auth/login` | POST | `{login,password}` → 200, utente e cookie |
-| `/api/auth/me` | GET | 200, `{user}` oppure `{user:null}` |
-| `/api/auth/logout` | POST | revoca sessione e cancella cookie |
+| `POST /api/auth/register` | `{ "username": "Pilota", "email": "pilota@example.com", "password": "una frase lunga e unica" }` | `201`, `{ "user": { "id": "…", "username": "Pilota", "email": "pilota@example.com" } }` e cookie |
+| `POST /api/auth/login` | `{ "login": "Pilota", "password": "una frase lunga e unica" }` | `200`, utente pubblico e cookie |
+| `GET /api/auth/me` | Nessuno | `200`, `{ "user": ... }` oppure `{ "user": null }` |
+| `POST /api/auth/logout` | L'interfaccia invia `{}` | `200`, `{ "user": null }` e cancellazione cookie |
 
-I POST richiedono `Origin` uguale a `APP_ORIGIN`; registrazione e login richiedono
-`Content-Type: application/json`. Non viene abilitato CORS. Le risposte non sono
-memorizzabili in cache. Hash, token e password non sono restituiti nel JSON.
-Errori: 400 input non valido, 401 credenziali errate, 403 origine errata,
-409 duplicato, 413 oltre 4 KiB, 415 formato errato, 429 limite, 503 DB indisponibile.
+Tutti i POST account richiedono `Origin` esattamente uguale a `APP_ORIGIN`. Registrazione e login richiedono `Content-Type: application/json`; il logout viene gestito prima del controllo del formato del corpo. Non è abilitato CORS. Le risposte account hanno `Cache-Control: no-store`.
 
-Limiti condivisi nel DB: 10 tentativi per identificativo login, 100 richieste
-registrazione/login per indirizzo di rete del peer, 30 registrazioni globali in
-15 minuti. Il backend non si fida di `X-Forwarded-For` arbitrario: su App Service
-il limite del peer potrebbe essere condiviso fra visitatori dietro il proxy.
-Per traffico pubblico elevato configurare anche un limite al bordo e adeguare
-le soglie alle esigenze; non fidarsi degli header inoltrati senza definire proxy fidati.
-
-## Azure: risorse e configurazione
-
-Eseguire il provisioning separatamente per staging e produzione, con server,
-credenziali e database separati. Non usare dati reali in staging.
-Lo script crea risorse a pagamento: controllare il preventivo Azure della regione.
-
-1. Installare Azure CLI ed eseguire `az login`.
-2. In Bash impostare `RG`, `PG_SERVER` (nome univoco), `WEBAPP` e
-   `PG_ADMIN_PASSWORD`; opzionali `LOCATION`, `PG_ADMIN`, `PG_DATABASE`.
-   Eseguire `bash infra/azure-database.sh`. Non abilitare `set -x`.
-3. Lo script crea PostgreSQL 17 Flexible Server Burstable B1ms, 32 GiB e backup
-   di sette giorni, aprendo il firewall solo agli IP di uscita possibili della Web App.
-   Le policy della subscription possono richiedere altre SKU o rete privata.
-4. Da una macchina autorizzata nel firewall applicare lo schema con
-   `npm run db:migrate`. Usare una connessione TLS e poi rimuovere l'eventuale
-   regola temporanea per la macchina amministrativa. Il provisioning non applica
-   automaticamente lo schema SQL.
-5. Configurare le impostazioni della Web App, preferibilmente con riferimenti Key Vault:
-
-| Impostazione | Produzione / staging |
+| Stato | Significato |
 | --- | --- |
-| `DATABASE_URL` | `postgresql://USER:PASSWORD_URL_ENCODED@SERVER.postgres.database.azure.com:5432/gng` |
-| `DATABASE_SSL` | `true` |
-| `APP_ORIGIN` | `https://NOME-APP.azurewebsites.net`, senza slash finale; usare il dominio effettivo visitato |
-| `NODE_ENV` | `production` anche per staging ospitato |
+| `400` | JSON, formato o campi non validi |
+| `401` | Credenziali errate |
+| `403` | Origine diversa da quella configurata |
+| `404` | Endpoint non previsto |
+| `405` | Metodo non consentito |
+| `409` | Conflitto sui dati di registrazione |
+| `413` | Corpo oltre 4 KiB |
+| `415` | Formato del corpo non supportato |
+| `429` | Troppi tentativi |
+| `503` | Account non configurati, DB/schema indisponibile o errore del servizio account |
 
-La verifica del certificato TLS è attiva. `DATABASE_SSL=false` è consentito solo
-in locale; il server rifiuta di avviarsi in produzione senza DB o senza origine HTTPS.
-Non aggiungere segreti Git, variabili Vite o stringhe DB nel frontend.
-Separare l'utente amministratore/migrazioni dall'utente applicativo: a quest'ultimo
-assegnare CONNECT al DB, USAGE allo schema e SELECT/INSERT/UPDATE/DELETE sulle tre
-tabelle. Il runtime non richiede privilegi CREATE né accesso ad altri database.
+`/me` esegue anche una query su `users` prima di verificare la sessione: una risposta positiva senza cookie indica che la connessione e almeno la tabella utenti sono raggiungibili. Non verifica da sola tutte le operazioni di registrazione, sessione o limitazione.
 
-La release include `backend/`, `db/`, lo script di migrazione, il lockfile e le
-dipendenze di produzione, installate su Linux nella CI. Le migrazioni devono essere
-applicate **prima** del deploy; non si eseguono automaticamente all'avvio del processo.
-`/api/health` rimane una sonda di processo; lo smoke test account controlla anche
-che il DB/schema siano raggiungibili.
+## Limiti ai tentativi
 
-## Flusso Git e collaudo
+| Chiave logica | Soglia per finestra di 15 minuti |
+| --- | --- |
+| Indirizzo del peer TCP | 100 richieste registrazione/login che raggiungono il controllo |
+| Identificativo login normalizzato | 10 tentativi |
+| Registrazioni globali | 30 tentativi di registrazione validi che raggiungono il controllo |
 
-`main → nuovo branch → PR verso dev → prova sul web staging → PR dev verso main`.
-Non fare merge diretto del branch su main. Le stesse migrazioni vanno applicate
-prima a staging, poi a produzione dopo i test, con backup verificato. Il rollback
-del codice non cancella utenti né ripristina automaticamente il DB.
+Il tentativo oltre soglia riceve `429`. I limiti non riguardano `/me` e logout. Il codice usa `req.socket.remoteAddress`, senza fidarsi di `X-Forwarded-For`: dietro un proxy, più visitatori possono condividere il limite del peer. Un eventuale adattamento ai proxy fidati richiede una modifica esplicita del backend.
 
-`npm run check` esegue test e build. I test account utilizzano PGlite (PostgreSQL
-incorporato, solo dipendenza di sviluppo) e verificano SQL, unicità, password,
-cookie, login, rotazione, logout, scadenza, CSRF e limiti. Non sostituiscono una
-prova della connettività TLS e del firewall sul vero Azure PostgreSQL.
+## Connessione PostgreSQL
 
-Il test browser opzionale si avvia con `node scripts/smoke-account.mjs` dopo la
-build. Impostare `CHROME_PATH` al percorso di Chrome/Chromium; usa un database
-temporaneo PGlite e non tocca account reali.
+[`backend/database.mjs`](../backend/database.mjs) crea un pool `pg` con **massimo cinque connessioni per processo** e timeout di connessione di **5 secondi**. Più istanze dell'applicazione possono quindi aprire ciascuna fino a cinque connessioni.
 
-In staging: creare un account, riavviare la Web App e verificare il login;
-controllare email/username duplicati, password errata, logout, browser separato,
-mobile, gioco ospite e assenza di regressioni nei salvataggi locali.
+`DATABASE_URL` è obbligatoria per creare il pool. Il codice rimuove `sslmode` dalla URL e usa la propria configurazione TLS: `DATABASE_SSL=false` disabilita TLS soltanto fuori produzione; negli altri casi il certificato viene verificato con `rejectUnauthorized:true`.
 
-## Gestione operativa e limiti attuali
+| Variabile | Uso |
+| --- | --- |
+| `DATABASE_URL` | URL PostgreSQL; codificare correttamente i caratteri speciali delle credenziali |
+| `DATABASE_SSL` | `false` per PostgreSQL Docker locale; TLS attivo negli altri casi |
+| `APP_ORIGIN` | Origine esatta, senza percorso o slash finale |
+| `NODE_ENV` | `production` rende obbligatori DB, TLS e origine HTTPS |
+| `PORT` | Porta del backend, predefinita 8080 |
 
-Programmare giornalmente con un job amministrativo:
+L'avvio del processo crea il pool ma non applica migrazioni né garantisce connettività DB. `GET /api/health` è una sonda del processo, non del database.
+
+## Avvio e migrazioni
+
+La procedura completa è nel [README](../README.md#avvio-completo-con-account). I comandi essenziali sono:
+
+```powershell
+docker compose -f compose.yaml up -d --wait postgres
+# Solo se non esiste già una configurazione da conservare:
+Copy-Item .env.example .env
+npm run db:migrate
+npm run dev:api
+```
+
+Il servizio locale usa PostgreSQL 17, porta esposta soltanto su `127.0.0.1:5432` e volume `postgres-data`. Nel secondo terminale avvia `npm run dev` e usa l'origine `http://localhost:5173` prevista da `.env.example`.
+
+`npm run db:migrate` carica `.env`, legge l'unico file SQL e lo esegue dentro `BEGIN/COMMIT`, poi chiude il pool. La migrazione è ripetibile grazie a `IF NOT EXISTS`.
+
+**Non esiste ancora un registro di migrazioni né un esecutore di file numerati.** Modificare `001-auth.sql` non aggiorna automaticamente colonne o vincoli già esistenti. Per evoluzioni future occorre introdurre vere migrazioni di alterazione e aggiornare anche l'esecutore; aggiungere soltanto un secondo file SQL non basta.
+
+## Azure e privilegi
+
+Esegui il provisioning separatamente per staging e produzione con `infra/azure-database.sh`. Richiede `RG`, `PG_SERVER`, `WEBAPP`, `PG_ADMIN_PASSWORD`; accetta `LOCATION`, `PG_ADMIN` e `PG_DATABASE`. Lo script definisce PostgreSQL 17 Flexible Server, SKU `Standard_B1ms`, 32 GiB e backup di sette giorni e apre il firewall agli IP di uscita possibili della Web App.
+
+Queste sono impostazioni dello script, non una verifica delle risorse realmente distribuite. Disponibilità, costi e policy della subscription vanno verificati nell'ambiente destinazione. Il provisioning non applica lo schema né imposta automaticamente tutte le variabili della Web App.
+
+Usa `DATABASE_SSL=true`, `NODE_ENV=production`, una `APP_ORIGIN` HTTPS esatta e credenziali specifiche dell'ambiente. Non inserire stringhe DB in Git, variabili frontend o log. Separa il ruolo amministrativo/migrazioni dal ruolo applicativo, che necessita di `CONNECT`, `USAGE` e operazioni sui dati delle tre tabelle, non di creazione dello schema.
+
+La [guida distribuzione](deployment.md) descrive l'ordine provisioning → configurazione → migrazione → deploy → collaudo.
+
+## Manutenzione
+
+La scadenza è verificata durante l'uso, ma non esiste un processo automatico che elimini le righe scadute. Un job amministrativo può eseguire periodicamente:
 
 ```sql
 DELETE FROM sessions WHERE expires_at <= now();
 DELETE FROM auth_limits WHERE expires_at <= now();
 ```
 
-Gli utenti sono registrati nel DB e identificabili per ID; non c'è una pagina admin.
-Non sono inclusi verifica email, recupero password via email, cancellazione account
-self-service, MFA e salvataggio cloud. L'email raccolta non dimostra il possesso
-della casella. Definire informativa, tempi di conservazione e gestione delle richieste
-degli utenti prima di raccogliere account reali; non aggiungere consensi marketing impliciti.
+Query di controllo senza esporre credenziali o token:
 
-I salvataggi restano locali e condivisi fra account nello stesso profilo browser:
-logout non li cancella e il login non li sincronizza. Su computer condivisi questo
-comportamento va considerato prima di introdurre partite associate agli account.
+```sql
+SELECT count(*) AS utenti FROM users;
+SELECT count(*) AS sessioni_attive FROM sessions WHERE expires_at > now();
+SELECT count(*) AS limiti_scaduti FROM auth_limits WHERE expires_at <= now();
+```
 
-## Riferimenti
+Verifica backup e ripristino prima delle modifiche strutturali. Un rollback del codice non ripristina il database. I dati locali del browser richiedono un backup distinto: non sono inclusi nei backup PostgreSQL.
 
-- [Azure PostgreSQL](https://learn.microsoft.com/en-us/azure/postgresql/overview)
-- [Limiti dei volumi App Service per SQLite](https://learn.microsoft.com/en-us/azure/app-service/containers/how-to-serve-content-from-azure-storage)
-- [Node crypto / scrypt](https://nodejs.org/api/crypto.html#cryptoscryptpassword-salt-keylen-options-callback)
+## Limiti attuali e collaudo
+
+Non sono implementati verifica email, recupero password, MFA, pagina amministrativa, cancellazione account autonoma, salvataggio cloud o sincronizzazione missioni. La cancellazione SQL di un utente elimina le sue sessioni, ma non cancella il `localStorage` dei suoi browser. Il logout non elimina il salvataggio e non esce dalle altre sessioni.
+
+I test account usano PGlite temporaneo; non dimostrano connettività TLS, firewall o persistenza del vero server Azure. Lo smoke browser `node scripts/smoke-account.mjs` prova registrazione, ricaricamento, uscita, accesso e cookie su un DB temporaneo. In staging verifica anche persistenza dopo riavvio dell'app e separazione dal DB di produzione. Vedi [verifiche](testing.md).

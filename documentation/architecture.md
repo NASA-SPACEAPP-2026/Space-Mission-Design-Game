@@ -1,76 +1,106 @@
-# App architecture and game flow
+# Architettura e flussi del progetto
 
-## Direction
+[Indice](README.md) · [Database](authentication.md) · [GMAT](gmat-integration-report.md)
 
-The game is a static application. The campus and rooms use 2D SVG, while the satellite
-and orbit editors use the locally bundled Three.js renderer when WebGL is available.
-The game saves to `localStorage`. Accounts and sessions are stored in PostgreSQL; see [Account e database](./authentication.md).
+## Vista d'insieme
 
-## Current layout and runtime
+Go No-Go comprende tre componenti: un gioco eseguito nel browser, un backend Node per file e account, un servizio GMAT opzionale. Gli asset frontend sono compilabili e distribuibili come sito statico; le funzioni account richiedono Node e PostgreSQL.
 
-- `index.html` contains the shell and styles.
-- `public/game/` contains classic scripts loaded in order: Three.js and its toon styling,
-  game data, orbit mechanics, mission logic, 3D editors, campus, rooms and main UI.
-- `public/audio/theme.mp3` contains the soundtrack and is loaded on demand.
-- `public/fonts/` contains the self-hosted fonts used by the shell; the newer interface
-  also requests the Barlow families from Google Fonts.
-- `server.mjs` serves the production build, the health endpoint and account APIs.
-- `tests/` and `scripts/` contain static/server checks, build tools and a browser smoke test.
-
-The source is adapted from `Go No-Go.html`. The 3D editors fall back to the available 2D
-views or controls when WebGL is unavailable. Saves use the `gng32.save` key; compatibility
-with every previous saved mission has not been independently verified.
-
-## Build
-
-`npm run build` uses Vite, concatenates and minifies the classic scripts into a hashed game
-bundle, then precompresses text assets. `npm run check` also runs the test suite and verifies
-the resulting bundle. The newer game includes Three.js and additional artwork, so the bundle
-is larger than the earlier 2D-only version.
-
-## Server
-
-`server.mjs` is deliberately small:
-
-- serves `dist/`;
-- prefers precompressed `.br`/`.gz` files when the client accepts them;
-- sends `ETag`, `Last-Modified`, `Content-Length` and `Vary: Accept-Encoding`, and answers
-  conditional requests with `304`;
-- long-lived cache for hashed `/assets/*`, `no-cache` for the shell and `/game/*`;
-- `GET /api/health` returns `{"status":"ok"}` only as a liveness probe for the existing Azure
-  smoke test. Account endpoints live under `/api/auth/`; mission state remains local.
-
-## Next refactor step
-
-The scripts are split by domain but still use the classic global scope. The next step is the
-conversion to ES modules and TypeScript under `src/`, one domain per pull request:
-
-```text
-src/
-  app/        boot, state, save/migrations, i18n
-  sim/        technology DB, orbit math, mission logic, economy
-  render/     campus SVG, rooms, satellite and orbit editors
-  screens/    hub, meeting, design, tests, launch, reports
-  ui/         HUD, modals, tutorial, components
-  styles/
+```mermaid
+flowchart TB
+  subgraph Browser
+    UI[Interfacce, campus e laboratori]
+    SIM[Dati, logica e meccanica orbitale]
+    SAVE[localStorage v32]
+    ACCOUNT[Interfaccia account]
+    UI --> SIM
+    SIM --> SAVE
+  end
+  ACCOUNT -->|/api/auth/*| NODE[Server Node]
+  NODE --> PG[(PostgreSQL)]
+  SIM -->|/api/gmat* tramite proxy| GMAT[Bridge Node e GmatConsole]
+  NODE --> DIST[File compilati in dist]
 ```
 
-Rules for that step:
+Il proxy verso GMAT è presente in Vite durante lo sviluppo. In produzione `server.mjs` gestisce gli account, ma risponde `404` alle altre API sconosciute: l'instradamento GMAT va predisposto separatamente.
 
-- keep `gng32.save` compatible and add a save-version migration;
-- move code with `git mv` to preserve history;
-- add characterization tests before moving logic;
-- keep one working commit per module;
-- do not reintroduce a bundler-only runtime requirement: the game assets must remain statically buildable; authentication runs in Node.
+## Frontend e ordine degli script
 
-## Tests
+`index.html` contiene struttura e stili. Gli script del gioco sono **script classici**, con identificatori e dipendenze condivisi. L'ordine effettivo, usato anche dal compilatore del bundle, è:
 
-`npm test` runs Vitest:
+| Ordine | File in `public/game/` | Responsabilità |
+| --- | --- | --- |
+| 1 | `00-three.js` | Libreria Three.js locale |
+| 2 | `00-toon.js` | Stile e supporti grafici |
+| 3 | `01-data.js` | Cataloghi e dati del gioco |
+| 4 | `02-orbit.js` | Meccanica orbitale e calcoli |
+| 5 | `03-logic.js` | Regole e simulazione di missione |
+| 6 | `04-stubs.js` | Editor e visualizzazioni 3D, inclusi satellite e volo |
+| 7 | `05-campus.js` | Campus e strutture |
+| 8 | `06-rooms.js` | Ambienti e stanze |
+| 9 | `08-minigames.js` | Minigiochi e prove |
+| 10 | `07-main.js` | Avvio, stato, interfacce, salvataggio e integrazioni |
 
-- `tests/content.test.mjs` guards the static contract (script order, 3D editors, external
-  audio, no backend references, shell size);
-- `tests/server.test.mjs` starts `server.mjs` on an ephemeral port and checks the shell, health
-  probe, asset caching, SPA fallback, 404s, path traversal and HEAD.
+L'ordine non coincide con l'ordinamento alfabetico: `08-minigames.js` precede `07-main.js`. Una modifica deve mantenere coerenti HTML, `scripts/build-game.mjs` e test del contratto.
 
-`npm run smoke` is optional and needs a running build plus a Chromium executable. It checks the
-welcome dialog, starts a normal game and fails on page or console errors.
+`public/account.js` viene caricato separatamente come modulo e gestisce il pulsante e il dialogo account. Non trasforma lo stato del gioco in dati associati all'utente.
+
+## Rendering e risorse
+
+Il progetto include campus e stanze 3D, editor del satellite e dell'orbita e viste SVG/2D. Three.js richiede WebGL. Il codice prevede controlli di disponibilità e viste alternative, ma la copertura dei fallback va verificata per la schermata interessata.
+
+Un regolatore delle prestazioni modifica qualità e rapporto pixel, con preferenza salvata in `gngQ`. `?perf=1`, `?q=0..3` e `?mob=1` aiutano il collaudo. Le animazioni considerano `prefers-reduced-motion`.
+
+I font locali si trovano in `public/fonts/`, con licenze OFL. La pagina richiede anche famiglie a Google Fonts: avere font locali non equivale a completa assenza di richieste esterne. `public/audio/theme.mp3` è caricato separatamente e non incorporato nel normale HTML.
+
+## Stato e persistenza
+
+L'oggetto di gioco `G` viene creato da `newG()` e serializzato da `save()` nella chiave `gng32.save`. `load()` accetta soltanto oggetti con `v === 32`. Non c'è uno schema dichiarativo completo per le missioni né un migratore generale dei salvataggi.
+
+Il backend conserva soltanto utenti, sessioni e limiti ai tentativi. Il servizio GMAT gestisce calcoli e cache separati dal database account. I risultati orbitali incorporati nella missione seguono il salvataggio locale della missione.
+
+Consulta [formato dei salvataggi](legacy-save-format.md) e [schema PostgreSQL](authentication.md) per i due modelli distinti.
+
+## Routing in sviluppo
+
+| Percorso/porta | Destinazione |
+| --- | --- |
+| `localhost:5173` | Vite, file frontend e ricaricamento sviluppo |
+| `/api/gmat*` da Vite | `http://localhost:8787` |
+| Altri `/api*` da Vite | `http://127.0.0.1:8080` |
+| `localhost:8080` | Server Node, API account e `dist/` |
+| `localhost:4173` | Anteprima Vite, senza i proxy definiti per `server` |
+| `127.0.0.1:5432` | PostgreSQL Docker locale |
+
+La regola GMAT precede quella generale `/api`. `APP_ORIGIN` si riferisce all'origine vista dal browser, quindi normalmente `http://localhost:5173` durante lo sviluppo.
+
+## Backend HTTP
+
+`server.mjs` usa il server HTTP nativo di Node. Serve `dist/`, gestisce `/api/auth/*` tramite `createAuth()` e risponde a `/api/health` con `{ "status": "ok" }`.
+
+Per i file supporta GET/HEAD, MIME, Brotli/gzip precalcolati o compressione dinamica, `ETag`, `Last-Modified`, richieste condizionali e risposta `304`. Blocca percorsi non validi e traversal; applica fallback SPA alle sole rotte senza estensione.
+
+| Risorsa | Cache |
+| --- | --- |
+| HTML principale e `/game/*` | `no-cache` |
+| `/assets/*`, `/audio/*`, `/fonts/*` | Un anno, `immutable` |
+| Altri file | Un'ora |
+| API account e sonda JSON | `no-store` |
+
+La chiusura su `SIGTERM`/`SIGINT` attende la chiusura del server e del pool PostgreSQL. In produzione la configurazione account è obbligatoria; in locale il server può partire senza DB e restituire `503` agli account.
+
+## Pipeline di build
+
+1. Vite compila `index.html` e i moduli frontend in `dist/`.
+2. `scripts/build-game.mjs` concatena gli script classici nell'ordine definito, li minifica con esbuild e produce `assets/game-<hash>.js`.
+3. Il compilatore sostituisce i tag sorgenti nell'HTML, aggiunge il preload ed elimina `dist/game/`.
+4. `scripts/precompress.mjs` genera gli asset testuali `.br` e `.gz`.
+5. `scripts/verify-build.mjs`, eseguito da `npm run check`, verifica il contratto della build.
+
+`package:azure` raccoglie la build e il runtime Node; `package:single` genera un'esportazione HTML del gioco. Sono artefatti con capacità diverse: nessuna esportazione frontend incorpora un server PostgreSQL.
+
+## Evoluzione possibile
+
+Una conversione a moduli ES/TypeScript può separare stato, simulazione, renderer e schermate. È una proposta, non la struttura attuale: non esiste già una nuova architettura `src/` da usare al posto degli script.
+
+Prima di spostare codice condiviso, individuare dipendenze globali e verificare ordine, salvataggi e schermate reali. L'eventuale introduzione di salvataggi cloud richiederà schema DB, autorizzazione per utente, versionamento e una decisione esplicita sul trasferimento dei salvataggi locali.
