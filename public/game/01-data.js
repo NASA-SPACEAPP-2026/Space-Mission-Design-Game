@@ -256,29 +256,29 @@ const E = (function () {
   const rate = f => (f.ray ? 10 * quality(f) : 0) * f.bonus * f.mult * (f.sciK || 1) * (f.rob ? 1.3 : 1);
   function month(f) { f.month++; f.fuel -= f.sk; const g = rate(f); f.sci += g;
     if (f.fuel < 0 && !f.noProp) { f.fuel = 0; f.nofuel = true; } if (f.noProp) f.fuel = 0; return g; }
-  const BASE = ['spe', 'rw', 'ecl', 'mascon', 'radio', 'met', 'partner'], LOOP = ['spe', 'ecl', 'mascon', 'met'];
-  function nextEvent(f) { if (!f.deck.length) { const src = (f.evN ? LOOP : BASE.filter(k => k !== 'partner' || f.d.stake.length)).slice();
+  const BASE = ['spe', 'rw', 'ecl', 'mascon', 'radio', 'deb', 'sw', 'met', 'partner'], LOOP = ['spe', 'ecl', 'mascon', 'deb', 'sw', 'met'];
+  function nextEvent(f) { if (!f.deck.length) { const src = (f.evN ? LOOP : BASE).filter(k => (k !== 'partner' || f.d.stake.length) && (k !== 'deb' || (f.d.dest || 'leo') === 'leo')).slice();
       for (let i = src.length - 1; i > 0; i--) { const j = Math.floor(f.r() * (i + 1)); const t = src[i]; src[i] = src[j]; src[j] = t; } f.deck = src; }
     f.evN++; return f.deck.shift(); }
   const pc = x => Math.round(x * 100) + '%';
   function die(f, why) { f.alive = false; f.ended = true; f.cause = why; return { t: why, tone: 'bad', end: true }; }
   const EV = {
-    spe: { t: 'Tempesta solare', art: 'sun', q: () => 'Particelle solari in arrivo: il satellite è passato da solo in safe mode per proteggersi. Riaccendi gli strumenti per misurare la tempesta?',
+    spe: { t: 'Tempesta solare', art: 'sun', fix: { k: 'b', risk: 'a', cost: 20 }, q: () => 'Particelle solari in arrivo: il satellite è passato da solo in safe mode per proteggersi. Riaccendi gli strumenti per misurare la tempesta?',
       opts: f => [{ k: 'a', l: 'Riaccendi e misura', h: '+30 scienza · ' + pc(f.pSpe) + ' di bruciare un computer' }, { k: 'b', l: 'Resta in safe mode', h: 'nessun dato questo mese' }],
       run(f, k) { if (k === 'b') { f.sci -= Math.min(f.sci, rate(f)); return { t: 'Strumenti spenti finché passa.', tone: 'flat' }; }
         f.sci += 30; if (f.r() >= f.pSpe) return { t: 'Tempesta misurata dal vivo. +30 scienza.', tone: 'good' };
         if (f.spare.obc > 0) { f.spare.obc--; f.pSpe = Math.max(f.pSpe, 0.35); return { t: 'Dati presi, ma un computer è bruciato. Ora voli senza scorta.', tone: 'bad' }; }
         return die(f, 'Il computer di bordo non risponde più dopo la tempesta solare.'); } },
-    rw: { t: 'Assetto in avaria', art: 'wheel', q: f => f.spare.rw ? 'Un attuatore di assetto si è fermato.' : 'Un attuatore di assetto si è fermato, e non hai una scorta.',
+    rw: { t: 'Assetto in avaria', art: 'wheel', fix: { k: 'a', risk: 'b', cost: 25 }, q: f => f.spare.rw ? 'Un attuatore di assetto si è fermato.' : 'Un attuatore di assetto si è fermato, e non hai una scorta.',
       opts: f => f.spare.rw ? [{ k: 'ok', l: 'Continua', h: 'la quarta ruota prende il carico' }] : [{ k: 'a', l: 'Punta con i propulsori', h: f.gas >= 30 ? '−30% gas · scienza −30%' : 'non hai propulsori', off: f.gas < 30 }, { k: 'b', l: 'Lascia ruotare piano', h: 'scienza −60%' }],
       run(f, k) { if (k === 'ok') { f.spare.rw--; return { t: 'La scorta prende il carico.', tone: 'good' }; }
         if (k === 'a') { f.gas -= 30; f.mult *= 0.7; return { t: 'Assetto tenuto a colpi di propulsore.', tone: 'flat' }; } f.mult *= 0.4; return { t: 'Il satellite ruota lento: si misura a tratti.', tone: 'bad' }; } },
-    radio: { t: 'Radio muta', art: 'radio', q: f => f.spare.com ? 'Il trasmettitore principale tace.' : 'Il trasmettitore tace, ed è l’unico.',
+    radio: { t: 'Radio muta', art: 'radio', fix: { k: 'b', risk: 'a', cost: 20 }, q: f => f.spare.com ? 'Il trasmettitore principale tace.' : 'Il trasmettitore tace, ed è l’unico.',
       opts: f => f.spare.com ? [{ k: 'ok', l: 'Passa alla riserva', h: 'nessuna perdita' }] : [{ k: 'a', l: 'Reset a freddo', h: Math.round(Math.min(.9, .6 + (f.sig || 0)) * 100) + '% torna · ' + Math.round((1 - Math.min(.9, .6 + (f.sig || 0))) * 100) + '% persa per sempre' + (f.sig ? ' (antenne di terra)' : '') }, { k: 'b', l: 'Potenza ridotta', h: 'scienza −40%, sicuro' }],
       run(f, k) { if (k === 'ok') { f.spare.com--; return { t: 'Radio di riserva accesa. Nessun dato perso.', tone: 'good' }; }
         if (k === 'b') { f.mult *= 0.6; return { t: 'Si trasmette a bassa potenza.', tone: 'flat' }; }
         if (f.r() < Math.min(.9, .6 + (f.sig || 0))) return { t: f.sig ? 'Le antenne di terra riagganciano il segnale: la radio riparte.' : 'La radio riparte.', tone: 'good' }; return die(f, 'Radio persa: nessun comando arriva più a bordo.'); } },
-    ecl: { t: 'Eclisse', art: 'eclipse', q: f => f.eclWh > M.dodMax * f.bat ? 'Il Sole resta coperto per ' + f.eclM + ' minuti. La batteria non basta per tenere tutto acceso.' : 'Il Sole resta coperto per ' + f.eclM + ' minuti.',
+    ecl: { t: 'Eclisse', art: 'eclipse', fix: { k: 'a', risk: 'b', cost: 15 }, q: f => f.eclWh > M.dodMax * f.bat ? 'Il Sole resta coperto per ' + f.eclM + ' minuti. La batteria non basta per tenere tutto acceso.' : 'Il Sole resta coperto per ' + f.eclM + ' minuti.',
       opts: f => f.eclWh > M.dodMax * f.bat ? [{ k: 'a', l: 'Spegni i payload', h: 'perdi i dati del mese' }, { k: 'b', l: 'Tieni tutto acceso', h: '45% di rovinare la batteria' }] : [{ k: 'ok', l: 'Continua', h: 'la batteria regge' }],
       run(f, k) { const out = [];
         if (k === 'a') { f.sci -= Math.min(f.sci, rate(f)); out.push('Payload spenti per l’eclisse.'); }
@@ -287,10 +287,18 @@ const E = (function () {
         if (!f.coldDone) { f.coldDone = true; f.cold.forEach(c => { if (c === 'prop') { f.fuel = Math.max(0, f.fuel - 40); out.push('Una linea del propellente è gelata: −40 m/s.'); }
           if (c === 'bat') { f.bat *= 0.8; out.push('Batteria al freddo: capacità −20%.'); }  }); }
         return { t: out.length ? out.join(' ') : 'Eclisse passata senza danni.', tone: out.length ? (k === 'a' && out.length === 1 ? 'flat' : 'bad') : 'good' }; } },
-    mascon: { t: 'Mascon', art: 'mascon', q: f => (f.d.dest || 'moon') === 'moon' ? 'Le concentrazioni di massa lunari stanno deformando l’orbita.' : 'Atmosfera residua e gravità irregolare stanno deformando l’orbita.',
+    mascon: { t: 'Mascon', art: 'mascon', fix: { k: 'a', risk: 'b', cost: 15 }, q: f => (f.d.dest || 'moon') === 'moon' ? 'Le concentrazioni di massa lunari stanno deformando l’orbita.' : 'Atmosfera residua e gravità irregolare stanno deformando l’orbita.',
       opts: f => [{ k: 'a', l: 'Correggi', h: '−15 m/s', off: f.fuel < 15 }, { k: 'b', l: 'Lascia andare', h: 'pericentro +90 km · apocentro −250 km' }],
       run(f, k) { if (k === 'a') { f.fuel -= 15; return { t: 'Orbita rimessa a posto.', tone: 'flat' }; } f.pe += 90; f.ap -= 250;
         return { t: 'Orbita a ' + Math.round(f.pe) + ' × ' + Math.round(f.ap) + ' km.' + (quality(f) < 1 ? ' Una parte della scienza è fuori portata.' : ''), tone: quality(f) < 1 ? 'bad' : 'flat' }; } },
+    deb: { t: 'Detriti in avvicinamento', art: 'meteor', fix: { k: 'a', risk: 'b', cost: 30 }, q: () => 'La sorveglianza spaziale segnala un frammento di detrito che passerà a meno di 200 metri dal satellite.',
+      opts: f => [{ k: 'a', l: 'Manovra evasiva', h: f.noProp ? 'serve un propulsore' : '−5 m/s', off: f.noProp || f.fuel < 5 }, { k: 'b', l: 'Non fare nulla', h: '1 probabilità su 8 di collisione' }],
+      run(f, k) { if (k === 'a') { f.fuel -= 5; return { t: 'Manovra evasiva riuscita: il frammento passa lontano.', tone: 'flat' }; }
+        if (f.r() < 0.125) return die(f, 'Collisione con un detrito: il satellite si frammenta.'); return { t: 'Il frammento è passato a 150 metri. È andata bene.', tone: 'flat' }; } },
+    sw: { t: 'Errore software', art: 'radio', fix: { k: 'a', risk: 'b', cost: 10 }, q: () => 'Il software di uno strumento si è bloccato: lo strumento non risponde più ai comandi.',
+      opts: () => [{ k: 'a', l: 'Carica la patch da terra', h: 'lo strumento riparte' }, { k: 'b', l: 'Lascia così', h: '50% che resti bloccato: scienza dimezzata' }],
+      run(f, k) { if (k === 'a') return { t: 'Patch caricata: lo strumento riparte.', tone: 'good' };
+        if (f.r() < 0.5) { f.mult *= 0.5; return { t: 'Lo strumento resta bloccato: scienza dimezzata.', tone: 'bad' }; } return { t: 'Lo strumento si è riavviato da solo.', tone: 'good' }; } },
     partner: { t: 'Richiesta di un partner', art: 'deal', q: f => stk(f.d.stake[0]).n + ' chiede una campagna di misure extra.',
       opts: f => [{ k: 'a', l: 'Accetta', h: '−10 m/s · +15 crediti · reputazione +1', off: f.fuel < 10 }, { k: 'b', l: 'Rifiuta', h: 'nessun effetto' }],
       run(f, k) { if (k === 'a') { f.fuel -= 10; f.extra += 15; f.repX++; return { t: 'Campagna extra consegnata.', tone: 'good' }; } return { t: 'Richiesta declinata.', tone: 'flat' }; } },

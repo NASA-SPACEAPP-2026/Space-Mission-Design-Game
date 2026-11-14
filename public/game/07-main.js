@@ -1038,6 +1038,26 @@ Trascina lo sfondo per girare la vista, rotella o due dita per lo zoom. Trascina
 Trascina {s} su un macchinario per provarlo ({n} cr a prova). Ogni prova scopre un tipo di difetto prima che lo scopra lo spazio.	Drag {s} onto a machine to test it ({n} cr per test). Every test uncovers a type of defect before space does.
 Trascinalo su un macchinario	Drag it onto a machine
 Trascinalo su una postazione	Drag it onto a station
+Detriti in avvicinamento	Debris approaching
+La sorveglianza spaziale segnala un frammento di detrito che passerà a meno di 200 metri dal satellite.	Space surveillance reports a debris fragment that will pass less than 200 metres from the satellite.
+Manovra evasiva	Evasive manoeuvre
+serve un propulsore	needs a propulsion system
+Non fare nulla	Do nothing
+1 probabilità su 8 di collisione	1 in 8 chance of collision
+Manovra evasiva riuscita: il frammento passa lontano.	Evasive manoeuvre done: the fragment passes far away.
+Collisione con un detrito: il satellite si frammenta.	Collision with debris: the satellite breaks up.
+Il frammento è passato a 150 metri. È andata bene.	The fragment passed 150 metres away. Lucky.
+Errore software	Software error
+Il software di uno strumento si è bloccato: lo strumento non risponde più ai comandi.	An instrument's software has frozen: the instrument no longer responds to commands.
+Carica la patch da terra	Upload the patch from the ground
+lo strumento riparte	the instrument restarts
+Lascia così	Leave it
+50% che resti bloccato: scienza dimezzata	50% it stays frozen: science halved
+Patch caricata: lo strumento riparte.	Patch uploaded: the instrument restarts.
+Lo strumento resta bloccato: scienza dimezzata.	The instrument stays frozen: science halved.
+Lo strumento si è riavviato da solo.	The instrument restarted by itself.
+Toccalo per metterlo sul tavolo	Tap it to put it on the table
+Tocca o trascina il satellite	Tap or drag the satellite
 Tratto {n}	Leg {n}
 Tubo di calore stampato in {n}D	{n}D-printed heat pipe
 Tubo di calore stampato in {n}D per CubeSat.	{n}D-printed heat pipe for CubeSats.
@@ -4266,7 +4286,7 @@ function cleanStations(){ const SZ={S3:1.5,S6:1.9,S12:2.2}, cols=['#45A9A3','#EB
     out[i]={id:m.id,label:m.name+' · '+(p>=1?'pronto ✓':pct(Math.max(0,p))),size:SZ[m.sat.ride]||1.5,n:Math.max(1,Math.min(5,Math.ceil(p*5))),col:cols[i],img:satImg(m,p>=1?nc:n)}; }); return out; }
 function vCleanroom(v,M){ const A=G.missions.filter(m=>m.phase==='D'&&m.stage==='assembly'&&!m.asmWait);
   v.innerHTML='<div class="head"><div><h3>Edificio di costruzione · Fase D</h3><h1>Camera bianca</h1><div class="rtabs"><button class="btn small" data-act="broom" data-k="build">Officina</button><button class="btn small on" data-act="broom" data-k="clean">Camera bianca</button></div></div></div>'+
-    stage(roomBox('clean',{stations:cleanStations()},(()=>{ const W=G.missions.filter(m=>m.phase==='D'&&m.stage==='assembly'&&m.asmWait), m=W.indexOf(cur())>=0?cur():W[0]; return m?dsatHTML('clean',m,'Trascinalo su una postazione'):''; })()),'rbx'); scn(v,{}); }
+    stage(roomBox('clean',{stations:cleanStations()},(()=>{ const W=G.missions.filter(m=>m.phase==='D'&&m.stage==='assembly'&&m.asmWait), m=W.indexOf(cur())>=0?cur():W[0]; return m?dsatHTML('clean',m,'Toccalo per metterlo sul tavolo'):''; })()),'rbx'); scn(v,{}); }
 function cleanSat(M,only){ if(!S3.ok) return satSVG(M.sat,{only}); return '<img src="'+S3.snap(M.sat,420,{only,png:true})+'" alt="Satellite in integrazione" style="width:100%;display:block">'; }
 function cleanUpdate(){ if(view!=='build') return; { const h3=$('#roomsvg'); if(h3&&h3.hasAttribute('data-3d')){ if(h3.dataset.room==='clean'&&!RPLACE){ const st3=cleanStations(), k3=st3.map(x=>x?x.label+(x.img?'i':''):'-').join(','); if(h3.dataset.k3!==k3){ h3.dataset.k3=k3; IR3.update('clean',roomSt('clean',{stations:st3})); } } return; } } const st=cleanStations(), key=st.map(x=>x?x.label+(x.img?'i':''):'-').join(','), svg=$('#roomsvg'); if(svg&&svg.dataset.room==='clean'&&svg.dataset.k!==key&&!RPLACE){ svg.dataset.k=key; svg.innerHTML=(()=>{ const st0=roomSt('clean',{stations:st}); IR.setWalkers(wkScene('clean',st0)); return IR.clean(st0); })()+'<g id="rghost"></g>'; } }
 
@@ -4445,9 +4465,12 @@ function mccRefresh(full){ const M=cur(); if(view!=='mcc') return; const fl=M&&M
   if(full&&log) log.innerHTML=fl.log.slice().reverse().map(l=>'<li class="'+l.tone+'">'+(l.m?'M'+l.m+' · ':'')+esc(l.t)+'</li>').join('');
   const c=teleUpTo(M); c.id=M.id; paintCode(code,c); paintCode(all,c); decCard(M,fl); }
 // Il giocatore al posto dell'autopilota: ogni evento con più strade si ferma qui
+/* problema in volo con una soluzione consigliata: si paga in crediti per farla, altrimenti si sceglie l'opzione rischiosa */
+function decFix(M,p){ const ev=E.EV&&E.EV[p.id], fx=ev&&ev.fix; if(!fx) return ''; const ro=p.opts.find(o=>o.k===fx.k&&!o.off), rk=p.opts.find(o=>o.k===fx.risk); if(!ro||!rk) return ''; const c=fx.cost, poor=G.money<c;
+  return '<p class="dfix">'+TX('Il controllo missione consiglia: ','Mission control recommends: ')+'<b>'+esc(ro.l)+'</b></p><div class="dops"><button class="btn primary" data-act="decfix" data-k="'+fx.k+'" data-c="'+c+'"'+(poor?' disabled':'')+'><b>'+TX('Fallo','Do it')+' · −'+keur(c)+'</b><small>'+esc(ro.h||'')+(poor?' · '+TX('crediti insufficienti','not enough credits'):'')+'</small></button><button class="btn" data-act="decide" data-k="'+fx.risk+'"><b>'+TX('Non farlo','Don’t')+'</b><small>'+esc(rk.h||'')+' · '+TX('rischi che la missione fallisca','you risk the mission failing')+'</small></button></div>'; }
 function decCard(M,fl){ const el=$('#dec'); if(!el){ document.body.classList.remove('decon'); return; } const p=fl&&fl.pending; if(!p){ document.body.classList.remove('decon'); if(!el.hidden){ el.hidden=true; el.dataset.k=''; } return; }
   document.body.classList.add('decon'); $('#toast').hidden=true; const key=M.id+p.m; if(el.dataset.k===key&&!el.hidden) return; el.dataset.k=key; el.hidden=false;
-  el.innerHTML='<div class="dh"><span class="pause">🛰 '+TX('SAFE MODE · automatico · tempo fermo','SAFE MODE · automatic · time paused')+'</span><b>Mese '+p.m+' · '+esc(p.t)+'</b></div><p class="fine">'+TX('Il satellite ha rilevato un problema e si è messo in sicurezza da solo. Adesso tocca a te decidere come ripartire.','The satellite detected a problem and put itself in a safe state. Now it\'s up to you to decide how to carry on.')+'</p><p>'+esc(p.q)+'</p><div class="dops">'+p.opts.map(o=>'<button class="btn'+(o.k===p.auto?'':'')+'" data-act="decide" data-k="'+o.k+'"'+(o.off?' disabled':'')+'><b>'+esc(o.l)+'</b><small>'+esc(o.h||'')+'</small></button>').join('')+'</div>'+
+  el.innerHTML='<div class="dh"><span class="pause">🛰 '+TX('SAFE MODE · automatico · tempo fermo','SAFE MODE · automatic · time paused')+'</span><b>Mese '+p.m+' · '+esc(p.t)+'</b></div><p class="fine">'+TX('Il satellite ha rilevato un problema e si è messo in sicurezza da solo. Adesso tocca a te decidere come ripartire.','The satellite detected a problem and put itself in a safe state. Now it\'s up to you to decide how to carry on.')+'</p><p>'+esc(p.q)+'</p>'+(decFix(M,p)||'<div class="dops">'+p.opts.map(o=>'<button class="btn'+(o.k===p.auto?'':'')+'" data-act="decide" data-k="'+o.k+'"'+(o.off?' disabled':'')+'><b>'+esc(o.l)+'</b><small>'+esc(o.h||'')+'</small></button>').join('')+'</div>')+
     '<p class="fine">ΔV '+nf(Math.max(0,p.fuel),0)+' m/s · gas '+Math.max(0,Math.round(p.gas))+'% · '+(M.duration-p.m)+' mesi ancora. <button class="lnk small" data-act="autodec">Fai decidere all’autopilota</button></p>'; }
 // pianeta disegnato una volta per destinazione
 const PLAN={};
@@ -4464,6 +4487,20 @@ function planetCanvas(k){ if(PLAN[k]) return PLAN[k]; const S=256, cv=document.c
 let mccRaf=0;
 /** Ferma l'animazione dell'orbita MCC (chiamata anche a ogni nuovo avvio e quando #orb esce dal DOM). */
 function mccStop(){ if(mccRaf){ cancelAnimationFrame(mccRaf); mccRaf=0; } }
+/* sala controllo 3D, schermo in alto a sinistra: il satellite in volo gira sulla sua orbita, come nel Centro di dinamica del volo.
+   Se un volo aspetta una decisione (o ha un problema), lo schermo si illumina di rosso e invita a toccarlo. */
+const FLYS={ang:0,last:0,id:''};
+function flyScreen(c,w,h,t){ const fly=G.missions.filter(m=>m.phase==='E'||m.phase==='F'), cm=cur(), M=fly.indexOf(cm)>=0?cm:fly[0], al=G.missions.some(m=>m.pauseAt||m.alert), dt=Math.min(.5,Math.max(0,t-FLYS.last)); FLYS.last=t;
+  c.fillStyle='#0B1626'; c.fillRect(0,0,w,h); STARS.forEach(s2=>{ c.fillStyle='rgba(220,230,255,.6)'; c.fillRect(s2[0]*w,s2[1]*h,s2[2]*1.6,s2[2]*1.6); });
+  c.textBaseline='alphabetic'; c.font='700 20px IBM Plex Mono, monospace'; c.fillStyle='#43D3E0';
+  if(!M){ const r=h*.26; c.drawImage(planetCanvas('leo'),w/2-r,h/2-r+8,r*2,r*2); c.fillText(TX('NESSUN SATELLITE IN VOLO','NO SATELLITE IN FLIGHT'),16,32); }
+  else { if(FLYS.id!==M.id){ FLYS.id=M.id; FLYS.ang=0; } const dest=M.sat.dest||'leo', B=O.BODY[dest], el=O.plan(M).final, rp=B.R+el.pe, ra=B.R+(isFinite(el.ap)?el.ap:el.pe), a=(rp+ra)/2, e=(ra-rp)/(ra+rp), bb=a*Math.sqrt(1-e*e), sc=Math.min(w,h-40)/2*.86/ra, cx=w/2, cy=h/2+14;
+    c.drawImage(planetCanvas(dest),cx-B.R*sc-3,cy-B.R*sc-3,(B.R*sc+3)*2,(B.R*sc+3)*2);
+    c.strokeStyle='rgba(111,168,255,.9)'; c.lineWidth=2; c.beginPath(); c.ellipse(cx-a*e*sc,cy,a*sc,bb*sc,0,0,7); c.stroke();
+    if(!M.pauseAt){ /* velocita' scalata sul raggio del pianeta: un'orbita bassa fa un giro in ~15 s, quelle alte piu' lente (terza legge di Keplero) */ const n=.42*Math.pow(B.R/a,1.5); FLYS.ang+=dt*n*(1+e*Math.cos(FLYS.ang))**2; }
+    const r2=a*(1-e*e)/(1+e*Math.cos(FLYS.ang)), x=cx+r2*Math.cos(FLYS.ang)*sc, y=cy-r2*Math.sin(FLYS.ang)*sc; c.fillStyle='#F0B43A'; c.fillRect(x-5,y-5,10,10);
+    c.fillText(TX('VOLO · ','FLIGHT · ')+String(M.name).toUpperCase(),16,32); c.font='600 15px IBM Plex Mono, monospace'; c.fillStyle='rgba(207,227,255,.85)'; c.fillText(O.fmt(el),16,54); }
+  if(al){ const on=Math.floor(t*2)%2===0; c.strokeStyle=on?'#FF3B2F':'#8A1C14'; c.lineWidth=16; c.strokeRect(8,8,w-16,h-16); c.fillStyle=on?'rgba(255,59,47,.92)':'rgba(160,30,24,.92)'; c.fillRect(0,h-58,w,58); c.fillStyle='#fff'; c.font='800 21px IBM Plex Mono, monospace'; c.fillText(TX('⚠ PROBLEMA IN VOLO · TOCCA LO SCHERMO','⚠ FLIGHT PROBLEM · TAP THE SCREEN'),16,h-21); } }
 function mccLoop(){ mccStop(); const cv=$('#orb'); if(!cv) return; let last=0, ang=0;
   (function loop(ts){ if(!cv.isConnected||$('#orb')!==cv){ mccRaf=0; return; } mccRaf=requestAnimationFrame(loop); const dt=Math.min(.05,(ts-last)/1000||0); last=ts; const M=cur(), w=cv.clientWidth, h=cv.clientHeight, dpr=Math.min(2,window.devicePixelRatio||1);
     if(cv.width!==Math.round(w*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); } const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.fillStyle='#0E1A2E'; c.fillRect(0,0,w,h);
@@ -4786,6 +4823,8 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
       $('#smk').innerHTML=[-60,-20,20,60,-100,100].map((x,i)=>'<circle class="puff" cx="'+(500+x)+'" cy="'+(478-Math.abs(x)*.1)+'" r="'+(26+i*3)+'" fill="#fff" style="animation-delay:'+(i*.08)+'s"/>').join('');
       startFlight(M); setTimeout(()=>{ el.hidden=true; toast(M.name+' in volo: segui la telemetria dal Mission Control Center.'); if(view==='pad') render(); },2600); } },700); },
   decide(t){ const M=cur(), p=L.decide(M,t.dataset.k,now()); if(!p) return; delete TELE[M.id]; const c=$('#code'); if(c) c.dataset.m=''; M.alert=false; sfx.put(); mccRefresh(true); hud(); save(); },
+  /* prima si registra la decisione, poi si paga: se la decisione non passa, nessun credito viene tolto */
+  decfix(t){ const M=cur(), c=+t.dataset.c||0; if(!M) return; if(G.money<c){ toast(TX('Non hai abbastanza crediti.','Not enough credits.')); return; } const n0=Object.keys(M.choices||{}).length; ACT.decide(t); if(Object.keys(M.choices||{}).length>n0) addMoney(-c,TX('Intervento in volo: −','In-flight fix: −')+keur(c)); },
   autodec(){ const M=cur(), fl=L.flight(M,999); if(!fl.pending) return; ACT.decide({dataset:{k:fl.pending.auto}}); M.choiceL[fl.pending.m].auto=true; },
   mcr(t){ const M=G.missions[+t.dataset.i]; $('#drawer').hidden=true; mcrReview(M); },
   whatif(t){ const M=MCRM, o=WIO[+t.dataset.i]; if(!M||!o) return; const w=L.whatIf(M,Object.assign({visit:hasB('visit')},o)), r=M.result, x=w.out, d=x.net-r.net, el=$('#wires');
@@ -4939,17 +4978,19 @@ let RPLACE=null, RSEL=null, MCCV=null, BROOM=null, BVIEW='room', RANK=[];
 const SNAPC={};
 function satImg(M,n){ if(!S3.ok||!M) return null; const cats=Object.keys(M.sat.placed); n=n==null?cats.length:Math.max(1,Math.min(cats.length,n)); const key=M.id+'|'+n+'|'+cats.map(c=>M.sat.placed[c].id).join(',')+'|'+(M.sat.sol||''); if(key in SNAPC) return SNAPC[key];
   try{ SNAPC[key]=S3.snap(M.sat,220,{only:cats.slice(0,n),png:true}); }catch(e){ SNAPC[key]=null; } return SNAPC[key]; }
-function dsatHTML(kind,M,hint){ const img=satImg(M); return '<div class="dsat" data-drag="'+kind+'" data-id="'+M.id+'" title="Trascina il satellite">'+(img?'<img src="'+img+'" alt="">':'<div class="ph">🛰</div>')+'<b>'+esc(M.name)+'</b><small>'+hint+'</small></div>'; }
+function dsatHTML(kind,M,hint){ const img=satImg(M); return '<div class="dsat" data-drag="'+kind+'" data-id="'+M.id+'" title="Tocca o trascina il satellite">'+(img?'<img src="'+img+'" alt="">':'<div class="ph">🛰</div>')+'<b>'+esc(M.name)+'</b><small>'+hint+'</small></div>'; }
 function dTargets(kind,id){ const M=G.missions.find(m=>m.id===id); if(!M) return [];
   if(kind==='clean'){ const st=cleanStations(); return $$('#roomsvg [data-act="station"]').filter(g=>!st[+g.dataset.i]); }
   const run=Object.keys(M.tr).some(x=>M.tr[x].res==='run'); return run?[]:$$('#roomsvg [data-act="mach"]').filter(g=>!M.tr[g.dataset.k]); }
 let DSAT=null;
-document.addEventListener('pointerdown',e=>{ const d=e.target.closest&&e.target.closest('.dsat'); if(!d||e.button>0) return; e.preventDefault(); const r=d.getBoundingClientRect(); DSAT={el:d,kind:d.dataset.drag,id:d.dataset.id}; document.body.appendChild(d); d.classList.add('drag'); d.style.left=e.clientX+'px'; d.style.top=e.clientY+'px'; d.style.bottom='auto';
+document.addEventListener('pointerdown',e=>{ const d=e.target.closest&&e.target.closest('.dsat'); if(!d||e.button>0) return; e.preventDefault(); const r=d.getBoundingClientRect(); DSAT={el:d,kind:d.dataset.drag,id:d.dataset.id,x0:e.clientX,y0:e.clientY}; document.body.appendChild(d); d.classList.add('drag'); d.style.left=e.clientX+'px'; d.style.top=e.clientY+'px'; d.style.bottom='auto';
   dTargets(DSAT.kind,DSAT.id).forEach(t=>t.classList.add('dtgt')); sfx.tap(); });
 document.addEventListener('pointermove',e=>{ if(!DSAT) return; DSAT.el.style.left=e.clientX+'px'; DSAT.el.style.top=e.clientY+'px'; });
 function dEnd(e){ if(!DSAT) return; const D=DSAT; DSAT=null; D.el.remove(); const ts=dTargets(D.kind,D.id); let best=null, bd=1e9;
   ts.forEach(t=>{ const r=t.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, inside=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom, dd=inside?-1:Math.hypot(e.clientX-cx,e.clientY-cy); if(dd<bd){ bd=dd; best=t; } });
   $$('.dtgt').forEach(t=>t.classList.remove('dtgt'));
+  /* un tocco senza trascinare: in camera bianca il satellite va sul primo tavolo libero */
+  if(D.kind==='clean'&&ts.length&&Math.hypot(e.clientX-D.x0,e.clientY-D.y0)<8){ dropOn(D,ts[0]); return; }
   if(best&&bd<110) dropOn(D,best); else { if(!ts.length) toast(D.kind==='clean'?'Le due postazioni sono occupate: aspetta che un satellite finisca.':'Nessun macchinario libero per questo satellite.'); else toast(D.kind==='clean'?'Lascialo sopra una postazione libera.':'Lascialo sopra un macchinario.'); render(); } }
 document.addEventListener('pointerup',dEnd); document.addEventListener('pointercancel',dEnd);
 function dropOn(D,t){ const i=G.missions.findIndex(m=>m.id===D.id), M=G.missions[i]; if(!M) return; G.cur=i;
@@ -6248,6 +6289,9 @@ const IR3=(()=>{
   function rollDoor(wall,a,b,z1){ onWall(wall,a-.1,b+.1,0,z1+.1,'#8A929A',{r:.6},.08); const n=Math.round(z1/.22); for(let i=0;i<n;i++) onWall(wall,a,b,i*.22+.02,i*.22+.2,i%2?'#D5D9DC':'#E4E7E9',{r:.5},.12); onWall(wall,(a+b)/2-.2,(a+b)/2+.2,.85,.95,'#2B2F36',{r:.4},.16); }
   function wallScreen(wall,a,b,z0,z1,kind,seed){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:screenTex(kind,seed)})); m.scale.set(b-a,z1-z0,1);
     onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
+  function liveScreen(wall,a,b,z0,z1,draw){ const cv=document.createElement('canvas'); cv.width=512; cv.height=320; const g=cv.getContext('2d'), tx=new THREE.CanvasTexture(cv); tx.encoding=THREE.sRGBEncoding; tx.anisotropy=4;
+    const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tx})); m.scale.set(b-a,z1-z0,1); onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06);
+    let last=-1; const paint=t=>{ try{ draw(g,cv.width,cv.height,t); }catch(e){} tx.needsUpdate=true; }; paint(0); anims.push(t=>{ if(t-last<.1) return; last=t; paint(t); dirty=true; }); }
   function wallPanel(wall,a,b,z0,z1,tex){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tex})); m.scale.set(b-a,z1-z0,1); onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
   function textTex(lines,bg,fg){ return ctex(512,256,(g,w,h)=>{ g.fillStyle=bg||'#0B141C'; g.fillRect(0,0,w,h); g.font='700 44px monospace'; g.textBaseline='middle'; lines.forEach((l,i)=>{ g.fillStyle=l[1]||fg||'#43D3E0'; g.fillText(l[0],24,60+i*72); }); g.strokeStyle='#1A1F24'; g.lineWidth=12; g.strokeRect(0,0,w,h); }); }
 
@@ -6295,7 +6339,7 @@ const IR3=(()=>{
       pl(3,2.2,8.2,7,.006,'#9CC9A3'); pl(10.2,2.2,15.4,7,.006,'#9CC9A3'); [[2.8,2,8.4,7.2],[10,2,15.6,7.2]].forEach(r=>{ pl(r[0],r[1],r[2],r[1]+.12,.008,'#F2C14E'); pl(r[0],r[3]-.12,r[2],r[3],.008,'#F2C14E'); pl(r[0],r[1],r[0]+.12,r[3],.008,'#F2C14E'); pl(r[2]-.12,r[1],r[2],r[3],.008,'#F2C14E'); });
       for(let i=0;i<10;i++) onWall('y',.5+i*1.75,1.95+i*1.75,2.5,3.05,'#FFFFFF',{r:.4},.05); for(let i=0;i<7;i++) onWall('x',.5+i*1.9,1.95+i*1.9,2.5,3.05,'#FFFFFF',{r:.4},.05);
       windows('y',11,17.4,.9,2.3,7); onWall('y',.8,2.8,1,1.9,'#2F8580',{r:.5},.06); wallScreen('x',9,12.5,1.3,2.6,'chart',4);
-      [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>{ const m=(st.stations||[])[i]; cy(p[0],p[1],1.1,0,.12,'#C9D3DD',{fp:.3,m:.2}); cy(p[0],p[1],.3,.12,1,'#9AA9B6',{m:.3}); for(let k=0;k<4;k++){ const a=k*1.57+.78; cy(p[0]+Math.cos(a)*.9,p[1]+Math.sin(a)*.9,.05,.12,1.9,'#9AA9B6'); } rb(p[0]-.65,p[1]-.65,p[0]+.65,p[1]+.65,1,1.08,'#D9E0E5'); bx(p[0]-.5,p[1]-.5,p[0]+.5,p[1]+.5,1.08,1.1,'#7FB6C8',{cs:false}); if(m) satellite(p[0],p[1],1.1,m.size*1.4,{wings:m.n>=5}); });
+      [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>{ const m=(st.stations||[])[i]; cy(p[0],p[1],1.1,0,.12,'#C9D3DD',{fp:.3,m:.2}); cy(p[0],p[1],.3,.12,1,'#9AA9B6',{m:.3}); for(let k=0;k<4;k++){ const a=k*1.57+.78; cy(p[0]+Math.cos(a)*.9,p[1]+Math.sin(a)*.9,.05,.12,1,'#9AA9B6'); } rb(p[0]-.65,p[1]-.65,p[0]+.65,p[1]+.65,1,1.08,'#D9E0E5'); bx(p[0]-.5,p[1]-.5,p[0]+.5,p[1]+.5,1.08,1.1,'#7FB6C8',{cs:false}); if(m) satellite(p[0],p[1],1.1,m.size*1.4,{wings:m.n>=5}); });
       rb(.3,10.4,3.6,13.6,0,.04,'#DCE6EA',{cs:false}); [[.3,10.4,3.6,10.45],[3.55,10.4,3.6,13.6]].forEach(r=>bx(r[0],r[1],r[2],r[3],0,2.4,'#BFE2EE',{t:.35})); FP.push([.3,10.4,3.6,13.6,.2]); rb(.5,11,1.3,12.8,0,.5,'#E9EEF2'); rb(2.2,12.6,3.3,13.4,0,1.9,'#BFE2EE',{t:.6});
       shelf(.4,.3,4,1.1,2.2,3,['#E9EEF2','#DCE6EA','#BFE2EE','#F4F7F8']); workstation(.5,4.8,2.4,6.4,.82,'x1',[{suit:1,skin:SKIN[1]}],{n:1,laptop:true});
       [[8.9,2],[16.4,2],[9,8.4]].forEach((c,i)=>{ rb(c[0],c[1],c[0]+1.2,c[1]+.8,.6,.66,'#F4F7F8',{fp:.2}); [[0,0],[1.05,0],[0,.65],[1.05,.65]].forEach(q=>bx(c[0]+q[0],c[1]+q[1],c[0]+q[0]+.1,c[1]+q[1]+.1,0,.6,'#9AA9B6')); rb(c[0]+.3,c[1]+.2,c[0]+.6,c[1]+.5,.66,.9,['#F06EAA','#7C8CFF','#F0B43A'][i]); });
@@ -6309,7 +6353,7 @@ const IR3=(()=>{
     else if(room==='mcc'){ shell({floor:'#8E959B',tile:1,tileC:'#838A90',wallR:'#C5CAD0',wallL:'#B6BCC3',skirt:'#7D858D',cap:'#2A323A'});
       onWall('y',0,RW,3.3,RH,'#2E363E',{r:.6},.06); onWall('x',0,RD,3.3,RH,'#262D34',{r:.6},.06);
       for(let i=0;i<22;i++) onWall('y',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1); for(let i=0;i<17;i++) onWall('x',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1);
-      [[.6,3.6,'sat'],[3.9,9.4,'globe'],[12.5,17.4,'chart']].forEach((v,i)=>wallScreen('y',v[0],v[1],1.4,3.15,v[2],i+1)); wallScreen('y',9.7,12.2,2.35,3.15,'clock',9); wallScreen('y',9.7,12.2,1.4,2.15,'bars',8);
+      liveScreen('y',.6,3.6,1.4,3.15,flyScreen); [[3.9,9.4,'globe',2],[12.5,17.4,'chart',3]].forEach(v=>wallScreen('y',v[0],v[1],1.4,3.15,v[2],v[3])); wallScreen('y',9.7,12.2,2.35,3.15,'clock',9); wallScreen('y',9.7,12.2,1.4,2.15,'bars',8);
       wallScreen('x',.6,6,1.3,3.15,'grid',11); wallScreen('x',6.4,10.6,1.4,3.05,'gauges',12); wallScreen('x',11,13.4,1.6,2.9,'bars',13);
       /* 3 file di postazioni, ciascuna in 3 sezioni staccate da corridoi (come in un vero MCC); in ogni sezione siede una sola persona, gli altri girano in piedi */
       const cx=9, cy0=20.5, RR=[11.4,13.9,16.4], inst=[];
