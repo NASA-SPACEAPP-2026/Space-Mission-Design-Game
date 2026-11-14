@@ -1,3 +1,5 @@
+> **New entry flow:** introduction that waits for a click, username/password account, then direct campus entry. Run `npm run db:migrate` before deploying the new backend. [Entry flow guide](documentation/entry-flow.md).
+
 🇬🇧 English | [🇮🇹 Italiano](README.it.md)
 
 # Space Mission Design Game

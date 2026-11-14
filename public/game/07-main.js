@@ -6912,6 +6912,13 @@ window.GNG={ZORTY,CAM,fixPlots:()=>fixPlots(),ALN,C3,IR3,L,E,rv:k=>({test:vTest,
 function uxObs(){ const q=id=>document.getElementById(id); const sync=()=>{ const ov=q('ov'), dr=q('drawer'), zp=q('zpanel'); document.body.classList.toggle('ovon',!!(ov&&!ov.hidden)||!!(dr&&!dr.hidden)); document.body.classList.toggle('zon',!!(zp&&!zp.hidden)); };
   const mo=new MutationObserver(sync); ['ov','drawer','zpanel'].forEach(id=>{ const e=q(id); if(e) mo.observe(e,{attributes:true,attributeFilter:['hidden']}); }); sync();
   if(!q('zpanel')) setTimeout(uxObs,800); }
-start();
+// Share the game's own artwork with the entry screen, including in the IIFE build.
+window.gngEntryArtwork = () => artSVG('title');
+window.addEventListener('gng-authenticated', event => {
+  start();
+  if (!G.co) { G.co = event.detail.username; G.tutDone = true; save(); }
+  closeTitle();
+  render();
+}, { once: true });
 setTimeout(uxObs,300);
 })();

@@ -15,7 +15,8 @@ export function database(env = process.env) {
 }
 
 export async function migrate(db) {
-  const sql = await readFile(new URL('../db/001-auth.sql', import.meta.url), 'utf8');
-  // Single idempotent migration; schema changes run explicitly before deployment.
-  await db.query(`BEGIN; ${sql} COMMIT;`);
+  const files = ['001-auth.sql', '002-username-accounts.sql'];
+  const sql = await Promise.all(files.map(file => readFile(new URL(`../db/${file}`, import.meta.url), 'utf8')));
+  // Explicit ordered, repeatable migrations, including upgrades of existing databases.
+  await db.query(`BEGIN; ${sql.join('\n')} COMMIT;`);
 }

@@ -1,3 +1,5 @@
+> **Nuovo ingresso:** introduzione che attende il clic, account con solo username e password, poi accesso diretto al campus. Applicare `npm run db:migrate` prima del nuovo backend. [Guida al flusso](documentation/entry-flow.it.md).
+
 🇬🇧 [English](README.md) | 🇮🇹 Italiano
 
 # Space Mission Design Game

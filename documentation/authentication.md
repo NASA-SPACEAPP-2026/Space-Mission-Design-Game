@@ -1,5 +1,7 @@
 # Account e database
 
+> **Nuovo ingresso:** introduzione, registrazione con solo username e password, poi accesso diretto al campus. Email ora facoltativa: applicare anche `002-username-accounts.sql` con `npm run db:migrate`. [Guida IT](entry-flow.it.md) · [English](entry-flow.md).
+
 ## Mappa concettuale
 
 ```mermaid
@@ -44,7 +46,7 @@ erDiagram
   }
 ```
 
-Schema eseguibile: [001-auth.sql](../db/001-auth.sql). Il comando di migrazione è
+Schema iniziale: [001-auth.sql](../db/001-auth.sql); [002-username-accounts.sql](../db/002-username-accounts.sql) rende email facoltativa. Il migratore applica entrambi i file in ordine. Il comando di migrazione è
 idempotente e transazionale. Per modifiche future aggiungere migrazioni versionate:
 non cambiare semplicemente questo schema per trasformare tabelle già esistenti.
 
@@ -72,8 +74,8 @@ npm.cmd run dev:api
 
 In un secondo terminale eseguire `npm.cmd run dev` e aprire
 `http://localhost:5173`. Vite inoltra `/api` alla porta 8080 del backend.
-Il pulsante Account apre la registrazione e il login; il gioco rimane accessibile
-agli ospiti. Il backend serve il gioco compilato quando si usa `npm run build`.
+La schermata iniziale richiede registrazione o login prima di avviare il gioco.
+Il backend serve il gioco compilato quando si usa `npm run build`.
 Per provarlo direttamente sulla porta 8080 impostare `APP_ORIGIN=http://localhost:8080`
 nel `.env`, riavviare il backend e aprire quell'indirizzo.
 
@@ -84,7 +86,7 @@ Non eseguire `docker compose down -v` se si vogliono conservare gli account loca
 
 | Endpoint | Metodo | Input / risultato |
 | --- | --- | --- |
-| `/api/auth/register` | POST | `{username,email,password}` → 201, utente e cookie |
+| `/api/auth/register` | POST | `{username,password}` → 201, utente e cookie; email facoltativa per compatibilità |
 | `/api/auth/login` | POST | `{login,password}` → 200, utente e cookie |
 | `/api/auth/me` | GET | 200, `{user}` oppure `{user:null}` |
 | `/api/auth/logout` | POST | revoca sessione e cancella cookie |
@@ -159,7 +161,7 @@ temporaneo PGlite e non tocca account reali.
 
 In staging: creare un account, riavviare la Web App e verificare il login;
 controllare email/username duplicati, password errata, logout, browser separato,
-mobile, gioco ospite e assenza di regressioni nei salvataggi locali.
+mobile, ingresso obbligatorio e assenza di regressioni nei salvataggi locali.
 
 ## Gestione operativa e limiti attuali
 
