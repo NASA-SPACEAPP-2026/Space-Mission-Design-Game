@@ -1,17 +1,21 @@
 import { readFile } from 'node:fs/promises';
-import { runInNewContext } from 'node:vm';
+import { createContext, runInContext } from 'node:vm';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 // Loads public/game/09-consortia.js without a browser: the module only touches the DOM when the panel opens.
-async function loadModule(search) {
+// withData: also loads the game data (01-data.js, the E object) that the joint mission uses for mass, power and cost.
+async function loadModule(search, withData) {
   const source = await readFile(new URL('../public/game/09-consortia.js', import.meta.url), 'utf8');
+  const data = withData ? await readFile(new URL('../public/game/01-data.js', import.meta.url), 'utf8') : '';
   const store = new Map();
   const context = {
     window: {}, location: { search }, URLSearchParams, console, setTimeout, clearTimeout, setInterval, clearInterval,
     CompressionStream, DecompressionStream, Response, Blob, TextEncoder, TextDecoder, btoa, atob,
     localStorage: { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) }
   };
-  runInNewContext(source, context);
+  createContext(context);
+  if (data) runInContext(data, context);
+  runInContext(source, context);
   return context.window.GNGCLAN;
 }
 
@@ -55,6 +59,44 @@ describe('consortium panel module', () => {
     expect(packed.data.length).toBeLessThan(json.length / 4);
     expect(JSON.parse(await unpack(packed))).toEqual(game);
     expect(JSON.parse(await unpack({ enc: 'raw', data: Buffer.from(json).toString('base64') }))).toEqual(game);
+  });
+
+  it('checks a joint design with the game rules and turns over-budget choices into requests', async () => {
+    const G = await loadModule('', true);
+    const { jNeedReq, jChecks, jOptions, jCounter } = G._test;
+    const design = { dest: 'leo', budget: 1600, ride: 'S3', sol: 'BASE-SOL3D', avi: 'BASE-OBC', adcs: 'BASE-MAG', bat: 'BASE-BAT20', com: 'BASE-UHF', ray: 'BASE-DOSE' };
+    const s = { roles: { plan: 'Ada', sat: 'Bob', sci: 'Cyd', com: 'Ada' }, design };
+    expect(jOptions('ray', design).map(o => o.v)).toContain('BASE-CAM');
+    expect(jOptions('sol', { ride: 'S6' }).every(o => !/3[BD]$/.test(o.v))).toBe(true);
+    const review = jChecks(design);
+    expect(review.ok).toBe(true);
+    expect(review.list[0].t).toContain('Rideshare');
+    expect(jChecks({ ...design, dest: 'mars' }).list[0].ok).toBe(false); // no launch for a 3U to Mars
+    // Within budget: no request. Over budget: a request to Planning, with an amount.
+    expect(jNeedReq(s, 'ray', 'BASE-CAM', 'Cyd')).toBeNull();
+    const tight = { ...s, design: { ...design, budget: 290 } }; // 288 cr with the dosimeter, 300 with the camera
+    const req = jNeedReq(tight, 'ray', 'BASE-CAM', 'Cyd');
+    expect(req).toMatchObject({ to: 'plan', kind: 'cost' });
+    expect(req.delta).toBeGreaterThan(0);
+    // Whoever owns the budget pays for their own choices without asking.
+    expect(jNeedReq(tight, 'com', 'BASE-UHF2', 'Ada')).toBeNull();
+    // Counter-offers stay within the limit.
+    const counters = jCounter({ ...tight, design: { ...design, budget: 1000 }, request: { key: 'ray', value: 'BASE-CAM', kind: 'cost' } });
+    expect(counters.every(o => o.v !== 'BASE-CAM')).toBe(true);
+  });
+
+  it('runs a joint mission in the offline demo with the same rules as the server', async () => {
+    const api = (await loadModule('?clan=demo'))._test.demo.call;
+    await api('POST', '/demo-milano/join', {});
+    const made = (await api('POST', '/mine/joint', { name: 'Luna Ice' })).data;
+    let v = made.version;
+    const act = async body => { const r = await api('POST', `/mine/joint/${made.id}/actions`, { v, ...body }); if (r.status === 200) v = r.data.version; return r; };
+    expect((await api('GET', '/mine/joint')).data.joint[0]).toMatchObject({ name: 'Luna Ice', phase: 'lobby', roles: { plan: 'Matteo' } });
+    expect((await act({ type: 'start' })).data.error).toBe('need_two');
+    expect((await api('POST', `/mine/joint/${made.id}/actions`, { v: v + 5, type: 'start' })).data.error).toBe('stale');
+    expect((await act({ type: 'set', key: 'dest', value: 'moon' })).data.error).toBe('not_design');
+    expect((await api('GET', `/mine/joint/${made.id}?v=${v}`)).data).toEqual({ same: true, version: v });
+    expect((await api('GET', '/mine/messages')).data.messages.at(-1).data).toMatchObject({ code: 'joint_new', mission: 'Luna Ice', id: made.id });
   });
 
   it('runs the offline demo from search to chat to leaving', async () => {
