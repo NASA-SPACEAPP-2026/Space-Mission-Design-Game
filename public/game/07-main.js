@@ -5746,12 +5746,19 @@ const IR3=(()=>{
     WG.y1.visible=!(c>e); WG.y0.visible=!(c<-e); WG.x1.visible=!(s>e); WG.x0.visible=!(s<-e);
     /* le ombre sono calcolate una volta sola: si rifanno solo quando una parete compare o sparisce, cosi' una parete nascosta non lascia la sua ombra */
     if(R&&was!==WG.y0.visible+''+WG.x0.visible+WG.y1.visible+WG.x1.visible) R.shadowMap.needsUpdate=true; }
-  function onWall(wall,a,b,z0,z1,c,o,depth){ o=o||{}; const d=depth||.05; let m; inGrp(WG[wall==='y'?'y0':'x0'],()=>{ m=wall==='y'?bx(a,.0,b,d,z0,z1,c,Object.assign({cs:false},o)):bx(.0,a,d,b,z0,z1,c,Object.assign({cs:false},o)); }); return m; }
+  /* pareti: 'y' = fondo (y=0), 'x' = sinistra (x=0), 'y1' = davanti (y=RD), 'x1' = destra (x=RW); a..b e' il tratto lungo la parete, depth quanto sporge verso l'interno */
+  const WK={y:'y0',x:'x0',y1:'y1',x1:'x1'};
+  function onWall(wall,a,b,z0,z1,c,o,depth){ o=Object.assign({cs:false},o||{}); const d=depth||.05; let m; inGrp(WG[WK[wall]],()=>{ m=wall==='y'?bx(a,.0,b,d,z0,z1,c,o):wall==='x'?bx(.0,a,d,b,z0,z1,c,o):wall==='y1'?bx(a,RD-d,b,RD,z0,z1,c,o):bx(RW-d,a,RW,b,z0,z1,c,o); }); return m; }
+  /* piano (schermo o pannello) appeso alla parete, rivolto verso l'interno della stanza */
+  function onWallPlane(wall,m,a,b,z0,z1){ const c=(a+b)/2, zc=(z0+z1)/2; if(wall==='y') m.position.set(c,zc,.075); else if(wall==='x'){ m.rotation.y=Math.PI/2; m.position.set(.075,zc,c); } else if(wall==='y1'){ m.rotation.y=Math.PI; m.position.set(c,zc,RD-.075); } else { m.rotation.y=-Math.PI/2; m.position.set(RW-.075,zc,c); } WG[WK[wall]].add(m); }
+  /* porta a due ante con oblo' e insegna verde di uscita */
+  function door(wall,a,b){ const m=(a+b)/2, g={r:.1,e:'#5FA3C8',ei:.3}; onWall(wall,a-.12,b+.12,0,2.4,'#5B656D',{r:.6},.07); onWall(wall,a,m-.02,0,2.25,'#D9DEE2',{r:.5},.1); onWall(wall,m+.02,b,0,2.25,'#D9DEE2',{r:.5},.1);
+    onWall(wall,a+.18,m-.2,1.3,1.95,'#9CCBE3',g,.12); onWall(wall,m+.2,b-.18,1.3,1.95,'#9CCBE3',g,.12); onWall(wall,m-.12,m-.06,.95,1.1,'#2B2F36',{r:.4},.14); onWall(wall,m+.06,m+.12,.95,1.1,'#2B2F36',{r:.4},.14); onWall(wall,m-.35,m+.35,2.5,2.75,'#2FA35B',{e:'#2FA35B',ei:.8},.09); }
   function windows(wall,a,b,z0,z1,n){ const w=(b-a)/n; onWall(wall,a,b,z0,z1,'#2B3A44',{r:.5},.07); for(let i=0;i<n;i++){ onWall(wall,a+i*w+.06,a+(i+1)*w-.06,z0+.06,z1-.06,'#9CCBE3',{r:.1,e:'#5FA3C8',ei:.35,m:.2},.09); onWall(wall,a+i*w+w/2-.015,a+i*w+w/2+.015,z0+.06,z1-.06,'#2B3A44',{r:.5},.1); } onWall(wall,a,b,z0-.04,z0+.04,'#D9DDE0',{r:.5},.12); }
   function rollDoor(wall,a,b,z1){ onWall(wall,a-.1,b+.1,0,z1+.1,'#8A929A',{r:.6},.08); const n=Math.round(z1/.22); for(let i=0;i<n;i++) onWall(wall,a,b,i*.22+.02,i*.22+.2,i%2?'#D5D9DC':'#E4E7E9',{r:.5},.12); onWall(wall,(a+b)/2-.2,(a+b)/2+.2,.85,.95,'#2B2F36',{r:.4},.16); }
   function wallScreen(wall,a,b,z0,z1,kind,seed){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:screenTex(kind,seed)})); m.scale.set(b-a,z1-z0,1);
-    if(wall==='y'){ m.position.set((a+b)/2,(z0+z1)/2,.075); } else { m.rotation.y=Math.PI/2; m.position.set(.075,(z0+z1)/2,(a+b)/2); } WG[wall==='y'?'y0':'x0'].add(m); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
-  function wallPanel(wall,a,b,z0,z1,tex){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tex})); m.scale.set(b-a,z1-z0,1); if(wall==='y') m.position.set((a+b)/2,(z0+z1)/2,.075); else { m.rotation.y=Math.PI/2; m.position.set(.075,(z0+z1)/2,(a+b)/2); } WG[wall==='y'?'y0':'x0'].add(m); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
+    onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
+  function wallPanel(wall,a,b,z0,z1,tex){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tex})); m.scale.set(b-a,z1-z0,1); onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
   function textTex(lines,bg,fg){ return ctex(512,256,(g,w,h)=>{ g.fillStyle=bg||'#0B141C'; g.fillRect(0,0,w,h); g.font='700 44px monospace'; g.textBaseline='middle'; lines.forEach((l,i)=>{ g.fillStyle=l[1]||fg||'#43D3E0'; g.fillText(l[0],24,60+i*72); }); g.strokeStyle='#1A1F24'; g.lineWidth=12; g.strokeRect(0,0,w,h); }); }
 
   /* ---------- macchinari del laboratorio ---------- */
@@ -5857,7 +5864,23 @@ const IR3=(()=>{
       [[3.4,9],[6.8,10.4],[10.4,10.4],[13.8,9],[15.6,5.6]].forEach((p,i)=>{ podium(p[0],p[1],.9); if(st.sats&&st.sats[i]) satellite(p[0],p[1],.98,1.5,{wings:true}); else cy(p[0],p[1],.5,.98,1.6,'#BFE2EE',{t:.12,cs:false}); });
       [[2.4,12.2],[6,12.6],[9.6,12.6],[13.2,12.6],[16.4,12.2]].forEach(p=>{ cy(p[0],p[1],.08,0,.9,'#C9CED2'); sp(p[0],p[1],.95,.1,'#F2B544'); });
       walkers_('visit',6,['plain','coat','head','plain','vest','plain']); }
+    farDecor(room,st);
     (st.plants||[]).forEach((p,i)=>{ plant(p.x+.3,p.y+.3); FP.push([p.x,p.y,p.x+.6,p.y+.6,.15]); if(st.sel===i) pl(p.x-.1,p.y-.1,p.x+.7,p.y+.7,.03,'#45A9A3',{t:.55}); });
+  }
+  /* arredi delle due pareti che si vedono solo ruotando la stanza (davanti 'y1', destra 'x1'): una porta d'ingresso e qualcosa in tema, lontano dai mobili vicini al muro */
+  function farDecor(room,st){
+    if(room==='build'){ door('y1',4.6,6.4); windows('y1',8.6,17.4,2.2,3.3,10); wallScreen('x1',1.5,5.5,1.5,3.1,'bars',4); windows('x1',6.5,13.4,1.8,3.3,7); }
+    else if(room==='clean'){ for(let i=0;i<10;i++) onWall('y1',.5+i*1.75,1.95+i*1.75,2.5,3.05,'#FFFFFF',{r:.4},.05); for(let i=0;i<7;i++) onWall('x1',.5+i*1.9,1.95+i*1.9,2.5,3.05,'#FFFFFF',{r:.4},.05);
+      door('y1',6.8,8.4); wallScreen('y1',9.4,13.4,1.2,2.3,'gauges',5); wallScreen('x1',8.4,12.4,1.3,2.4,'chart',6); }
+    else if(room==='test'){ door('y1',5.6,7.4); windows('y1',8.6,17.4,2.2,3.3,9); wallScreen('x1',.8,4.8,1.5,3.1,'chart',7); wallScreen('x1',9.4,13.2,1.5,3.1,'gauges',8); }
+    else if(room==='mcc'){ onWall('y1',0,RW,3.3,RH,'#2E363E',{r:.6},.06); onWall('x1',0,RD,3.3,RH,'#262D34',{r:.6},.06);
+      for(let i=0;i<22;i++) onWall('y1',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1); for(let i=0;i<17;i++) onWall('x1',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1);
+      door('y1',5,6.6); wallScreen('y1',8,13.6,1.4,3.05,'globe',14); wallScreen('x1',1.2,6.4,1.4,3.05,'grid',15); wallScreen('x1',7,12.2,1.4,3.05,'chart',16); }
+    else if(room==='factory'){ door('y1',5,6.8); windows('y1',8,17.4,1.8,3.3,11); wallScreen('x1',1,5.6,1.4,3.1,'gauges',9); windows('x1',6.6,13.4,1.8,3.3,7); }
+    else if(room==='ground'){ door('y1',2.2,3.8); wallScreen('y1',5.5,12.5,1.6,3.3,'bars',10); wallScreen('x1',1,5.4,1.6,3.2,'sat',11); wallScreen('x1',6,10.4,1.6,3.2,'chart',12); }
+    else if(room==='rnd'){ door('y1',8.6,10.2); windows('y1',11.4,17.4,1.2,3.1,6); wallPanel('x1',1.5,5.5,1.3,2.8,textTex([['IDEA → TEST','#22313B'],['→ FLY','#8E5BB0']],'#FFFFFF')); wallScreen('x1',6.5,11.5,1.2,3,'chart',13); }
+    else if(room==='office'){ door('y1',.8,2.4); windows('y1',6.4,12.4,1.1,3.2,6); wallScreen('x1',4.6,9.6,1.2,3,'chart',9); }
+    else if(room==='visit'){ door('y1',7.2,8.8); wallPanel('y1',11,16,1.2,2.8,textTex([['Go No-Go','#22313B'],['space agency','#EB7D44']],'#F6F5F1')); wallScreen('x1',2,7,1.1,3.1,'globe',10); windows('x1',8,12.8,1.2,3,4); }
   }
 
 
