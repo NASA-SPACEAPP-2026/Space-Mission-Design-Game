@@ -6,3 +6,7 @@ release.zip
 .env
 .env.*
 !.env.example
+.gmat-target
+
+# local tool state (not part of the project)
+.omx/

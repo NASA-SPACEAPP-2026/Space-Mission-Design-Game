@@ -65,6 +65,25 @@ az webapp config show --name <app> --resource-group rg-space-mission-game --quer
 az webapp config set  --name <app> --resource-group rg-space-mission-game --linux-fx-version "NODE|24-lts"
 ```
 
+## NASA GMAT service (optional)
+
+The game asks NASA's GMAT (in a Docker container) for transfer ΔV, eclipse, ground contacts, orbit decay and lifetime. Without it the game
+keeps its own numbers and labels them as such, so this part is optional.
+
+1. **Publish the image** (once, and again when `Dockerfile.base` changes): `REPO=docker.io/<user> ./infra/gmat-image-push.sh`, then make the
+   repositories public.
+2. **Create the service** on Azure Container Apps (consumption plan, scale to zero, so it normally stays inside the monthly free grant):
+   `IMAGE=docker.io/<user>/smdg-gmat:latest ./infra/azure-gmat.sh`. It lives in the same resource group as the web apps and sets `GMAT_URL` on them.
+3. The site server (`server.mjs`) forwards `POST /api/gmat`, `/api/gmat/analysis` and `/api/gmat/lifetime` to the GMAT service, so the browser stays same-origin.
+   **Nothing has to be configured:** the default service address lives in `gmat-service.json` (committed, shipped in `release.zip`), so a fresh deployment,
+   `node server.mjs` and `npm run dev` all use it. `GMAT_URL` overrides it and `GMAT_URL=off` disables it (the routes then answer `503 no-gmat`).
+   `npm run dev` uses the local Docker container when Docker is running and the shared service otherwise (`scripts/gmat-up.mjs` writes `.gmat-target`).
+   If the service is ever recreated in another place, change the `url` in `gmat-service.json`.
+
+The first call after an idle period is slow (cold start); results are cached with the mission, and the game never waits for GMAT.
+Update the service after a code change: rebuild and push the thin image, then `az containerapp update -n ca-smg-gmat -g <rg> --image <image>`.
+`infra/azure-teardown.sh` removes the service together with everything else.
+
 ## Caching
 
 `server.mjs` sets:

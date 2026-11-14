@@ -11,7 +11,9 @@ createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/healthz') return send(200, { ok: true });
   const analysis = req.url === '/api/gmat/analysis', lifetime = req.url === '/api/gmat/lifetime';
   if (req.method !== 'POST' || (req.url !== '/api/gmat' && !analysis && !lifetime)) return send(404, { error: 'not-found' });
-  if (limited(req.socket.remoteAddress)) return send(429, { error: 'rate-limited' });
+  // behind the site's proxy every request comes from one address: the proxy forwards the real client in X-Forwarded-For
+  const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
+  if (limited(ip)) return send(429, { error: 'rate-limited' });
   let size = 0; const chunks = [];
   req.on('data', c => { size += c.length; if (size > MAX_BODY) { send(413, { error: 'too-large' }); req.destroy(); } else chunks.push(c); });
   req.on('end', async () => {
