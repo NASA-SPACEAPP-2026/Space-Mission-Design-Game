@@ -41,9 +41,10 @@ The Node server now forwards `/api/gmat`, `/api/gmat/analysis` and `/api/gmat/li
 | 7 | `05-campus.js` | Campus and facilities |
 | 8 | `06-rooms.js` | Rooms and interiors |
 | 9 | `08-minigames.js` | Minigames and tests |
-| 10 | `07-main.js` | Startup, state, screens, saves, and integrations |
+| 10 | `09-consortia.js` | Consortium (clan) panel, chat and offline demo |
+| 11 | `07-main.js` | Startup, state, screens, saves, and integrations |
 
-This is not alphabetical order: `08-minigames.js` comes before `07-main.js`. Keep HTML, `scripts/build-game.mjs`, and contract tests consistent when changing it.
+This is not alphabetical order: `08-minigames.js` and `09-consortia.js` come before `07-main.js`. Keep HTML, `scripts/build-game.mjs`, and contract tests consistent when changing it.
 
 `public/account.js` loads separately as a module and manages the account button and dialog. It does not associate game state with the authenticated user.
 
