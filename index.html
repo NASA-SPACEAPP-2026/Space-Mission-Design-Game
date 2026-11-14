@@ -13,7 +13,7 @@
     <p id="account-description"></p>
     <form id="account-form">
       <div class="entry-field"><label for="entry-username">Username</label><input id="entry-username" name="username" required minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]{3,24}" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="AstroPilot" aria-describedby="username-hint"><small id="username-hint" data-it="3–24 lettere, numeri o underscore." data-en="3–24 letters, numbers or underscores.">3–24 lettere, numeri o underscore.</small></div>
-      <div class="entry-field"><label for="entry-password">Password</label><div class="entry-password"><input id="entry-password" name="password" type="password" required minlength="15" maxlength="128" autocomplete="new-password" aria-describedby="password-hint"><button type="button" id="password-show" aria-pressed="false" data-it="Mostra" data-en="Show">Mostra</button></div><small id="password-hint"></small></div>
+      <div class="entry-field"><label for="entry-password">Password</label><div class="entry-password"><input id="entry-password" name="password" type="password" required maxlength="128" autocomplete="new-password" aria-describedby="password-hint"><button type="button" id="password-show" aria-pressed="false" data-it="Mostra" data-en="Show">Mostra</button></div><small id="password-hint"></small></div>
       <p id="account-message" role="status" aria-live="polite"></p>
       <button type="submit" id="account-submit">Crea account e gioca</button>
       <button type="button" id="account-toggle">Hai già un account? Accedi</button>

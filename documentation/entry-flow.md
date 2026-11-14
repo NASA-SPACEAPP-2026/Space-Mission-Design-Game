@@ -6,7 +6,7 @@
 
 Opening the game shows a Go No-Go introduction with the original illustration returned by `artSVG('title')`. The introduction stays visible until click or keyboard activation, then the session is checked. A valid session leads to the campus. Otherwise, account creation appears, with a sign-in option for returning players.
 
-Registration asks only for username (3–24 ASCII letters, digits, or underscores) and password (15–128 characters). A show/hide button helps password entry. Errors leave the form available; an unavailable account service does not grant access. The entry screen does not provide guest play.
+Registration asks only for username (3–24 ASCII letters, digits, or underscores) and password (1–128 characters). A show/hide button helps password entry. Errors leave the form available; an unavailable account service does not grant access. The entry screen does not provide guest play.
 
 After registration or login, gameplay starts directly in the campus. A new agency uses the username as its name; existing local saves are preserved. The in-game menu still provides other modes, tutorial, and settings. The Account button supports logout: after session revocation, the page reloads the entry flow.
 

@@ -6,7 +6,7 @@
 
 All'apertura appare un'introduzione Go No-Go con l'illustrazione originale restituita da `artSVG('title')`. La schermata resta visibile fino al clic o all'attivazione da tastiera, poi viene controllata la sessione. Se valida, si entra nel campus. Altrimenti compare la creazione account, con passaggio al login per chi è già registrato.
 
-La registrazione chiede soltanto username (3–24 lettere ASCII, cifre o underscore) e password (15–128 caratteri). Il pulsante mostra/nascondi aiuta l'inserimento. Il modulo resta disponibile in caso di errore e non permette l'ingresso se il servizio account è indisponibile. Non è previsto un accesso ospite dalla schermata iniziale.
+La registrazione chiede soltanto username (3–24 lettere ASCII, cifre o underscore) e password (1–128 caratteri). Il pulsante mostra/nascondi aiuta l'inserimento. Il modulo resta disponibile in caso di errore e non permette l'ingresso se il servizio account è indisponibile. Non è previsto un accesso ospite dalla schermata iniziale.
 
 Dopo registrazione o accesso, il gioco si avvia direttamente nel campus. Una nuova agenzia usa lo username come nome; un salvataggio locale esistente viene conservato. Il menu del gioco resta disponibile durante la partita per scegliere altre modalità, tutorial e impostazioni. Il pulsante Account permette di uscire: dopo la revoca della sessione la pagina ricarica l'ingresso.
 

@@ -89,7 +89,7 @@ Le operazioni di registrazione e creazione sessione sono query separate, senza u
 
 | Proprietà | Implementazione |
 | --- | --- |
-| Lunghezza password in registrazione | Da 15 a 128 caratteri, senza troncamento |
+| Lunghezza password in registrazione | Da 1 a 128 caratteri, senza troncamento |
 | Derivazione | scrypt, `N=32768`, `r=8`, `p=3`, `maxmem=64 MiB` |
 | Sale | 16 byte casuali, codificati hex |
 | Chiave derivata | 64 byte |

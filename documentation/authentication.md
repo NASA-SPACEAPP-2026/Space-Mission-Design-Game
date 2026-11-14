@@ -89,7 +89,7 @@ User insertion and session creation are separate queries, without a shared trans
 
 | Property | Implementation |
 | --- | --- |
-| Registration password length | 15–128 characters, without truncation |
+| Registration password length | 1–128 characters, without truncation |
 | Derivation | scrypt, `N=32768`, `r=8`, `p=3`, `maxmem=64 MiB` |
 | Salt | 16 random bytes, hex encoded |
 | Derived key | 64 bytes |
