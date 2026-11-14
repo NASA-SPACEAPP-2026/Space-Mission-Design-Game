@@ -209,8 +209,8 @@ const FD3 = (function () {
   function mount(el, o) { init(); cb = o || {}; wrap = el; el.innerHTML = ''; el.appendChild(R.domElement); resize(); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
   function resize() { if (!wrap) return; const w = Math.max(240, wrap.clientWidth), h0 = Math.round(Math.min(620, w * 0.78)); const fh = wrap.classList.contains('fill') ? wrap.clientHeight : 0, h = fh > 80 ? fh : h0; R.setSize(w, h, false); R.domElement.style.height = h + 'px'; cam.aspect = w / h; cam.updateProjectionMatrix(); }
   window.addEventListener('resize', () => { if (wrap && document.body.contains(R.domElement)) resize(); });
-  function loop() { if (!wrap || !document.body.contains(R.domElement)) { wrap = null; return; } raf = requestAnimationFrame(loop);
-    cam.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist); cam.lookAt(0, 0, 0); if (body) body.rotation.y += 0.0008; R.render(scene, cam); }
+  let lastF = 0; function loop(ts) { if (!wrap || !document.body.contains(R.domElement)) { wrap = null; return; } raf = requestAnimationFrame(loop); const dF = Math.min(0.05, (ts - lastF) / 1000 || 0.016); lastF = ts;
+    cam.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist); cam.lookAt(0, 0, 0); if (body) body.rotation.y += 0.048 * dF; /* 0,0008 rad a fotogramma a 60 Hz = 0,048 rad/s */ R.render(scene, cam); }
   function tube(pts, col, rad, op) { const c = new T.CatmullRomCurve3(pts, true); return new T.Mesh(new T.TubeGeometry(c, Math.max(64, pts.length), rad, 6, true), new T.MeshBasicMaterial({ color: col, transparent: op != null, opacity: op == null ? 1 : op, depthWrite: op == null })); }
   function ring(el, B, n) { const out = []; for (let k = 0; k < n; k++) out.push(V(O.state(el, k * 360 / n, B).r, 1 / B.R)); return out; }
   function clear() { while (world.children.length) { const c = world.children[0]; world.remove(c); c.traverse(x => { if (x.geometry) x.geometry.dispose(); }); } picks = []; }
