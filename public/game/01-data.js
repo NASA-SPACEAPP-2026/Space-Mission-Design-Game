@@ -115,7 +115,7 @@ const E = (function () {
 
   const stk = id => STAKE.find(x => x.id === id);
   const unlocked = (d, o) => !o.lock || d.stake.indexOf(o.lock) >= 0;
-  const budget0 = d => SEED + d.stake.reduce((a, id) => a + ((stk(id) || {}).fund || 0), 0);
+  const budget0 = d => d.tutB ? d.tutB : SEED + d.stake.reduce((a, id) => a + ((stk(id) || {}).fund || 0), 0);
   const fresh = () => ({ ride: 'S3', lv: null, dest: 'leo', sol: 'BASE-SOL3B', placed: {}, heat: {}, acc: {}, stake: [] });
   const blocked = () => false;
   // forma di un pezzo nella griglia della struttura: dipende dall'ingombro in U e da quanto vale una casella
@@ -263,6 +263,10 @@ const E = (function () {
   const pc = x => Math.round(x * 100) + '%';
   function die(f, why) { f.alive = false; f.ended = true; f.cause = why; return { t: why, tone: 'bad', end: true }; }
   const EV = {
+    /* tutorial: due scelte, nessuna fa fallire la missione */
+    tspe: { t: 'Tempesta solare', art: 'sun', fix: { k: 'a', risk: 'b', cost: 60, own: 1 }, q: () => 'Tempesta solare: le particelle del Sole hanno mandato il satellite in safe mode. Puoi ruotarlo per mettere la camera all’ombra del suo corpo, oppure spegnere la camera finché la tempesta passa.',
+      opts: f => [{ k: 'a', l: 'Cambia assetto e scherma la camera', h: 'la camera resta accesa' }, { k: 'b', l: 'Spegni la camera', h: 'gratis · niente scienza finché dura la tempesta' }],
+      run(f, k) { if (k === 'b') { f.sci -= Math.min(f.sci, rate(f)); return { t: 'Camera spenta: niente dati finché passa la tempesta.', tone: 'flat' }; } return { t: 'Assetto cambiato: il corpo del satellite scherma la camera, che continua a osservare Marte.', tone: 'good' }; } },
     spe: { t: 'Tempesta solare', art: 'sun', fix: { k: 'b', risk: 'a', cost: 20 }, q: () => 'Particelle solari in arrivo: il satellite è passato da solo in safe mode per proteggersi. Riaccendi gli strumenti per misurare la tempesta?',
       opts: f => [{ k: 'a', l: 'Riaccendi e misura', h: '+30 scienza · ' + pc(f.pSpe) + ' di bruciare un computer' }, { k: 'b', l: 'Resta in safe mode', h: 'nessun dato questo mese' }],
       run(f, k) { if (k === 'b') { f.sci -= Math.min(f.sci, rate(f)); return { t: 'Strumenti spenti finché passa.', tone: 'flat' }; }
