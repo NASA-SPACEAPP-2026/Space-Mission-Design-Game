@@ -5690,18 +5690,21 @@ const C3=(()=>{
       for(let k=0;k<8;k++){ V.set(k&1?x1:x0,k&4?o.top:0,k&2?z1:z0).project(cam); const sx=(V.x+1)/2*w, sy=(1-V.y)/2*h; if(sx<a)a=sx; if(sy<b)b=sy; if(sx>c)c=sx; if(sy>e)e=sy; }
       const W2=c-a, H2=e-b; o.b.style.transform='translate('+(a+W2*.12).toFixed(1)+'px,'+(b+H2*.1).toFixed(1)+'px)'; o.b.style.width=(W2*.76).toFixed(1)+'px'; o.b.style.height=(H2*.8).toFixed(1)+'px'; } }
   /* ciclo: giorno lungo, tramonto/alba brevissimi (stessa luce), notte breve (blu, non buia del tutto). Chiavi: [secondi, 0=giorno 1=tramonto/alba 2=notte] */
-  const TODK=[[0,0],[150,0],[158,1],[165,1],[173,2],[285,2],[293,1],[299,1],[307,0]], CYC=307, SKY=[{bg:'#BFDDEB',fog:'#C7E0E6',hs:'#EAF4FF',hg:'#4F7A2E',hi:.28,sc:'#FFE9C8',si:1.7,fc:'#CFE0FF',fi:.25,lamp:.5,win:0},{bg:'#F0A872',fog:'#EDB58C',hs:'#FFD9B8',hg:'#5C5C3C',hi:.27,sc:'#FF9A55',si:1.25,fc:'#8E9ACB',fi:.22,lamp:2.5,win:.3},{bg:'#1B2A4C',fog:'#24365C',hs:'#7F90CC',hg:'#24304A',hi:.36,sc:'#9DB4FF',si:.75,fc:'#5B6FA8',fi:.3,lamp:6,win:.8}];
+  const TODK=[[0,0],[150,0],[158,1],[165,1],[173,2],[285,2],[293,1],[299,1],[307,0]], CYC=307, SKY=[{bg:'#BFDDEB',fog:'#C7E0E6',hs:'#EAF4FF',hg:'#4F7A2E',hi:.28,sc:'#FFE9C8',si:1.7,fc:'#CFE0FF',fi:.25,lamp:.5,win:0},{bg:'#F0A872',fog:'#EDB58C',hs:'#FFD9B8',hg:'#5C5C3C',hi:.27,sc:'#FF9A55',si:1.25,fc:'#8E9ACB',fi:.22,lamp:2.5,win:.3},{bg:'#1B2A4C',fog:'#24365C',hs:'#7F90CC',hg:'#24304A',hi:.55,sc:'#9DB4FF',si:.08,fc:'#5B6FA8',fi:.3,lamp:6,win:.8}];
   const TCA=new THREE.Color(), TCB=new THREE.Color(); const mixC=(out,a,b,f)=>{ TCA.set(a).convertSRGBToLinear(); TCB.set(b).convertSRGBToLinear(); out.copy(TCA).lerp(TCB,f); };
   /* Il sole attraversa il cielo dall'alba al tramonto e di notte la luna fa lo stesso: la luce direzionale si sposta e le ombre (rinfrescate dal governatore) la seguono.
      A mezzogiorno la direzione è quella di sempre. Il sole non scende sotto 18°: oltre, le ombre diventerebbero troppo lunghe per la mappa d'ombra. */
-  const SUNT=new THREE.Vector3(13,0,8), SD=new THREE.Vector3(), MD=new THREE.Vector3(), PHI0=Math.atan2(-18,-31), D2R=Math.PI/180, T_RISE=290, T_SET=165, M_RISE=173, M_SET=285;
-  const arcDir=(out,u,e0,e1)=>{ u=u<0?0:u>1?1:u; const el=(e0+(e1-e0)*Math.sin(Math.PI*u))*D2R, ph=PHI0+(u-.5)*Math.PI; return out.set(Math.cos(ph)*Math.cos(el),Math.sin(el),Math.sin(ph)*Math.cos(el)); };
-  function sunPath(T,night){ const uS=(T>=T_RISE?T-T_RISE:T+CYC-T_RISE)/(CYC-T_RISE+T_SET), uM=(T-M_RISE)/(M_SET-M_RISE); arcDir(SD,uS,18,46); arcDir(MD,uM,24,44); SD.lerp(MD,night).normalize(); SUNC.position.copy(SUNT).addScaledVector(SD,49); }
+  const SUNT=new THREE.Vector3(13,0,8), SD=new THREE.Vector3(), PHI0=Math.atan2(-18,-31), D2R=Math.PI/180, T_RISE=290, T_SET=165, DAYLEN=CYC-T_RISE+T_SET;
+  /* Un solo sole: sorge, attraversa il cielo (ombre lunghe al mattino e alla sera, corte a mezzogiorno) e tramonta. Di notte continua il giro sotto l'orizzonte con luce quasi nulla
+     (la luce lunare e' nell'emisfero, non nella direzionale): niente "secondo giro" di ombre. A mezzogiorno la direzione e' quella di sempre; sotto 18° la mappa d'ombra non basterebbe. */
+  function sunPath(T){ const s=T>=T_RISE?T-T_RISE:T+CYC-T_RISE; let ph, el;
+    if(s<DAYLEN){ const u=s/DAYLEN; ph=PHI0+(u-.5)*Math.PI; el=(18+28*Math.sin(Math.PI*u))*D2R; } else { const u=(s-DAYLEN)/(CYC-DAYLEN); ph=PHI0+(.5+u)*Math.PI; el=18*D2R; }
+    SD.set(Math.cos(ph)*Math.cos(el),Math.sin(el),Math.sin(ph)*Math.cos(el)); SUNC.position.copy(SUNT).addScaledVector(SD,49); }
   let SKYL=null; const lerpN=(x,y,f)=>x+(y-x)*f, mixL=(out,x,y,f)=>out.copy(x).lerp(y,f);
   function dayNight(ts){ if(!HEMC||!SUNC||!scene) return; if(!SKYL) SKYL=SKY.map(s=>({bg:col(s.bg),fog:col(s.fog),hs:col(s.hs),hg:col(s.hg),sc:col(s.sc),fc:col(s.fc)}));
     const T=TODS!=null?TODS:((ts+30)%CYC); let i=0; while(i<TODK.length-2&&T>=TODK[i+1][0]) i++; const a=TODK[i], b=TODK[i+1], f0=Math.max(0,Math.min(1,(T-a[0])/(b[0]-a[0]))), f=f0*f0*(3-2*f0), A=SKY[a[1]], B=SKY[b[1]], AL=SKYL[a[1]], BL=SKYL[b[1]];
     mixL(scene.background,AL.bg,BL.bg,f); if(scene.fog) mixL(scene.fog.color,AL.fog,BL.fog,f); mixL(HEMC.color,AL.hs,BL.hs,f); mixL(HEMC.groundColor,AL.hg,BL.hg,f); HEMC.intensity=lerpN(A.hi,B.hi,f); mixL(SUNC.color,AL.sc,BL.sc,f); SUNC.intensity=lerpN(A.si,B.si,f); mixL(FILC.color,AL.fc,BL.fc,f); FILC.intensity=lerpN(A.fi,B.fi,f);
-    const night=(a[1]===2?1:0)*(1-f)+(b[1]===2?1:0)*f; sunPath(T,night);
+    const night=(a[1]===2?1:0)*(1-f)+(b[1]===2?1:0)*f; sunPath(T);
     const lamp=lerpN(A.lamp,B.lamp,f), win=lerpN(A.win,B.win,f); for(let k=0;k<LAMPM.length;k++) LAMPM[k].emissiveIntensity=lamp; if(GLOWM) GLOWM.opacity=Math.max(0,(lamp-.5)/5.5)*.9;
     if(GLASS){ if(GLASS.emissive) GLASS.emissive.setHex(0xFFC873); GLASS.emissiveIntensity=win; } if(GLASSD){ if(GLASSD.emissive) GLASSD.emissive.setHex(0xFFC873); GLASSD.emissiveIntensity=win; }
     if(STARS){ STARS.material.opacity=night; STARS.visible=night>.03; } }
