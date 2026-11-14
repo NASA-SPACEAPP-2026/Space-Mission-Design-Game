@@ -82,13 +82,13 @@ export function createAuth({ db, origin, secure = true }) {
       if (pathname.endsWith('/register')) {
         const { username, email, password } = body;
         if (typeof username !== 'string' || !/^[a-zA-Z0-9_]{3,24}$/.test(username) ||
-          typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 15) {
-          return send(res, 400, { error: 'Username: 3–24 lettere, numeri o _. Email valida e password di 15–128 caratteri.' });
+          (email != null && (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) || password.length < 15) {
+          return send(res, 400, { error: 'Username: 3–24 lettere, numeri o _. Password di 15–128 caratteri.' });
         }
         if (await limited('register:global', 30)) return send(res, 429, { error: 'Registrazioni temporaneamente limitate' });
         try {
           const result = await db.query('INSERT INTO users(id,username,email,password_hash) VALUES($1,$2,$3,$4) RETURNING id,username,email',
-            [randomUUID(), username, email.toLowerCase(), await passwordHash(password)]);
+            [randomUUID(), username, email?.toLowerCase() ?? null, await passwordHash(password)]);
           user = result.rows[0];
         } catch (error) {
           if (error.code === '23505') return send(res, 409, { error: 'Registrazione non disponibile con questi dati' });

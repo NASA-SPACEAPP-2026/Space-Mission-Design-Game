@@ -3,6 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { readFile } from 'node:fs/promises';
 import { createAuth } from '../backend/auth.mjs';
 import { createStaticServer } from '../server.mjs';
+import { migrate } from '../backend/database.mjs';
 describe('PostgreSQL authentication', () => {
   let pg, db, server, base;
   const credentials = { username:'Pilot_1', email:'pilot@example.com', password:'a long unique password 123!' };
@@ -15,7 +16,8 @@ describe('PostgreSQL authentication', () => {
   beforeAll(async()=>{
     pg=new PGlite(); await pg.waitReady;
     const schema=await readFile(new URL('../db/001-auth.sql',import.meta.url),'utf8');
-    await pg.exec(schema); await pg.exec(schema);
+    const upgrade=await readFile(new URL('../db/002-username-accounts.sql',import.meta.url),'utf8');
+    await pg.exec(schema); await pg.exec(upgrade); await pg.exec(schema); await pg.exec(upgrade);
     let queue=Promise.resolve();
     db={query:(sql,args)=>{const next=queue.then(()=>pg.query(sql,args));queue=next.catch(()=>{});return next;}};
     server=createStaticServer({auth:createAuth({db,origin:'https://game.example',secure:true})});
@@ -56,5 +58,28 @@ describe('PostgreSQL authentication', () => {
     await db.query('DELETE FROM auth_limits');
     for(let i=0;i<10;i++) expect((await call('login',{login:'absent',password:'wrong'})).status).toBe(401);
     expect((await call('login',{login:'absent',password:'wrong'})).status).toBe(429);
+  },15000);
+  it('registers without email, preserving uniqueness and username login', async()=>{
+    await db.query('DELETE FROM auth_limits');
+    const result=await call('register',{username:'NewPilot',password:credentials.password});
+    expect(result.status).toBe(201);
+    expect(result.body.user.email).toBeNull();
+    expect((await call('register',{username:'SecondPilot',password:credentials.password})).status).toBe(201);
+    expect((await call('register',{username:'newpilot',password:credentials.password})).status).toBe(409);
+    expect((await call('login',{login:'NEWPILOT',password:credentials.password})).status).toBe(200);
+  });
+  it('upgrades an existing database without losing users and can run twice', async()=>{
+    const old = new PGlite(); await old.waitReady;
+    try {
+      await old.exec(await readFile(new URL('../db/001-auth.sql',import.meta.url),'utf8'));
+      await old.query('INSERT INTO users(id,username,email,password_hash) VALUES($1,$2,$3,$4)',
+        ['00000000-0000-4000-8000-000000000001','Existing','existing@example.com','preserved-hash']);
+      const adapter={query: sql=>old.exec(sql)};
+      await migrate(adapter); await migrate(adapter);
+      expect((await old.query('SELECT email,password_hash FROM users')).rows[0]).toEqual({email:'existing@example.com',password_hash:'preserved-hash'});
+      await old.query('INSERT INTO users(id,username,password_hash) VALUES($1,$2,$3)',
+        ['00000000-0000-4000-8000-000000000002','NoEmail','new-hash']);
+      expect((await old.query('SELECT count(*)::int AS total FROM users')).rows[0].total).toBe(2);
+    } finally { await old.close(); }
   },15000);
 });
