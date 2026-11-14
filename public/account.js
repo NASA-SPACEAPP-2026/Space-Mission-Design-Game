@@ -32,21 +32,14 @@ async function request(path, data) {
     throw error;
   } finally { clearTimeout(timeout); }
 }
-const accountButton = document.createElement('button');
-accountButton.id = 'account-open'; accountButton.type = 'button'; accountButton.hidden = true;
-const dialog = document.createElement('dialog');
-dialog.id = 'account-dialog'; dialog.setAttribute('aria-labelledby', 'session-heading');
-dialog.innerHTML = `<h2 id="session-heading">${t('Il tuo account', 'Your account')}</h2><p id="session-user"></p><p>${t('Le partite restano in questo browser.', 'Missions stay in this browser.')}</p><p id="session-message" role="status"></p><button id="account-logout" type="button">${t('Esci dall’account', 'Sign out')}</button><button id="account-close" type="button">${t('Torna al gioco', 'Back to game')}</button>`;
-document.body.append(accountButton, dialog);
+// Sign-out lives in the game's pause menu (07-main.js); the game calls this.
+window.gngLogout = async () => { await request('logout', {}); location.reload(); };
 function enter(user) {
   if (!user?.username) throw new Error(t('Sessione non valida. Accedi di nuovo.', 'Invalid session. Please sign in again.'));
   sessionUser = user;
   window.gngUser = { username: user.username };
   form.reset();
   root.hidden = true;
-  accountButton.textContent = `Account: ${user.username}`;
-  accountButton.hidden = false;
-  dialog.querySelector('#session-user').textContent = user.username;
   const done = waiting; waiting = null;
   done?.(window.gngUser);
 }
@@ -94,11 +87,4 @@ form.addEventListener('submit', async event => {
   } catch (error) { sessionError = error.message; mode(); password.focus({preventScroll:true}); }
   finally { busy = false; submit.disabled = false; form.removeAttribute('aria-busy'); }
 });
-accountButton.onclick = () => dialog.showModal();
-dialog.querySelector('#account-close').onclick = () => dialog.close();
-dialog.querySelector('#account-logout').onclick = async event => {
-  event.currentTarget.disabled = true;
-  try { await request('logout', {}); location.reload(); }
-  catch (error) { dialog.querySelector('#session-message').textContent = error.message; event.currentTarget.disabled = false; }
-};
 mode();

@@ -765,7 +765,7 @@ window.GNGCLAN = (function () {
     s.textContent = `
 #clan{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;background:rgba(10,12,16,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
 #clan[hidden]{display:none}
-body.clan-open #account-open,body.clan-open #tbub,body.clan-open #zbtn,body.clan-open #zpanel{display:none!important}
+body.clan-open #tbub,body.clan-open #zbtn,body.clan-open #zpanel{display:none!important}
 #clan .clw{width:min(980px,100%);height:min(620px,100%);display:flex;flex-direction:column;background:#15171D;color:#F1ECE6;border-radius:12px;box-shadow:0 0 0 2px #2E3442,0 20px 50px rgba(0,0,0,.6);overflow:hidden;font-size:14px}
 #clan .clh{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 12px;border-bottom:1px solid #262B36;flex:none}
 #clan .clt{display:flex;flex-direction:column;min-width:0;flex:1}
@@ -842,7 +842,7 @@ body.clan-open #account-open,body.clan-open #tbub,body.clan-open #zbtn,body.clan
 #spect .clstks button:disabled{opacity:.4;cursor:default}
 #spect .clbtn{background:#2A2F3B;color:#F1ECE6;border:0;border-radius:8px;padding:8px 14px;font:700 13px/1.1 inherit;cursor:pointer;min-height:38px}
 #spect button:focus-visible{outline:2px solid #7FD8CC;outline-offset:2px}
-body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect #account-open,body.spect #coach,body.spect #chand,body.spect #clan{display:none!important}
+body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect #coach,body.spect #chand,body.spect #clan{display:none!important}
 #clan .clwatch{background:rgba(229,50,43,.18);color:#FFB4AB;display:inline-flex;align-items:center;gap:4px}
 @media (max-width:520px){#spect .spl small{display:none}}
 @keyframes clzpop{0%{transform:scale(.3);opacity:0}12%{transform:scale(1.12);opacity:1}22%{transform:scale(1)}78%{opacity:1;transform:scale(1)}100%{transform:scale(.92) translateY(-18px);opacity:0}}
