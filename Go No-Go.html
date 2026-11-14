@@ -438,6 +438,8 @@ body.fs .sbox>.fsc.r3full{width:100cqw;height:100cqh;aspect-ratio:auto;flex:none
 .trophy{display:flex;align-items:center;gap:6px;border:0;border-radius:12px;background:rgba(35,30,17,0.9);box-shadow:0 3px 10px rgba(30,42,58,.12);padding:6px 10px 6px 6px;cursor:pointer;font:700 15px/1 var(--f-d);color:#EFD6A4}
 .trophy svg{width:26px;height:26px}.trophy small{display:block;font:600 12px/1 var(--f-b);color:#D6BA7B;letter-spacing:.04em}
 .ladder{display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow:auto;padding-right:4px}
+.rkbox{display:flex;flex-direction:row;gap:16px;align-items:stretch}.rkme{flex:0 0 240px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding:12px;border-radius:14px;background:#211F15}.rkme .mbar{width:100%}.rkleg{flex:1 1 0;min-width:0}.rkleg .ladder{max-height:46vh;overflow-y:auto}@media(max-width:700px){.rkbox{flex-direction:column}.rkme{flex:none;width:100%;box-sizing:border-box}.rkleg .ladder{max-height:34vh}}
+.rv.stkrow{max-height:calc(100dvh - 16px);overflow-y:auto}.rv.stkrow>.row.stkbar{position:sticky;bottom:-22px;z-index:3;background:#131313;padding:10px 0;margin-top:auto;border-top:1px solid var(--line)}@media(max-width:700px){.rv.stkrow>.row.stkbar{bottom:-12px}}
 .lrow{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;border-radius:14px;padding:6px 10px;background:#211F15}
 .lrow.on{background:#292214;box-shadow:0 0 0 2px #E8AA30}.lrow.lock{opacity:.55}.lrow svg{width:36px;height:36px}
 .rk{display:grid;grid-template-columns:34px 30px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-radius:10px}.rk:nth-child(odd){background:rgba(31,29,20,0.9)}.rk.me{background:#122625;box-shadow:0 0 0 2px #45A9A3}.rk svg{width:26px;height:26px}
@@ -872,10 +874,29 @@ h1,h2{font-family:var(--f-d);letter-spacing:.04em}
 .hx6.on{background:var(--teal);color:#103B37}
 .hx6:active{transform:scale(.92)}
 .hexs{display:flex;align-items:flex-end;gap:3px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
-.hexs .hx6:nth-child(2){transform:translateY(-27px)}
-.hexs .hx6:nth-child(2):active{transform:translateY(-27px) scale(.92)}
-.xcirc{width:40px;height:40px;border-radius:50%;border:0;background:#D2453E;display:grid;place-items:center;margin-left:6px;box-shadow:0 2px 6px rgba(0,0,0,.4)}
-.xcirc svg{width:20px;height:20px}
+/* dock hub (mobile landscape, pollice): NUOVA MISSIONE = esagono grande, Personalizza = rombo. #dock vince sulle vecchie regole .dock (zoom .85 ecc.) */
+body.fs #dock{zoom:1;left:max(10px,var(--sai-l));right:auto;bottom:calc(8px + var(--sai-b));flex-direction:row;align-items:flex-end}
+.dkc{gap:8px}
+.hxn{width:84px;height:92px;border:0;padding:0;clip-path:var(--hex);background:var(--cream);color:#3B3236;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;font:700 10px/1.1 var(--f-d);letter-spacing:.06em;transition:transform .08s}
+html.big .hxn{font-size:11px}
+.hxn svg{width:24px;height:24px}
+.rhb{position:relative;width:64px;height:64px;border:0;padding:0;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:var(--cream);color:#3B3236;display:grid;place-items:center;cursor:pointer;transition:transform .08s}
+.rhb::before{content:"";position:absolute;inset:0;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:var(--cream)}
+.rhb.on{background:#103B37;color:#103B37}.rhb.on::before{inset:6px;background:var(--teal)}
+.rhb svg{position:relative;width:28px;height:28px}
+.hxn:active,.rhb:active{transform:scale(.93)}
+.hxn:focus-visible,.rhb:focus-visible,.ptabs button:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+@media (max-height:520px){ .hxn{width:76px;height:84px} .rhb{width:58px;height:58px} .rhb svg{width:26px;height:26px} }
+/* sheet Personalizza (riusa .cbar): schede Campus / Bandiera + chiusura */
+.cbar.cust,body.fs .campus3.full .cbar.cust{background:var(--panel);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.4);padding:6px 10px 8px;max-height:calc(100vh - 100px);overflow-y:auto;bottom:calc(10px + var(--sai-b))}
+.ptabs{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.ptabs [role=tab]{min-height:44px;padding:0 16px;border:0;border-radius:3px;background:rgba(18,16,20,.75);color:#fff;font:700 13px/1 var(--f-d);letter-spacing:.06em;cursor:pointer}
+.ptabs [role=tab].on{background:#F2EDE6;color:#221B1F}
+.ptabs .pclose{margin-left:auto;width:44px;height:44px;border:0;border-radius:50%;background:#D2453E;color:#fff;display:grid;place-items:center;cursor:pointer}
+.cbar.cust,body.fs .campus3.full .cbar.cust{display:flex;flex-direction:column;overflow:hidden;max-height:calc(100vh - 100px);max-height:calc(100dvh - 100px)}
+.cbar.cust .ptabs{flex:none}.cbar.cust #cust-panel{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+body:has(#cust-sheet) #zbtn{display:none}
+@media (max-height:520px){ .cbar.cust .fled canvas{width:220px;height:132px} .cbar.cust,body.fs .campus3.full .cbar.cust{max-height:calc(100vh - 64px);max-height:calc(100dvh - 64px)} }
 body.fs .dock{left:10px;right:auto;bottom:calc(10px + env(safe-area-inset-bottom,0px));flex-direction:row;align-items:flex-end;gap:0}
 /* ---- HUD ---- */
 .hud{padding:calc(8px + env(safe-area-inset-top,0px)) 10px 6px;align-items:flex-start;gap:8px}
@@ -926,6 +947,9 @@ body.fs .dockL>.panel,body.fs .dockR>.panel{background:rgba(24,22,26,.9);-webkit
 body.fs #view.scn>.head{background:rgba(22,20,24,.78);border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.25);color:#fff}
 body.fs #view.scn>.head h1{color:#fff}body.fs #view.scn>.head h3{color:var(--teal)}body.fs #view.scn>.head p{color:#D9D2CA}
 input[type=text],select,textarea{background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.25);color:#fff;border-radius:3px}
+select,select option,select optgroup{color-scheme:dark;background-color:#26272d;color:#fff;-webkit-text-fill-color:#fff}
+select{-webkit-appearance:none;appearance:none;opacity:1;background-image:linear-gradient(45deg,transparent 50%,#fff 50%),linear-gradient(135deg,#fff 50%,transparent 50%);background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:30px}
+select option:disabled{-webkit-text-fill-color:#9a9aa6;color:#9a9aa6}
 .toast{background:rgba(18,16,20,.92)!important;color:#fff!important;border:1px solid rgba(255,255,255,.14);border-radius:4px!important;font-family:var(--f-b)}
 /* ---- rotaie laterali: esagoni con etichetta ---- */
 .rail{filter:drop-shadow(0 3px 4px rgba(0,0,0,.35))}
@@ -1081,8 +1105,10 @@ input[type=text],select,textarea{background:rgba(255,255,255,.07);border:1.5px s
 /* menu iniziale: il campus vero, sfocato, gira dietro al menu */
 body.c3live .ttl:not(.ingame){background:rgba(80,46,60,.18)}
 body.ttl-on .c3cv{filter:blur(3px)}
+body:has(.ttl:not(.ingame)) .c3cv{filter:blur(1.5px)}
+body:has(.ttl:not(.ingame)) :is(#hud,#dock,#toast,#coach,#chand,#lvup,#ov,#drawer,#pop,.sdlg,.b3hs,.b3h,.b3t,.ctools,.chint,.cbar,.rail){visibility:hidden!important;pointer-events:none!important}
 body.c3live .ttl:not(.ingame) .ttl-bg{display:none}
-body.c3live .ttl:not(.ingame) .ttl-grid{background:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(rgba(96,52,70,.34),rgba(60,30,44,.42)),radial-gradient(ellipse at center,rgba(0,0,0,0) 35%,rgba(30,10,20,.5) 100%)}
+body.c3live .ttl:not(.ingame) .ttl-grid{background:linear-gradient(90deg,rgba(30,10,20,.45),transparent 55%),linear-gradient(rgba(96,52,70,.2),rgba(60,30,44,.26)),radial-gradient(ellipse at center,rgba(0,0,0,0) 35%,rgba(30,10,20,.5) 100%)}
 /* niente aspetto da pagina web */
 html,body{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 input,textarea{-webkit-user-select:text;user-select:text}
@@ -1095,7 +1121,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .campus3.edit .b3hs{display:none}
 .campus3.c3 .chint{top:calc(var(--hudh,60px) + 6px)}
 
-@media (max-width:1100px){ .campus3 .cbar{left:200px;right:12px;width:auto;transform:none} }
+@media (max-width:1100px){ .campus3 .cbar{left:calc(max(10px,var(--sai-l)) + 176px);right:12px;width:auto;transform:none} }
 
 /* riunione sul telefono: pannello compatto, la scena resta visibile */
 @media (max-height:520px){
@@ -1107,7 +1133,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
   .price{margin-top:3px;padding:0;border:0;background:none;font-size:11.5px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
   .price .pl{display:none}.pchips{gap:4px}.pchip{font-size:12px!important;padding:3px 8px!important;border-width:1.5px!important}
   .acts .mx summary{min-height:24px;padding:0}
-  .ansb{gap:6px!important}.ansb .btn{font-size:12px;padding:7px 10px;min-height:34px;max-width:44vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ansb{gap:6px!important}.ansb .btn{font-size:12px;padding:7px 10px;min-height:34px;max-width:none;flex:1 1 40%;height:auto;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.2;text-align:center}
 }
 
 /* scelta della modalità: tre schede senza illustrazioni, difficoltà sotto */
@@ -1225,6 +1251,16 @@ body.ttl-on #zbtn,body.ttl-on #zpanel{display:none}
 @media (max-height:520px){#zpanel{top:calc(8px + var(--sai-t,0px));bottom:calc(8px + var(--sai-b,0px));left:auto;right:calc(70px + var(--sai-r,0px));width:min(400px,50vw);max-height:none}#zpanel .zsp{height:84px;margin-top:0}#zpanel .zhd{padding-top:8px}#zbtn{width:44px;height:44px;bottom:calc(10px + var(--sai-b,0px))}}
 @media (prefers-reduced-motion:reduce){#zpanel{animation:none}}
 .b3h.b3rdy .b3t{display:flex}.b3h.b3rdy{background:none;animation:rkp 1.4s ease-in-out infinite}@keyframes rkp{50%{filter:drop-shadow(0 0 10px rgba(235,125,68,.9))}}
+/* ==== Zorty · dialoghi guidati (finestra di lancio, MDR) ==== */
+.zdlg{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + var(--sai-b,0px));z-index:165;width:min(640px,calc(100vw - 16px));display:flex;gap:8px;align-items:flex-end;animation:zup .2s ease-out}
+.zdlg .zds{height:150px;width:auto;flex:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));margin-bottom:-8px}
+.zdlg .zdb{position:relative;background:#F3F6F2;color:#1B2630;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.4;box-shadow:0 10px 30px rgba(0,0,0,.45);flex:1}
+.zdlg .zdb:before{content:"";position:absolute;left:-7px;bottom:26px;border:7px solid transparent;border-right-color:#F3F6F2;border-left:0}
+.zdlg .zdb>b{display:block;font:800 11px/1 var(--f-d,sans-serif);letter-spacing:.1em;text-transform:uppercase;color:#2E9E6B;margin-bottom:4px}
+.zdlg p{margin:0 0 6px}.zdlg .zdn{color:#B5562A;font-weight:700}.zdlg .zdbt{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.zdlg .zdbt .btn{min-height:42px}
+@media (max-height:520px){.zdlg .zds{height:84px}.zdlg .zdb{font-size:12.5px;padding:8px 10px}}
+body.zopen .zdlg{display:none}
+.zdlg .btn{background:#fff;color:#1B2630;border:1px solid #9AA7AE}.zdlg .btn:hover{background:#EEF3F0}.zdlg .btn.primary{background:#EB7D44;border-color:#EB7D44;color:#fff}
 /* ==== Zorty spiega un requisito ==== */
 .reqs li.rq{cursor:pointer;border-radius:8px;transition:background .15s}.reqs li.rq:hover,.reqs li.rq:focus-visible{background:rgba(235,125,68,.18);outline:0}
 .zrq{position:fixed;z-index:155;width:min(360px,calc(100vw - 16px));display:flex;gap:6px;align-items:flex-end;animation:zup .2s ease-out;pointer-events:auto}
@@ -1250,6 +1286,7 @@ body.ttl-on #zbtn,body.ttl-on #zpanel{display:none}
 .npp .pl{display:none}.npp .pchip{background:#fff8;color:#2A2E38;box-shadow:2px 2px 0 rgba(0,0,0,.12)}.npp .pchip.g{background:#E3F4E6;border-color:#3FA86B;color:#1E6B3C}.npp .pchip.r{background:#FBE4E0;border-color:#CF5E4C;color:#9C3326}.npp .pchip.o{background:#FDEBDD;border-color:#EB7D44;color:#9A4E1C}.npp .pchip.n{background:#ECEFF2;border-color:#8A98A6;color:#44525F}
 .npp .nocon{border-top:0;margin-top:2px;color:#2A2E38}.npp .nocon .bad,.npp .bad{color:#B3261E}.npp .overc{margin:8px 0;color:#9A4E1C;font-size:14px}
 .npp .ansb{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.npp .btn{font-family:var(--f-b,sans-serif);min-height:44px}.npp .btn{background:#fff;border:2px solid #8A98A6;color:#2A2E38}.npp .btn:not(.ok):not(.no){flex:1 1 220px;text-align:center}.npp .btn[disabled]{opacity:.55;color:#2A2E38;cursor:not-allowed}.npp .btn.ok{background:#3FA86B;border-color:#2D8A55;color:#fff}.npp .btn.no{background:#fff;border:2px solid #CF5E4C;color:#B3261E}
+.npp,.npp *:not(.npx):not(svg):not(i){font-style:italic;font-size:12.5px;line-height:1.35}.npp h3{font-size:16px}.npp h4{font-size:11px}.npp .btn{font-size:12.5px}.npp .jexp{display:block;color:#6B5B3C}
 @media (max-height:520px){.npp{padding:30px 18px 12px 44px}.npp h3{font-size:20px}}
 /* ==== Tutorial invisibile ==== */
 .rtier{margin:14px 0 4px;padding:6px 10px;border-left:4px solid #EB7D44;background:rgba(235,125,68,.12);font:700 12px/1.3 var(--f-m,monospace);letter-spacing:.08em;text-transform:uppercase}.rtier b{color:#EB7D44}
@@ -1301,7 +1338,7 @@ body.tutmode .ov{padding-top:12px}
   function ToonStd(p){ p=Object.assign({},p||{}); DROP.forEach(k=>delete p[k]); p.gradientMap=ramp(); const m=new T.MeshToonMaterial(p); m.userData.toon=1; return m; }
   ToonStd.prototype=Std.prototype; T.MeshStandardMaterial=ToonStd;
   /* ---- contorno ---- */
-  const U={uRes:{value:new T.Vector2(1280,800)},uW:{value:1.4},uRef:{value:40}}; let ON=true, WIDTH=1.6;
+  const U={uRes:{value:new T.Vector2(1280,800)},uW:{value:1.4},uRef:{value:40}}; let ON=true, WIDTH=0.88;
   const fogU=Object.assign(T.UniformsUtils.clone(T.UniformsLib.fog),U);
   const OUTM=new T.ShaderMaterial({uniforms:fogU,side:T.BackSide,fog:true,toneMapped:false,
     vertexShader:'attribute vec3 onrm; uniform vec2 uRes; uniform float uW; uniform float uRef;\n#include <fog_pars_vertex>\nvoid main(){ vec3 n=onrm; vec4 p=vec4(position,1.0);\n#ifdef USE_INSTANCING\n n=mat3(instanceMatrix)*n; p=instanceMatrix*p;\n#endif\n vec4 mvPosition=modelViewMatrix*p; vec4 cp=projectionMatrix*mvPosition; vec3 vn=normalize(normalMatrix*n); vec2 d=(projectionMatrix*vec4(vn,0.0)).xy; float l=length(d); d=l>1e-5?d/l:vec2(0.0); float k=clamp(uRef/max(cp.w,0.001),0.3,1.0); cp.xy+=d*uW*k*2.0/uRes*cp.w; gl_Position=cp;\n#include <fog_vertex>\n}',
@@ -1355,7 +1392,34 @@ const E = (function () {
   // Finanziamento NASA per missione. Bilanciato con una simulazione a libro mastro completo (v39): a livello di sblocco il rendimento
   // (utile / costo, con tutte le prove) è ~0,8-1,0 su ogni destinazione; cresce del 3% per ogni livello sopra lo sblocco (prima +12% su tutti i livelli: a livello 18 rendeva 5-6 volte il costo).
   // Gli atterraggi restano sulla curva precedente: il costo del lander è a peso e non è stato rimisurato.
+  // ---- Corpi esterni (batch 4). Valori INVENTATI ma plausibili; FONTE UNICA di DEST, ZONES, BODY, ECL, capture, ART, FUND, LV e del catalogo (BODIES).
+  // R = raggio (km); vg = velocità circolare di gioco (km/s) usata per scalare mu cosi' che il delta-v resti giocabile; cap = frenata di cattura (m/s);
+  // c = costo base del passaggio (crediti); d = distanza (Mkm); days = viaggio; zones = [chiave, fascia di quota km, livello, nome?, descrizione?]
+  const ZNAME = { fly: 'Sorvolo ravvicinato', low: 'Orbita bassa', high: 'Orbita alta' };
+  const ZDESC = { fly: 'Un passaggio veloce vicino al corpo: la frenata costa poco, ma si osserva per poco tempo.', low: 'Un’orbita di cattura stretta attorno al corpo: dati di dettaglio, ma servono molti ΔV per arrivarci.', high: 'Un’orbita larga e stabile: lenta da percorrere, comoda per misure a lungo termine.' };
+  const mkZones = list => list.map(([k, band, lvl, n, s]) => { const z = { k, n: n || ZNAME[k], band, lvl, s: s || ZDESC[k] }; if (k === 'fly') z.capK = 0.4; return z; });
+  const EXT = {
+    mercury: { n: 'Mercurio', gen: ['a Mercurio', 'di Mercurio'], en: 'Mercury', col: '#9A8F86', pal: ['#B7ADA3', '#5E5650'], R: 2439.7, vg: 3.0, lvl: 12, dv: 1000, cap: 600, c: 5200, d: 91, days: 300, sciK: 2.6, sk: 3, types: ['sci', 'obs', 'demo'], ext: 'solo orbita o sorvolo: niente atterraggio (nessun rover, ambiente troppo caldo)',
+      zones: mkZones([['fly', [1000, 6000], 12], ['low', [200, 1000], 13], ['high', [6000, 20000], 12]]), ecl: { fly: 0.3, low: 0.6, high: 0.4 }, ride: 'DEEP',
+      deco: '<circle cx="-6" cy="-5" r="3" fill="#000" opacity=".16"/><circle cx="6" cy="4" r="4" fill="#000" opacity=".14"/><circle cx="-4" cy="8" r="2" fill="#000" opacity=".16"/>', behind: '' },
+    jupiter: { n: 'Giove', gen: ['a Giove', 'di Giove'], en: 'Jupiter', col: '#C8A27A', pal: ['#E3C9A3', '#8C5E3A'], R: 71492, vg: 4.5, lvl: 14, dv: 1300, cap: 780, c: 9000, d: 628, days: 1900, sciK: 3.0, sk: 3, types: ['sci', 'obs', 'demo'], ext: 'gigante gassoso: niente atterraggio, solo orbita o sorvolo',
+      zones: mkZones([['fly', [30000, 300000], 14], ['low', [300000, 1500000], 14], ['high', [1500000, 6000000], 15]]), ecl: { fly: 0.5, low: 1.5, high: 3 }, ride: 'DEEP',
+      deco: '<path d="M-17 -9h34M-17 -3h34M-17 3h34M-17 9h34" stroke="#9C6B44" stroke-width="2.4" opacity=".55"/><ellipse cx="5" cy="4" rx="3.4" ry="2" fill="#B5543A" opacity=".85"/>', behind: '' },
+    saturn: { n: 'Saturno', gen: ['a Saturno', 'di Saturno'], en: 'Saturn', col: '#E3CE9C', pal: ['#F2E3BA', '#9C8454'], R: 60268, vg: 4.5, lvl: 16, dv: 1400, cap: 840, c: 11000, d: 1275, days: 2600, sciK: 3.2, sk: 3, types: ['sci', 'obs', 'demo'], ext: 'gigante gassoso con anelli: niente atterraggio',
+      zones: mkZones([['fly', [20000, 200000], 16], ['low', [200000, 1200000], 16], ['high', [1200000, 5000000], 17]]), ecl: { fly: 0.6, low: 1.8, high: 3.5 }, ride: 'DEEPX',
+      deco: '<path d="M-17 -8h34M-17 -2h34M-17 4h34M-17 10h34" stroke="#B59A66" stroke-width="2.2" opacity=".5"/>', behind: '<ellipse rx="22" ry="5.5" fill="none" stroke="#CDB98A" stroke-width="2.6" transform="rotate(-18)"/>' },
+    uranus: { n: 'Urano', gen: ['a Urano', 'di Urano'], en: 'Uranus', col: '#8FD3DC', pal: ['#B9EDF1', '#4A8E9A'], R: 25559, vg: 4.0, lvl: 18, dv: 1500, cap: 900, c: 14000, d: 2720, days: 6000, sciK: 3.4, sk: 3, types: ['sci', 'demo'], ext: 'gigante di ghiaccio: niente atterraggio, comunicazioni molto lente',
+      zones: mkZones([['fly', [10000, 100000], 18], ['low', [100000, 600000], 18], ['high', [600000, 3000000], 19]]), ecl: { fly: 0.5, low: 1.5, high: 3 }, ride: 'DEEPX',
+      deco: '<path d="M-17 -4h34M-17 4h34" stroke="#fff" stroke-width="2" opacity=".25"/>', behind: '' },
+    neptune: { n: 'Nettuno', gen: ['a Nettuno', 'di Nettuno'], en: 'Neptune', col: '#4B6FD6', pal: ['#7C9BEE', '#1E3A8C'], R: 24764, vg: 4.0, lvl: 19, dv: 1600, cap: 960, c: 16000, d: 4350, days: 7500, sciK: 3.6, sk: 3, types: ['sci', 'demo'], ext: 'gigante di ghiaccio: niente atterraggio, comunicazioni molto lente',
+      zones: mkZones([['fly', [10000, 100000], 19], ['low', [100000, 600000], 19], ['high', [600000, 3000000], 19]]), ecl: { fly: 0.5, low: 1.5, high: 3 }, ride: 'DEEPX',
+      deco: '<path d="M-17 -6h34M-17 6h34" stroke="#fff" stroke-width="1.8" opacity=".22"/><ellipse cx="-4" cy="2" rx="4" ry="2.4" fill="#0F2166" opacity=".6"/>', behind: '' },
+    sun: { n: 'Sole', gen: ['al Sole', 'del Sole'], en: 'the Sun', col: '#FFC83D', pal: ['#FFF3B0', '#FF9A1F'], R: 695700, vg: 6.0, lvl: 20, dv: 1800, cap: 1080, c: 20000, d: 150, days: 200, sciK: 4.0, sk: 3, types: ['sci', 'obs'], ext: 'solo sorvolo ravvicinato e osservazione: niente orbita stabile e niente atterraggio',
+      zones: mkZones([['fly', [4000000, 9000000], 20, 'Sorvolo del perielio', 'Un passaggio ravvicinato nella corona solare: tutto dipende dallo scudo termico.'], ['low', [9000000, 30000000], 20, 'Orbita eliocentrica interna', 'Un’orbita attorno al Sole, dentro quella di Mercurio: osservazione quasi continua.']]), ecl: { fly: 0.05, low: 0.05 }, ride: 'DEEPX',
+      deco: '<circle r="17" fill="#FFE27A" opacity=".45"/><circle cx="-5" cy="-4" r="5" fill="#fff" opacity=".35"/>', behind: '<circle r="22" fill="#FFC83D" opacity=".18"/><circle r="19.5" fill="#FFC83D" opacity=".28"/>' }
+  };
   const FUND = { base: { leo: 450, moon: 2600, mars: 5600, venus: 6200 }, grow: 0.03 };
+  Object.keys(EXT).forEach(k => { FUND.base[k] = Math.round(EXT[k].c * 2.1 / 100) * 100; });
   const fundOf = (id, Mi) => { const s = stk(id); if (!s) return 0; if (id !== 'nasa' || !Mi) return s.fund; const dest = (Mi.sat && Mi.sat.dest) || 'leo', lv = Mi.lvl || 1;
     if (Mi.zone === 'surf') return Math.round(({ leo: 450, moon: 2800, mars: 6000, venus: 6000 }[dest] || 450) * (1 + 0.12 * (lv - 1)) * 3.5 / 10) * 10;
     const ul = DEST[dest] ? DEST[dest].lvl : 1;
@@ -1375,7 +1439,10 @@ const E = (function () {
     HOME: { n: 'Lancio dalla tua piattaforma', k: 'Il tuo razzo, dal tuo campus: il 40% in meno del rideshare', who: 'La tua agenzia', fits: ['S3', 'S6', 'S12'], c: { S3: 90, S6: 150, S12: 240 }, dest: ['leo'], dvK: 1, lvl: 20, pad: 1, h: 0.8 },
     MOON: { n: 'Passaggio verso la Luna', k: 'Un posto per CubeSat su una missione lunare: ti rilascia in un’orbita lunare alta', who: 'Ente terzo', fits: ['S6', 'S12'], c: 1200, dest: ['moon'], dvK: 1, lvl: 5, h: 1.4 },
     LANDER: { n: 'Posto su un lander commerciale', k: 'Il lander ti porta fino al suolo: si paga a chilo, il lancio è compreso', who: 'Ente terzo', fits: ['S3', 'S6', 'S12'], c: 0, dest: ['moon', 'mars'], dvK: 0, lvl: 8, surf: 1, h: 1.4 },
-    MARS: { n: 'Passaggio verso Marte o Venere', k: 'Un posto su una sonda interplanetaria: ti rilascia in un’orbita allungata', who: 'Ente terzo', fits: ['S12'], c: 3000, dest: ['mars', 'venus'], dvK: 1, lvl: 10, ell: 1, h: 1.5 }
+    MARS: { n: 'Passaggio verso Marte o Venere', k: 'Un posto su una sonda interplanetaria: ti rilascia in un’orbita allungata', who: 'Ente terzo', fits: ['S12'], c: 3000, dest: ['mars', 'venus'], dvK: 1, lvl: 10, ell: 1, h: 1.5 },
+    // batch 4: passaggi verso i corpi esterni. DEEP = sonda di classe media (Mercurio, Giove); DEEPX = sonda di classe Flagship, lanciatore pesante (Saturno, Urano, Nettuno, Sole). cd = prezzo per corpo (da EXT.c)
+    DEEP: { n: 'Passaggio verso Mercurio o Giove', k: 'Un posto su una sonda di classe media: ti rilascia in un’orbita circolare di lavoro dopo la frenata', who: 'Ente terzo', fits: ['S12'], c: 5200, cd: { mercury: 5200, jupiter: 9000 }, dest: ['mercury', 'jupiter'], dvK: 1, lvl: 12, ell: 1, h: 1.6 },
+    DEEPX: { n: 'Passaggio su una sonda Flagship (lanciatore pesante)', k: 'Un posto su una grande sonda lanciata con un razzo pesante: serve per i pianeti esterni e per il Sole', who: 'Ente terzo', fits: ['S12'], c: 11000, cd: { saturn: 11000, uranus: 14000, neptune: 16000, sun: 20000 }, dest: ['saturn', 'uranus', 'neptune', 'sun'], dvK: 1, lvl: 16, ell: 1, h: 2.0 }
   };
   const DEST = {
     leo: { n: 'Terra', lvl: 1, dv: 0, sk: 4, sciK: 0.6, orbit: 'orbita bassa attorno alla Terra', end: 'Rientro distruttivo in atmosfera.', col: '#3E7BD6', far: 0, loc: 'Orbita terrestre bassa' },
@@ -1383,11 +1450,12 @@ const E = (function () {
     mars: { n: 'Marte', lvl: 10, dv: 650, sk: 3, sciK: 2.2, orbit: 'orbita attorno a Marte', end: 'Parcheggiato in un’orbita cimitero alta.', col: '#C8603A', far: 1, loc: 'Orbita di Marte' },
     venus: { n: 'Venere', lvl: 15, dv: 700, sk: 3.5, sciK: 2.4, orbit: 'orbita attorno a Venere', end: 'Ingresso controllato nell’atmosfera di Venere.', col: '#E2C27A', far: 1, loc: 'Spazio profondo' }
   };
+  Object.keys(EXT).forEach(k => { const x = EXT[k]; DEST[k] = { n: x.n, lvl: x.lvl, dv: x.dv, sk: x.sk, sciK: x.sciK, orbit: 'orbita attorno ' + x.gen[0].replace(/^al /, 'al ').replace(/^a /, 'a '), end: 'Parcheggiato in un’orbita cimitero alta.', col: x.col, far: 1, loc: 'Spazio profondo', ext: 1 }; });
   const dvK = d => { const L = LV[d.lv]; if (!L) return 1; return typeof L.dvK === 'number' ? L.dvK : (L.dvK[d.dest || 'leo'] != null ? L.dvK[d.dest || 'leo'] : 1); };
   const dvNeed = d => Math.round(DEST[d.dest || 'leo'].dv * dvK(d));
   const skOf = d => (d.noProp ? 0 : DEST[d.dest || 'leo'].sk) * (d.skK || 1);
   const eclOf = d => d.eclH || M.eclH;
-  const lvCost = d => { const L = LV[d.lv]; if (!L) return 0; return typeof L.c === 'number' ? L.c : (L.c[d.ride] || 0); };
+  const lvCost = d => { const L = LV[d.lv]; if (!L) return 0; if (L.cd && L.cd[d.dest] != null) return L.cd[d.dest]; return typeof L.c === 'number' ? L.c : (L.c[d.ride] || 0); };
   // ---------- pezzi dal database ----------
   const CATMAP = { 'Computer': 'avi', 'Batteria': 'bat', 'Radio e comunicazioni': 'com', 'Propulsione': 'prop', 'Payload': 'ray', 'Gestione potenza': 'pwr', 'Fine vita': 'eol' };
   const NAV = ['BASE-STT', 'BASE-GPS', 'NASA-9319', 'NASA-157469', 'NASA-17871', 'NASA-102319'];
@@ -1643,7 +1711,7 @@ const E = (function () {
     const rep = quests.reduce((a, x) => a + (x.ok ? stk(x.id).rep : -stk(x.id).rep), 0) + f.repX + (f.impact === 'near' ? -3 : 0);
     return { ok, sci, months: f.month, reward, rep, quests, impact: f.impact, cause: f.cause, alive: f.alive }; }
 
-  return { DBX, fundOf, FUND, tipOf, RANK, fitsRide, solOK, pointing, needPt, ACC, thermalPack, nCells, LV, DEST, dvNeed, skOf, eclOf, lvCost, blocked, M, MU, RM, PLAT, SEED, MAXSTAKE, STAKE, RIDES, SOLAR, CATS, PARTS, TESTS, FIX, STIFF, TARGET, stk, unlocked, budget0, fresh, shape, cellsOf, grid, fits, autoPlace, prune,
+  return { DBX, fundOf, FUND, tipOf, RANK, fitsRide, solOK, pointing, needPt, ACC, thermalPack, nCells, LV, DEST, EXT, dvNeed, skOf, eclOf, lvCost, blocked, M, MU, RM, PLAT, SEED, MAXSTAKE, STAKE, RIDES, SOLAR, CATS, PARTS, TESTS, FIX, STIFF, TARGET, stk, unlocked, budget0, fresh, shape, cellsOf, grid, fits, autoPlace, prune,
     layout, budget, checks, risks, rng, newFlight, launch, commission, month, rate, quality, nextEvent, EV, orbNew, orbStep, orbEl, zone, settle, has };
 })();
 if (typeof module !== 'undefined') module.exports = E;
@@ -1696,6 +1764,9 @@ const O = (function () {
   const LAND = { moon: { n: 'Atterraggio con un lander lunare commerciale', perKg: 1200, cost: 0, risk: 0.1, dv: 0, sciK: 1.6 }, mars: { n: 'Atterraggio con un lander marziano', perKg: 3000, cost: 0, risk: 0.15, dv: 0, sciK: 1.7 } };
   // ore d'ombra per orbita (o notte sul suolo): niente più 267 minuti ovunque
   const ECL = { moon: { low: 0.8, med: 4.45, high: 3, surf: 6 }, leo: { low: 0.6, med: 1, high: 1.2 }, mars: { low: 0.7, med: 1, high: 1.5, surf: 12, phobos: 0.9, deimos: 1.1 }, venus: { low: 0.6, med: 0.9, high: 1.5 } };
+  // batch 4: corpi esterni derivati da E.EXT (fonte unica). mu di gioco = vg² · r, r = distanza media geometrica delle fasce: il delta-v resta giocabile.
+  Object.keys(E.EXT).forEach(k => { const x = E.EXT[k], zs = x.zones, lo = Math.min(...zs.map(z => z.band[0])), hi = Math.max(...zs.map(z => z.band[1]));
+    ZONES[k] = zs; ECL[k] = x.ecl; capture[k] = x.cap; ART[k] = x.gen; BODY[k] = { R: x.R, mu: Math.round(x.vg * x.vg * (x.R + Math.sqrt(lo * hi))) }; });
   const zoneOf = M => { const d = M.sat, Z = ZONES[d.dest || 'leo'] || []; return Z.find(z => z.k === (M.zone || (d.dest === 'leo' ? 'low' : 'med'))) || Z[0]; };
   // quota di lavoro dentro la fascia: 0 = bordo basso, 1 = bordo alto. Cambia scienza e mantenimento d'orbita.
   const frac = M => M.traj && M.traj.frac != null ? M.traj.frac : 0.5;
@@ -1759,6 +1830,8 @@ const O = (function () {
     if (k === 0) { const n = t.debris ? { pe: t.debris.pe, ap: t.debris.ap, i: t.debris.i, raan: 0, argp: 0 } : nominal(t); if (!t.debris && work(M).slider) Object.assign(n, workEl(M, t)); return { el: n, cap: 0, why: 'Il lanciatore dedicato ti porta già nell’orbita di lavoro.' }; }
     const iA = t.debris ? t.debris.i - 6 : (t.i[1] - t.i[0] < 60 ? (t.i[0] + t.i[1]) / 2 : 30);
     if (dest === 'moon') return { el: { pe: 800, ap: 8000, i: iA, raan: 0, argp: 0 }, cap: 0, why: 'Rilascio dopo il viaggio dalla Terra: orbita lunare alta e allungata.' };
+    if (E.EXT[dest]) { const zz = zoneOf(M), h = Math.round(Math.sqrt(zz.band[0] * zz.band[1])), cp = Math.round(capture[dest] * k * (zz.capK || 1));
+      return { el: { pe: h, ap: h, i: iA, raan: 0, argp: 0 }, cap: cp, why: 'La sonda che ti porta frena per te e ti lascia in un’orbita circolare di lavoro: la frenata di cattura costa ' + cp + ' m/s ed è già nel conto.' }; }
     if (L && L.ell) return { el: { pe: 400, ap: 8000, i: iA, raan: 0, argp: 0 }, cap: 0, why: 'La sonda che ti porta frena per te: rilascio in un’orbita allungata.' };
     if (dest === 'leo') { const iT = t.debris ? t.debris.i - 6 : (t.i[1] - t.i[0] < 60 ? mid(t.i) : 97.6), z = zoneOf(M);
       if (z.k === 'med') return { el: { pe: 400, ap: 20000, i: iT, raan: 0, argp: 0 }, cap: 0, why: 'Il rideshare ti rilascia in un’orbita di trasferimento allungata fino a 20.000 km.' };
@@ -2191,6 +2264,9 @@ const L = (function () {
   // Accetta o rifiuta. Ritorna chi lascia la missione, se qualcuno se ne va
   // una promessa rotta (deroga) pesa più di un no detto subito
   const JOY = { yes: 10, soft: 8, no: 25, noCore: 40, waive: 50 };
+  // Finestra di lancio rilassata (rifiuto di quella chiesta dagli stakeholder): UNICO posto dei due valori.
+  // joy = punti di soddisfazione persi da ogni stakeholder (stessa scala di JOY.no); pay = quota delle rate future che non viene più versata.
+  const LW = { joy: JOY.no, pay: 0.15 };
   function answer(M, id, yes, soft) { const r = R(id); M.queue = M.queue.filter(q => q !== id);
     if (yes && soft) { M.softs = M.softs || []; M.softs.push(id); register(M); M.joy[r.who] = Math.max(0, M.joy[r.who] - JOY.soft); }
     if (yes) { const n = M.reqs.filter(x => x.kind === (r.ph === '0' ? 'MIS' : 'SYS')).length + 1;
@@ -2342,12 +2418,12 @@ const L = (function () {
   // Moltiplicatore delle rate (difficoltà e crew): lo imposta l'interfaccia. Vive qui, alla fonte, così vale per tutte e quattro le rate,
   // compresa l'ultima (MCR) che closeOut calcola direttamente.
   const SCALE = { inst: () => 1 };
-  function installment(M, gate, joy) { joy = joy || M.joy; return Math.round(M.stake.reduce((a, id) => a + fund(id, M) * PAY[gate] * joyK(joy[id] == null ? 60 : joy[id]), 0) * SCALE.inst()); }
+  function installment(M, gate, joy) { joy = joy || M.joy; return Math.round(M.stake.reduce((a, id) => a + fund(id, M) * PAY[gate] * joyK(joy[id] == null ? 60 : joy[id]), 0) * SCALE.inst() * (M.payK == null ? 1 : M.payK)); }
   const pledged = M => M.stake.reduce((a, id) => a + fund(id, M), 0);
   // Chiusura della missione: tutti i conti in un posto solo (li usa anche il "e se...")
   function closeOut(M, fl, visit) { const f = fl.f, months = f.month, mm = minMonths(M), ok = f.alive && f.impact === 'far' && months >= E.M.minMonths, joy = Object.assign({}, M.joy), quests = [];
     const missed = Math.max(0, M.duration - months), penalty = Math.min(MISSCAP, Math.round(pledged(M) * 0.25), missed * MISSED) + (ok ? 0 : Math.round(pledged(M) * 0.10));
-    M.stake.forEach(id => { const happy = ok && months >= mm; joy[id] = Math.max(0, Math.min(100, (joy[id] == null ? 60 : joy[id]) + (happy ? 15 : -30) - (missed ? 20 : 0) - (M.drm && M.drm.win === 'relaxed' ? 12 : 0))); const b = happy && joy[id] >= 50 ? Math.round(id === 'nasa' ? fund(id, M) * 0.35 : E.stk(id).bonus * 1.5) : 0; quests.push({ id, ok: happy, bonus: b }); });
+    M.stake.forEach(id => { const happy = ok && months >= mm; joy[id] = Math.max(0, Math.min(100, (joy[id] == null ? 60 : joy[id]) + (happy ? 15 : -30) - (missed ? 20 : 0))); const b = happy && joy[id] >= 50 ? Math.round(id === 'nasa' ? fund(id, M) * 0.35 : E.stk(id).bonus * 1.5) : 0; quests.push({ id, ok: happy, bonus: b }); });
     const bonus = quests.reduce((a, q) => a + q.bonus, 0), sciPay = Math.round(f.sci * 2.2), reward = Math.round((sciPay + bonus + (f.extra || 0)) * (visit ? 1.15 : 1)), inst = ok ? installment(M, 'MCR', joy) : 0, ops = OPS * months;
     return { ok, sci: Math.round(f.sci), months, missed, penalty, ops, inst, reward, sciPay, bonus, quests, joy, net: reward + inst - penalty - ops, impact: f.impact, cause: f.cause, alive: f.alive }; }
   // E se...? Rigioca il volo cambiando una sola cosa
@@ -2372,7 +2448,7 @@ const L = (function () {
     if (k === 5) { out.push('sci.total     = ' + Math.round(f.sci) + cm('+' + Math.round(10 * f.mult * f.bonus * (f.sciK || 1)) + ' al mese circa')); out.push(left < 2 ? 'if (prop.dv_left < 27) disposal.arm();   // si prepara la chiusura' : 'sched.downlink(next=' + Math.floor(1 + r() * 5) + 'h, dur=35min);'); }
     return out; }
 
-  return { TIERS, tierOf, sponsorSlots, maxActiveAt, SCALE, prewarm, memoClear, satOK, anySat, typeOK, ensureFeasible, TUTG, needsProp, fund, techOK, availCat, availSol, rideOK, lvOK, LOCN, effLvl, SPEC, sampleSat, JOY, softOf, cheapest, priceOf, decide, PAY, joyK, installment, pledged, closeOut, whatIf, OPS, MISSED, MISSCAP, mad, OWN, evLabel, kitPay, landing, autoDesign, INT, INTN, ONLY, fits4, interests, generate, register, feasible, TPL, SPONSORS, addSponsor, TESTS, LEVELS, XP, level, BUILD, defects, defectP, risks, TIME, START_MONEY, MACH, RUN, FIXC, STIFFC, PEOPLE, REQ, R, cast, newMission, minMonths, startMeeting, answer, leave, waive, status, flight, monthsNow, tele, transferNeed };
+  return { TIERS, tierOf, sponsorSlots, maxActiveAt, SCALE, prewarm, memoClear, satOK, anySat, typeOK, ensureFeasible, TUTG, needsProp, fund, techOK, availCat, availSol, rideOK, lvOK, LOCN, effLvl, SPEC, sampleSat, JOY, LW, softOf, cheapest, priceOf, decide, PAY, joyK, installment, pledged, closeOut, whatIf, OPS, MISSED, MISSCAP, mad, OWN, evLabel, kitPay, landing, autoDesign, INT, INTN, ONLY, fits4, interests, generate, register, feasible, TPL, SPONSORS, addSponsor, TESTS, LEVELS, XP, level, BUILD, defects, defectP, risks, TIME, START_MONEY, MACH, RUN, FIXC, STIFFC, PEOPLE, REQ, R, cast, newMission, minMonths, startMeeting, answer, leave, waive, status, flight, monthsNow, tele, transferNeed };
 })();
 if (typeof module !== 'undefined') module.exports = L;
 
@@ -2558,7 +2634,8 @@ const FD3 = (function () {
   let yaw = 0.7, pitch = 0.5, dist = 14, autoDist = 14;
   const COL = { first: 0x9AA6B4, mid: 0x5B8DEF, last: 0xF07B3F, tgt: 0x1E9E5A, burn: 0xF07B3F, apo: 0x2F6FD6 };
   function tex(k) { const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d'), r = E.rng(k.length * 97 + 3);
-    const base = { moon: '#A9AEB6', leo: '#2F6FC9', mars: '#B9583A', venus: '#D9B871' }[k]; g.fillStyle = base; g.fillRect(0, 0, 512, 256);
+    const base = { moon: '#A9AEB6', leo: '#2F6FC9', mars: '#B9583A', venus: '#D9B871' }[k] || E.EXT[k].pal[0]; g.fillStyle = base;
+    if (E.EXT[k]) { for (let y = 0; y < 256; y += 14) { g.fillStyle = 'rgba(' + (k === 'sun' ? '255,240,160' : '60,40,20') + ',' + (0.12 + r() * 0.22) + ')'; g.fillRect(0, y, 512, 5 + r() * 7); } } g.fillRect(0, 0, 512, 256);
     if (k === 'moon') { for (let i = 0; i < 26; i++) { g.fillStyle = 'rgba(70,74,84,' + (0.15 + r() * 0.25) + ')'; g.beginPath(); g.ellipse(r() * 512, r() * 256, 10 + r() * 46, 8 + r() * 30, 0, 0, 7); g.fill(); } for (let i = 0; i < 120; i++) { g.strokeStyle = 'rgba(40,44,50,.35)'; g.beginPath(); g.arc(r() * 512, r() * 256, 1 + r() * 6, 0, 7); g.stroke(); } }
     if (k === 'leo') { c.width = 1024; c.height = 512; const W = 1024, H = 512, X = lo => (lo + 180) / 360 * W, Y = la => (90 - la) / 180 * H;
       const og = g.createLinearGradient(0, 0, 0, H); og.addColorStop(0, '#16407A'); og.addColorStop(.25, '#1F5FA8'); og.addColorStop(.5, '#2B7CC4'); og.addColorStop(.75, '#1F5FA8'); og.addColorStop(1, '#16407A'); g.fillStyle = og; g.fillRect(0, 0, W, H);
@@ -4107,6 +4184,8 @@ Cerca un pezzo	Search for a part
 Cerca un pezzo…	Search for a part…
 Che missione vuoi fare?	What mission do you want to fly?
 Che satellite costruisci?	What satellite will you build?
+Costruzione libera	Free build
+Un satellite senza i vincoli del CubeSat: niente taglia, niente griglia.	A satellite without CubeSat constraints: no size class, no grid.
 Chi lancia	Launch provider
 Chi siede al tavolo?	Who sits at the table?
 Chiede: 	Asks: 
@@ -4532,6 +4611,7 @@ Pannelli srotolabili LISA-T	LISA-T roll-out panels
 Parcheggio	Car park
 Parete video della sala controllo	Control-room video wall
 Particelle solari in arrivo: i dati più rari della missione.	Solar particles incoming: the rarest data of the mission.
+Fase B: prima scegli la finestra di lancio (tocca il Centro di dinamica del volo), poi crea la MDR.	Phase B: first choose the launch window (tap the Flight Dynamics Centre), then create the MDR.
 Passaggi della DRM	DRM legs
 Passaggi ripetuti nell’alta atmosfera abbassano l’orbita quasi gratis. Due mesi senza scienza e qualche rischio.	Repeated passes through the upper atmosphere lower the orbit almost for free. Two months without science and some risk.
 Passo {n}: le orbite in dettaglio, con il satellite vero. Qui compaiono i Δv di ogni passaggio della DRM.	Step {n}: the detailed orbits, with the real satellite. Here the Δv of every DRM leg appears.
@@ -4854,6 +4934,30 @@ Vale per i satelliti che superano la CDR da ora in poi.	Applies to satellites th
 Vedi la classifica	See the ranking
 Vela di resistenza aerodinamica che fa rientrare il satellite a fine missione.	Drag sail that brings the satellite down at end of mission.
 Vela di rientro	De-orbit sail
+Mercurio	Mercury
+Saturno	Saturn
+Urano	Uranus
+Nettuno	Neptune
+Sole	Sun
+orbita attorno a Mercurio	orbit around Mercury
+orbita attorno a Giove	orbit around Jupiter
+orbita attorno a Saturno	orbit around Saturn
+orbita attorno a Urano	orbit around Uranus
+orbita attorno a Nettuno	orbit around Neptune
+orbita attorno al Sole	orbit around the Sun
+Sorvolo ravvicinato	Close flyby
+Sorvolo del perielio	Perihelion flyby
+Orbita eliocentrica interna	Inner heliocentric orbit
+Un passaggio veloce vicino al corpo: la frenata costa poco, ma si osserva per poco tempo.	A fast pass close to the body: braking costs little, but you observe for a short time.
+Un’orbita di cattura stretta attorno al corpo: dati di dettaglio, ma servono molti ΔV per arrivarci.	A tight capture orbit around the body: detailed data, but it takes a lot of ΔV to get there.
+Un’orbita larga e stabile: lenta da percorrere, comoda per misure a lungo termine.	A wide, stable orbit: slow to fly, good for long-term measurements.
+Un passaggio ravvicinato nella corona solare: tutto dipende dallo scudo termico.	A close pass through the solar corona: everything depends on the heat shield.
+Un’orbita attorno al Sole, dentro quella di Mercurio: osservazione quasi continua.	An orbit around the Sun, inside Mercury’s: almost continuous observation.
+Passaggio verso Mercurio o Giove	Ride to Mercury or Jupiter
+Un posto su una sonda di classe media: ti rilascia in un’orbita circolare di lavoro dopo la frenata	A seat on a mid-class probe: it releases you in a circular working orbit after braking
+Passaggio su una sonda Flagship (lanciatore pesante)	Ride on a Flagship probe (heavy-lift launcher)
+Un posto su una grande sonda lanciata con un razzo pesante: serve per i pianeti esterni e per il Sole	A seat on a large probe launched on a heavy rocket: needed for the outer planets and the Sun
+La sonda che ti porta frena per te e ti lascia in un’orbita circolare di lavoro: la frenata di cattura costa {n} m/s ed è già nel conto.	The probe that carries you brakes for you and leaves you in a circular working orbit: the capture burn costs {n} m/s and is already counted.
 Venere	Venus
 Verifica {s}	Check {s}
 Verso l’orbita cimitero	To the graveyard orbit
@@ -5062,7 +5166,6 @@ Campus più grande ({n}% dell’area iniziale)	Larger campus ({n}% of the initia
 Agenzie partner della NASA Space Apps Challenge	NASA Space Apps Challenge partner agencies
 Sponsor da reclutare nell’Ufficio partnership	Sponsors to recruit in the partnership office
 in arrivo	coming soon
-non ancora possibile	not possible yet
 serve la propulsione ionica a bordo	needs on-board ion propulsion
 serve solo per abbassare l’orbita	only needed to lower the orbit
 È una regola: non si può rifiutare.	It is a rule: it cannot be refused.
@@ -6992,6 +7095,10 @@ const padPending=()=>G.pad?G.missions.filter(m=>['B','C','D'].indexOf(m.phase)>=
 function padMission(){ const p=padPending(), M=cur(); if(!p.length) return null; return p.find(m=>m.phase==='D'&&m.ready)||(p.indexOf(M)>=0?M:null)||p.find(m=>m.phase==='D')||p[0]; }
 const hasB=k=>G.plots.indexOf(k)>=0, maxStake=()=>E.MAXSTAKE+(hasB('office')?1:0);
 let CBAR=false, CPLACE=null, CDRAG=null, CSWALLOW=false, CTAB='Edifici', CSEL=null;
+/* Pannello Personalizza (rombo nel dock): null | 'campus' | 'flag'. Ogni chiusura azzera anche G.cedit. */
+let CUST=null, FLDRAFT=null;
+function custSet(t){ CUST=t||null; CPLACE=null; CSEL=null; FLDRAFT=null; G.cedit=t==='campus'; CBAR=t==='campus'; }
+function custOpen(t){ custSet(t); sfx.tap(); render(); const b=t?$('.ptabs [aria-selected="true"]'):$('#dock [data-act="cust"]'); if(b) b.focus(); }
 const CMENU={Edifici:['factory','ground','rnd','office','visit','pad'],Natura:['tree','pine','poplar','pond'],Infrastrutture:['parking','dish']};
 function cKind(k){ const d=CAM.K[k], up=L.BUILD[k]; return { n:d.n, c:up?up.c:(d.c||0), lvl:up?up.lvl:(d.lvl||1), s:up?up.s:(k==='pad'?'Lanci in casa i tuoi CubeSat: −40% a ogni lancio.':d.deco?'Decorazione: rende il campus più bello.':'') }; }
 function cBuilt(k){ return k==='pad'?!!G.pad:L.BUILD[k]?hasB(k):false; }
@@ -7063,7 +7170,7 @@ function cCtx(){ const M=cur(), next=nextPlace(M), labels={}; ['admin','mcc','fd
   const pm=padMission(); return { walkers:wkScene('campus'), labels, flag:G.flag||null, pad:{ rocket:!!pm, rocketH:pm?.85*(E.LV[pm.sat.lv]||{h:1}).h:1, ready:!!(pm&&pm.phase==='D'&&pm.ready), name:pm?pm.name:'' } }; }
 /* anteprima 3D dell'edificio (stesso modello del campus); se il 3D non c'e', resta il disegno 2D */
 function tileImg(k){ let u=null; try{ u=C3.can()&&C3.snap?C3.snap(k):null; }catch(e){ u=null; } return u?'<img class="timg" alt="" src="'+u+'">':'<svg viewBox="-48 -44 96 66" aria-hidden="true">'+CAM.mini(k)+'</svg>'; }
-function vHub(v){ const W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(G.xp), M=cur(), next=nextPlace(M);
+function vHub(v){ { const oc=document.getElementById('flc'); if(oc&&CUST==='flag') FLDRAFT=oc.toDataURL(); } const sh=CUST&&!CPLACE, W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(G.xp), M=cur(), next=nextPlace(M);
   const st={items:W.items,mode:G.cedit?'edit':'',sel:CSEL,moving:CPLACE&&CPLACE.moveId};
   const tiles=CMENU[CTAB].map(k=>{ const ki=cKind(k), lock=lv<ki.lvl, built=cBuilt(k); return '<button class="ctile'+(CPLACE&&CPLACE.k===k&&!CPLACE.moveId?' on':'')+(lock||built?' lock':'')+'" data-act="cplace" data-k="'+k+'"'+(lock||built?' disabled':'')+' title="'+esc(ki.s)+'">'+tileImg(k)+'<b>'+esc(ki.n)+'</b><small>'+(built?'costruito':k==='dish'&&!hasB('ground')?'serve la stazione di terra':lock?'livello '+ki.lvl:keur(ki.c)+(SREQ[k]?' · 👥'+SREQ[k]:'')+(k==='parking'?' · 🚗14':''))+'</small>'+(lock?'<span class="lk">🔒</span>':'')+'</button>'; }).join('');
   const pop=CSEL&&G.cedit&&!CPLACE?(()=>{ const it=W.items.find(i=>i.id===CSEL); if(!it) return ''; const d=CAM.K[it.k], ki=cKind(it.k), canDel=!d.core; return '<div class="cpop"><b>'+esc(d.n)+'</b><div class="row"><button class="btn small primary" data-act="cmove">Sposta</button>'+(canDel?'<button class="btn small" data-act="cdel">Rimuovi'+(ki.c?' · +'+keur(Math.round(ki.c/2)):'')+'</button>':'')+(it.k==='build'?'<button class="btn small" data-act="flagedit">Bandiera</button>':'')+'</div><span class="fine">'+(d.core?'Gli edifici principali si spostano ma non si demoliscono.':'Rimuovendolo recuperi metà del costo.')+'</span></div>'; })():'';
@@ -7071,9 +7178,10 @@ function vHub(v){ const W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(
   scn(v,{bg:'#A9BF77'}); v.innerHTML='<div class="stage0"><section class="campus3 full" id="cam"><svg id="camsvg" class="'+(CPLACE?'placing':'')+(G.cedit?' editing':'')+'" viewBox="0 0 1280 800" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Il campus della tua agenzia">'+CAM.DEFS+'<g id="camg" transform="translate('+cam.x.toFixed(1)+' '+cam.y.toFixed(1)+') scale('+cam.z.toFixed(3)+')">'+(C3.can()?'':CAM.world(st,cCtx()))+'<g id="cghost"></g></g></svg>'+
     '<div class="ctools"><button data-act="staff" title="Dipendenti / posti auto">👥 '+G.staff+'/'+spaces()+'</button><button class="'+(G.cedit?'on':'')+'" data-act="cedit" title="'+(G.cedit?'Fine modifica':'Modifica campus')+'">'+(G.cedit?'✔️<span class="tl"> Fine modifica</span>':'✏️<span class="tl"> Modifica campus</span>')+'</button><button data-act="flagedit" title="Bandiera">🚩<span class="tl"> Bandiera</span></button></div>'+
     (hintT?'<div class="chint">'+esc(hintT)+'</div>':'')+pop+
-    ((CBAR||CPLACE)?'<div class="cbar"><div class="ctabs">'+Object.keys(CMENU).map(t=>'<button class="'+(t===CTAB?'on':'')+'" data-act="ctab" data-k="'+t+'">'+t+'</button>').join('')+(CPLACE?'<button data-act="cesc" style="margin-left:auto">Annulla</button>':'')+'<button data-act="cbar" style="'+(CPLACE?'':'margin-left:auto')+'">Chiudi</button></div>'+(CPLACE?'':'<div class="ctiles">'+tiles+'</div>')+'</div>':'')+'</section></div>'+
+    ((CBAR||CPLACE||CUST)?'<div class="cbar'+(sh?' cust" id="cust-sheet" role="region" aria-label="'+TX('Personalizza','Customize')+'">'+custTabs()+'<div role="tabpanel" id="cust-panel" aria-labelledby="ptab-'+CUST+'">':'">')+(sh&&CUST==='flag'?flagPanelHTML():'<div class="ctabs">'+Object.keys(CMENU).map(t=>'<button class="'+(t===CTAB?'on':'')+'" data-act="ctab" data-k="'+t+'">'+t+'</button>').join('')+(CPLACE?'<button data-act="cesc" style="margin-left:auto">Annulla</button>':'')+(sh?'':'<button data-act="cbar" style="'+(CPLACE?'':'margin-left:auto')+'">Chiudi</button>')+'</div>'+(CPLACE?'':'<div class="ctiles">'+tiles+'</div>'))+(sh?'</div>':'')+'</div>':'')+'</section></div>'+
     '<div class="bgrid" hidden>'+['admin','fd','build','test','mcc'].concat(G.pad?['pad']:[]).map(k=>{ const w=waitOf(k); return '<button class="btn" data-act="enter" data-k="'+k+'">'+CAM.K[k].n+(next===k?'<span class="bdg">!</span>':w?'<span class="bdg wait">'+w+'</span>':'')+'</button>'; }).join('')+G.plots.filter(Boolean).map(k=>'<button class="btn" data-act="binfo" data-k="'+k+'">'+L.BUILD[k].n+'</button>').join('')+'</div>'+
     '';
+  if(sh&&CUST==='flag') flagBind();
   if(!C3.can()&&CPLACE&&CPLACE.last) cGhost(CPLACE.last[0],CPLACE.last[1]);
   { const c3=v.querySelector('#cam'); if(c3) C3.mount(c3,tutItems(W.items),cCtx()); }
 }
@@ -7115,20 +7223,25 @@ document.addEventListener('pointermove',e=>{ if(!PTR.has(e.pointerId)) return; P
 ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,e=>{ if(PTR.delete(e.pointerId)&&PTR.size<2){ if(PINCH){ CSWALLOW=true; save(); } PINCH=null; } },true));
 document.addEventListener('wheel',e=>{ const svg=e.target.closest&&e.target.closest('#camsvg'); if(!svg||view!=='hub') return; e.preventDefault(); cZoom(e.deltaY<0?1.12:1/1.12,cSvgPt(e)); },{passive:false});
 function cZoom(f,at){ const c=G.world.cam, z=Math.max(.3,Math.min(2.4,c.z*f)); at=at||[640,400]; const wx=(at[0]-c.x)/c.z, wy=(at[1]-c.y)/c.z; c.z=z; c.x=at[0]-wx*z; c.y=at[1]-wy*z; cApplyCam(); }
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&CPLACE&&view==='hub'){ CPLACE=null; render(); } });
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||view!=='hub') return; if(CPLACE){ CPLACE=null; render(); } else if(CUST) custOpen(null); });
 // ---------- editor della bandiera ----------
 const FLC=['#FFFFFF','#22313B','#45A9A3','#EB7D44','#CF5E4C','#3F6FB0','#F2C14E','#5E9E4A','#8E5BB0','#E98AB0','#9AA09A','#000000'];
 let FLST={col:'#EB7D44',size:10};
-function flagModal(){ const el=$('#ov'); el.innerHTML='<div class="rv wide" role="dialog" aria-modal="true"><h3>Edificio di costruzione</h3><h2>Disegna la tua bandiera</h2><p class="fine">Comparirà sulla facciata dell’edificio di costruzione, come la grande bandiera sul Vehicle Assembly Building della NASA.</p>'+
-  '<div class="fled"><canvas id="flc" width="300" height="180" aria-label="Tela della bandiera"></canvas><div><div class="pal">'+FLC.map(c=>'<button style="background:'+c+'" class="'+(FLST.col===c?'on':'')+'" data-act="flcol" data-k="'+c+'" aria-label="Colour '+c+'"></button>').join('')+'</div>'+
-  '<div class="row" style="margin-top:10px"><button class="btn small" data-act="flsize" data-k="4">Fine</button><button class="btn small" data-act="flsize" data-k="10">Medio</button><button class="btn small" data-act="flsize" data-k="22">Grosso</button></div>'+
-  '<div class="row" style="margin-top:8px"><button class="btn small" data-act="flfill">Riempi tutto</button><button class="btn small" data-act="fltpl" data-k="v">Tre bande verticali</button><button class="btn small" data-act="fltpl" data-k="h">Tre bande orizzontali</button><button class="btn small" data-act="fltpl" data-k="o">Orbita</button></div></div></div>'+
-  '<div class="row" style="margin-top:14px"><button class="btn primary" data-act="flsave">Salva bandiera</button><button class="btn" data-act="flreset">Torna alle strisce</button><button class="btn" data-act="closeov">Annulla</button></div></div>'; el.hidden=false;
-  const cv=$('#flc'), cx=cv.getContext('2d'); cx.fillStyle='#FFFFFF'; cx.fillRect(0,0,300,180); if(G.flag){ const im=new Image(); im.onload=()=>cx.drawImage(im,0,0,300,180); im.src=G.flag; }
+/** HTML del pannello bandiera (scheda Bandiera dello sheet Personalizza). */
+function flagPanelHTML(){ return '<div class="fled"><div><canvas id="flc" width="300" height="180" aria-label="Tela della bandiera"></canvas><div class="row" style="margin-top:8px"><button class="btn primary small" data-act="flsave">Salva bandiera</button><button class="btn small" data-act="flreset">Torna alle strisce</button></div></div><div><div class="pal">'+FLC.map(c=>'<button style="background:'+c+'" class="'+(FLST.col===c?'on':'')+'" data-act="flcol" data-k="'+c+'" aria-label="Colour '+c+'"></button>').join('')+'</div>'+
+  '<div class="row" style="margin-top:10px"><button class="btn small" data-act="flsize" data-k="4">'+TX('Fine','Thin')+'</button><button class="btn small" data-act="flsize" data-k="10">'+TX('Medio','Medium')+'</button><button class="btn small" data-act="flsize" data-k="22">'+TX('Grosso','Thick')+'</button></div>'+
+  '<div class="row" style="margin-top:8px"><button class="btn small" data-act="flfill">Riempi tutto</button><button class="btn small" data-act="fltpl" data-k="v">Tre bande verticali</button><button class="btn small" data-act="fltpl" data-k="h">Tre bande orizzontali</button><button class="btn small" data-act="fltpl" data-k="o">Orbita</button></div>'+
+  '</div></div>'; }
+/** Collega il disegno sulla tela #flc (dopo ogni render della scheda Bandiera); riparte dalla bozza non salvata, poi dalla bandiera salvata. */
+function flagBind(){ const cv=$('#flc'); if(!cv) return; const cx=cv.getContext('2d'); cx.fillStyle='#FFFFFF'; cx.fillRect(0,0,300,180); const src=FLDRAFT||G.flag; if(src){ const im=new Image(); im.onload=()=>cx.drawImage(im,0,0,300,180); im.src=src; }
   let down=false, last=null; const at=e=>{ const r=cv.getBoundingClientRect(); return [(e.clientX-r.left)*300/r.width,(e.clientY-r.top)*180/r.height]; };
   cv.addEventListener('pointerdown',e=>{ down=true; last=at(e); cv.setPointerCapture(e.pointerId); cx.fillStyle=FLST.col; cx.beginPath(); cx.arc(last[0],last[1],FLST.size/2,0,7); cx.fill(); });
   cv.addEventListener('pointermove',e=>{ if(!down) return; const p=at(e); cx.strokeStyle=FLST.col; cx.lineWidth=FLST.size; cx.lineCap='round'; cx.beginPath(); cx.moveTo(last[0],last[1]); cx.lineTo(p[0],p[1]); cx.stroke(); last=p; });
   cv.addEventListener('pointerup',()=>{ down=false; }); }
+/** Barra schede (Campus / Bandiera) + chiusura dello sheet Personalizza. */
+function custTabs(){ const tb=(k,t)=>'<button role="tab" id="ptab-'+k+'" class="'+(CUST===k?'on':'')+'" aria-selected="'+(CUST===k)+'" aria-controls="cust-panel" tabindex="'+(CUST===k?0:-1)+'" data-act="custtab" data-k="'+k+'">'+t+'</button>';
+  return '<div class="ptabs" role="tablist" aria-label="'+TX('Personalizza','Customize')+'">'+tb('campus',TX('Campus','Campus'))+tb('flag',TX('Bandiera','Flag'))+'<button class="pclose" data-act="custclose" aria-label="'+TX('Chiudi','Close')+'"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg></button></div>'; }
+document.addEventListener('keydown',e=>{ const t=e.target.closest&&e.target.closest('.ptabs [role=tab]'); if(!t||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) return; e.preventDefault(); const to=(e.key==='ArrowLeft'||e.key==='Home')?'campus':'flag'; if(to!==CUST) custOpen(to); });
 function flagTpl(k){ const cv=$('#flc'); if(!cv) return; const cx=cv.getContext('2d'), c=FLST.col;
   if(k==='v'){ ['#45A9A3','#FFFFFF','#EB7D44'].forEach((col,i)=>{ cx.fillStyle=col; cx.fillRect(i*100,0,100,180); }); }
   if(k==='h'){ ['#22313B','#FFFFFF','#45A9A3'].forEach((col,i)=>{ cx.fillStyle=col; cx.fillRect(0,i*60,300,60); }); }
@@ -7139,7 +7252,7 @@ function nextPlace(M){ if(!M) return null; if(M.phase==='0'||M.phase==='A') retu
   if(M.phase==='D') return M.ready?(M.sat.lv==='HOME'?'pad':'admin'):'test'; if(M.phase==='E'||M.phase==='F') return 'mcc'; return null; }
 function waitOf(k){ const n=G.missions.filter(M=>(k==='build'&&M.phase==='D'&&M.stage==='assembly'&&now()<M.buildEnd)||(k==='test'&&Object.keys(M.tr).some(t=>M.tr[t].res==='run'))||(k==='mcc'&&(M.phase==='E'||M.phase==='F'))||(k==='pad'&&M.phase==='D'&&M.ready&&M!==cur())).length; return n?'⏳'+n:''; }
 function hint(M){ if(!M) return 'Crea la tua prima missione con il tasto + in alto a sinistra.'; const p=M.phase;
-  return p==='0'||p==='A'?(p==='A'?(M.stage==='type'?'Fase A: nell’edificio amministrativo scegli il satellite, poi senti lo staff tecnico.':'Il tuo staff tecnico ha delle richieste: sala riunioni.'):M.stage==='partners'?'Entra nell’edificio amministrativo e scegli gli stakeholder.':'Al tavolo ti aspettano gli stakeholder.'):p==='A'?'Il tuo staff tecnico ha delle richieste: sala riunioni.':p==='B'?(M.stage==='sat'?'Fase B, passo 2: progetta il satellite nell’edificio di costruzione.':M.stage==='orb'?'Fase B, passo 3: orbite in dettaglio, poi la revisione PDR.':'Fase B, passo 1: nel Centro di dinamica del volo disegna la missione (DRM).'):
+  return p==='0'||p==='A'?(p==='A'?(M.stage==='type'?'Fase A: nell’edificio amministrativo scegli il satellite, poi senti lo staff tecnico.':'Il tuo staff tecnico ha delle richieste: sala riunioni.'):M.stage==='partners'?'Entra nell’edificio amministrativo e scegli gli stakeholder.':'Al tavolo ti aspettano gli stakeholder.'):p==='A'?'Il tuo staff tecnico ha delle richieste: sala riunioni.':p==='B'?(M.stage==='sat'?'Fase B, passo 2: progetta il satellite nell’edificio di costruzione.':M.stage==='orb'?'Fase B, passo 3: orbite in dettaglio, poi la revisione PDR.':lwPending(M)?'Fase B: prima scegli la finestra di lancio (tocca il Centro di dinamica del volo), poi crea la MDR.':'Fase B, passo 1: nel Centro di dinamica del volo disegna la missione (DRM).'):
     p==='C'?'Fase C: progetto congelato. Ultimi ritocchi, poi la revisione CDR in cui compri i pezzi.':p==='D'&&M.stage==='assembly'?(now()>=M.buildEnd?'Assemblaggio completato: portalo al laboratorio prove.':'Assemblaggio in camera bianca. Intanto puoi lavorare a un’altra missione.'):p==='D'?(M.ready?(M.sat.lv==='HOME'?'Pronto al lancio: vai alla rampa.':'Fase E: vai all’edificio amministrativo per il lancio con l’ente terzo.'):'Porta il satellite al laboratorio prove.'):p==='E'||p==='F'?(M.pauseAt?'Il tempo è fermo: in sala controllo ti aspetta una decisione.':'In volo. Segui la telemetria dal Mission Control Center: gli eventi li decidi tu.'):'Missione completata. Guarda il bilancio nella cartella.'; }
 function plotModal(i){ if(i<0||G.plots[i]){ toast('Nessun lotto libero.'); return; } const lv=L.level(G.xp), el=$('#ov');
   el.innerHTML='<div class="rv wide"><h3>Lotto libero</h3><h2>Cosa costruisci qui?</h2><p class="fine">Ogni edificio si costruisce una volta e vale per tutte le missioni. Livello attuale: '+lv+'.</p><div class="cat">'+Object.keys(L.BUILD).map(k=>{ const b=L.BUILD[k], built=hasB(k), lock=lv<b.lvl;
@@ -7157,11 +7270,13 @@ function hud(){ try{ staffPlan(); }catch(e){} document.documentElement.classList
     '<div class="hud-r"><div class="res"><button class="rs" data-act="rank" title="'+TX('Punti scienza · lega ','Science points · league ')+LEAGUES[leagueOf(G.sciTotal||0)][1]+'"><b>'+(G.sciTotal||0)+'</b>'+RICO.sci+'</button><button class="rs" data-act="staff" title="'+TX('Dipendenti / posti auto','Staff / parking')+'"><b>'+G.staff+'/'+spaces()+'</b>'+RICO.stf+'</button><div class="rs money'+(G.money<0?' neg':'')+'"><b>'+(G.sandbox?'∞':nf(Math.round(G.money),0))+'</b>'+RICO.cr+'</div></div>'+hexB('pause','Menu','menu')+lvlRing()+'</div>';
   $('#dock').innerHTML=dockHTML();
   }
-const dockHTML=()=>'<div class="hexs">'+(view!=='hub'?hexB('home',TX('Torna al campus','Back to campus'),'home'):hexB('newm',TX('Nuova missione','New mission'),'plus')+hexB('cedit',TX('Costruisci e modifica il campus','Build and edit the campus'),'build',G.cedit)+hexB('flagedit',TX('Bandiera dell’agenzia','Agency flag'),'flag')+(G.cedit?'<button class="xcirc" data-act="cedit" aria-label="'+TX('Esci dalla modifica','Leave edit mode')+'"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg></button>':''))+'</div>';
+const dockHTML=()=>view!=='hub'?'<div class="hexs">'+hexB('home',TX('Torna al campus','Back to campus'),'home')+'</div>':
+  '<div class="hexs dkc"><button class="hxn" data-act="newm" aria-label="'+TX('NUOVA MISSIONE','NEW MISSION')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">'+HEXI.plus+'</svg><span>'+TX('NUOVA','NEW')+'<br>'+TX('MISSIONE','MISSION')+'</span></button>'+
+  '<button class="rhb'+(CUST?' on':'')+'" data-act="cust" aria-label="'+TX('Personalizza','Customize')+'" aria-expanded="'+!!CUST+'" aria-controls="cust-sheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+HEXI.cust+'</svg></button></div>';
 function lvlChip(){ const lv=L.level(G.xp), a=L.LEVELS[lv-1], b=L.LEVELS[lv]; return '<div class="lvl" data-act="road" role="button" title="'+G.xp+' XP · tocca per la roadmap"><b>Liv '+lv+'</b><i><u style="width:'+(b?Math.round((G.xp-a)/(b-a)*100):100)+'%"></u></i></div>'; }
 function gainXP(n){ if(G.tut) return; const l0=L.level(G.xp); G.xp+=Math.round(n*perk('xp')); const l1=L.level(G.xp); hud(); if(l1>l0){ G.fresh=E.DBX.filter(x=>x.lvl>l0&&x.lvl<=l1).map(x=>x.code); const un=Object.keys(L.BUILD).filter(k=>L.BUILD[k].lvl===l1).map(k=>L.BUILD[k].n).concat(L.TESTS.filter(k=>L.MACH[k].lvl===l1).map(k=>L.MACH[k].n)).concat(Object.keys(E.DEST).filter(k=>E.DEST[k].lvl===l1).map(k=>'destinazione '+E.DEST[k].n)).concat(Object.keys(E.LV).filter(k=>E.LV[k].lvl===l1&&l1>1).map(k=>E.LV[k].n.toLowerCase())).concat(Object.keys(E.RIDES).filter(k=>E.RIDES[k].lvl===l1&&l1>1).map(k=>E.RIDES[k].n)).concat([E.DBX.filter(x=>x.lvl===l1).length+' nuove tecnologie']).concat(l1>=3&&hasB('office')?['un nuovo sponsor nell’Ufficio partnership']:[]);
   const el=$('#lvup'); el.innerHTML='<b>Livello '+l1+'!</b>'+(un.length?'<span>Sbloccati: '+un.join(', ')+'</span>':''); el.hidden=false; clearTimeout(gainXP.t); gainXP.t=setTimeout(()=>{el.hidden=true;},5200); setTimeout(()=>sfx.stamp(),200); } }
-function go(v){ cancelAnimationFrame(raf); if(v!==view){ BROOM=null; BVIEW='room'; MCCV=null; RSEL=null; if(!(RPLACE&&RPLACE.room===v)) RPLACE=null; } view=v; sel=null; render(); window.scrollTo(0,0); }
+function go(v){ if(typeof zdClose==='function') zdClose(); cancelAnimationFrame(raf); if(v!=='hub'&&CUST) custSet(null); if(v!==view){ BROOM=null; BVIEW='room'; MCCV=null; RSEL=null; if(!(RPLACE&&RPLACE.room===v)) RPLACE=null; } view=v; sel=null; render(); window.scrollTo(0,0); }
 const stage=(inner,cls)=>'<div class="stage0"><div class="sbox'+(cls?' '+cls:'')+'">'+inner+'</div></div>';
 const dcl=s=>'<button class="dclose" data-act="drw" data-k="'+s+'" aria-label="Close panel">&times;</button>';
 const docks=(Lh,Rh)=>'<div class="docks">'+(Lh?'<aside class="dockL">'+dcl('L')+Lh+'</aside>':'')+(Rh?'<aside class="dockR">'+dcl('R')+Rh+'</aside>':'')+'</div>';
@@ -7201,7 +7316,11 @@ function rideFeas(M,k){ const acc=M.reqs.filter(x=>M.waived.indexOf(x.id)<0).map
 function vSatType(v,M){ const lvN=L.level(G.xp), dest=M.sat.dest||'leo', why=k=>{ const R=E.RIDES[k]; if(lvN<R.lvl) return '🔒 livello '+R.lvl; if(!Object.keys(E.LV).some(l=>E.LV[l].fits.indexOf(k)>=0&&E.LV[l].dest.indexOf(dest)>=0&&!!E.LV[l].surf===L.landing(M))) return 'nessun lancio per '+E.DEST[dest].n+' accetta questa taglia'; if(!M.tut&&!rideFeas(M,k)) return '⚠ con i requisiti accettati non basta'; return ''; };
   v.innerHTML=meetBg(M)+'<div class="head"><div><h3>Edificio amministrativo · Fase A</h3><h1>Che satellite costruisci?</h1></div></div>'+
     '<h3 style="margin:4px 0 8px">CubeSat</h3><div class="sts">'+Object.keys(E.RIDES).map(k=>{ const R=E.RIDES[k], w=why(k); return '<button class="stc'+(M.sat.ride===k&&M.rideFixed?' sel':'')+(w?' lock':'')+'" data-act="pickType" data-k="'+k+'"'+(w?' disabled':'')+'>'+structIcon(k)+'<b>'+R.n+'</b><span class="fine">'+R.s+'</span><ul class="kv"><li><span>Struttura</span><b>'+keur(R.c)+'</b></li><li><span>Massa massima</span><b>'+R.massLim+' kg</b></li><li><span>Griglia</span><b>'+R.cols+' × '+R.rows+' caselle</b></li></ul>'+(w?'<small class="lk">'+w+'</small>':'')+'</button>'; }).join('')+'</div>'+
-    '<h3 style="margin:18px 0 8px">Altre classi</h3><div class="sts"><div class="stc lock"><b>Microsatellite</b><span class="fine">Classe ESPA, fino a circa 180 kg</span><small class="lk">🔒 in arrivo</small></div></div>'; }
+    '<h3 style="margin:18px 0 8px">Altre classi</h3><div class="sts"><div class="stc lock"><b>Microsatellite</b><span class="fine">Classe ESPA, fino a circa 180 kg</span><small class="lk">🔒 in arrivo</small></div>'+
+    '<button class="stc'+(freeBuildOpen()?'':' lock')+'" data-act="pickFree"'+(freeBuildOpen()?'':' disabled aria-disabled="true"')+'><b>'+(freeBuildOpen()?'':'🔒 ')+'Costruzione libera</b><span class="fine">Un satellite senza i vincoli del CubeSat: niente taglia, niente griglia.</span>'+(freeBuildOpen()?'':'<small class="lk">🔒 si sblocca al livello '+FREE_LVL+' (livello massimo), non in modalità creativa</small>')+'</button></div>'; }
+/* Costruzione libera: bloccata fino al livello massimo, anche in modalità creativa (sandbox). */
+const FREE_LVL=L.LEVELS.length;
+function freeBuildOpen(){ return !!G&&!G.sandbox&&!G.tut&&L.level(G.xp)>=FREE_LVL; }
 function vPartners(v,M){ const lv=L.level(G.xp), ini=(t,c)=>{ const ag=AGENCIES.find(a=>a[1]===t); return FLAGS(ag?ag[0]:String(t),c,'ini'); }, ini0=(t,c)=>'<span class="ini" style="background:'+c+'">'+esc(String(t).replace(/[^A-Za-zÀ-ú ]/g,'').split(' ').map(w=>w[0]||'').join('').slice(0,3).toUpperCase())+'</span>';
   const lockedAg=AGENCIES.filter(a=>a[4]>lv), lockedSp=L.SPONSORS.filter(x=>!E.stk(x.id));
   v.innerHTML=meetBg(M)+'<div class="head"><div><h3>Edificio amministrativo · Fase 0</h3><h1>Stakeholders</h1></div></div>'+
@@ -7259,7 +7378,7 @@ function priceHTML(M,r){ const p=PRC[prKey(M,r)]; if(!p){ setTimeout(()=>pricePa
   return h+ch(p.dc>0?'r':'g','+'+keur(p.dc))+ch(p.dm>0?'r':'g','+'+nf(p.dm)+' kg')+p.forced.map(f=>ch('o','cambia: '+esc(f))).join('')+'</div>'; }
 function refuseHTML(M,r){ const who=PEO[r.who]; if(r.rule) return '<div class="nocon"><span>🔒 È una regola: non si può rifiutare.</span></div>';
   const j=M.joy[r.who]==null?60:M.joy[r.who], aft=Math.max(0,j-(r.core?L.JOY.noCore:L.JOY.no)), st=E.stk(r.who);
-  return '<div class="nocon"><span>Se rifiuti, <b>'+esc(who.n)+'</b></span><div class="jbar" title="Soddisfazione"><i style="width:'+aft+'%"></i><u style="left:'+aft+'%;width:'+(j-aft)+'%"></u></div><span class="num">'+j+'% → <b class="'+(aft<=0?'bad':aft<35?'bad':'')+'">'+aft+'%</b></span>'+(aft<=0?'<span class="bad" style="grid-column:1/-1"><b>Lascia il tavolo</b>'+(st?' e porta via '+keur(st.fund)+' di fondi.':'.')+'</span>':'')+'</div>'; }
+  return '<div class="nocon"><span class="jexp" style="grid-column:1/-1">'+TX('Soddisfazione di '+who.n+': scende se rifiuti; a zero se ne va con i suoi fondi.',who.n+'’s happiness: drops if you refuse; at zero they leave with their funding.')+'</span><span>Se rifiuti, <b>'+esc(who.n)+'</b></span><div class="jbar" title="Soddisfazione"><i style="width:'+aft+'%"></i><u style="left:'+aft+'%;width:'+(j-aft)+'%"></u></div><span class="num">'+j+'% → <b class="'+(aft<=0?'bad':aft<35?'bad':'')+'">'+aft+'%</b></span>'+(aft<=0?'<span class="bad" style="grid-column:1/-1"><b>Lascia il tavolo</b>'+(st?' e porta via '+keur(st.fund)+' di fondi.':'.')+'</span>':'')+'</div>'; }
 function pricePaint(M,r){ const k=prKey(M,r); if(!PRC[k]) PRC[k]=L.priceOf(M,r.id); const el=$('#price'); if(el&&cur()===M&&M.queue[0]===r.id) el.innerHTML=priceHTML(M,r); }
 function softBtn(M,r){ const sf=L.softOf(r.id,M), j=M.joy[r.who]==null?60:M.joy[r.who];
   if(!sf) return '<button class="btn" disabled title="Su questa richiesta non si tratta">Controproposta</button>';
@@ -7369,6 +7488,7 @@ const fdLocked=M=>!M||['0','A','D','E','F','done'].indexOf(M.phase)>=0;
 /* ---------- Design Reference Mission (fase B, passo 1) ---------- */
 let DRMADD=false, DRMG=null, DRMH=600;
 const DRMN={leo:'Terra',moon:'Luna',mars:'Marte',venus:'Venere'}, DRMDEL={leo:'nella',moon:'sulla',mars:'su',venus:'su'};
+Object.keys(E.EXT).forEach(k=>{ DRMN[k]=E.EXT[k].n; DRMDEL[k]='su'; });
 const drmNice=h=>h<1000?Math.round(h/10)*10:h<10000?Math.round(h/100)*100:Math.round(h/500)*500;
 const drmKm=h=>nf(Math.round(h))+' km';
 function drmRel(M){ const e=O.initial(M).el, pe=e.pe, ap=isFinite(e.ap)?e.ap:e.pe; return {pe,ap,h:Math.sqrt(Math.max(1,pe)*Math.max(1,ap)),circ:ap/Math.max(1,pe)<1.3}; }
@@ -7410,7 +7530,7 @@ function drmPlanet(kind,edge,top,o){ const R=2400, cx=500, cy=top?edge-R:edge+R,
     [[-350,140],[150,90],[620,170],[1150,120]].forEach(([x,w],i)=>{ s+='<path d="M'+(x-w)+' '+near(20)+'q'+(w*.5)+' '+((top?1:-1)*0)+' '+w+' '+(top?-14:14)*k+'t'+w+' '+(top?8:-8)*k+'l0 '+(top?-30:30)*k+'z" fill="#7E3A22" opacity=".45"/>'; });
     for(let i=0;i<14;i++){ const x=-500+i*150+rnd(i,8)*80, y=near(14+rnd(i,9)*50), r=5+rnd(i,10)*14; s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+r+'" ry="'+(r*.4*k)+'" fill="#8E3F24" opacity=".6"/>'; }
     s+='<rect x="-1500" y="'+(top?edge-400*k:edge)+'" width="4000" height="'+(400*k)+'" fill="url(#'+id+'sh)"/></g>'; return s; }
-  /* venus */ s+=G2('g','#F1DFA8','#C9A55C')+sh+'</defs>'; for(let i=0;i<6;i++) s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+(R+(i+1)*6*k)+'" fill="#F5E2A8" opacity=".14"/>';
+  /* venus + corpi esterni */ const XP=E.EXT[kind]; s+=(XP?G2('g',XP.pal[0],XP.pal[1]):G2('g','#F1DFA8','#C9A55C'))+sh+'</defs>'; for(let i=0;i<6;i++) s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+(R+(i+1)*6*k)+'" fill="#F5E2A8" opacity=".14"/>';
   s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="url(#'+id+'g)"/><g clip-path="url(#'+id+'c)">';
   for(let i=0;i<7;i++){ const y=near(8+i*11); s+='<path d="M-1500 '+y+'Q-800 '+(y+(i%2?8:-8)*k)+' -200 '+y+'T1100 '+y+'T2400 '+y+'" stroke="'+(i%2?'#E9CF8A':'#FFF2C9')+'" stroke-width="'+(5*k)+'" fill="none" opacity=".7"/>'; }
   s+='<rect x="-1500" y="'+(top?edge-400*k:edge)+'" width="4000" height="'+(400*k)+'" fill="url(#'+id+'sh)"/></g>'; return s; }
@@ -7427,7 +7547,7 @@ function drmSVG(M,o){ o=o||{}; const H=o.H||600, mini=!!o.mini, dest=M.sat.dest|
     if(dn.length) s+=T(976,S.y(S.min)-8*k,'↑ '+dn.map(z=>z.n.toLowerCase()+(z.lvl>lv?' 🔒 liv. '+z.lvl:'')).join(' · '),11,'end','#8D99A6',600); }
   // pianeti
   if(S.leo){ s+=drmPlanet('leo',S.ySurf,false,{atm:S.ySurf-S.yAtm,k}); if(!mini) s+=T(24,S.yAtm+20*k,'ATMOSFERA TERRESTRE',11,'start','#2C6E9E',700)+T(24,S.ySurf+34*k,'TERRA',13,'start','#fff',800); }
-  else { s+=drmPlanet(dest,S.yTop,true,{k})+drmPlanet('leo',S.yEarth,false,{atm:10*k,k}); if(!mini) s+=T(976,S.yTop-12*k,DRMN[dest].toUpperCase(),13,'end',dest==='venus'?'#7A5A1E':'#fff',800)+T(24,S.yEarth+30*k,'TERRA',13,'start','#fff',800)+'<path d="M-1500 '+S.yGap+'H2500" stroke="#D5DCE3" stroke-dasharray="3 5"/>'+T(976,S.yGap+18*k,'↓ spazio tra la Terra e '+(dest==='moon'?'la Luna':dest==='mars'?'Marte':'Venere')+' (non in scala)',11,'end','#8D99A6',500); }
+  else { s+=drmPlanet(dest,S.yTop,true,{k})+drmPlanet('leo',S.yEarth,false,{atm:10*k,k}); if(!mini) s+=T(976,S.yTop-12*k,DRMN[dest].toUpperCase(),13,'end',dest==='venus'?'#7A5A1E':'#fff',800)+T(24,S.yEarth+30*k,'TERRA',13,'start','#fff',800)+'<path d="M-1500 '+S.yGap+'H2500" stroke="#D5DCE3" stroke-dasharray="3 5"/>'+T(976,S.yGap+18*k,'↓ spazio tra la Terra e '+(dest==='moon'?'la Luna':DRMN[dest].replace(/^Sole$/,'il Sole'))+' (non in scala)',11,'end','#8D99A6',500); }
   // asse quote
   if(!mini){ const ticks=S.leo?[100,300,1000,3000,10000,36000]:[10,30,100,300,1000,3000,10000,30000]; ticks.forEach(h=>{ if(h<S.min*.9||h>S.max*1.05) return; const y=S.y(h); s+='<path d="M984 '+y+'h10" stroke="#AAB4BE" stroke-width="1.5"/>'+T(980,y+4,nf(h),10,'end','#9AA6B2',500); }); }
   const lanes=[], rel=drmRel(M), land=drmLand(M);
@@ -7486,17 +7606,17 @@ function drmPanel(M){ const D=M.drm, dest=M.sat.dest||'leo', land=drmLand(M), re
     if(D.eol) h+=row(String(D.orbits.length+2),{reentry:'🔥 Rientro in atmosfera',impact:'💥 Impatto controllato',grave:'🪦 Orbita cimitero'}[D.eol.k],{reentry:'fine vita senza detriti',impact:'fine vita sulla superficie',grave:'parcheggiato a '+drmKm(drmGrave(M))}[D.eol.k],{extra:'<button class="dx" data-act="drmeolx" aria-label="Cancella">✕</button>'}); }
   else h+=row('2','🛬 Sulla superficie','il satellite lavora a terra',{hl:1});
   h+='</div>';
-  if(!land) h+='<button class="btn primary dadd'+(DRMADD?' on':'')+'" data-act="drmadd">'+(DRMADD?'✕ Annulla':'＋ Aggiungi orbita')+'</button>'+(DRMADD?'<p class="fine">Muovi il puntatore (o il dito) sullo schema e rilascia alla quota che vuoi.</p>':'')+
-    '<h3 style="margin-top:12px">Fine vita (fase F)</h3><div class="deol">'+[['reentry','🔥 Rientro',atm?'in atmosfera':'niente atmosfera',!atm],['impact','💥 Impatto','sulla superficie',dest==='leo'],['grave','🪦 Cimitero',dest==='leo'?'sopra la geostazionaria':'orbita molto alta',false]].map(([k,n,sub,dis])=>'<button class="'+(D.eol&&D.eol.k===k?'on':'')+'" data-act="drmeol" data-k="'+k+'"'+(dis?' disabled':'')+'><b>'+n+'</b><small>'+sub+'</small></button>').join('')+'</div>';
+  const ed=mdrState(M)==='edit';
+  if(!land&&ed) h+='<button class="btn primary dadd'+(DRMADD?' on':'')+'" data-act="drmadd">'+(DRMADD?'✕ Annulla':'＋ Aggiungi orbita')+'</button>'+(DRMADD?'<p class="fine">Muovi il puntatore (o il dito) sullo schema e rilascia alla quota che vuoi.</p>':'')+
+    '';
   h+='<div class="dtot"><span>Durata totale</span><b class="num">'+(land?D.relMo:drmMonths(M))+' mesi</b></div>';
-  { const k0=winMode(M), lc0=M.sat.lv?E.lvCost(M.sat):0, rx=rushExtra({drm:{win:'rush'}},lc0);
-    h+='<h3 style="margin-top:12px">'+TX('Finestra di lancio','Launch window')+'</h3><div class="deol">'+[['rush','⚡ Rush',TX('subito · extra '+keur(rx)+' sul lancio','right away · extra '+keur(rx)+' on the launch')],['ontime','🎯 On time',TX('richiesta dagli stakeholder · attesa breve','what the stakeholders asked · short wait')],['relaxed','🌿 Relaxed',TX('nessun extra · attesa lunga · gli stakeholder si lamentano','no extra · long wait · stakeholders will be unhappy')]].map(([k,n,sub])=>'<button class="'+(k0===k?'on':'')+'" data-act="drmwin" data-k="'+k+'"><b>'+n+'</b><small>'+sub+'</small></button>').join('')+'</div>'; }
-  const ready=land||(D.eol&&drmStarH(M)!=null); h+='<button class="btn primary" style="width:100%" data-act="bstep" data-k="sat"'+(ready?'':' disabled')+'>'+TX('Conferma la DRM · torna al campus','Confirm the DRM · back to the campus')+'</button>'+'</div>';
+  if(ed) h+='<button class="btn primary" style="width:100%" data-act="mdredone"'+(drmStarH(M)!=null?'':' disabled')+'>'+TX('Fatto · continua','Done · continue')+'</button>';
+  h+='</div>';
   return h; }
 function vDRM(v,M){ const D=drmInit(M); DRMH=Math.round(Math.max(400,Math.min(600,1000/(innerWidth/Math.max(1,innerHeight))*1.05))); if(drmLand(M)){ D.eol={k:'surf'}; D.orbits=[]; }
   v.innerHTML='<div class="head"><div><h3>Centro di dinamica del volo · Fase B · passo 1 di 3</h3><h1>Design Reference Mission</h1>'+bSteps(M)+'</div></div>'+
     stage('<section class="drm3 fsc" style="--ar:1000/'+DRMH+'"><svg id="drmsvg" class="'+(DRMADD?'adding':'')+'" viewBox="0 0 1000 '+DRMH+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schema della missione">'+drmSVG(M,{H:DRMH})+'</svg></section>','rbx')+
-    docks(drmPanel(M),null); scn(v,{L:1,bg:'#FBFCFD',railL:[{ic:'🧭',t:'Sequenza',side:'L'}]}); }
+    docks(drmPanel(M),null); scn(v,{L:1,bg:'#FBFCFD',railL:[{ic:'🧭',t:'Sequenza',side:'L'}]}); setTimeout(()=>mdrShow(cur()),0); }
 function drmRedraw(){ const M=cur(), sv=$('#drmsvg'); if(!sv||!M) return; sv.innerHTML=drmSVG(M,{H:DRMH}); }
 function drmPt(e){ const sv=$('#drmsvg'); if(!sv) return null; const pt=sv.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const m=sv.getScreenCTM(); if(!m) return null; const p=pt.matrixTransform(m.inverse()); return p; }
 function drmGhost(e){ const M=cur(); if(!DRMADD||!M||!M.drm) return; const p=drmPt(e); if(!p) return; const S=drmScale(M,DRMH), h=drmNice(S.h(p.y)); let why='', ok=true;
@@ -7541,7 +7661,7 @@ function obDraw(){ const cv=$('#obcv'), M=cur(); if(!cv||!M||!document.body.cont
   OBV.sc=OBV.sc?OBV.sc+(want-OBV.sc)*0.25:want; const sc=OBV.sc, cx=W/2, cy=H/2+(H>500?40:8), Rp=B.R*sc, D=Math.PI/180, ct=Math.cos(OBV.tilt*D), st=Math.sin(OBV.tilt*D), ca=Math.cos(OBV.az*D), sa=Math.sin(OBV.az*D);
   const proj=q=>{ const x=q[0]*ca-q[1]*sa, y=q[0]*sa+q[1]*ca, yy=y*ct-q[2]*st, z=y*st+q[2]*ct; return {x:cx+x*sc,y:cy-yy*sc,z}; }, hid=s=>s.z<0&&Math.hypot(s.x-cx,s.y-cy)<Rp;
   const A=O.ATMH[dest], atmR=A?(B.R+A[1])*sc:0;
-  const pal={leo:['#4b8fd1','#14416f'],moon:['#c4c4ca','#5e5e66'],mars:['#d9744a','#7a2a0c'],venus:['#ecd08e','#9c7a3c']}[dest]||['#888','#444'];
+  const pal={leo:['#4b8fd1','#14416f'],moon:['#c4c4ca','#5e5e66'],mars:['#d9744a','#7a2a0c'],venus:['#ecd08e','#9c7a3c']}[dest]||(E.EXT[dest]&&E.EXT[dest].pal)||['#888','#444'];
   if(A){ const ga=g.createRadialGradient(cx,cy,Rp,cx,cy,atmR); ga.addColorStop(0,'rgba(120,190,255,.35)'); ga.addColorStop(1,'rgba(120,190,255,0)'); if(dest!=='leo'){ ga.addColorStop(0,'rgba(255,170,110,.35)'); } g.fillStyle=ga; g.beginPath(); g.arc(cx,cy,atmR,0,7); g.fill(); }
   const gr=g.createRadialGradient(cx-Rp*.35,cy-Rp*.35,Rp*.1,cx,cy,Rp); gr.addColorStop(0,pal[0]); gr.addColorStop(1,pal[1]); g.fillStyle=gr; g.beginPath(); g.arc(cx,cy,Rp,0,7); g.fill();
   g.strokeStyle='rgba(255,255,255,.22)'; g.lineWidth=1; g.beginPath(); g.ellipse(cx,cy,Rp,Math.max(.5,Rp*ct),0,0,7); g.stroke();
@@ -7730,7 +7850,7 @@ const GPREV={};
 const DATAG={Scientifica:[0.3,1],Osservazione:[1.5,1.6],Telescopio:[1.2,1.6],Superficie:[0.8,1],Dimostrazione:[0.2,1],Telecomunicazioni:[0,1]};
 function payData(id){ const t=P[id]&&P[id].db; if(!t) return 0; const m=String(t.mis||'').split(';')[0].trim(), g=DATAG[m]||[0.5,1]; return g[0]*Math.pow(Math.max(1,+t.sv||1),g[1]); }
 function radioRef(t){ const s=(t.n||'')+' '+(t.code||''); if(/profondo|Vulcan|DSTX/i.test(s)) return 4e8; if(/Ka\b|banda X|XBAND/i.test(s)) return 4e6; return (+t.sv||0)<=20?3000:40000; }
-function linkDist(M){ const dest=M.sat.dest||'leo'; if(dest==='moon') return 384400; if(dest==='mars') return 2.25e8; if(dest==='venus') return 1.6e8; const h=(M.drm&&typeof drmStarH==='function'&&drmStarH(M))||null, b=O.zoneOf(M).band; return h||(b?Math.sqrt(b[0]*b[1]):550); }
+function linkDist(M){ const dest=M.sat.dest||'leo'; if(dest==='moon') return 384400; if(dest==='mars') return 2.25e8; if(dest==='venus') return 1.6e8; if(E.EXT[dest]) return E.EXT[dest].d*1.5e6; const h=(M.drm&&typeof drmStarH==='function'&&drmStarH(M))||null, b=O.zoneOf(M).band; return h||(b?Math.sqrt(b[0]*b[1]):550); }
 function contactMin(M){ const dest=M.sat.dest||'leo', z=(O.zoneOf(M)||{}).k; const base=dest!=='leo'?480:z==='high'?1200:z==='med'?300:30; return base*(hasB('ground')?1.5:1)*(1+.1*dishN()); }
 function dataBud(M,d){ d=d||M.sat; const pid=d.placed.ray&&d.placed.ray.id, rid=d.placed.com&&d.placed.com.id, t=rid&&P[rid]?P[rid].db:null, gen=pid?payData(pid):0, dist=linkDist(M), ref=t?radioRef(t):1, rate=t?(+t.sv||0)*Math.min(1,Math.pow(ref/Math.max(dist,1),2)):0, cmin=contactMin(M), down=rate*cmin*60/8/1000;
   return {gen,down,rate,cmin,dist,ok:down>=gen-1e-9,k:gen>0?Math.min(1,down/gen):1}; }
@@ -7949,6 +8069,36 @@ function launchScene3(st,port,wide,vw){ const T=v=>String(v).replace(/&/g,'&amp;
   IR3.pending={room:'launch',st}; queueMicrotask(IR3.sync); const dis=st.busy?' dis':'';
   return '<div id="lsvg" class="full r3host r3fixed" data-3d="1" data-room="launch" role="img" aria-label="Launch pad seen from the bunker"></div><div class="lframe"></div><div class="lsub">'+T(st.sub||'')+'</div>'+
     '<div class="lcon"><button class="lbtn lgo'+dis+'" data-act="xlaunch">LAUNCH</button><div class="ldisp"><div class="lname">'+T(String(st.name).slice(0,18))+'</div><div id="lcnt">'+T(st.cnt||'T-10')+'</div><div class="ldur'+dis+'"><button class="lpm" data-act="durm" aria-label="Fewer months">−</button><span>'+T(st.dur)+' months</span><button class="lpm" data-act="durp" aria-label="More months">+</button></div></div><button class="lbtn lab'+dis+'" data-act="abort">ABORT</button></div>'; }
+/* ---------- v35 · Finestra di lancio (passo A) + MDR semplificata (passo B): dialoghi di Zorty ----------
+   M.lw = {s:'pending'|'done', k:'ontime'|'relaxed'} nasce in toB; senza M.lw (vecchi salvataggi) la finestra e' gia' risolta.
+   M.mdr = 'ask' | 'edit' | 'eol' | 'final' | 'done' scandisce i passi della MDR. La penale (L.LW) si applica una sola volta, in lwResolve. */
+let ZD=null;
+function zdClose(){ const e=document.getElementById('zdlg'); if(e) e.remove(); ZD=null; }
+function zdOpen(o){ if(ZD&&ZD.id===o.id&&document.getElementById('zdlg')) return; zdClose(); ZD=o; const sp=ZORTY.SPR, img=sp[o.pose]||sp.benvenuto||'', el=document.createElement('div'); el.id='zdlg'; el.className='zdlg'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','Zorty');
+  el.innerHTML='<img class="zds" alt="" src="'+img+'"><div class="zdb"><b>Zorty</b><p>'+esc(o.text)+'</p>'+(o.note?'<p class="zdn">'+esc(o.note)+'</p>':'')+'<div class="zdbt">'+o.btns.map(b=>'<button class="btn'+(b.cls?' '+b.cls:'')+'" data-act="'+b.act+'"'+(b.k?' data-k="'+b.k+'"':'')+'>'+esc(b.t)+'</button>').join('')+'</div></div>'; document.body.appendChild(el); }
+function lwPending(M){ return !!(M&&M.phase==='B'&&M.stage==='drm'&&M.lw&&M.lw.s==='pending'); }
+function lwWaitTxt(ms){ const s=Math.round(ms/1000); return s>=90?TX('circa '+Math.round(s/60)+' min','about '+Math.round(s/60)+' min'):TX('circa '+s+' s','about '+s+' s'); }
+function lwOpen(M){ if(!lwPending(M)) return; const P=L.LW, pp=Math.round(P.pay*100);
+  zdOpen({id:'lw',pose:'benvenuto',sel:'#zdlg [data-act="lwacc"]',tt:'Gli stakeholder chiedono questa finestra di lancio: accettala.',
+    text:TX('Gli stakeholder vorrebbero questa finestra di lancio: attesa '+lwWaitTxt(L.TIME.win)+' dopo il via libera. La accetti o ne scegli una più rilassata (attesa '+lwWaitTxt(L.TIME.win*3)+')?','The stakeholders would like this launch window: a wait of '+lwWaitTxt(L.TIME.win)+' after the Go. Do you accept it, or pick a more relaxed one (a wait of '+lwWaitTxt(L.TIME.win*3)+')?'),
+    note:TX('Rifiutare costa: soddisfazione degli stakeholder −'+P.joy+' e −'+pp+'% dei soldi che ti versano.','Refusing has a cost: stakeholder happiness −'+P.joy+' and −'+pp+'% of the money they pay you.'),
+    btns:[{act:'lwacc',cls:'primary',t:TX('Accetta la finestra degli stakeholder','Accept the stakeholders’ window')},{act:'lwrel',t:TX('Finestra rilassata (−'+P.joy+' soddisfazione, −'+pp+'% pagamenti)','Relaxed window (−'+P.joy+' happiness, −'+pp+'% payments)')}].concat(G.tut?[]:[{act:'lwlater',t:TX('Più tardi','Later')}])}); }
+function lwResolve(M,k){ if(!lwPending(M)) return false; const P=L.LW; M.lw.s='done'; M.lw.k=k; drmInit(M).win=k;
+  if(k==='relaxed'){ M.joy=M.joy||{}; (M.stake||[]).forEach(id=>{ const j=M.joy[id]==null?60:M.joy[id]; M.joy[id]=Math.max(0,j-P.joy); }); if(M.payK==null) M.payK=1-P.pay; }
+  zdClose(); sfx.ok(); save(); go('hub'); toast(k==='relaxed'?TX('Finestra rilassata scelta: gli stakeholder non sono contenti.','Relaxed window chosen: the stakeholders are not happy.'):TX('Finestra degli stakeholder accettata. Ora puoi creare la MDR.','Stakeholders’ window accepted. You can now create the MDR.')); return true; }
+function mdrState(M){ return M&&M.mdr&&M.mdr!=='done'?M.mdr:'ask'; }
+function mdrShow(M){ if(!M||M.phase!=='B'||M.stage!=='drm'||view!=='fd') return; if(lwPending(M)){ go('hub'); lwOpen(M); return; }
+  const land=drmLand(M), D=drmInit(M), s=land?'final':mdrState(M), rel=drmRel(M), lvO=E.LV[M.sat.lv], at=rel.circ?drmKm((rel.pe+rel.ap)/2):nf(rel.pe)+' × '+nf(rel.ap)+' km';
+  if(s==='edit') { zdClose(); return; }
+  if(s==='ask') zdOpen({id:'mdr-ask',pose:'attento',sel:'#zdlg [data-act="mdrno"]',tt:'Il razzo ti lascia a '+at+': nessun’altra orbita serve, rispondi No.',
+    text:TX('Il razzo ('+(lvO?lvO.n:'lanciatore')+') ti lascia in orbita a '+at+' per questa missione. Vuoi aggiungere altre orbite o modificare quelle della missione?','The rocket ('+(lvO?lvO.n:'launcher')+') leaves you in orbit at '+at+' for this mission. Do you want to add other orbits or change the mission orbits?'),
+    btns:[{act:'mdryes',t:TX('Sì, modifica','Yes, edit')},{act:'mdrno',cls:'primary',t:TX('No, va bene così','No, it is fine')}]});
+  else if(s==='eol') zdOpen({id:'mdr-eol',pose:'dubbio',sel:'#zdlg [data-act="mdreol"][data-k="deorbit"]',tt:'Fine missione: entro 5 anni l’orbita va liberata. Scegli il rientro.',
+    text:TX('Resta da decidere la fase finale: entro 5 anni dalla fine della missione l’orbita deve essere liberata. Cosa scegli?','One choice is left for the final phase: within 5 years of the mission end the orbit must be cleared. What do you choose?'),
+    btns:[{act:'mdreol',k:'deorbit',cls:'primary',t:TX('Deorbita','Deorbit')},{act:'mdreol',k:'grave',t:TX('Orbita cimitero','Graveyard orbit')}]});
+  else zdOpen({id:'mdr-final',pose:'benvenuto',sel:'#zdlg [data-act="mdrok"]',tt:'Questo è lo schema base della tua missione. Premi OK.',
+    text:TX('Questo è lo schema base dell’architettura della tua missione.','This is the basic scheme of your mission architecture.'),btns:[{act:'mdrok',cls:'primary',t:'OK'}]}); }
+
 /* ---------- finestra di lancio: Rush (subito, con un extra) · On time (quella chiesta dagli stakeholder, attesa breve) · Relaxed (nessun extra, attesa lunga, gli stakeholder si lamentano) ---------- */
 const WINK=['rush','ontime','relaxed'];
 const winMode=M=>{ const k=M&&M.drm&&M.drm.win; return WINK.indexOf(k)>=0?k:'ontime'; };
@@ -8023,7 +8173,7 @@ function decCard(M,fl){ const el=$('#dec'); if(!el) return; const p=fl&&fl.pendi
 const PLAN={};
 function planetCanvas(k){ if(PLAN[k]) return PLAN[k]; const S=256, cv=document.createElement('canvas'); cv.width=cv.height=S; const g=cv.getContext('2d'), r=E.rng(k.length*31+7), R=S/2-6;
   g.save(); g.beginPath(); g.arc(S/2,S/2,R,0,7); g.clip();
-  const base={moon:['#C9CED6','#6F7682'],leo:['#4A8FE0','#16346F'],mars:['#D9774C','#6E2A16'],venus:['#F0D79A','#9C7A36']}[k], gr=g.createRadialGradient(S*.38,S*.36,10,S/2,S/2,R); gr.addColorStop(0,base[0]); gr.addColorStop(1,base[1]); g.fillStyle=gr; g.fillRect(0,0,S,S);
+  const base={moon:['#C9CED6','#6F7682'],leo:['#4A8FE0','#16346F'],mars:['#D9774C','#6E2A16'],venus:['#F0D79A','#9C7A36']}[k]||E.EXT[k].pal, gr=g.createRadialGradient(S*.38,S*.36,10,S/2,S/2,R); gr.addColorStop(0,base[0]); gr.addColorStop(1,base[1]); g.fillStyle=gr; g.fillRect(0,0,S,S);
   if(k==='moon') for(let i=0;i<34;i++){ const x=r()*S, y=r()*S, rr=4+r()*20; g.fillStyle='rgba(60,64,72,'+(.12+r()*.2)+')'; g.beginPath(); g.arc(x,y,rr,0,7); g.fill(); g.strokeStyle='rgba(235,238,242,.25)'; g.beginPath(); g.arc(x-1,y-1,rr,3.4,5.6); g.stroke(); }
   if(k==='leo'){ for(let i=0;i<9;i++){ g.fillStyle=['#4E9A43','#7C8B4A','#A98D5B'][i%3]; g.beginPath(); g.ellipse(r()*S,40+r()*(S-80),18+r()*40,10+r()*26,r()*3,0,7); g.fill(); } g.fillStyle='rgba(255,255,255,.75)'; g.beginPath(); g.ellipse(S/2,10,R,22,0,0,7); g.fill(); for(let i=0;i<14;i++){ g.fillStyle='rgba(255,255,255,.4)'; g.beginPath(); g.ellipse(r()*S,r()*S,16+r()*30,3+r()*5,r(),0,7); g.fill(); } }
   if(k==='mars'){ for(let i=0;i<14;i++){ g.fillStyle='rgba(90,35,20,'+(.2+r()*.3)+')'; g.beginPath(); g.ellipse(r()*S,r()*S,14+r()*40,6+r()*16,r()*3,0,7); g.fill(); } g.fillStyle='#F6EFE8'; g.beginPath(); g.ellipse(S/2,12,46,14,0,0,7); g.fill(); }
@@ -8062,27 +8212,45 @@ function switcher(){ const el=$('#pop'); if(!el.hidden){ el.hidden=true; return;
 function statusLine(m){ if(m.phase==='D'&&m.stage==='assembly'&&m.asmWait) return 'da portare in camera bianca'; if(m.phase==='D'&&m.stage==='assembly') return now()>=m.buildEnd?'assemblaggio completato':'assemblaggio in corso'; if(m.phase==='B') return m.stage==='sat'?'progetto del satellite':m.stage==='orb'?'orbite in dettaglio':'design reference mission'; if(m.phase==='C') return 'costruzione'; if(m.phase==='E'||m.phase==='F'){ const fl=flightNow(m); return fl.pending?'decisione in attesa · mese '+fl.pending.m:'mese '+fl.f.month+' di '+m.duration; } if(m.phase==='done') return m.result&&m.result.ok?'missione riuscita':'missione chiusa'; if(m.phase==='D') return m.ready?'pronta al lancio':'in laboratorio'; return m.reqs.length+' requisiti'; }
 const STMT={moon:'Misurare la radiazione attorno alla Luna per proteggere i futuri equipaggi.',leo:'Osservare la Terra dall’orbita bassa e provare nuove tecnologie a basso costo.',mars:'Mappare la radiazione nell’orbita di Marte prima dell’arrivo dei primi esploratori.',venus:'Studiare l’atmosfera di Venere dall’orbita e capire perché è diventata un inferno.'};
 let PGN=0;
-function planet(k,r){ const D=E.DEST[k], gid='pg'+k+(++PGN); return '<svg viewBox="-40 -40 80 80" aria-hidden="true"><defs><radialGradient id="'+gid+'" cx=".35" cy=".35"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".25" stop-color="'+D.col+'"/><stop offset="1" stop-color="#1E2A3A"/></radialGradient></defs><circle r="'+(r||30)+'" fill="url(#'+gid+')"/>'+(k==='leo'?'<path d="M-14-8q8-10 18-4t10 12q-6 4-14 0z" fill="#4E9A43" opacity=".8"/>':'')+'</svg>'; }
+function planet(k,r){ const D=E.DEST[k], gid='pg'+k+(++PGN); return '<svg viewBox="-40 -40 80 80" aria-hidden="true"><defs><radialGradient id="'+gid+'" cx=".35" cy=".35"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".25" stop-color="'+D.col+'"/><stop offset="1" stop-color="#1E2A3A"/></radialGradient><clipPath id="'+gid+'c"><circle r="'+(r||30)+'"/></clipPath></defs>'+(E.EXT[k]&&E.EXT[k].behind?'<g transform="scale('+((r||30)/17)+')">'+E.EXT[k].behind+'</g>':'')+'<circle r="'+(r||30)+'" fill="url(#'+gid+')"/>'+(E.EXT[k]?'<g clip-path="url(#'+gid+'c)"><g transform="scale('+((r||30)/17)+')">'+E.EXT[k].deco+'</g></g>':'')+(k==='leo'?'<path d="M-14-8q8-10 18-4t10 12q-6 4-14 0z" fill="#4E9A43" opacity=".8"/>':'')+'</svg>'; }
 const fmtKm=n=>nf(n,0);
 function zoneBand(z){ return z.band?fmtKm(z.band[0])+'–'+fmtKm(z.band[1])+' km':z.alt?'a '+fmtKm(z.alt)+' km da Marte':z.surf?'sul suolo':'atterraggio'; }
 function zoneIcon(body,z){ const col=E.DEST[body].col, id='zi'+body+(z.k||'')+Math.random().toString(36).slice(2,6);
   let st=''; for(let i=0;i<60;i++){ st+='<circle cx="'+(((i*53)%400)-200)+'" cy="'+(((i*37)%80)-40)+'" r="'+(i%3?.5:.9)+'" fill="#fff" opacity="'+(.35+(i%4)*.15)+'"/>'; }
   const surf=z.surf, R=surf?60:17, cy=surf?66:0;
-  const deco={leo:'<path d="M-9 -8q6-5 12 0t4 9q-6 4-11-1zM4 6q5-2 8 2-3 5-8 2z" fill="#4FA35B" opacity=".9"/>',moon:'<circle cx="-6" cy="-5" r="3.2" fill="#000" opacity=".15"/><circle cx="6" cy="4" r="4" fill="#000" opacity=".13"/><circle cx="-3" cy="8" r="2" fill="#000" opacity=".15"/>',mars:'<path d="M-12 -4q8-4 14 1t10 2" stroke="#8C3A22" stroke-width="3" fill="none" opacity=".5"/><ellipse cx="0" cy="-15" rx="5" ry="1.6" fill="#fff" opacity=".8"/>',venus:'<path d="M-16 -6q16-4 32 0M-16 2q16 4 32 0M-14 9q14-3 28 0" stroke="#fff" stroke-width="2.2" fill="none" opacity=".35"/>'}[body]||'';
+  const deco={leo:'<path d="M-9 -8q6-5 12 0t4 9q-6 4-11-1zM4 6q5-2 8 2-3 5-8 2z" fill="#4FA35B" opacity=".9"/>',moon:'<circle cx="-6" cy="-5" r="3.2" fill="#000" opacity=".15"/><circle cx="6" cy="4" r="4" fill="#000" opacity=".13"/><circle cx="-3" cy="8" r="2" fill="#000" opacity=".15"/>',mars:'<path d="M-12 -4q8-4 14 1t10 2" stroke="#8C3A22" stroke-width="3" fill="none" opacity=".5"/><ellipse cx="0" cy="-15" rx="5" ry="1.6" fill="#fff" opacity=".8"/>',venus:'<path d="M-16 -6q16-4 32 0M-16 2q16 4 32 0M-14 9q14-3 28 0" stroke="#fff" stroke-width="2.2" fill="none" opacity=".35"/>'}[body]||(E.EXT[body]?E.EXT[body].deco:'');
   let s='<svg viewBox="-60 -36 120 72" aria-hidden="true" style="overflow:hidden"><defs><radialGradient id="'+id+'g" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="'+col+'" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient><radialGradient id="'+id+'a" r=".5"><stop offset=".72" stop-color="'+col+'" stop-opacity=".45"/><stop offset="1" stop-color="'+col+'" stop-opacity="0"/></radialGradient><linearGradient id="'+id+'s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0A1226"/><stop offset="1" stop-color="#16244A"/></linearGradient><clipPath id="'+id+'c"><circle r="'+R+'" cy="'+cy+'"/></clipPath></defs><rect x="-200" y="-40" width="400" height="80" fill="url(#'+id+'s)"/>'+st;
   const sat=(x,y,a)=>'<g transform="translate('+x.toFixed(1)+' '+y.toFixed(1)+') rotate('+(a||-20)+')"><rect x="-8" y="-1.6" width="5.5" height="3.2" fill="#3A78D8" stroke="#BFD6FF" stroke-width=".4"/><rect x="2.5" y="-1.6" width="5.5" height="3.2" fill="#3A78D8" stroke="#BFD6FF" stroke-width=".4"/><rect x="-2.4" y="-2.2" width="4.8" height="4.4" rx=".8" fill="#F2EDE6"/><circle r=".9" fill="#F0B43A"/></g>';
-  const planet='<circle r="'+(R*1.22)+'" cy="'+cy+'" fill="url(#'+id+'a)"/><circle r="'+R+'" cy="'+cy+'" fill="'+col+'"/><g clip-path="url(#'+id+'c)"><g transform="translate(0 '+cy+') scale('+(R/17)+')">'+deco+'</g><circle r="'+R+'" cy="'+cy+'" fill="url(#'+id+'g)"/></g>';
+  const planet='<circle r="'+(R*1.22)+'" cy="'+cy+'" fill="url(#'+id+'a)"/>'+(E.EXT[body]&&E.EXT[body].behind?'<g transform="translate(0 '+cy+') scale('+(R/17)+')">'+E.EXT[body].behind+'</g>':'')+'<circle r="'+R+'" cy="'+cy+'" fill="'+col+'"/><g clip-path="url(#'+id+'c)"><g transform="translate(0 '+cy+') scale('+(R/17)+')">'+deco+'</g><circle r="'+R+'" cy="'+cy+'" fill="url(#'+id+'g)"/></g>';
   if(z.band){ const r=z.k==='low'?24:z.k==='med'?34:47, ry=r*.32, w=z.k==='low'?3:z.k==='med'?6:3;
     const arc=(sw,front,stl)=>'<path d="M'+(-r)+' 0A'+r+' '+ry+' 0 0 '+(front?0:1)+' '+r+' 0" fill="none" '+stl+' stroke-width="'+sw+'" stroke-linecap="round"/>';
     s+=arc(w*2.4,0,'stroke="#F07B3F" stroke-opacity=".18"')+arc(1.4,0,'stroke="#F07B3F" stroke-opacity=".55" stroke-dasharray="3 3"')+planet+arc(w*2.4,1,'stroke="#F07B3F" stroke-opacity=".18"')+arc(2.2,1,'stroke="#F07B3F"')+sat(r*.62,ry*.78,-15); }
   else if(surf){ s+=planet+'<g transform="translate(-4 -1)"><rect x="-9" y="-9" width="18" height="6" rx="2" fill="#F2EDE6"/><rect x="-2" y="-14" width="7" height="5" rx="1" fill="#F2EDE6"/><path d="M3 -14v-5" stroke="#F2EDE6" stroke-width="1.4"/><circle cx="3" cy="-20" r="1.8" fill="#F07B3F"/>'+[-7,0,7].map(x=>'<circle cx="'+x+'" cy="-2" r="2.6" fill="#1E2024" stroke="#888" stroke-width=".6"/>').join('')+'</g>'; }
   else { const mc=z.to?'#C9CED6':'#8B7D6B'; s+=planet+'<ellipse cx="22" cy="-4" rx="26" ry="9" fill="none" stroke="#F07B3F" stroke-opacity=".5" stroke-dasharray="3 3"/><circle cx="44" cy="-6" r="'+(z.to?9:6)+'" fill="'+mc+'"/><circle cx="44" cy="-6" r="'+(z.to?9:6)+'" fill="url(#'+id+'g)"/>'+sat(30,-14,10); }
   return s+'</svg>'; }
+/* Catalogo "Tutti i corpi celesti". Dati (valori inventati, plausibili): d = distanza media dalla Terra in milioni di km, days = viaggio di sola andata,
+   dv = delta-v dalla LEO in m/s, c = costo base in crediti, lvl = livello richiesto, types = tipi di missione consentiti (chiavi O.TYPES), play = 1 se gia' volabile nel gioco.
+   Mercurio, Giove, Saturno, Urano, Nettuno e Sole NON hanno ancora zone/lanciatori/DRM: si vedono e si scelgono (anteprima), ma la missione non si crea. */
+const BODIES={
+  leo:{n:'Terra',col:'#3E7BD6',d:0,days:0,dv:0,c:90,lvl:1,types:['sci','obs','tel','com','deb','demo'],play:1},
+  moon:{n:'Luna',col:'#C9CED6',d:0.38,days:4,dv:300,c:1200,lvl:5,types:['sci','obs','tel','com','deb','demo'],play:1},
+  venus:{n:'Venere',col:'#E2C27A',d:41,days:150,dv:700,c:3000,lvl:15,types:['sci','obs','demo'],play:1},
+  mars:{n:'Marte',col:'#C8603A',d:78,days:210,dv:650,c:3000,lvl:10,types:['sci','obs','tel','com','demo'],play:1}
+};
+/* batch 4: i sei corpi esterni derivano da E.EXT (fonte unica) e sono volabili */
+Object.keys(E.EXT).forEach(k=>{ const x=E.EXT[k]; BODIES[k]={n:x.n,col:x.col,d:x.d,days:x.days,dv:x.dv,c:x.c,lvl:x.lvl,types:x.types,ext:x.ext,play:1}; });
+function nmAll(){ const lv=L.level(G.xp);
+  $('#nmZone').innerHTML='<h3>Catalogo</h3><h2>Tutti i corpi celesti</h2><p class="fine">Il Sole e tutti i pianeti del Sistema Solare. Distanze, tempi e costi sono stime di gioco.</p><div class="dests">'+Object.keys(BODIES).map(k=>{ const B=BODIES[k], lock=lv<B.lvl;
+    return '<button class="dcard'+(lock?' lock':'')+'" data-act="extpick" data-k="'+k+'"'+(lock?' disabled':'')+'><svg viewBox="-40 -40 80 80" aria-hidden="true"><circle r="30" fill="'+B.col+'"/>'+(k==='saturn'?'<ellipse rx="38" ry="9" fill="none" stroke="#E3CE9C" stroke-width="3"/>':'')+'</svg><b>'+B.n+'</b><small>'+(lock?'🔒 livello '+B.lvl:(B.play?'volabile ora':'anteprima'))+' · '+B.d+' Mkm · '+B.days+' g · Δv '+B.dv+' m/s · '+keur(B.c)+'</small></button>'; }).join('')+'</div><div class="row"><button class="btn" data-act="nmback">← Indietro</button></div>';
+  $('#nmMain').hidden=true; $('#nmZone').hidden=false; }
 const nmState={dest:'leo',zone:'low'};
-function nmStmt(){ const z=O.ZONES[nmState.dest].find(x=>x.k===nmState.zone)||{}, art={moon:['alla Luna','della Luna'],leo:['alla Terra','della Terra'],mars:['a Marte','di Marte'],venus:['a Venere','di Venere']}[nmState.dest], t=$('#mt')?$('#mt').value:'sci';
-  if(z.surf) return 'Portare un rover sulla superficie '+art[1]+' e studiarne il suolo da vicino.';
-  if(z.moon) return 'Atterrare su '+z.n.split(' ·')[0]+' e studiare il suolo di una luna di Marte.';
-  return O.stmt(t,nmState.dest); }
+const STE={sci:'Measure the radiation environment around {A}, near and far.',obs:'Map {A} from a low polar orbit, as completely as possible.',tel:'Take a small telescope to a high, stable orbit around {A}.',com:'Put a relay into orbit around {A} to link future missions.',deb:'Reach an old abandoned stage around {A} and take it away.',demo:'Test in flight, around {A}, a technology that has never flown.'};
+function nmStmt(){ const z=O.ZONES[nmState.dest].find(x=>x.k===nmState.zone)||{}, art={moon:['alla Luna','della Luna'],leo:['alla Terra','della Terra'],mars:['a Marte','di Marte'],venus:['a Venere','di Venere']}[nmState.dest]||E.EXT[nmState.dest].gen, t=$('#mt')?$('#mt').value:'sci';
+  const en=LANG==='en', artE=({moon:'the Moon',leo:'Earth',mars:'Mars',venus:'Venus'}[nmState.dest])||E.EXT[nmState.dest].en;
+  if(E.EXT[nmState.dest]&&en) return (STE[t]||STE.sci).replace('{A}',artE);
+  if(z.surf) return en?'Take a rover to the surface of '+artE+' and study its soil up close.':'Portare un rover sulla superficie '+art[1]+' e studiarne il suolo da vicino.';
+  if(z.moon) return en?'Land on '+z.n.split(' ·')[0]+' and study the soil of a moon of Mars.':'Atterrare su '+z.n.split(' ·')[0]+' e studiare il suolo di una luna di Marte.';
+  return en?I18N.tr(O.stmt(t,nmState.dest)):O.stmt(t,nmState.dest); }
 function nmLanding(){ const z=O.ZONES[nmState.dest].find(x=>x.k===nmState.zone)||{}; return !!(z.surf||z.moon); }
 const TYPEC={};
 function typeAvail(t){ const lv=L.level(G.xp), key=[lv,nmState.dest,nmState.zone,t,G.pad?1:0,(E.STAKE.length)].join('|'); if(key in TYPEC) return TYPEC[key];
@@ -8090,7 +8258,7 @@ function typeAvail(t){ const lv=L.level(G.xp), key=[lv,nmState.dest,nmState.zone
   let ok=false; try{ ok=L.typeOK(Mx); }catch(e){ ok=true; } return TYPEC[key]=ok; }
 function nmSync(){ const z=O.ZONES[nmState.dest].find(x=>x.k===nmState.zone), lnd=nmLanding(), sel=$('#mt');
   $('#nmSum').innerHTML=planet(nmState.dest,26)+'<div><b>'+esc(E.DEST[nmState.dest].n)+' · '+esc(z.n)+'</b><span class="fine">'+esc(zoneBand(z))+(lnd?' · stadio di discesa '+keur((O.LAND[nmState.dest]&&z.surf?O.LAND[nmState.dest]:O.LAND[z.k]||{}).cost||0):'')+'</span></div><button class="btn small" data-act="nmplanet">Cambia</button>';
-  Array.from(sel.options).forEach(o=>{ const base=O.TYPES[o.value].n, land=lnd&&['tel','com','deb'].indexOf(o.value)>=0, ok=!land&&typeAvail(o.value); o.disabled=!ok; o.textContent=base+(ok?'':' · 🔒 '+(land?'non sul suolo':'non ancora possibile')); }); if(sel.selectedOptions[0].disabled){ const f=Array.from(sel.options).find(o=>!o.disabled); if(f) sel.value=f.value; }
+  Array.from(sel.options).forEach(o=>{ const base=O.TYPES[o.value].n, land=lnd&&['tel','com','deb'].indexOf(o.value)>=0, xt=!!E.EXT[nmState.dest]&&E.EXT[nmState.dest].types.indexOf(o.value)<0, ok=!land&&!xt&&typeAvail(o.value); o.disabled=!ok; o.textContent=base+(ok?'':' · 🔒 '+(land?'non sul suolo':xt?'non per questo corpo':'')); }); if(sel.selectedOptions[0].disabled){ const f=Array.from(sel.options).find(o=>!o.disabled); if(f) sel.value=f.value; }
   $('#mtd').textContent=Array.from(sel.options).some(o=>o.disabled&&!(lnd&&['tel','com','deb'].indexOf(o.value)>=0))?O.TYPES[sel.value].s+' I tipi con il lucchetto non hanno ancora un payload o un propulsore adatto al tuo livello: si sbloccano salendo.':lnd?'Sul suolo il payload è un '+(z.surf?'rover':'lander con trivella')+': servono missioni scientifiche, di osservazione o dimostrative.':O.TYPES[sel.value].s;
   const ms=$('#ms'); if(ms.dataset.auto==='1') ms.value=nmStmt(); }
 const maxActive=()=>L.maxActiveAt(L.level(G.xp)), activeN=()=>G.missions.filter(m=>m.phase!=='done').length;
@@ -8098,7 +8266,7 @@ function newMission(){ if(activeN()>=maxActive()){ toast('Al livello '+L.level(G
   el.innerHTML='<div class="rv wide" role="dialog" aria-modal="true"><div id="nmMain"><h3>Nuova missione</h3><h2>Che missione vuoi fare?</h2><div class="nm"><div><label for="mn">Titolo</label><input type="text" id="mn" maxlength="18" value="'+esc(['AURASAT','SELENE-1','LUX','ORBIS','ARTEMIDE','HERMES'][G.missions.length%6])+'">'+
     '<label for="mt" style="margin-top:14px">Tipo di missione</label><select id="mt">'+Object.keys(O.TYPES).map(k=>'<option value="'+k+'">'+O.TYPES[k].n+'</option>').join('')+'</select><p class="fine" id="mtd" hidden></p>'+
     '<label for="ms" style="margin-top:14px">Mission statement</label><textarea id="ms" rows="3" maxlength="280" data-auto="1"></textarea></div>'+
-    '<div><label>Destinazione</label><div class="nmsum" id="nmSum"></div><label style="margin-top:12px">Scegli il corpo</label><div class="dests">'+Object.keys(E.DEST).map(k=>{ const D=E.DEST[k], lock=lv<D.lvl; return '<button class="dcard'+(k===nmState.dest?' sel':'')+(lock?' lock':'')+'" data-act="dest" data-k="'+k+'"'+(lock?' disabled':'')+'>'+planet(k)+'<b>'+D.n+'</b><small>'+(lock?'🔒 livello '+D.lvl:O.ZONES[k].length+' destinazioni')+'</small></button>'; }).join('')+'</div></div></div>'+
+    '<div><label>Destinazione</label><div class="nmsum" id="nmSum"></div><label style="margin-top:12px">Scegli il corpo</label><div class="dests">'+Object.keys(E.DEST).map(k=>{ const D=E.DEST[k], lock=lv<D.lvl; return '<button class="dcard'+(k===nmState.dest?' sel':'')+(lock?' lock':'')+'" data-act="dest" data-k="'+k+'"'+(lock?' disabled':'')+'>'+planet(k)+'<b>'+D.n+'</b><small>'+(lock?'🔒 livello '+D.lvl:O.ZONES[k].length+' destinazioni')+'</small></button>'; }).join('')+'</div><button class="btn small" style="margin-top:8px" data-act="nmall">🪐 Tutti i pianeti e il Sole</button></div></div>'+
     '<div class="row"><button class="btn primary" data-act="mkm">Crea la missione</button><button class="btn" data-act="closeov">Annulla</button></div></div><div id="nmZone" hidden></div></div>'; el.hidden=false; $('#pop').hidden=true;
   $('#ms').addEventListener('input',e=>{ e.target.dataset.auto='0'; }); $('#mt').addEventListener('change',()=>nmSync()); nmSync(); }
 function nmZones(k){ const lv=L.level(G.xp), D=E.DEST[k], Z=O.ZONES[k];
@@ -8168,7 +8336,7 @@ function mcrReview(M){ const r=M.result; if(!r) return; const X=mcrParts(M), fl=
 
 /* ---------- azioni ---------- */
 const ACT={
-  enter(t){ $('#pop').hidden=true; if(t.dataset.k==='pad'&&!G.pad){ padModal(); return; } sfx.tap(); go(t.dataset.k); }, home(){ go('hub'); },
+  enter(t){ $('#pop').hidden=true; if(t.dataset.k==='pad'&&!G.pad){ padModal(); return; } if(t.dataset.k==='fd'&&lwPending(cur())){ sfx.tap(); lwOpen(cur()); toast(TX('Prima scegli la finestra di lancio.','First choose the launch window.')); return; } sfx.tap(); go(t.dataset.k); }, home(){ go('hub'); },
   switch(){ if(!G.missions.length){ newMission(); return; } switcher(); },
   setcur(t){ G.cur=+t.dataset.i; $('#pop').hidden=true; $('#drawer').hidden=true; sfx.tap(); render(); },
   newm(){ if(G.tut){ toast('Prima finisci il tutorial, oppure saltalo.'); sfx.bad(); return; } newMission(); }, closeov(){ closeOv(); }, closedr(){ $('#drawer').hidden=true; },
@@ -8176,7 +8344,10 @@ const ACT={
     if(activeN()>=maxActive()){ toast('Troppe missioni aperte.'); return; } const first=!G.missions.length, M=L.newMission(n,'m'+Date.now().toString(36)); M.first=first; M.statement=($('#ms').value||'').trim().slice(0,280); M.sat.dest=D; M.zone=nmState.zone; M.stake=['nasa']; M.sat.stake=M.stake; M.type=$('#mt').value; if($('#mt').selectedOptions[0].disabled){ toast('Questo tipo di missione non è ancora possibile al tuo livello.'); return; } M.lvl=L.level(G.xp); G.missions.push(M); G.cur=G.missions.length-1; closeOv(); sfx.ok(); render(); toast(M.name+' creata. Entra nell’edificio amministrativo: la NASA ti aspetta al tavolo.'); },
   dest(t){ sfx.tap(); nmZones(t.dataset.k); },
   nmplanet(){ sfx.tap(); nmZones(nmState.dest); },
-  nmback(){ $('#nmZone').hidden=true; $('#nmMain').hidden=false; },
+  nmall(){ sfx.tap(); nmAll(); },
+extpick(t){ const k=t.dataset.k, B=BODIES[k]; if(!B) return; if(B.play&&E.DEST[k]){ sfx.tap(); nmZones(k); return; }
+  const ty=B.types.map(x=>O.TYPES[x]?O.TYPES[x].n:x).join(', '); toast(B.n+': '+B.ext+'. Missioni consentite: '+ty+'. Il viaggio fin lì non è ancora volabile (anteprima).'); sfx.bad(); },
+nmback(){ $('#nmZone').hidden=true; $('#nmMain').hidden=false; },
   zone(t){ let b=t.dataset.b, k=t.dataset.k; const z=O.ZONES[b].find(x=>x.k===k); if(z.to){ b=z.to.dest; k=z.to.zone; } nmState.dest=b; nmState.zone=k; $$('.dcard').forEach(x=>x.classList.toggle('sel',x.dataset.k===b)); $('#nmZone').hidden=true; $('#nmMain').hidden=false; sfx.ok(); nmSync(); },
   pickLV(t){ const M=cur(); if(M.phase!=='B') return; if(M.sat.lv===t.dataset.k){ closeOv(); return; } M.sat.lv=t.dataset.k; sfx.tap(); if(M.drm){ const keep=M.drm.eol, was=M.drm.done; M.drm=null; drmInit(M); if(keep&&!drmLand(M)) M.drm.eol=keep; if(was) M.drm.done=true; /* cambiare razzo non annulla il passo del satellite */ } closeOv(); render(); },
   drmlv(){ const M=cur(); const el=$('#ov'); el.innerHTML='<div class="rv wide" role="dialog" aria-modal="true"><h3>Design Reference Mission</h3><h2>Come vai nello spazio</h2><p class="fine">Il lanciatore decide l’orbita di rilascio: il primo passaggio della tua missione.</p>'+fdLaunch(M)+'<div class="row"><button class="btn" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; },
@@ -8206,7 +8377,7 @@ const ACT={
   sec(t){ offSec=t.dataset.k; $$('[data-act="sec"]').forEach(b=>b.classList.toggle('on',b.dataset.k===offSec)); renderSponsors(); },
   recruit(t){ const id=t.dataset.k, lv=L.level(G.xp), picks=L.sponsorSlots(lv)-G.recruited.length; if(picks<=0){ toast('Un nuovo sponsor si sblocca al prossimo livello.'); return; } G.recruited.push(id); L.addSponsor(id); sfx.stamp(); toast(E.stk(id).n+' è nel tuo roster: lo trovi nell’edificio amministrativo.'); render(); },
   askreset(){ $('#drawer').hidden=true; review({eb:'Attenzione',name:'Ricominciare da capo?',code:'—',nasa:'—',body:'<p>Cancelli agenzia, missioni, edifici, macchinari, sponsor e livello. Non si torna indietro.</p>',actions:'<button class="btn no" data-act="reset">Sì, ricomincia</button><button class="btn" data-act="closeov">Annulla</button>'}); },
-  reset(){ try{ localStorage.removeItem('gng32.save'); }catch(e){} for(let i=E.STAKE.length-1;i>=0;i--) if(E.STAKE[i].sponsor||E.STAKE[i].ag) E.STAKE.splice(i,1); G=newG(); closeOv(); view='hub'; render(); welcome(); },
+  reset(){ try{ localStorage.removeItem('gng32.save'); }catch(e){} for(let i=E.STAKE.length-1;i>=0;i--) if(E.STAKE[i].sponsor||E.STAKE[i].ag) E.STAKE.splice(i,1); G=newG(); CUST=null; CBAR=false; closeOv(); view='hub'; render(); welcome(); },
   speed(){ G.speed=1; },
   lang(){ try{ localStorage.setItem('gngLang',LANG==='en'?'it':'en'); }catch(e){} save(); location.reload(); },
   hmenu(){ document.body.classList.toggle('hmo'); sfx.tap(); hud(); },
@@ -8229,8 +8400,15 @@ const ACT={
       review({eb:'Fine fase 0',name:'Mission Definition Review',code:'MDR',nasa:'Mission Concept Review',stamp:'GO',short:LANG==='en'?'Mission requirements approved. <b class="num">'+keur(fund)+'</b> promised, paid in instalments.':'Requisiti di missione approvati. Promessi <b class="num">'+keur(fund)+'</b>, pagati a rate.',body:'<p>'+M.reqs.length+' requisiti di missione. Gli stakeholder promettono <b class="num">'+keur(fund)+'</b>, ma pagano a rate, alle revisioni.</p>'+payPlan(M,'MDR'),actions:'<button class="btn primary" data-act="toA">Incassa la prima rata e vai avanti</button>'}); }
     else { M.stage='done'; review({eb:'Fine fase A',name:'System Requirements Review',code:'PRR',nasa:'System Requirements Review',stamp:'GO',short:LANG==='en'?'System requirements set. Now you draw the orbit.':'Requisiti di sistema fissati. Ora si disegna l’orbita.',body:'<p>'+esc(E.RIDES[M.sat.ride].n)+' · '+M.reqs.filter(x=>x.kind==='SYS').length+' requisiti di sistema. In fase B si fa l’analisi orbitale nel Centro di dinamica del volo.</p>',actions:'<button class="btn primary" data-act="toB">Avanti</button>'}); } },
   toA(){ const M=cur(); closeOv(); const first=once(M,'MDR'), inst=first?L.installment(M,'MDR'):0; M.got=(M.got||0)+inst; if(inst) addMoney(inst); if(first) gainXP(L.XP.MDR); M.phase='A'; M.stage='type'; render(); toast((inst?'Prima rata: '+keur(inst)+'. ':'')+'Fase A: rientra nell’edificio amministrativo per scegliere il satellite e sentire lo staff tecnico.'); },
-  pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.stake=M.stake; d.acc=d.acc||{}; E.prune(d); d.sol=L.availSol(M,d.ride)[0]||d.sol; L.startMeeting(M,'A'); sfx.ok(); render(); },
-  toB(){ const M=cur(); closeOv(); if(once(M,'SRR')) gainXP(L.XP.PRR); M.phase='B'; M.stage='drm'; if(!M.sat.lv){ const ks=Object.keys(E.LV).filter(k=>lvShown(k,M)&&!lvLock(k,M)&&E.LV[k].fits.indexOf(M.sat.ride)>=0); if(ks.length) M.sat.lv=ks[0]; } render(); toast('Fase B: esci e vai al Centro di dinamica del volo per disegnare la missione (DRM).'); },
+  pickFree(){ if(!freeBuildOpen()){ toast('Costruzione libera: si sblocca al livello '+FREE_LVL+' (non in modalità creativa).'); sfx.bad(); return; } toast('Costruzione libera: in arrivo (nessun satellite creato).'); },
+pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.stake=M.stake; d.acc=d.acc||{}; E.prune(d); d.sol=L.availSol(M,d.ride)[0]||d.sol; L.startMeeting(M,'A'); sfx.ok(); render(); },
+  toB(){ const M=cur(); closeOv(); if(once(M,'SRR')) gainXP(L.XP.PRR); M.phase='B'; M.stage='drm'; if(!M.sat.lv){ const ks=Object.keys(E.LV).filter(k=>lvShown(k,M)&&!lvLock(k,M)&&E.LV[k].fits.indexOf(M.sat.ride)>=0); if(ks.length) M.sat.lv=ks[0]; } if(!M.lw){ M.lw={s:'pending'}; M.mdr='ask'; } go('hub'); lwOpen(M); toast('Fase B: scegli la finestra di lancio, poi vai al Centro di dinamica del volo per la MDR.'); },
+  lwacc(){ lwResolve(cur(),'ontime'); }, lwrel(){ lwResolve(cur(),'relaxed'); }, lwlater(){ zdClose(); sfx.tap(); },
+  mdryes(){ const M=cur(); zdClose(); M.mdr='edit'; sfx.tap(); render(); const vw=$('#view'); if(vw) vw.classList.add('openL'); },
+  mdrno(){ const M=cur(); zdClose(); if(!drmLand(M)&&drmStarH(M)==null){ toast(TX('Nessuna orbita nella fascia obiettivo: aggiungine una.','No orbit in the target band: add one.')); M.mdr='edit'; } else M.mdr='eol'; sfx.tap(); render(); },
+  mdredone(){ const M=cur(); if(drmStarH(M)==null){ sfx.bad(); return; } M.mdr='eol'; sfx.tap(); render(); },
+  mdreol(t){ const M=cur(), k=t.dataset.k; drmInit(M).eol={k:k==='grave'?'grave':(M.sat.dest||'leo')==='moon'?'impact':'reentry'}; zdClose(); M.mdr='final'; sfx.put(); save(); render(); },
+  mdrok(){ const M=cur(); zdClose(); ACT.bstep({dataset:{k:'sat'}}); if(M.stage==='sat') M.mdr='done'; else { M.mdr='edit'; render(); } },
   ride(t){ const d=cur().sat, k=t.dataset.k; d.ride=k; E.prune(d); sel=null; sfx.tap(); bRefresh(); },
   stab(t){ shelfTab=t.dataset.k; sfx.tap(); renderShelf(); },
   ssort(t){ shelfSort=t.dataset.k; sfx.tap(); renderShelf(); },
@@ -8254,17 +8432,18 @@ const ACT={
   bay(t){ bayModal(+t.dataset.i); },
   install(t){ const k0=t.dataset.k, m0=L.MACH[k0]; if(G.money<m0.c){ toast('Non hai abbastanza soldi.'); sfx.bad(); return; } if(G.lab.length>=LABMAX){ toast('Laboratorio pieno.'); return; } closeOv(); RPLACE={room:'test',k:k0}; RSEL=null; go('test'); toast('Tocca un punto libero del laboratorio per posizionare '+m0.n.toLowerCase()+'.'); },
   installOld(t){ const k=t.dataset.k, m=L.MACH[k]; if(G.money<m.c){ toast('Non hai abbastanza soldi.'); sfx.bad(); return; } addMoney(-m.c); G.lab[+t.dataset.i]=k; closeOv(); sfx.put(); toast(m.n+' installato.'); render(); },
-  plot(t){ CTAB='Edifici'; CBAR=true; G.cedit=true; go('hub'); },
+  plot(t){ CTAB='Edifici'; CBAR=true; G.cedit=true; CUST='campus'; go('hub'); },
   cplace(t){ const k=t.dataset.k, ki=cKind(k); if(k==='dish'&&!hasB('ground')){ toast('Le antenne si collegano alla stazione di terra: costruiscila prima (Edifici).'); sfx.bad(); return; } if(L.level(G.xp)<ki.lvl){ toast('Si sblocca al livello '+ki.lvl+'.'); return; } if(cBuilt(k)){ toast('Già costruito.'); return; } if(G.money<ki.c){ toast('Non hai abbastanza crediti.'); sfx.bad(); return; } if(SREQ[k]&&G.staff-staffNeed()<SREQ[k]){ toast(ki.n+': servono '+SREQ[k]+' dipendenti liberi, ne hai '+Math.max(0,G.staff-staffNeed())+'. Assumili (ognuno vuole un posto auto).'); sfx.bad(); staffModal(); return; } CPLACE={k}; CSEL=null; if(innerWidth<640&&G.world.cam.z>.7){ cZoom(.7/G.world.cam.z); } sfx.tap(); render(); },
-  ctab(t){ CTAB=t.dataset.k; sfx.tap(); render(); }, cbar(){ CBAR=!CBAR; G.cedit=CBAR; CSEL=null; if(!CBAR) CPLACE=null; sfx.tap(); render(); }, cesc(){ CPLACE=null; render(); },
+  ctab(t){ CTAB=t.dataset.k; sfx.tap(); render(); }, cbar(){ custOpen(null); }, cesc(){ CPLACE=null; render(); },
   czoom(t){ cZoom(+t.dataset.k>0?1.2:1/1.2); save(); },
-  cedit(){ G.cedit=!G.cedit; CBAR=G.cedit; CSEL=null; CPLACE=null; sfx.tap(); render(); },
+  cedit(){ custOpen(CUST==='campus'?null:'campus'); },
+  cust(){ custOpen(CUST?null:'campus'); }, custclose(){ custOpen(null); }, custtab(t){ if(t.dataset.k!==CUST) custOpen(t.dataset.k); },
   cmove(){ const it=G.world.items.find(i=>i.id===CSEL); if(!it) return; CPLACE={k:it.k,moveId:it.id}; sfx.tap(); render(); },
   cdel(){ const W=G.world, it=W.items.find(i=>i.id===CSEL); if(!it||CAM.K[it.k].core) return; if(it.k==='parking'&&spaces()-SPACES<G.staff){ toast('Senza questo parcheggio '+(G.staff-(spaces()-SPACES))+' dipendenti resterebbero senza posto auto.'); sfx.bad(); return; } if(SREQ[it.k]){ /* l'edificio libera i suoi dipendenti */ } const ki=cKind(it.k); W.items=W.items.filter(i=>i!==it); if(L.BUILD[it.k]) G.plots=G.plots.filter(k=>k!==it.k); addMoney(Math.round(ki.c/2)); CSEL=null; sfx.tap(); toast(ki.n+' rimosso.'); save(); render(); },
-  flagedit(){ flagModal(); }, flcol(t){ FLST.col=t.dataset.k; $$('.fled .pal button').forEach(b=>b.classList.toggle('on',b.dataset.k===FLST.col)); },
+  flagedit(){ if(view!=='hub'){ custSet('flag'); go('hub'); } else custOpen('flag'); }, flcol(t){ FLST.col=t.dataset.k; $$('.fled .pal button').forEach(b=>b.classList.toggle('on',b.dataset.k===FLST.col)); },
   flsize(t){ FLST.size=+t.dataset.k; }, flfill(){ const cv=$('#flc'); if(!cv) return; const cx=cv.getContext('2d'); cx.fillStyle=FLST.col; cx.fillRect(0,0,300,180); }, fltpl(t){ flagTpl(t.dataset.k); },
-  flsave(){ const cv=$('#flc'); if(!cv) return; const c2=document.createElement('canvas'); c2.width=150; c2.height=90; c2.getContext('2d').drawImage(cv,0,0,150,90); G.flag=c2.toDataURL('image/png'); closeOv(); sfx.stamp(); toast('Bandiera dipinta sull’edificio di costruzione.'); save(); render(); },
-  flreset(){ G.flag=null; closeOv(); save(); render(); },
+  flsave(){ const cv=$('#flc'); if(!cv) return; const c2=document.createElement('canvas'); c2.width=150; c2.height=90; c2.getContext('2d').drawImage(cv,0,0,150,90); G.flag=c2.toDataURL('image/png'); sfx.stamp(); toast('Bandiera dipinta sull’edificio di costruzione.'); save(); render(); },
+  flreset(){ G.flag=null; FLDRAFT=null; const cv0=$('#flc'); if(cv0) cv0.remove(); save(); render(); },
   buildb(t){ const k=t.dataset.k, b=L.BUILD[k]; if(G.money<b.c){ toast('Non hai abbastanza soldi.'); sfx.bad(); return; } addMoney(-b.c); G.plots[+t.dataset.i]=k; closeOv(); sfx.stamp(); toast(b.n+' costruito: '+b.s); render(); },
   binfo(t){ facK=t.dataset.k||G.plots[+t.dataset.i]; sfx.tap(); go('fac'); },
   binfoOld(t){ const k=G.plots[+t.dataset.i], b=L.BUILD[k]; review({eb:'Edificio',name:b.n,code:'—',nasa:'—',body:'<p>'+b.s+'</p><p class="fine">Effetto attivo su tutte le missioni.</p>',actions:'<button class="btn primary" data-act="closeov">Chiudi</button>'}); },
@@ -8281,8 +8460,8 @@ const ACT={
       const sm=$('#lsmk'); if(sm) sm.innerHTML=[-150,-90,-40,40,90,150,-200,200].map((x,i)=>'<circle class="puff" cx="'+(640+x)+'" cy="'+(540-Math.abs(x)*.08)+'" r="'+(34+i*4)+'" fill="#fff" style="animation-delay:'+(i*.07)+'s"/>').join('');
       IR3.launch('go'); if(rk){ rk.classList.remove('ign'); rk.classList.add('go'); rk.querySelector('.lfl').setAttribute('opacity','1'); }
       setTimeout(()=>{ startFlight(M); LBUSY=false; MCCV=null; go('hub'); },3300); },420); },
-  padsite(){ if(L.level(G.xp)<E.LV.HOME.lvl){ toast('The launch pad unlocks at level '+E.LV.HOME.lvl+'.'); return; } CTAB='Edifici'; CBAR=true; G.cedit=true; go('hub'); ACT.cplace({dataset:{k:'pad'}}); },
-  buypad(){ closeOv(); CTAB='Edifici'; CBAR=true; G.cedit=true; go('hub'); ACT.cplace({dataset:{k:'pad'}}); },
+  padsite(){ if(L.level(G.xp)<E.LV.HOME.lvl){ toast('The launch pad unlocks at level '+E.LV.HOME.lvl+'.'); return; } CTAB='Edifici'; CBAR=true; G.cedit=true; CUST='campus'; go('hub'); ACT.cplace({dataset:{k:'pad'}}); },
+  buypad(){ closeOv(); CTAB='Edifici'; CBAR=true; G.cedit=true; CUST='campus'; go('hub'); ACT.cplace({dataset:{k:'pad'}}); },
   buypadOld(){ const c=600; if(L.level(G.xp)<E.LV.HOME.lvl){ toast('The launch pad unlocks at level '+E.LV.HOME.lvl+'.'); return; } if(G.money<c){ toast('Non hai abbastanza crediti.'); sfx.bad(); return; } addMoney(-c); G.pad=true; closeOv(); sfx.stamp(); toast('Rampa di lancio costruita: da ora puoi lanciare in casa, con il 40% in meno.'); render(); },
   launch(){ const M=cur(); if(!M||M.phase!=='D'||!M.ready) return; if(winLeft(M)>0){ sfx.bad(); toast(TX('La finestra di lancio non è ancora aperta.','The launch window is not open yet.')); return; } M.duration=+$('#dur').value; const el=$('#cnt'), rk=$('#rk'); el.hidden=false; let n=5; el.textContent='T-'+n; sfx.tap(); $$('[data-act="launch"]').forEach(b=>b.disabled=true);
     const iv=setInterval(()=>{ n--; if(n===1) rk.classList.add('ign'); if(n>0){ el.textContent='T-'+n; sfx.tap(); } else { clearInterval(iv); el.textContent='Decollo!'; sfx.stamp(); tone(60,1.6,'sawtooth',.06); rk.classList.add('go');
@@ -8403,7 +8582,7 @@ function roadModal(){ const lv=L.level(G.xp), N=L.LEVELS.length, mA=l=>L.maxActi
     { const sp=L.sponsorSlots(n)-(n>1?L.sponsorSlots(n-1):0); if(n>=3&&sp>0) g.push('✍️ +'+sp+' recruitable sponsor'+(sp>1?'s':'')); }
     if(n>1) g.push('🌳 Campus più grande ('+Math.round(siteK(n)*siteK(n)*100)+'% dell’area iniziale)');
     if(n===1) g.push('NASA, scienziata ed ente regolatore','CubeSat 3U','🌍 Terra · orbita bassa','🔧 Tavola vibrante');
-    if(n>1){ const ZN={leo:'Terra',moon:'Luna',mars:'Marte',venus:'Venere'}; Object.keys(O.ZONES||{}).forEach(d=>(O.ZONES[d]||[]).filter(z=>z.lvl===n).forEach(z=>g.push('🪐 '+ZN[d]+' · '+z.n.toLowerCase()))); }
+    if(n>1){ const ZN={leo:'Terra',moon:'Luna',mars:'Marte',venus:'Venere'}; Object.keys(E.EXT).forEach(k=>{ ZN[k]=E.EXT[k].n; }); Object.keys(O.ZONES||{}).forEach(d=>(O.ZONES[d]||[]).filter(z=>z.lvl===n).forEach(z=>g.push('🪐 '+ZN[d]+' · '+z.n.toLowerCase()))); }
     { const ti=L.TIERS.findIndex(x=>x.from===n); if(ti>=0) rows.push('<div class="rtier"><b>Tier '+(ti+1)+'</b> · '+L.TIERS[ti].n+''+'</div>'); }
     rows.push('<div class="rlv'+(n<lv?' done':n===lv?' cur':'')+'"><div class="n">'+n+'<small>'+(n<lv?'✓':n===lv?'sei qui':L.LEVELS[n-1]+' XP')+'</small></div><ul>'+g.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'); }
   el.innerHTML='<div class="rv wide" role="dialog" aria-modal="true"><h3>Roadmap</h3><h2>Livello '+lv+(L.LEVELS[lv]?' · mancano '+(L.LEVELS[lv]-G.xp)+' XP al '+(lv+1):'')+'</h2><p class="fine">I punti esperienza arrivano dalle revisioni superate, dai lanci e dalle missioni chiuse. Ogni livello sblocca qualcosa di nuovo.</p><div class="road" id="road">'+rows.join('')+'</div><div class="row" style="margin-top:12px"><button class="btn primary" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false;
@@ -8475,20 +8654,21 @@ function rPlace(){ const R=RPLACE; if(!R) return; if(!R.ok){ sfx.bad(); toast('Q
   if(R.moveI!=null){ G.labPos[R.moveI]={x:R.x,y:R.y}; RPLACE=null; sfx.put(); toast(L.MACH[R.k].n+' spostato.'); save(); render(); return; }
   const m=L.MACH[R.k]; if(G.money<m.c){ toast('Non hai abbastanza crediti.'); RPLACE=null; render(); return; } addMoney(-m.c); G.lab.push(R.k); G.labPos.push({x:R.x,y:R.y}); RPLACE=null; sfx.stamp(); toast(m.n+' installato.'); save(); render(); }
 function staffModal(){ const need=staffNeed(), free=G.staff-need, sp=spaces(), mo=morale(), el=$('#ov');
-  el.innerHTML='<div class="rv" role="dialog" aria-modal="true"><h3>Personale</h3><h2>La tua squadra</h2>'+
+  el.innerHTML='<div class="rv stkrow" role="dialog" aria-modal="true"><h3>Personale</h3><h2>La tua squadra</h2>'+
     '<div class="stl"><div><span>👥</span><span>Dipendenti</span><span class="num"><b>'+G.staff+'</b></span></div><div><span>🏢</span><span>Servono per far funzionare gli edifici</span><span class="num">'+need+'</span></div><div><span>✓</span><span>Liberi per nuovi edifici</span><span class="num">'+free+'</span></div><div><span>🚗</span><span>Posti auto (14 per parcheggio)</span><span class="num">'+G.staff+' / '+sp+'</span></div><div><span>cr</span><span>Stipendi a ogni nuova fase di una missione ('+String(SAL).replace('.',',')+' cr a testa). Se le missioni sono ferme non paghi nulla.</span><span class="num">−'+keur(Math.round(G.staff*SAL))+'</span></div></div>'+
     '<div style="margin:12px 0 4px" class="row"><b>Felicità della squadra</b><span class="fine" style="margin-left:auto">'+mo+'%</span></div><div class="mbar"><i style="width:'+mo+'%"></i></div>'+
     '<p class="fine">'+plantsN()+' piante da interno. Più piante, più felicità: con la squadra al '+mo+'% assemblaggio e prove durano ×'+String(workK()).replace('.',',')+'. Serve circa una pianta per dipendente per arrivare al 100%. Le piante si mettono dentro gli edifici.</p>'+
     (G.staff>=sp?'<p class="bad">Tutti i posti auto sono occupati: per assumere costruisci un parcheggio nel campus (Costruisci → Infrastrutture).</p>':'')+
-    '<div class="row"><button class="btn primary" data-act="hire"'+(G.staff>=sp?' disabled':'')+'>Assumi · '+keur(HIRE)+'</button><button class="btn" data-act="fire"'+(G.staff<=need?' disabled':'')+'>Licenzia</button><button class="btn" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; }
+    '<div class="row stkbar"><button class="btn primary" data-act="hire"'+(G.staff>=sp?' disabled':'')+'>Assumi · '+keur(HIRE)+'</button><button class="btn" data-act="fire"'+(G.staff<=need?' disabled':'')+'>Licenzia</button><button class="btn" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; }
 function rankModal(){ const me=G.sciTotal|0, li=leagueOf(me), nx=LEAGUES[li+1], el=$('#ov');
   const road=LEAGUES.map((l,i)=>'<div class="lrow'+(i===li?' on':i>li?' lock':'')+'">'+badge(i)+'<div><b>Lega '+l[1]+'</b><div class="fine">da '+l[0]+' punti scienza</div></div><span class="fine">'+(i<li?'✓':i===li?'sei qui':'🔒')+'</span></div>').reverse().join('');
   const rows=(shared?RANK:[]).map(r=>({id:r._id,co:String(r.co||'Agenzia').slice(0,28),sci:Math.max(0,+r.sci|0)})).sort((a,b)=>b.sci-a.sci);
   const mine=rows.findIndex(r=>r.id===MYID);
   const list=rows.length?rows.slice(0,50).map((r,i)=>'<div class="rk'+(r.id===MYID?' me':'')+'"><b class="num">'+(i+1)+'</b>'+badge(leagueOf(r.sci))+'<span>'+esc(r.co)+(r.id===MYID?' <span class="fine">(tu)</span>':'')+'</span><b class="num">'+r.sci+'</b></div>').join(''):'<p class="fine">'+(shared?'Nessuna agenzia in classifica: chiudi una missione e sarai la prima.':'La classifica mondiale si vede nella pagina pubblicata.')+'</p>';
   el.innerHTML='<div class="rv wide" role="dialog" aria-modal="true"><h3>Scopo del gioco</h3><h2>Science ranking</h2>'+
-    '<div class="row" style="gap:12px;align-items:center;margin:8px 0 12px">'+badge(li).replace('<svg ','<svg style="width:56px;height:56px" ')+'<div><b style="font-size:20px">'+me+' punti scienza</b><div class="fine">Lega '+LEAGUES[li][1]+(nx?' · mancano '+(nx[0]-me)+' punti per la Lega '+nx[1]:' · lega massima')+'</div>'+(nx?'<div class="mbar" style="width:240px;margin-top:6px"><i style="width:'+Math.round((me-LEAGUES[li][0])/(nx[0]-LEAGUES[li][0])*100)+'%"></i></div>':'')+'</div></div>'+
-    '<div class="nm"><div><h3 style="margin:0 0 8px">Leghe</h3><div class="ladder">'+road+'</div></div><div><h3 style="margin:0 0 8px">Classifica mondiale'+(mine>=0?' · sei '+(mine+1)+'°':'')+'</h3><div class="ladder">'+list+'</div></div></div>'+
+    '<div class="rkbox"><div class="rkme"><h3 style="margin:0">'+esc(G.co||'Agenzia')+'</h3>'+badge(li).replace('<svg ','<svg style="width:72px;height:72px" ')+'<b style="font-size:20px">'+me+' punti scienza</b><div class="fine">Livello '+L.level(G.xp)+' · Lega '+LEAGUES[li][1]+(mine>=0?' · '+(mine+1)+'° in classifica':'')+'</div><div class="fine">'+(nx?'Mancano '+(nx[0]-me)+' punti per la Lega '+nx[1]:'Lega massima')+'</div>'+(nx?'<div class="mbar"><i style="width:'+Math.round((me-LEAGUES[li][0])/(nx[0]-LEAGUES[li][0])*100)+'%"></i></div>':'')+'</div>'+
+    '<div class="rkleg"><h3 style="margin:0 0 8px">Leghe</h3><div class="ladder">'+road+'</div></div></div>'+
+    '<div><h3 style="margin:4px 0 8px">Classifica mondiale'+(mine>=0?' · sei '+(mine+1)+'°':'')+'</h3><div class="ladder">'+list+'</div></div>'+
     '<div class="row" style="margin-top:12px"><button class="btn primary" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; rankModal.open=true; }
 function pushRank(){ if(!db||!shared||!MYID||G.tut||G.sandbox||!(G.sciTotal>0)) return; db.collection('agencies').doc(MYID).set({co:String(G.co||'Agenzia').slice(0,28),sci:G.sciTotal|0,lg:leagueOf(G.sciTotal),ts:Date.now()}).catch(()=>{}); }
 function leagueUp(i){ sfx.stamp(); review({eb:'Nuova lega',name:'Lega '+LEAGUES[i][1],code:'—',nasa:'Promotion',body:'<div class="row" style="gap:14px;align-items:center">'+badge(i).replace('<svg ','<svg style="width:72px;height:72px" ')+'<p>La tua agenzia ha raggiunto <b>'+LEAGUES[i][0]+' punti scienza</b> ed entra nella <b>Lega '+LEAGUES[i][1]+'</b>.</p></div>',actions:'<button class="btn primary" data-act="rank">Vedi la classifica</button><button class="btn" data-act="closeov">Continua</button>'}); }
@@ -8554,10 +8734,10 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
       if(nx) return $('#ptiles .tile[data-id="'+nx+'"]')?S('#ptiles .tile[data-id="'+nx+'"]',TUT.say[nx],5):S('[data-act="stab"][data-k="all"]','Apri la scheda con tutti i pezzi.',5);
       if(d.sol!==TUT.sol) return $('#ptiles [data-act="sol"][data-k="'+TUT.sol+'"]')?S('#ptiles [data-act="sol"][data-k="'+TUT.sol+'"]','Servono pannelli solari: scegli le ali dispiegabili, danno più potenza di quelli sul corpo.',5):S('[data-act="stab"][data-k="sol"]','Apri la scheda dei pannelli solari.',5);
       return S('.assist [data-act="bstep"][data-k="orb"]','Il satellite è completo: massa, potenza ed eclisse sono in verde. Passa al passo 3, le orbite in dettaglio.',5); }
+    if(st==='drm'&&ZD&&ZD.sel&&document.getElementById('zdlg')) return S(ZD.sel,ZD.tt,4);
     if(!here('fd')) return go2('fd',st==='orb'?'Passo 3: torna al Centro di dinamica del volo':'Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM).',4);
     if(st==='orb') return S('#fdp [data-act="pdrB"]','Il razzo ti lascia a 550 km, già nella fascia obiettivo: nessuna manovra, e il rientro avviene da solo per l’attrito dell’aria. Chiedi la revisione PDR.',5);
-    if(!dr.eol) return S('[data-act="drmeol"][data-k="reentry"]','Questa è la Design Reference Mission: il razzo ti lascia a 550 km, dove il satellite lavora (★). Scegli come finisce la missione: rientro in atmosfera.',4);
-    return S('.drmp [data-act="bstep"][data-k="sat"]','Missione disegnata. Ora progetta il satellite che deve farla.',4); }
+    return S('.drmp [data-act="mdredone"]','Orbite pronte. Premi Fatto per continuare con la fine vita.',4); }
   if(ph==='C'){ if(!here('build')) return go2('build','Fase C: il progetto si congela. Entra nell’edificio di costruzione.',6);
     if(BVIEW!=='yard') return S('#roomsvg [data-act="openyard"]','Tocca il banco di '+M.name+'.',6);
     return S('[data-act="pdr"]','Fase C: progetto congelato. Con la revisione CDR compri i pezzi.',6); }
@@ -8629,7 +8809,7 @@ setInterval(()=>{ if(G) coach(); },300);
 /* ---------- avvio ---------- */
 function newG(){ return {v:32,staff:12,sciTotal:0,labPos:[],rooms:{build:{plants:[{x:17,y:.4}]},clean:{plants:[]},test:{plants:[]},mcc:{plants:[{x:16.9,y:12.9}]}},world:CAM.defaultWorld(),flag:null,cedit:false,myBoard:[],tut:false,tutDone:false,fresh:[],pad:false,co:'',money:L.START_MONEY,xp:0,missions:[],cur:0,lab:[],plots:[],recruited:[],speed:1,vt:0,lastReal:Date.now()}; }
 function welcome(){ $('#ov').innerHTML='<div class="rv" role="dialog" aria-modal="true"><h3>Benvenuto</h3><h2>Fonda la tua agenzia spaziale</h2><p>Hai un campus, '+keur(L.START_MONEY)+' e nessun satellite. La NASA finanzia il tuo primo CubeSat e ti apre il suo catalogo di tecnologie: si parte con poche carte, le altre si sbloccano salendo di livello.</p><p><b>Lo scopo:</b> raccogliere più punti scienza possibile e salire di lega nella classifica mondiale delle agenzie.</p>'+
-    '<div><label for="co">Nome dell’agenzia</label><input type="text" id="co" maxlength="28" value="Perigeo Labs"></div><p class="fine">La prova guidata porta una missione intera, dall’idea al volo, in circa 10 minuti: requisiti, missione, satellite, prove, lancio e operazioni. Ti diciamo noi cosa toccare. Non dà punti e non cambia la partita.</p><div class="row"><button class="btn primary" data-act="start">Prova guidata · 10 minuti</button></div><h3 style="margin-top:14px">Oppure gioca subito</h3><div class="diffs">'+Object.keys(DIFF).map(k=>'<button class="'+(WDIFF===k?'on':'')+'" data-act="wdiff" data-k="'+k+'"><b>'+DIFF[k].n+'</b><small>'+DIFF[k].s+'</small></button>').join('')+'</div><div class="row"><button class="btn" data-act="startskip">Gioca · '+DIFF[WDIFF].n.toLowerCase()+'</button><button class="btn" data-act="startsand" title="Tutto sbloccato, nessun vincolo di budget">Modalità libera</button></div></div>'; $('#ov').hidden=false; }
+    '<div><label for="co">Nome dell’agenzia</label><input type="text" id="co" maxlength="28" value="" placeholder="Perigeo Labs" autocomplete="off"></div><p class="fine">La prova guidata porta una missione intera, dall’idea al volo, in circa 10 minuti: requisiti, missione, satellite, prove, lancio e operazioni. Ti diciamo noi cosa toccare. Non dà punti e non cambia la partita.</p><div class="row"><button class="btn primary" data-act="start">Prova guidata · 10 minuti</button></div><h3 style="margin-top:14px">Oppure gioca subito</h3><div class="diffs">'+Object.keys(DIFF).map(k=>'<button class="'+(WDIFF===k?'on':'')+'" data-act="wdiff" data-k="'+k+'"><b>'+DIFF[k].n+'</b><small>'+DIFF[k].s+'</small></button>').join('')+'</div><div class="row"><button class="btn" data-act="startskip">Gioca · '+DIFF[WDIFF].n.toLowerCase()+'</button><button class="btn" data-act="startsand" title="Tutto sbloccato, nessun vincolo di budget">Modalità libera</button></div></div>'; $('#ov').hidden=false; }
 function start(){ try{ const nj=document.getElementById('nojs'); if(nj) nj.remove(); start0(); }catch(e){ console.error(e); document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:#DCE6EE;font:15px/1.5 sans-serif;padding:16px"><div style="max-width:440px;background:#fff;border-radius:16px;padding:22px;box-shadow:0 8px 30px rgba(0,0,0,.15)"><h2 style="font:700 22px/1.2 sans-serif;margin:0 0 8px">Salvataggio non compatibile</h2><p style="margin:0 0 14px">La partita salvata in questo browser viene da una versione precedente del gioco e non si riesce ad aprire.</p><p style="margin:0 0 14px;font-size:12px;color:#5F6E80">'+String(e&&e.message||e).replace(/</g,'&lt;')+'</p><button id="gngReset" style="background:#F07B3F;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer">Ricomincia da capo</button></div></div>'); document.getElementById('gngReset').onclick=()=>{ try{ Object.keys(localStorage).filter(k=>/^gng/i.test(k)).forEach(k=>localStorage.removeItem(k)); }catch(_){} try{ sessionStorage.clear(); }catch(_){} location.href=location.href.split('#')[0]; setTimeout(()=>location.reload(),300); }; } }
 // v33.1 · ogni edificio dichiarato costruito deve stare sulla mappa: lo piazza da solo vicino al centro del campus
 /* Posizionamento automatico degli edifici: sceglie, tra tutti i punti validi, quello vicino al centro del campus che non finisce dietro a un edificio alto (la camera guarda da sud) e che non nasconde gli altri */
@@ -8645,7 +8825,7 @@ function autoPlace(k,multi){ const W=G.world; if(!W||!CAM.K[k]||(!multi&&W.items
 /* una tantum: nelle partite creative gli edifici aggiunti dal sistema vengono ridisposti perche' si vedano tutti */
 function relayoutSandbox(){ if(!G||!G.sandbox||!G.world||G.layoutV===2) return false; const ex=['factory','ground','rnd','office','visit','pad']; G.world.items=G.world.items.filter(i=>ex.indexOf(i.k)<0&&!((i.k==='tree'||i.k==='pine')&&i.x>13&&i.x<27&&i.y>-1&&i.y<17)); G.layoutV=2; return true; }
 function fixPlots(){ if(!G||!G.world) return; let ch=relayoutSandbox(); (G.plots||[]).filter(Boolean).forEach(k=>{ if(L.BUILD[k]&&autoPlace(k)) ch=true; }); if(G.pad&&autoPlace('pad')) ch=true; return ch; }
-function start0(){ G=load(); if(G) G.speed=1; const fresh=!G; if(!G) G=newG(); G.recruited=G.recruited||[]; if(G.rooms&&G.rooms.clean) G.rooms.clean.plants=[]; if(G.rooms&&G.rooms.test) G.rooms.test.plants=[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m));
+function start0(){ G=load(); if(G) G.speed=1; const fresh=!G; if(!G) G=newG(); if(G.cedit&&!CUST) G.cedit=false; G.recruited=G.recruited||[]; if(G.rooms&&G.rooms.clean) G.rooms.clean.plants=[]; if(G.rooms&&G.rooms.test) G.rooms.test.plants=[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m));
   G.lastReal=G.lastReal||Date.now(); clock(); view='hub'; render(); initBoard(); setInterval(tick,500); let nw=innerWidth<640; addEventListener('resize',()=>{ const n=innerWidth<640; if(n!==nw){ nw=n; if(view==='hub') render(); } });
   openTitle('main','title'); coach(); try{ if(fixPlots()) save(); }catch(e){ console.warn(e); } if(!fresh&&G.tutDone&&!G.sandbox&&!G.boost33&&!(G.missions||[]).some(m=>m.phase==='done'&&!m.tut)){ G.boost33=1; const add=Math.max(0,Math.round(L.START_MONEY*dif().money)-150); if(add){ G.money+=add; save(); setTimeout(()=>toast('Fondo di avvio aumentato: +'+keur(add)+' per la prima missione.'),1500); } } I18N.start(); }
 /* ==========================================================================
@@ -10054,7 +10234,7 @@ function artSVG(kind){ const id='a'+kind;
   else if(kind==='multi'){ s+=stars(30)+'<path d="M0 230Q100 205 200 222T400 214V300H0Z" fill="#2B5A6E"/><g fill="#E9E3DC" stroke="#24414E" stroke-width="2"><rect x="70" y="170" width="60" height="50" rx="8"/><rect x="170" y="150" width="70" height="70" rx="10"/><rect x="280" y="176" width="54" height="44" rx="8"/></g><g stroke="#E9E3DC" stroke-width="7"><path d="M130 196H170M240 198H280"/></g><g fill="#F07B3F"><circle cx="100" cy="186" r="5"/><circle cx="205" cy="172" r="6"/><circle cx="307" cy="190" r="5"/></g>'; }
   return s+'</svg>'; }
 function logoSVG(){ return '<svg class="tlogo-m" viewBox="0 0 120 64" aria-hidden="true"><path d="M14 52A46 18 0 0 1 106 52" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M30 52A30 12 0 0 1 90 52" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" opacity=".7"/><rect x="51" y="6" width="18" height="18" rx="3" transform="rotate(45 60 15)" fill="none" stroke="currentColor" stroke-width="5"/><path d="M60 26V44" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>'; }
-const HEXI={home:'<path d="M5 12L12 6l7 6"/><path d="M7 11v8h10v-8"/><path d="M10.5 19v-4h3v4"/>',plus:'<path d="M12 5v14M5 12h14"/>',build:'<path d="M4 20h16"/><path d="M6 20V10l6-4 6 4v10"/><path d="M10 20v-5h4v5"/>',flag:'<path d="M6 21V4"/><path d="M6 5h11l-2.5 3.5L17 12H6"/>',menu:'<path d="M5 7h14M5 12h14M5 17h14"/>',folder:'<path d="M3 7h6l2 2h10v10H3z"/>',x:'<path d="M7 7l10 10M17 7L7 17"/>'};
+const HEXI={home:'<path d="M5 12L12 6l7 6"/><path d="M7 11v8h10v-8"/><path d="M10.5 19v-4h3v4"/>',plus:'<path d="M12 5v14M5 12h14"/>',build:'<path d="M4 20h16"/><path d="M6 20V10l6-4 6 4v10"/><path d="M10 20v-5h4v5"/>',cust:'<path d="M3 20h12"/><path d="M5 20v-9l5-3.5 5 3.5v9"/><path d="M8 20v-4h4v4"/><path d="M19 21V5"/><path d="M19 5h3.5l-1 1.7 1 1.7H19"/>',flag:'<path d="M6 21V4"/><path d="M6 5h11l-2.5 3.5L17 12H6"/>',menu:'<path d="M5 7h14M5 12h14M5 17h14"/>',folder:'<path d="M3 7h6l2 2h10v10H3z"/>',x:'<path d="M7 7l10 10M17 7L7 17"/>'};
 const hexB=(act,t,ic,on,extra)=>'<button class="hx6'+(on?' on':'')+'" data-act="'+act+'" title="'+t+'" aria-label="'+t+'"'+(extra||'')+'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+HEXI[ic]+'</svg></button>';
 /* ---------- schermate iniziali ---------- */
 let TTL={s:'main',mode:'career',diff:'normale',crew:'giulia',from:'title'};
@@ -10065,8 +10245,8 @@ const MODES=[
   {k:'sand',n:'Creative',s:'Everything unlocked and unlimited credits. Build and experiment freely.',ic:'<path d="M12 3l2.5 5.5L20 10l-4.5 3.5L17 20l-5-3-5 3 1.5-6.5L4 10l5.5-1.5z"/>'}];
 const DIFFS=[['facile','Easy','More money, fewer faults'],['normale','Medium','The intended experience'],['difficile','Hard','Tight budget, hidden defects']];
 function ttlEl(){ let el=$('#title'); if(!el){ el=document.createElement('div'); el.id='title'; el.className='ttl'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); document.body.appendChild(el); } return el; }
-function openTitle(s,from){ TTL.s=s||'main'; TTL.from=from||'title'; document.body.classList.add('ttl-on'); drawTitle(); if(G.tut) coach(); }
-function closeTitle(){ const el=$('#title'); if(el) el.remove(); document.body.classList.remove('ttl-on'); }
+function openTitle(s,from){ TTL.s=s||'main'; TTL.from=from||'title'; document.body.classList.add('ttl-on'); drawTitle(); if(G.tut&&from==='game') coach(); }
+function closeTitle(){ const el=$('#title'); if(el) el.remove(); document.body.classList.remove('ttl-on'); if(G&&G.tut) coach(); }
 function lvlBox(){ const lv=L.level(G.xp), a=L.LEVELS[lv-1], b=L.LEVELS[lv], pc=b?Math.round((G.xp-a)/(b-a)*100):100; return '<div class="tbox tlv"><b>'+TX('LIVELLO','LEVEL')+' '+lv+'</b><i><u style="width:'+pc+'%"></u></i><small>'+TX('Sali di livello per sbloccare destinazioni, tecnologie e agenzie','Level up to unlock destinations, technologies and agencies')+'</small></div>'; }
 function nextDest(){ const lv=L.level(G.xp); const ks=Object.keys(E.DEST).filter(k=>E.DEST[k].lvl>lv).sort((a,b)=>E.DEST[a].lvl-E.DEST[b].lvl); return ks.length?ks[0]:null; }
 function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
@@ -10087,7 +10267,7 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
   else if(s==='crew'){ const c=crewOf(TTL.crew), tut=TTL.mode==='tut';
     h='<div class="tcrew"><div class="tcl"><h2 class="tt box">'+'CHOOSE YOUR CHARACTER'+'</h2><div class="tlist">'+CREW.map(x=>'<button class="trow'+(x.id===c.id?' sel':'')+'" data-act="tcrew" data-k="'+x.id+'">'+faceSVG(x)+'<span><b>'+x.n+'</b><small>'+TX(x.r[0],x.r[1])+'</small><em>'+TX(x.p[0],x.p[1])+'</em></span></button>').join('')+'</div></div>'+
       '<div class="tcr"><h2 class="tt">'+'YOUR CHARACTER</h2><div class="tbox tsel"><div class="tbig">'+faceSVG(c,'big')+'<div><b>'+c.n+', '+c.age+'</b><small>'+TX(c.r[0],c.r[1])+'</small><p>'+TX(c.d[0],c.d[1])+'</p><em>'+TX(c.p[0],c.p[1])+'</em></div></div>'+
-      '<label for="tco">'+TX('Nome dell’agenzia','Agency name')+'</label><input type="text" id="tco" maxlength="28" value="'+esc(G.co||'Perigeo Labs')+'">'+
+      '<label for="tco">'+TX('Nome dell’agenzia','Agency name')+'</label><input type="text" id="tco" maxlength="28" value="" placeholder="'+TX('Es. Perigeo Labs','e.g. Perigeo Labs')+'" autocomplete="off">'+
       (tut?'<p class="tnote">The character bonus applies from your first real game.</p>':'')+'</div></div></div>'+foot(1,'tstart',tut?TX('INIZIA IL TUTORIAL','START TUTORIAL'):TX('INIZIA','START')); }
   else if(s==='settings'){ const fsOk=document.fullscreenEnabled||document.webkitFullscreenEnabled;
     const row=(t,d,act,v)=>'<div class="tset"><span><b>'+t+'</b><small>'+d+'</small></span><button class="tsw'+(v===true?' on':'')+'" data-act="'+act+'">'+(v===true?'ON':v===false?'OFF':v)+'</button></div>';
@@ -10252,7 +10432,7 @@ const ZORTY=(()=>{
   const ZE=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   function build(){ if(btn) return; btn=document.createElement('button'); btn.id='zbtn'; btn.type='button'; btn.innerHTML='<span aria-hidden="true">?</span>'; btn.setAttribute('aria-label',A('Aiuto: chiedi a Zorty','Help: ask Zorty')); btn.title=A('Aiuto: chiedi a Zorty','Help: ask Zorty'); btn.addEventListener('click',()=>toggle()); document.body.appendChild(btn);
     panel=document.createElement('div'); panel.id='zpanel'; panel.setAttribute('role','dialog'); panel.setAttribute('aria-label','Zorty'); panel.hidden=true; document.body.appendChild(panel);
-    panel.addEventListener('click',e=>{ const t=e.target.closest('[data-z]'); if(!t) return; if(t.dataset.z==='close') toggle(false); else if(t.dataset.z==='tip'){ tipI++; draw(); } });
+    panel.addEventListener('click',e=>{ const t=e.target.closest('[data-z]'); if(!t) return; if(t.dataset.z==='close') toggle(false); else if(t.dataset.z==='tip'){ tipI++; draw(); const zb=panel.querySelector('.zbody'), zt=panel.querySelector('.ztip'); if(zb&&zt) zb.scrollTop=Math.max(0,zt.offsetTop-zb.offsetTop-8); const nb=panel.querySelector('[data-z="tip"]'); if(nb) nb.focus({preventScroll:true}); } });
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&open){ toggle(false); } }); }
   function draw(){ if(!panel) return; if(custom){ const cp=SPR[custom.pose]?custom.pose:'dubbio'; panel.innerHTML='<div class="zhd"><img class="zsp" alt="" src="'+SPR[cp]+'"><div class="zbub"><b>Zorty</b><span>'+ZE(custom.greet||'')+'</span></div><button class="zx" data-z="close" aria-label="'+A('Chiudi','Close')+'">✕</button></div><div class="zbody">'+custom.sections.map(x=>'<section><h4>'+ZE(x[0])+'</h4><p>'+ZE(x[1])+'</p></section>').join('')+'</div><div class="zft"><button class="btn primary" data-z="close">'+A('Ho capito, grazie!','Got it, thanks!')+'</button></div>'; return; }
     const s=scene(), tips=TIPS(), tip=tips[tipI%tips.length]; const pose=SPR[s.pose]?s.pose:'benvenuto';
