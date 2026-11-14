@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="format-detection" content="telephone=no"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><div id=nojs style="position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:24px;background:#2A2125;color:#fff;font:16px/1.5 system-ui,sans-serif;text-align:center"><div style="max-width:420px"><h1 style="font:800 34px/1.1 system-ui,sans-serif;margin:0 0 14px">GO NO-GO</h1><p style="margin:0 0 10px">The game is not starting. This usually means the file was opened inside a mail or file preview, which blocks scripts.</p><p style="margin:0 0 10px"><b>Save the file to your phone, then open it with Safari or Chrome</b> (Share &rarr; Open in Safari/Chrome, or Files &rarr; tap the file &rarr; Open with browser).</p><p style="margin:0;opacity:.7;font-size:14px">If it still stays here, your browser is too old: update it.</p></div></div>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="format-detection" content="telephone=no"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><div id=nojs style="position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:24px;background:#2A2125;color:#fff;font:16px/1.5 system-ui,sans-serif;text-align:center"><div style="max-width:420px"><h1 style="font:800 34px/1.1 system-ui,sans-serif;margin:0 0 14px">GO NO-GO</h1><p style="margin:0 0 10px">The game is not starting. This usually means the file was opened inside a mail or file preview, which blocks scripts.</p><p style="margin:0 0 10px"><b>Save the file to your phone, then open it with Safari or Chrome</b> (Share &rarr; Open in Safari/Chrome, or Files &rarr; tap the file &rarr; Open with browser).</p><p style="margin:0;opacity:.7;font-size:14px">If it still stays here, your browser is too old: update it.</p></div></div>
 <title>Go No-Go</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="alternate icon" href="/favicon.ico" sizes="32x32">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Go No-Go"><meta name="theme-color" content="#2A2125">
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Go%20No-Go%22%2C%22short_name%22%3A%22Go%20No-Go%22%2C%22display%22%3A%22fullscreen%22%2C%22orientation%22%3A%22landscape%22%2C%22background_color%22%3A%22%23DCE6EE%22%2C%22theme_color%22%3A%22%23DCE6EE%22%2C%22start_url%22%3A%22.%22%7D">
@@ -1282,6 +1282,7 @@ body.tutmode .ov{padding-top:12px}
 
 </style>
 <style id="mfix">
+.mreq{display:none}
 /* ==========================================================================
    v39 · interfaccia compatta per telefono (stile CoD Mobile): niente box
    ridondanti, pannelli laterali stretti, avvisi brevi, tutto dentro lo schermo.
@@ -1417,9 +1418,14 @@ body.decon #dec>p.fine:last-of-type{font-size:11.5px!important}
   .pickt,.tcards+.row,.stype{margin-top:4px!important}
 
   /* sala riunioni: la richiesta si legge in una striscia sopra i bottoni */
-  body #mbub.mbub,body #mbub.bubble{display:block!important;position:fixed!important;left:50%!important;top:auto!important;right:auto!important;bottom:calc(76px + env(safe-area-inset-bottom,0px))!important;transform:translateX(-50%)!important;width:auto!important;height:auto!important;max-width:min(560px,calc(100vw - 150px))!important;padding:6px 14px!important;background:rgba(250,248,240,.97)!important;color:#2A2125!important;border-radius:8px!important;font:600 13px/1.3 var(--f-b)!important;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.3)!important;z-index:6}
-  body #mbub.mbub::before,body #mbub.mbub::after,body #mbub.bubble::before,body #mbub.bubble::after{display:none!important}
-  body #mbub:empty{display:none!important}
+  /* sala riunioni: la richiesta sta nel pannello in basso, il fumetto non copre gli Zorties */
+  body #mbub{display:none!important}
+  .acts .panel{display:flex!important;flex-direction:column!important;gap:6px!important;padding:6px 10px!important}
+  .acts .mreq{display:block!important;font:600 12.5px/1.3 var(--f-b);color:#F1EDE4;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acts .mreq b{color:var(--orange,#F08A3C);margin-right:4px}
+  .acts .ansb{flex-wrap:nowrap!important;justify-content:center!important;gap:6px!important}
+  .acts .ansb .btn{white-space:nowrap;padding-left:10px!important;padding-right:10px!important}
+  .acts .ansb .btn[data-act="soft"]{max-width:230px;overflow:hidden;text-overflow:ellipsis}
   .acts .btn{min-height:40px!important}
 
   /* edificio amministrativo: schede più basse */
@@ -1479,6 +1485,132 @@ body.fs .dockR .lvc .kv li{padding:1px 0!important}
   .sts .stc .fine{font-size:11px!important}
   .sts .stc .kv li{font-size:11.5px!important;padding:1px 0!important;min-height:0!important}
   .sts .stc .kv{margin-top:4px!important}
+}
+</style>
+<style id="mfix2">
+/* ===== Correzioni di Andrea, giro 2 ===== */
+/* sottotitolo sotto il nome della missione: via */
+.hud .mcard em{display:none!important}
+/* satellite da trascinare in basso: via, ora si tocca la postazione o il macchinario */
+.dsat{display:none!important}
+/* finestra aperta: i tasti agli angoli non coprono i bottoni */
+body.ovon #zbtn,body.ovon #dock{visibility:hidden!important}
+/* aiuto di Zorty: sfondo sfocato */
+body.zon::before{content:"";position:fixed;inset:0;z-index:155;background:rgba(18,22,28,.35);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);pointer-events:none}
+/* popup di stanza (sposta / chiudi / scegli satellite): in basso al centro, tra i tasti agli angoli */
+#view .cpop{position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;transform:translateX(-50%);z-index:40;flex-direction:row!important;align-items:center;gap:10px!important;min-width:0!important;max-width:calc(100vw - 150px);padding:8px 10px!important;border:1.5px solid rgba(255,255,255,.18)}
+#view .cpop>b{white-space:nowrap;font-size:13px;color:#fff}
+#view .cpop .row{flex-wrap:nowrap;gap:6px}
+#view .cpop .fine{display:none}
+#view .cpop .btn{min-height:36px;white-space:nowrap}
+/* negozio dei pezzi: la barra verde resta ferma, scorrono solo i pezzi */
+.dockL:has(.shelf){overflow:hidden!important;display:flex!important;flex-direction:column}
+.dockL:has(.shelf)>.dclose{position:relative!important;top:auto!important;align-self:flex-end;flex:0 0 auto!important;margin:4px 6px 2px!important}
+.dockL .shelf #ptiles{grid-auto-rows:max-content!important}
+.dockL .shelf #ptiles>.tile{min-height:max-content}
+.dockL .panel.shelf{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;display:flex!important;flex-direction:column;overflow:hidden!important}
+.dockL .shelf .sbody{flex:1 1 auto!important;min-height:0!important;display:flex!important;overflow:hidden!important}
+.dockL .shelf .stabs{flex:0 0 auto!important;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.dockL .shelf .smain{flex:1 1 auto!important;min-height:0!important;display:flex!important;flex-direction:column;overflow:hidden}
+.dockL .shelf #ptiles{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;align-content:start;padding-bottom:8px}
+/* menu missioni: ha la sua X e la X del pannello sotto non si vede */
+#pop .popx{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:8px;border:1.5px solid rgba(255,255,255,.25);background:#17191F;color:#fff;font:700 15px/1 var(--f-b);display:grid;place-items:center;cursor:pointer;z-index:2}
+#pop>h3{padding-right:40px}
+body:has(#pop:not([hidden])) .dclose{visibility:hidden!important}
+/* orbite dettagliate: i riquadri stanno nel pannello, il contatore ΔV non è più tagliato in basso */
+.obph .obc,.obph .oblink{min-width:0!important;max-width:100%!important;width:auto!important}
+.obph .obh{flex-wrap:wrap;row-gap:2px}
+.obph .obh .sum{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:auto}
+.obph .obc p.fine{overflow-wrap:anywhere}
+.obph .obc.fin .sum{white-space:normal;flex-basis:100%;margin-left:19px}
+@media (max-height:520px){
+  #view .obmeter{display:block!important;top:calc(var(--hudh,56px) + 34px)!important;bottom:auto!important;left:calc(12px + env(safe-area-inset-left,0px))!important;background:rgba(10,14,22,.72);border-radius:10px;padding:5px 9px}
+  #view .obmeter .big{font-size:18px!important;line-height:1.1}
+  #view .obmeter .bar,#view .obmeter .lbl+.big+.bar+.lbl{display:none!important}
+}
+/* lancio: ABORT dentro il suo tasto (la classe .lab del laboratorio lo spostava), via la scritta bianca in alto */
+.lcon .lbtn{display:grid!important;place-items:center!important;grid-template-columns:none!important;padding:0!important;gap:0!important;align-items:center!important;text-align:center}
+.lsub{display:none!important}
+/* campus: sulla rampa con il razzo resta una sola etichetta */
+.b3h.b3notag .b3t{display:none!important}
+/* sala controllo: gli schermi aperti in grande stanno in una pagina sola, senza scorrere */
+body:has(#mzoomBox) #zbtn,body:has(#mzoomBox) #dock{visibility:hidden!important}
+#mzoomBox .mzin{overflow:hidden!important;flex-wrap:nowrap!important}
+#mzoomBox .mzin>.scr,#mzoomBox .mzin>.fmon{min-height:0!important;height:100%!important;max-height:100%!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
+#mzoomBox .mzin>.scr canvas{flex:1 1 auto;min-height:0!important;height:auto!important;max-height:100%;width:100%!important;object-fit:contain}
+#mzoomBox .mzin>.scr .code{flex:1 1 auto;min-height:0;overflow:hidden!important;display:flex!important;flex-direction:column;justify-content:flex-end;font-size:12.5px!important;line-height:1.35}
+#mzoomBox .mzin>.scr .vit{flex:1 1 auto;min-height:0;overflow:hidden!important;font-size:13px!important}
+#mzoomBox .mzin>.fmon .log{flex:1 1 auto;min-height:0;overflow:hidden!important;-webkit-mask-image:linear-gradient(#000 80%,transparent);mask-image:linear-gradient(#000 80%,transparent)}
+#mzoomBox .mzin>#dashw{height:100%;overflow:hidden!important}
+#mzoomBox .mzin>.scr .code{-webkit-mask-image:linear-gradient(transparent,#000 14%);mask-image:linear-gradient(transparent,#000 14%)}
+#mzoomBox .mzin>#dashw{-webkit-mask-image:linear-gradient(#000 85%,transparent);mask-image:linear-gradient(#000 85%,transparent)}
+@media (max-height:520px){#mzoomBox{height:calc(100vh - 20px)!important;width:calc(100vw - 20px)!important}#mzoomBox .mzin>.scr h4,#mzoomBox .mzin>.fmon h4{font-size:13px!important;padding:6px 10px!important}#mzoomBox .mzin>#dashw .panel{font-size:12px}}
+/* safe mode: la scelta sta sotto il tasto «‹ Sala controllo», non sotto di lui */
+@media (max-height:520px){
+  body.decon #dec.dec{top:calc(var(--hudh,56px) + 50px)!important;transform:translateX(-50%)!important;max-height:calc(100vh - var(--hudh,56px) - 58px)!important;width:min(560px,calc(100vw - 140px))!important}
+}
+/* finestre con elenco lungo (rischi, roadmap, classifica): scorre solo l'elenco, CHIUDI fisso in basso a sinistra */
+#ov .rv.rvfix{display:flex!important;flex-direction:column;max-height:calc(100vh - 16px);overflow:hidden!important}
+#ov .rv.rvfix>.row:last-child,#ov .rv.rvfix>.rvfoot{flex:0 0 auto;margin-top:8px!important;justify-content:flex-start}
+#ov .rvrisk>#riskp{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin:0}
+#ov .rvrisk .risk{flex:1 1 auto;min-height:0;overflow:hidden}
+#ov .rvrisk .risk>div:last-child{min-height:0;max-height:100%;overflow-y:auto;padding-right:4px}
+#ov .rvroad .road{flex:1 1 auto;min-height:0;max-height:none!important;overflow-y:auto}
+#ov .rvroad>p.fine{display:none}
+#ov .rvroad .rlv li{font-size:13.5px;padding:4px 9px}
+#ov .rvroad .rlv .n{font-size:24px}
+#ov .rvroad .rtier{margin:8px 0 2px}
+/* classifica stile Clash of Clans: le leghe scorrono in orizzontale, la tua è evidenziata */
+#ov .rvrank .rkhead{display:flex;gap:12px;align-items:center;flex:0 0 auto}
+#ov .rvrank .rkhead h3{margin:0 0 2px}
+#ov .rvrank .rkpts{font:800 20px/1.1 var(--f-d)}
+#ov .rvrank .rkhead .mbar{width:220px;margin-top:5px}
+#ov .rvrank .rkworld{margin-left:auto;max-width:42%;min-width:0}
+#ov .rvrank .rkworld .ladder{max-height:72px;overflow:auto}
+#ov .rvrank .lgrail{flex:1 1 auto;min-height:0;display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:10px 4px 6px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+#ov .rvrank .lgc{flex:0 0 132px;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:16px;padding:10px 8px;background:linear-gradient(#2A2618,#1C1A12);border:2px solid #3A3524;text-align:center}
+#ov .rvrank .lgc svg{width:64px;height:64px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.45))}
+#ov .rvrank .lgc b{font:800 14px/1.1 var(--f-d);text-transform:uppercase}
+#ov .rvrank .lgc .num{font-size:11.5px;color:var(--muted)}
+#ov .rvrank .lgc em{font-style:normal;font:700 11px/1 var(--f-b);color:var(--muted)}
+#ov .rvrank .lgc.on{border-color:#E8AA30;background:linear-gradient(#3A2E14,#241D10);box-shadow:0 0 18px rgba(232,170,48,.35);transform:scale(1.04)}
+#ov .rvrank .lgc.on em{color:#E8AA30}
+#ov .rvrank .lgc.lock{opacity:.5}
+#ov .rvrank .lgc.done em{color:#3FA86B}
+@media (max-height:520px){#ov .rvrank .lgc svg{width:52px;height:52px}#ov .rvrank .lgc{flex-basis:118px;padding:6px}#ov .rv.rvfix{padding:10px 14px!important}}
+/* nuovo livello: un nastro elegante in alto al centro che scende e sparisce, non un riquadro a caso in basso */
+#lvup.lvup{top:6px!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;z-index:130!important;clip-path:none!important;border-radius:999px!important;padding:6px 18px 6px 14px!important;display:flex!important;align-items:center;gap:10px;max-width:min(70vw,620px);background:linear-gradient(90deg,#1E3B3A,#24504D 50%,#1E3B3A)!important;border:1.5px solid #6FD3C4!important;box-shadow:0 6px 20px rgba(0,0,0,.45),0 0 22px rgba(111,211,196,.35)!important;animation:lvdrop .45s cubic-bezier(.2,1.3,.4,1) both!important;white-space:nowrap}
+#lvup.lvup[hidden]{display:none!important}
+#lvup.lvup::before{content:"★";color:#F5C842;font-size:18px;line-height:1}
+#lvup.lvup b{font:800 16px/1 var(--f-d)!important;color:#fff!important;letter-spacing:.06em}
+#lvup.lvup span{font-size:12px!important;color:#CFEDE8;overflow:hidden;text-overflow:ellipsis;min-width:0}
+@keyframes lvdrop{from{transform:translate(-50%,-140%);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+#ov .rvrisk .risk>.mx{zoom:.82}
+#view .cpop{background:#17191F!important;border-color:var(--orange,#F08A3C)!important;opacity:1!important}
+#view:has(.cpop) .acts{display:none!important}
+body:has(#mg:not([hidden])) #zbtn,body:has(#mg:not([hidden])) #dock{visibility:hidden!important}
+@media (max-height:520px){
+  /* scelta dell'orbita: tutto in una schermata */
+  #nmZone>.row:first-child{gap:10px!important;margin:0 0 6px!important}
+  #nmZone>.row:first-child>svg{width:40px!important;height:40px!important}
+  #nmZone h2{font-size:17px!important;margin:0!important}
+  #nmZone .zones{gap:8px!important}
+  #nmZone .zcard{padding:7px 8px!important;gap:2px!important}
+  #nmZone .zcard svg{height:52px!important}
+  #nmZone .zcard b{font-size:14px!important}
+  #nmZone .zcard span{font-size:11.5px!important;line-height:1.25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  #nmZone>.row:last-child{margin-top:6px!important}
+  #ov .rv.wide:has(#nmZone:not([hidden])){padding:10px 14px!important}
+  /* scelta del CubeSat: tre carte senza scorrere, niente sotto */
+  #view:has([data-act="pickType"])>h3,#view:has([data-act="pickType"])>.sts~h3,#view:has([data-act="pickType"])>.sts~.sts{display:none!important}
+  #view:has([data-act="pickType"])>.sts{margin-top:8px!important}
+  #view:has([data-act="pickType"]) .stc{max-height:calc(100vh - 140px);overflow:hidden}
+  #view:has([data-act="pickType"]) .stc .kv li{padding:1px 0!important;font-size:11.5px!important}
+  #view:has([data-act="pickType"]) .stc>svg{display:none!important}
+  /* stakeholder: "Convoca la riunione" sempre visibile in basso al centro */
+  #view .row:has(#p0go){position:fixed!important;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));margin:0!important;z-index:20}
+  #view:has(#p0go){padding-bottom:70px!important}
+  #p0go{box-shadow:0 6px 18px rgba(0,0,0,.35)}
 }
 </style>
 
