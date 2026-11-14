@@ -177,7 +177,8 @@ const FD3 = (function () {
   let yaw = 0.7, pitch = 0.5, dist = 14, autoDist = 14;
   const COL = { first: 0x9AA6B4, mid: 0x5B8DEF, last: 0xF07B3F, tgt: 0x1E9E5A, burn: 0xF07B3F, apo: 0x2F6FD6 };
   function tex(k) { const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d'), r = E.rng(k.length * 97 + 3);
-    const base = { moon: '#A9AEB6', leo: '#2F6FC9', mars: '#B9583A', venus: '#D9B871' }[k]; g.fillStyle = base; g.fillRect(0, 0, 512, 256);
+    const base = { moon: '#A9AEB6', leo: '#2F6FC9', mars: '#B9583A', venus: '#D9B871' }[k] || E.EXT[k].pal[0]; g.fillStyle = base;
+    if (E.EXT[k]) { for (let y = 0; y < 256; y += 14) { g.fillStyle = 'rgba(' + (k === 'sun' ? '255,240,160' : '60,40,20') + ',' + (0.12 + r() * 0.22) + ')'; g.fillRect(0, y, 512, 5 + r() * 7); } } g.fillRect(0, 0, 512, 256);
     if (k === 'moon') { for (let i = 0; i < 26; i++) { g.fillStyle = 'rgba(70,74,84,' + (0.15 + r() * 0.25) + ')'; g.beginPath(); g.ellipse(r() * 512, r() * 256, 10 + r() * 46, 8 + r() * 30, 0, 0, 7); g.fill(); } for (let i = 0; i < 120; i++) { g.strokeStyle = 'rgba(40,44,50,.35)'; g.beginPath(); g.arc(r() * 512, r() * 256, 1 + r() * 6, 0, 7); g.stroke(); } }
     if (k === 'leo') { c.width = 1024; c.height = 512; const W = 1024, H = 512, X = lo => (lo + 180) / 360 * W, Y = la => (90 - la) / 180 * H;
       const og = g.createLinearGradient(0, 0, 0, H); og.addColorStop(0, '#16407A'); og.addColorStop(.25, '#1F5FA8'); og.addColorStop(.5, '#2B7CC4'); og.addColorStop(.75, '#1F5FA8'); og.addColorStop(1, '#16407A'); g.fillStyle = og; g.fillRect(0, 0, W, H);

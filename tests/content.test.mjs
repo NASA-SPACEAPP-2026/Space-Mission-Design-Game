@@ -1,5 +1,6 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { runInNewContext } from "node:vm";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -76,5 +77,35 @@ describe("game shell", () => {
       expect(text).not.toContain("playcanvas");
       expect(text).not.toContain("Astronaut.glb");
     }
+  });
+});
+
+
+describe("ported mission rules", () => {
+  it("connects each new destination to its orbit and launcher", async () => {
+    const sources = await Promise.all(["01-data.js", "02-orbit.js", "03-logic.js"].map((name) => read(`public/game/${name}`)));
+    const { E, O, L } = runInNewContext(`${sources.join("\n")}\n;({ E, O, L })`);
+    expect(Object.keys(E.EXT)).toHaveLength(6);
+    for (const [key, body] of Object.entries(E.EXT)) {
+      expect(E.DEST[key]).toBeDefined();
+      expect(O.BODY[key]).toBeDefined();
+      expect(O.ZONES[key]).toHaveLength(body.zones.length);
+      expect(E.LV[body.ride].dest).toContain(key);
+      expect(E.lvCost({ lv: body.ride, dest: key })).toBe(body.c);
+    }
+    expect(L.LW.joy).toBe(25);
+    expect(L.LW.pay).toBe(0.15);
+    expect(L.TIME.win).toBe(30000);
+  });
+
+  it("applies the launch-window reduction to future instalments", async () => {
+    const sources = await Promise.all(["01-data.js", "02-orbit.js", "03-logic.js"].map((name) => read(`public/game/${name}`)));
+    const { L } = runInNewContext(`${sources.join("\n")}\n;({ L })`);
+    const mission = L.newMission("test", "Mission");
+    mission.stake = ["nasa"];
+    const original = L.installment(mission, "FRR");
+    mission.payK = 0.85;
+    expect(original).toBeGreaterThan(0);
+    expect(Math.abs(L.installment(mission, "FRR") - original * 0.85)).toBeLessThanOrEqual(1);
   });
 });

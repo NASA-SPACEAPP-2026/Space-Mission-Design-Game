@@ -310,6 +310,9 @@ const L = (function () {
   // Accetta o rifiuta. Ritorna chi lascia la missione, se qualcuno se ne va
   // una promessa rotta (deroga) pesa più di un no detto subito
   const JOY = { yes: 10, soft: 8, no: 25, noCore: 40, waive: 50 };
+  // Finestra di lancio rilassata (rifiuto di quella chiesta dagli stakeholder): UNICO posto dei due valori.
+  // joy = punti di soddisfazione persi da ogni stakeholder (stessa scala di JOY.no); pay = quota delle rate future che non viene più versata.
+  const LW = { joy: JOY.no, pay: 0.15 };
   function answer(M, id, yes, soft) { const r = R(id); M.queue = M.queue.filter(q => q !== id);
     if (yes && soft) { M.softs = M.softs || []; M.softs.push(id); register(M); M.joy[r.who] = Math.max(0, M.joy[r.who] - JOY.soft); }
     if (yes) { const n = M.reqs.filter(x => x.kind === (r.ph === '0' ? 'MIS' : 'SYS')).length + 1;
@@ -461,12 +464,12 @@ const L = (function () {
   // Moltiplicatore delle rate (difficoltà e crew): lo imposta l'interfaccia. Vive qui, alla fonte, così vale per tutte e quattro le rate,
   // compresa l'ultima (MCR) che closeOut calcola direttamente.
   const SCALE = { inst: () => 1 };
-  function installment(M, gate, joy) { joy = joy || M.joy; return Math.round(M.stake.reduce((a, id) => a + fund(id, M) * PAY[gate] * joyK(joy[id] == null ? 60 : joy[id]), 0) * SCALE.inst()); }
+  function installment(M, gate, joy) { joy = joy || M.joy; return Math.round(M.stake.reduce((a, id) => a + fund(id, M) * PAY[gate] * joyK(joy[id] == null ? 60 : joy[id]), 0) * SCALE.inst() * (M.payK == null ? 1 : M.payK)); }
   const pledged = M => M.stake.reduce((a, id) => a + fund(id, M), 0);
   // Chiusura della missione: tutti i conti in un posto solo (li usa anche il "e se...")
   function closeOut(M, fl, visit) { const f = fl.f, months = f.month, mm = minMonths(M), ok = f.alive && f.impact === 'far' && months >= E.M.minMonths, joy = Object.assign({}, M.joy), quests = [];
     const missed = Math.max(0, M.duration - months), penalty = Math.min(MISSCAP, Math.round(pledged(M) * 0.25), missed * MISSED) + (ok ? 0 : Math.round(pledged(M) * 0.10));
-    M.stake.forEach(id => { const happy = ok && months >= mm; joy[id] = Math.max(0, Math.min(100, (joy[id] == null ? 60 : joy[id]) + (happy ? 15 : -30) - (missed ? 20 : 0) - (M.drm && M.drm.win === 'relaxed' ? 12 : 0) + (M.drm && M.drm.win === 'rush' ? 10 : 0))); const b = happy && joy[id] >= 50 ? Math.round(id === 'nasa' ? fund(id, M) * 0.35 : E.stk(id).bonus * 1.5) : 0; quests.push({ id, ok: happy, bonus: b }); });
+    M.stake.forEach(id => { const happy = ok && months >= mm; joy[id] = Math.max(0, Math.min(100, (joy[id] == null ? 60 : joy[id]) + (happy ? 15 : -30) - (missed ? 20 : 0) + (M.drm && M.drm.win === 'rush' ? 10 : 0))); const b = happy && joy[id] >= 50 ? Math.round(id === 'nasa' ? fund(id, M) * 0.35 : E.stk(id).bonus * 1.5) : 0; quests.push({ id, ok: happy, bonus: b }); });
     const bonus = quests.reduce((a, q) => a + q.bonus, 0), sciPay = Math.round(f.sci * 2.2), reward = Math.round((sciPay + bonus + (f.extra || 0)) * (visit ? 1.15 : 1)), inst = ok ? installment(M, 'MCR', joy) : 0, ops = OPS * months;
     return { ok, sci: Math.round(f.sci), months, missed, penalty, ops, inst, reward, sciPay, bonus, quests, joy, net: reward + inst - penalty - ops, impact: f.impact, cause: f.cause, alive: f.alive }; }
   // E se...? Rigioca il volo cambiando una sola cosa
@@ -491,6 +494,6 @@ const L = (function () {
     if (k === 5) { out.push('sci.total     = ' + Math.round(f.sci) + cm('+' + Math.round(10 * f.mult * f.bonus * (f.sciK || 1)) + ' al mese circa')); out.push(left < 2 ? 'if (prop.dv_left < 27) disposal.arm();   // si prepara la chiusura' : 'sched.downlink(next=' + Math.floor(1 + r() * 5) + 'h, dur=35min);'); }
     return out; }
 
-  return { TIERS, tierOf, sponsorSlots, maxActiveAt, SCALE, prewarm, memoClear, satOK, anySat, typeOK, ensureFeasible, TUTG, needsProp, fund, techOK, availCat, availSol, rideOK, lvOK, LOCN, effLvl, SPEC, sampleSat, JOY, softOf, cheapest, priceOf, decide, PAY, joyK, installment, pledged, closeOut, whatIf, OPS, MISSED, MISSCAP, mad, OWN, evLabel, kitPay, landing, autoDesign, INT, INTN, ONLY, fits4, interests, generate, register, feasible, TPL, SPONSORS, addSponsor, TESTS, LEVELS, XP, level, BUILD, defects, defectP, risks, TIME, START_MONEY, MACH, RUN, FIXC, STIFFC, PEOPLE, REQ, R, cast, newMission, minMonths, startMeeting, answer, leave, waive, status, flight, monthsNow, tele, transferNeed };
+  return { TIERS, tierOf, sponsorSlots, maxActiveAt, SCALE, prewarm, memoClear, satOK, anySat, typeOK, ensureFeasible, TUTG, needsProp, fund, techOK, availCat, availSol, rideOK, lvOK, LOCN, effLvl, SPEC, sampleSat, JOY, LW, softOf, cheapest, priceOf, decide, PAY, joyK, installment, pledged, closeOut, whatIf, OPS, MISSED, MISSCAP, mad, OWN, evLabel, kitPay, landing, autoDesign, INT, INTN, ONLY, fits4, interests, generate, register, feasible, TPL, SPONSORS, addSponsor, TESTS, LEVELS, XP, level, BUILD, defects, defectP, risks, TIME, START_MONEY, MACH, RUN, FIXC, STIFFC, PEOPLE, REQ, R, cast, newMission, minMonths, startMeeting, answer, leave, waive, status, flight, monthsNow, tele, transferNeed };
 })();
 if (typeof module !== 'undefined') module.exports = L;
