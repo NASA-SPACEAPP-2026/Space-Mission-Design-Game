@@ -12,9 +12,23 @@ window.GNGCLAN = (function () {
   const SYMBOLS = ['rocket', 'satellite', 'planet', 'moon', 'star', 'comet', 'telescope', 'orbit'];
   const COLORS = ['#f07b3f', '#2f6fd6', '#1e9e5a', '#d2443a', '#8a55d0', '#f2b83a', '#1fa2a8', '#22313b'];
   const ROLES = ['member', 'chief_engineer', 'vice', 'director'];
-  const STICKERS = { zorty_happy: '😄', zorty_cry: '😢', zorty_angry: '😠', zorty_laugh: '😂' };
+  /* Sticker degli Zorty: la posa viene dalle immagini di Zorty gia' nel gioco (host.sprite), ritagliata su testa e spalle,
+     con un tondo colorato e un effetto SVG sopra. I codici sono gli stessi che il server accetta (backend/consortia.mjs).
+     Gli sticker sbloccabili con i livelli si aggiungeranno qui con un campo lvl. */
+  const STICKERS = {
+    zorty_happy: { pose: 'entusiasta', bg: '#F2B83A', n: ['Zorty felice', 'Happy Zorty'], emoji: '😄', x: 44, y: 5, k: 132,
+      fx: '<g fill="#fff"><path d="M14 30l2.4 5.6 5.6 2.4-5.6 2.4L14 46l-2.4-5.6L6 38l5.6-2.4z"/><path d="M86 18l1.8 4.2 4.2 1.8-4.2 1.8L86 30l-1.8-4.2-4.2-1.8 4.2-1.8z"/><path d="M84 62l1.5 3.5 3.5 1.5-3.5 1.5L84 72l-1.5-3.5L79 67l3.5-1.5z"/></g>' },
+    zorty_cry: { pose: 'stanco', bg: '#2F6FD6', n: ['Zorty che piange', 'Crying Zorty'], emoji: '😢', x: 50, y: 6, k: 150,
+      fx: '<path d="M66 50c1 7 0 13 2 21" fill="none" stroke="#8FD3FF" stroke-width="4.5" stroke-linecap="round" opacity=".9"/><g fill="#8FD3FF" stroke="#fff" stroke-width="1.6"><path d="M69 72c-2.6 5-4.2 7.6-4.2 10.2a4.2 4.2 0 0 0 8.4 0c0-2.6-1.6-5.2-4.2-10.2z"/><path d="M80 58c-2 4-3.4 6-3.4 8a3.4 3.4 0 0 0 6.8 0c0-2-1.4-4-3.4-8z"/><path d="M22 62c-2 4-3.4 6-3.4 8a3.4 3.4 0 0 0 6.8 0c0-2-1.4-4-3.4-8z"/></g>' },
+    zorty_angry: { pose: 'stop', bg: '#D2443A', n: ['Zorty arrabbiato', 'Angry Zorty'], emoji: '😠', x: 50, y: 6, k: 150,
+      fx: '<g fill="none" stroke-linecap="round"><path d="M33 36l13 6M67 36l-13 6" stroke="#1B2A44" stroke-width="5"/>' +
+        '<path d="M75 9c0 6 2 8 8 8M91 9c0 6-2 8-8 8M75 29c0-6 2-8 8-8M91 29c0-6-2-8-8-8" stroke="#fff" stroke-width="7"/><path d="M75 9c0 6 2 8 8 8M91 9c0 6-2 8-8 8M75 29c0-6 2-8 8-8M91 29c0-6-2-8-8-8" stroke="#E5322B" stroke-width="3.6"/></g>' +
+        '<g fill="#fff" opacity=".9"><circle cx="15" cy="18" r="5"/><circle cx="9" cy="12" r="3.5"/><circle cx="21" cy="10" r="3"/></g>' },
+    zorty_laugh: { pose: 'festa', bg: '#F07B3F', n: ['Zorty che ride', 'Laughing Zorty'], emoji: '😂', x: 50, y: 4, k: 165,
+      fx: '<g font-family="Inter,system-ui,sans-serif" font-weight="900" fill="#fff" stroke="#22313B" stroke-width="1.4" paint-order="stroke"><text x="4" y="30" font-size="15" transform="rotate(-14 14 26)">HA</text><text x="70" y="22" font-size="13" transform="rotate(12 80 18)">HA</text><text x="76" y="86" font-size="11" transform="rotate(-8 82 82)">HA</text></g>' }
+  };
   const PENDING_KEY = 'gng.clan.pending';
-  let host = { en: () => false, toast: () => {}, missions: () => [], onState: () => {}, sfx: () => {} };
+  let host = { en: () => false, toast: () => {}, missions: () => [], onState: () => {}, sfx: () => {}, sprite: () => '' };
   const EN = () => { try { return !!host.en(); } catch (e) { return false; } };
   const T = (it, en) => (EN() ? en : it);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -119,7 +133,7 @@ window.GNGCLAN = (function () {
 
   /* ---------- stato ---------- */
   const S = { open: false, tab: 'chat', noTab: 'search', mine: null, loaded: false, down: false, list: null, q: '', free: false,
-    msgs: [], lastId: 0, draft: '', err: '', busy: false, confirm: '', share: false, codeFor: '', unread: 0, edit: null,
+    msgs: [], lastId: 0, coolUntil: 0, draft: '', err: '', busy: false, confirm: '', share: false, codeFor: '', unread: 0, edit: null,
     form: { name: '', motto: '', kind: 'open', minScience: 0, maxMembers: 20, crest: { shape: 'shield', color: COLORS[0], symbol: 'rocket' } } };
   let root = null, chatT = 0, mineT = 0, pollT = 0, searchT = 0, confirmT = 0;
   const member = () => !!(S.mine && S.mine.consortium);
@@ -184,7 +198,7 @@ window.GNGCLAN = (function () {
     draw(); startChat();
   }
   function close() {
-    if (!root) return; S.open = false; root.hidden = true; document.body.classList.remove('clan-open'); stopChat();
+    if (!root) return; S.open = false; root.hidden = true; document.body.classList.remove('clan-open'); stopChat(); if (popEl) popEl.hidden = true;
     clearTimeout(mineT);
   }
   function startChat() {
@@ -205,7 +219,9 @@ window.GNGCLAN = (function () {
     const r = await api('GET', '/mine/messages?after=' + S.lastId);
     if (r.status === 404) { await loadMine(); draw(); return; }
     if (r.status !== 200 || !r.data.messages.length) return;
-    r.data.messages.forEach(m => { const i = S.msgs.findIndex(x => x.id === m.id); if (i >= 0) S.msgs[i] = m; else S.msgs.push(m); });
+    let pop = null;
+    r.data.messages.forEach(m => { const i = S.msgs.findIndex(x => x.id === m.id); if (i >= 0) S.msgs[i] = m; else { S.msgs.push(m); if (m.kind === 'sticker' && !m.deleted && m.author !== myName()) pop = m.sticker; } });
+    if (pop) popSticker(pop);
     S.lastId = r.data.lastId; S.msgs.splice(0, Math.max(0, S.msgs.length - 120)); S.unread = 0; pushState(); drawFeed(true);
   }
   async function search() {
@@ -290,9 +306,45 @@ window.GNGCLAN = (function () {
     const done = (host.missions() || []).slice(-6).reverse();
     return '<div class="clchat"><section class="clfeed"><ol class="clmsgs" aria-live="polite"></ol>' +
       (S.share ? '<div class="clshare" role="menu"><b>' + T('Condividi una missione', 'Share a mission') + '</b>' + (done.length ? done.map((m, i) => '<button role="menuitem" data-cl="sharem" data-i="' + i + '">' + SAT + esc(m.name) + ' <small>' + (m.sci | 0) + ' ◆</small></button>').join('') : '<p>' + T('Nessuna missione conclusa.', 'No finished missions.') + '</p>') + '</div>' : '') +
+      '<div class="clbar"><div class="clstks" role="group" aria-label="Sticker">' + Object.keys(STICKERS).map(k => '<button type="button" data-cl="stk" data-k="' + k + '" aria-label="' + esc(T(...STICKERS[k].n)) + '" title="' + esc(T(...STICKERS[k].n)) + '"' + (Date.now() < S.coolUntil ? ' disabled' : '') + '>' + stickerHTML(k, 38) + '</button>').join('') + '</div>' +
       '<form class="clsend" data-cl-form="send"><button type="button" class="clico2" data-cl="share" aria-expanded="' + S.share + '" aria-label="' + T('Condividi una missione', 'Share a mission') + '">' + SAT + '</button>' +
       '<input data-f="msg" maxlength="300" autocomplete="off" enterkeyhint="send" placeholder="' + (S.mine.consortium.schoolMode ? T('Modalità scuola: solo sticker', 'School mode: stickers only') : T('Scrivi al consorzio…', 'Message your consortium…')) + '" aria-label="' + T('Messaggio', 'Message') + '"' + (S.mine.consortium.schoolMode ? ' disabled' : '') + '>' +
-      '<button class="clbtn pri">' + T('Invia', 'Send') + '</button></form></section><aside class="clside" aria-label="' + T('Membri', 'Members') + '"></aside></div>';
+      '<button class="clbtn pri">' + T('Invia', 'Send') + '</button></form></div></section><aside class="clside" aria-label="' + T('Membri', 'Members') + '"></aside></div>';
+  }
+  /* ---------- sticker ---------- */
+  let stkCss = false;
+  // Le immagini vanno nel CSS una volta sola: la chat ripete solo una classe, non 15 KB per sticker.
+  function stickerCss() {
+    if (stkCss || typeof document === 'undefined') return; stkCss = true;
+    const s = document.createElement('style'); s.id = 'clan-stk';
+    s.textContent = Object.keys(STICKERS).map(k => {
+      const d = STICKERS[k], src = String(host.sprite(d.pose) || '');
+      return '.clz-' + k + '{--zb:' + d.bg + '}' + (/^data:image\/(webp|png);base64,[A-Za-z0-9+/=]+$/.test(src)
+        ? '.clz-' + k + '>i{background-image:url("' + src + '");background-size:' + d.k + '% auto;background-position:' + d.x + '% ' + d.y + '%}'
+        : '.clz-' + k + '>i::before{content:"' + d.emoji + '";font-size:calc(var(--zs)*.6)}');
+    }).join('\n');
+    document.head.appendChild(s);
+  }
+  function stickerHTML(code, px) {
+    const d = Object.prototype.hasOwnProperty.call(STICKERS, code) ? STICKERS[code] : null;
+    if (!d) return '<span class="clz" style="--zs:' + (px | 0) + 'px" role="img" aria-label="Sticker"><i>✨</i></span>';
+    stickerCss();
+    return '<span class="clz clz-' + code + '" style="--zs:' + (px | 0) + 'px" role="img" aria-label="' + esc(T(...d.n)) + '"><i></i><svg viewBox="0 0 100 100" aria-hidden="true">' + d.fx + '</svg></span>';
+  }
+  // Lo sticker appena arrivato compare grande per un paio di secondi, sopra il pannello (fuori dal suo innerHTML).
+  let popEl = null, popT = 0;
+  function popSticker(code) {
+    if (!S.open || !Object.prototype.hasOwnProperty.call(STICKERS, code)) return;
+    if (!popEl) { popEl = document.createElement('div'); popEl.id = 'clpop'; popEl.setAttribute('aria-hidden', 'true'); document.body.appendChild(popEl); }
+    popEl.innerHTML = stickerHTML(code, Math.min(180, Math.round(innerHeight * .5))); popEl.hidden = false;
+    clearTimeout(popT); popT = setTimeout(() => { popEl.hidden = true; popEl.innerHTML = ''; }, 1900);
+    try { host.sfx('tap'); } catch (e) {}
+  }
+  // Il server accetta un messaggio ogni 2 secondi: i bottoni degli sticker si spengono per lo stesso tempo.
+  function cooldown() {
+    S.coolUntil = Date.now() + 2000;
+    const set = off => root && root.querySelectorAll('[data-cl="stk"]').forEach(b => { b.disabled = off; });
+    set(true); setTimeout(() => set(false), 2050);
   }
   function msgHTML(m) {
     const me = m.author && m.author === myName();
@@ -301,7 +353,7 @@ window.GNGCLAN = (function () {
       (!m.deleted && (me || lead()) ? ' <button class="cldel" data-cl="del" data-id="' + m.id + '" aria-label="' + T('Elimina', 'Delete') + '">×</button>' : '') + '</span>';
     let inner;
     if (m.deleted) inner = '<em class="clgone">' + T('Messaggio eliminato', 'Message deleted') + '</em>';
-    else if (m.kind === 'sticker') inner = '<span class="clstk" role="img" aria-label="' + esc(m.sticker) + '">' + (STICKERS[m.sticker] || '✨') + '</span>';
+    else if (m.kind === 'sticker') inner = stickerHTML(m.sticker, 84);
     else if (m.kind === 'mission') { const d = m.data || {}; inner = '<span class="clmis"><b>' + SAT + esc(d.name) + '</b><small>' + [d.dest, d.months != null ? d.months + T(' mesi', ' months') : '', d.sci != null ? d.sci + ' ◆' : ''].filter(Boolean).map(esc).join(' · ') + '</small>' + (d.ok != null ? '<em class="' + (d.ok ? 'ok' : 'ko') + '">' + (d.ok ? T('Riuscita', 'Success') : T('Non riuscita', 'Failed')) + '</em>' : '') + '</span>'; }
     else inner = '<span class="cltxt">' + esc(m.text) + '</span>';
     return '<li class="clm' + (me ? ' me' : '') + '">' + head + inner + '</li>';
@@ -378,6 +430,11 @@ window.GNGCLAN = (function () {
       draw(); return;
     }
     if (a === 'share') { S.share = !S.share; draw(); return; }
+    if (a === 'stk') {
+      const code = b.dataset.k; if (!STICKERS[code] || Date.now() < S.coolUntil) return;
+      popSticker(code); cooldown();
+      return run(async () => { const r = await api('POST', '/mine/messages', { kind: 'sticker', sticker: code }); if (r.status !== 201) fail(r); else await pollChat(); });
+    }
     if (a === 'sharem') {
       const m = (host.missions() || []).slice(-6).reverse()[+b.dataset.i]; S.share = false; if (!m) return draw();
       return run(async () => { const r = await api('POST', '/mine/messages', { kind: 'mission', mission: m }); if (r.status !== 201) fail(r); else await pollChat(); });
@@ -411,7 +468,7 @@ window.GNGCLAN = (function () {
     const kind = form.dataset.clForm;
     if (kind === 'send') {
       const input = form.querySelector('input'), text = input.value.trim(); if (!text) return;
-      return run(async () => { const r = await api('POST', '/mine/messages', { kind: 'text', text }); if (r.status !== 201) { fail(r); return; } input.value = ''; S.draft = ''; await pollChat(); });
+      return run(async () => { const r = await api('POST', '/mine/messages', { kind: 'text', text }); if (r.status !== 201) { fail(r); return; } input.value = ''; S.draft = ''; cooldown(); await pollChat(); });
     }
     if (kind === 'code') {
       const code = form.querySelector('input').value.trim();
@@ -486,7 +543,7 @@ window.GNGCLAN = (function () {
     const lines = () => EN() ? ['Nice one! 🚀', 'Welcome aboard!', 'Who is launching next?', 'GO for launch!'] : ['Grande! 🚀', 'Benvenuto a bordo!', 'Chi lancia per primo?', 'GO per il lancio!'];
     function bot(c) {
       const others = c.members.filter(m => m.username !== myName() && m.status !== 'offline'); if (!others.length) return;
-      setTimeout(() => { const who = others[seq % others.length], st = seq % 3 === 0; c.msgs.push({ id: ++seq, author: who.username, role: who.role, at: new Date().toISOString(), kind: st ? 'sticker' : 'text', ...(st ? { sticker: 'zorty_happy' } : { text: lines()[seq % 4] }) }); }, 2500);
+      setTimeout(() => { const who = others[seq % others.length], st = seq % 3 === 0; c.msgs.push({ id: ++seq, author: who.username, role: who.role, at: new Date().toISOString(), kind: st ? 'sticker' : 'text', ...(st ? { sticker: Object.keys(STICKERS)[seq % 4] } : { text: lines()[seq % 4] }) }); }, 2500);
     }
     function call(method, path, body) {
       if (!db) seed();
@@ -530,7 +587,7 @@ window.GNGCLAN = (function () {
       if (method === 'POST' && p === '/mine/messages') {
         const m = { id: ++seq, author: myName(), role: me.role, at: new Date().toISOString(), kind: body.kind };
         if (body.kind === 'text') { const t = String(body.text || '').trim(); if (!t || t.length > 300) return R(400, { error: 'invalid', field: 'text' }); if (/https?:\/\/|www\./i.test(t)) return R(400, { error: 'link' }); m.text = t; }
-        else if (body.kind === 'sticker') { if (!STICKERS[body.sticker]) return R(400, { error: 'invalid', field: 'sticker' }); m.sticker = body.sticker; }
+        else if (body.kind === 'sticker') { if (!Object.prototype.hasOwnProperty.call(STICKERS, body.sticker)) return R(400, { error: 'invalid', field: 'sticker' }); m.sticker = body.sticker; }
         else if (body.kind === 'mission') m.data = body.mission;
         else return R(400, { error: 'invalid', field: 'kind' });
         c.msgs.push(m); bot(c); return R(201, { message: m });
@@ -626,7 +683,18 @@ body.clan-open #account-open,body.clan-open #tbub,body.clan-open #zq{display:non
 #clan .clwho time,#clan .clsys time{font-size:11px;color:#7A736C}
 #clan .cltxt{white-space:pre-wrap;word-break:break-word}
 #clan .clsys{align-self:center;text-align:center;font-size:12px;color:#ADA49C;padding:2px 8px;max-width:92%}
-#clan .clstk{font-size:40px;line-height:1.1}
+.clz{position:relative;display:inline-block;width:var(--zs);height:var(--zs);flex:none;vertical-align:middle}
+.clz>i{position:absolute;inset:0;border-radius:50%;background-color:var(--zb,#66777f);background-repeat:no-repeat;border:max(2px,calc(var(--zs)*.045)) solid #fff;box-sizing:border-box;box-shadow:0 2px 6px rgba(0,0,0,.35);display:grid;place-items:center;font-style:normal;overflow:hidden}
+.clz>svg{position:absolute;inset:-6%;width:112%;height:112%;overflow:visible;pointer-events:none}
+#clan .clm .clz{margin:2px 0}
+#clan .clbar{display:flex;flex-direction:column;flex:none}
+#clan .clstks{display:flex;gap:6px;padding-top:6px}
+#clan .clstks button{background:#222631;border:0;border-radius:10px;padding:3px;cursor:pointer;min-width:44px;min-height:44px;display:grid;place-items:center;transition:transform .08s}
+#clan .clstks button:active{transform:scale(.9)}#clan .clstks button:disabled{opacity:.4;cursor:default}
+#clpop{position:fixed;inset:0;z-index:152;display:grid;place-items:center;pointer-events:none}#clpop[hidden]{display:none}
+#clpop .clz{animation:clzpop 1.85s ease-out forwards;filter:drop-shadow(0 12px 26px rgba(0,0,0,.5))}
+@keyframes clzpop{0%{transform:scale(.3);opacity:0}12%{transform:scale(1.12);opacity:1}22%{transform:scale(1)}78%{opacity:1;transform:scale(1)}100%{transform:scale(.92) translateY(-18px);opacity:0}}
+@media (prefers-reduced-motion:reduce){#clpop .clz{animation:clzfade 1.85s linear forwards}@keyframes clzfade{0%,78%{opacity:1}100%{opacity:0}}}
 #clan .clmis{display:flex;flex-direction:column;background:#15171D;border:1px solid #2E3442;border-radius:8px;padding:6px 10px}
 #clan .clmis em{font-style:normal;font-size:12px;font-weight:700}#clan .clmis em.ok{color:#5FD38D}#clan .clmis em.ko{color:#FF8A7E}
 #clan .clgone{color:#7A736C}
@@ -662,7 +730,7 @@ body.clan-open #account-open,body.clan-open #tbub,body.clan-open #zq{display:non
 .rs.clanb{position:relative}
 .clbdg{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#D2443A;color:#fff;font:700 11px/17px Inter,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #131313}
 .clbdg[hidden]{display:none}
-@media (max-height:420px){#clan .clw{height:100%;border-radius:8px}#clan .clh{padding:4px 8px}#clan .clb{padding:6px 10px}#clan .clt b{font-size:14px}#clan .clempty .clcrest{width:48px;height:48px}#clan h2{font-size:17px;margin:2px 0}#clan .cleditor .clprev .clcrest{width:56px;height:56px}#clan .clpick button{width:30px;height:30px}}
+@media (max-height:420px){#clan .clbar{flex-direction:row;align-items:center;gap:6px}#clan .clbar .clsend{flex:1;min-width:0;padding-top:6px}#clan .clstks{gap:4px}#clan .clstks button{min-width:40px;min-height:40px;padding:2px}#clan .clw{height:100%;border-radius:8px}#clan .clh{padding:4px 8px}#clan .clb{padding:6px 10px}#clan .clt b{font-size:14px}#clan .clempty .clcrest{width:48px;height:48px}#clan h2{font-size:17px;margin:2px 0}#clan .cleditor .clprev .clcrest{width:56px;height:56px}#clan .clpick button{width:30px;height:30px}}
 @media (max-width:640px){#clan .clside{display:none}#clan .clt small{display:none}#clan .cltabs button{padding:7px 10px}}
 @media (prefers-reduced-motion:no-preference){#clan .clw{animation:clin .16s ease-out}@keyframes clin{from{transform:translateY(8px);opacity:0}}}
 `;
@@ -670,5 +738,6 @@ body.clan-open #account-open,body.clan-open #tbub,body.clan-open #zq{display:non
   }
 
   return { init, open, close, isOpen: () => S.open, unread: () => S.unread, badgeHTML, crestSVG, science, activity, setDemo,
+    stickerHTML, stickers: () => Object.keys(STICKERS),
     _test: { sysText, errText, demo, state: S, loadMine } };
 })();

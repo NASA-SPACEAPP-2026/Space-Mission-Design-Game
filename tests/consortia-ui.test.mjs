@@ -25,6 +25,16 @@ describe('consortium panel module', () => {
     expect(C.crestSVG({ shape: 'star', color: '#1E9E5A', symbol: 'moon' })).toContain('#1E9E5A');
   });
 
+  it('offers exactly the stickers the server accepts, and never echoes unknown codes', async () => {
+    const { STICKERS } = await import('../backend/consortia.mjs');
+    expect(C.stickers()).toEqual(STICKERS);
+    expect(C.stickerHTML('zorty_cry', 84)).toContain('clz-zorty_cry');
+    expect(C.stickerHTML('zorty_cry', 84)).toContain('aria-label="Zorty che piange"');
+    const unknown = C.stickerHTML('<img onerror=x>', 84);
+    expect(unknown).not.toContain('onerror');
+    expect(unknown).not.toContain('clz-');
+  });
+
   it('turns system message codes into sentences', () => {
     const { sysText, errText } = C._test;
     expect(sysText({ code: 'joined', user: 'Ada' })).toBe('Ada è entrato nel consorzio');

@@ -3531,6 +3531,8 @@ function riskMini(M){ const R=riskList(M), col=(p,i)=>p*i>=6?'#F2B8AE':p*i>=3?'#
 let CLANST={auth:false,member:false,unread:0,name:'',crest:null};
 function clanInit(){ if(!window.GNGCLAN) return; const en=()=>TX('it','en')==='en';
   GNGCLAN.init({ en, toast:t=>toast(t), sfx:k=>{ try{ sfx[k](); }catch(e){} },
+    /* immagini di Zorty per gli sticker della chat */
+    sprite:p=>(ZORTY.SPR&&ZORTY.SPR[p])||'',
     /* missioni concluse da condividere in chat come scheda */
     missions:()=>G.missions.filter(m=>m.phase==='done'&&!m.tut&&m.result).map(m=>{ const dn=(E.DEST[m.sat&&m.sat.dest]||{}).n||''; return {name:String(m.name||'').slice(0,24),type:String(m.type||'sci').slice(0,16),dest:String(en()?I18N.tr(dn):dn).slice(0,24),sci:Math.max(0,m.result.sci|0),months:Math.max(0,Math.min(600,m.result.months|0)),ok:!!m.result.ok}; }),
     onState:st=>{ const was=CLANST; CLANST=st; if(view==='hub'&&(was.member!==st.member||was.unread!==st.unread||was.name!==st.name||JSON.stringify(was.crest)!==JSON.stringify(st.crest))) C3.hall(st,cCtx().labels.council); } }); }
