@@ -181,7 +181,7 @@ const L = (function () {
   const MUST = ['avi', 'bat', 'com', 'adcs', 'ray'], OPT = ['nav', 'prop', 'pwr', 'rob', 'eol'];
   // un satellite a caso, con le regole di posizione rispettate: lo usano la verifica di fattibilità, il prezzo delle richieste e l'assistente
   function sampleSat(M, o, r, keep) { const R0 = E.RIDES[o.ride], occ = new Uint8Array(R0.cols * R0.rows), sols = availSol(M, o.ride); if (!sols.length) return null;
-    const d = { ride: o.ride, lv: o.lv, dest: M.sat.dest || 'leo', sol: keep && keep.sol || sols[Math.floor(r() * sols.length)], placed: {}, heat: {}, acc: {}, stake: M.stake, planDv: Math.round(o.dv), landKg: o.landKg, skK: o.skK, eclH: o.eclH, alt: o.alt };
+    const d = { ride: o.ride, lv: o.lv, dest: M.sat.dest || 'leo', sol: keep && keep.sol || sols[Math.floor(r() * sols.length)], placed: {}, heat: {}, acc: {}, stake: M.stake, planDv: Math.round(o.dv), landKg: o.landKg, skK: o.skK, eclH: o.eclH, skMs: o.skMs, alt: o.alt };
     const cats = MUST.slice(); OPT.forEach(c => { if ((c === 'prop' && o.dv > 1) || (keep && keep.placed[c]) || (!keep && r() < 0.35)) cats.push(c); });
     const pick = {}; for (const c of cats) { const ids = keep && keep.placed[c] ? [keep.placed[c].id] : availCat(M, c, o.ride); if (!ids.length) { if (MUST.indexOf(c) >= 0 || c === 'prop' && o.dv > 1) return null; continue; } const sid = ids.length > 1 ? ids.slice().sort((x, y) => (E.PARTS[x].m + (E.PARTS[x].propM || 0)) * 10 + E.PARTS[x].p - (E.PARTS[y].m + (E.PARTS[y].propM || 0)) * 10 - E.PARTS[y].p) : ids; pick[c] = sid[Math.floor(Math.pow(r(), 1.8) * sid.length)]; }
     for (const c of Object.keys(pick).sort((a, b) => E.nCells(pick[b], o.ride) - E.nCells(pick[a], o.ride) + (r() - 0.5) * 2)) { const id = pick[c], P = E.PARTS[id], opts = [];
@@ -192,8 +192,8 @@ const L = (function () {
     d.noProp = !d.placed.prop; E.layout(d).coldBad.forEach(c => { d.heat[c] = true; }); return d; }
   const baseOK = (d, b, o) => b.wet <= b.massLim && b.gen >= b.demand && b.wh > 0 && b.dod <= 1 && b.pt <= E.needPt(d) && !Object.keys(b.L.parts).some(c => !b.L.parts[c].ok) && (!(o.dv > 1) || b.fuel >= o.dv * 1.05 + 27 + E.skOf(d) * E.M.minMonths);
   // ---------- quanto costa dire di sì: il satellite più economico con e senza la richiesta ----------
-  function estDv(M, ride, lv) { const d = M.sat, keep = { ride: d.ride, lv: d.lv, planDv: d.planDv, planOk: d.planOk, landC: d.landC, landKg: d.landKg, skK: d.skK, eclH: d.eclH, alt: d.alt, noProp: d.noProp }; d.ride = ride; d.lv = lv;
-    let out = null; try { const p = O.plan(M); out = { dv: p.tot, landKg: d.landKg, skK: d.skK, eclH: d.eclH, alt: d.alt }; } catch (e) { out = { dv: E.dvNeed(d), landKg: 0, skK: 1, eclH: E.M.eclH, alt: 550 }; }
+  function estDv(M, ride, lv) { const d = M.sat, keep = { ride: d.ride, lv: d.lv, planDv: d.planDv, planOk: d.planOk, landC: d.landC, landKg: d.landKg, skK: d.skK, eclH: d.eclH, skMs: d.skMs, eclSrc: d.eclSrc, alt: d.alt, noProp: d.noProp }; d.ride = ride; d.lv = lv;
+    let out = null; try { const p = O.plan(M); out = { dv: p.tot, landKg: d.landKg, skK: d.skK, eclH: d.eclH, skMs: d.skMs, alt: d.alt }; } catch (e) { out = { dv: E.dvNeed(d), landKg: 0, skK: 1, eclH: E.M.eclH, alt: 550 }; }
     Object.assign(d, keep); return out; }
   function rideOpts(M) { const out = []; Object.keys(E.LV).filter(k => lvOK(M, k) && (!M.lvFixed || k === M.sat.lv)).forEach(lv => E.LV[lv].fits.filter(k => rideOK(M, k) && (!M.rideFixed || k === M.sat.ride)).forEach(ride => out.push(Object.assign({ ride, lv }, estDv(M, ride, lv))))); return out; }
   // come cheapest, ma si ferma al primo satellite valido: serve solo a sapere se esiste
@@ -351,7 +351,7 @@ const L = (function () {
   // ---------- assistente di integrazione (solo nella prima missione): dispone i pezzi, o li sceglie ----------
   function autoDesign(M, mode, cash, ms) { const d0 = M.sat, r = E.rng((((M.seed || 1) ^ Math.imul((M.adN = (M.adN || 0) + 1), 2654435761)) >>> 0) || 1), t0 = Date.now();
     const reqs = M.reqs.filter(x => M.waived.indexOf(x.id) < 0).map(x => R(x.id)).filter(q => q && q.kind === 'design');
-    const o = { ride: d0.ride, lv: d0.lv, dv: d0.planDv || 0, landKg: d0.landKg, skK: d0.skK, eclH: d0.eclH, alt: d0.alt };
+    const o = { ride: d0.ride, lv: d0.lv, dv: d0.planDv || 0, landKg: d0.landKg, skK: d0.skK, eclH: d0.eclH, skMs: d0.skMs, alt: d0.alt };
     const score = d => { const b = E.budget(d), base = E.checks(d).list.filter(x => ['parts', 'place', 'mass', 'pow', 'bat', 'point'].indexOf(x.k) >= 0 && !x.ok).length, rq = reqs.filter(q => !q.chk(d, b, M)).length;
       return { bad: base + rq + (cash != null && b.cost > cash ? 1 : 0) + (o.dv > 1 && !d.placed.prop ? 1 : 0), cost: b.cost }; };
     let best = null;

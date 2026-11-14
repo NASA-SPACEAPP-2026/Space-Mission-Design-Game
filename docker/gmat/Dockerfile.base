@@ -1,0 +1,12 @@
+# Heavy, rarely-changing layer: NASA GMAT R2025a (about 422 MB download) + Node for the bridge.
+# Published to GitHub Container Registry by .github/workflows/gmat-base-image.yml, so developers pull it instead of downloading GMAT.
+# Build by hand (linux/amd64 only: NASA ships GMAT for x64):
+#   docker build --platform linux/amd64 -f docker/gmat/Dockerfile.base -t smdg-gmat-base:r2025a .
+FROM node:24-bookworm-slim AS node
+
+FROM ubuntu:24.04
+ARG GMAT_URL=https://downloads.sourceforge.net/project/gmat/GMAT/GMAT-R2025a/gmat-ubuntu-x64-R2025a.tar.gz
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates libgl1 libglu1-mesa libgtk-3-0t64 libx11-6 libxext6 libxrender1 libsm6 libice6 libstdc++6 \
+ && rm -rf /var/lib/apt/lists/* \
+ && curl -fsSL "$GMAT_URL" -o /tmp/gmat.tgz && mkdir -p /opt/gmat && tar -xzf /tmp/gmat.tgz -C /opt/gmat --strip-components=1 && rm /tmp/gmat.tgz
+COPY --from=node /usr/local/bin/node /usr/local/bin/node

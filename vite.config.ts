@@ -8,7 +8,9 @@ export default defineConfig({
   },
   server: {
     host: true,
-    port: 5173
+    port: 5173,
+    // GMAT (NASA) runs in a container; the game calls it through the same origin
+    proxy: { "/api/gmat": "http://localhost:8787" }
   },
   preview: {
     host: true,

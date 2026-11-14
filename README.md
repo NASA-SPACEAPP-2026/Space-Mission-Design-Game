@@ -54,6 +54,18 @@ The scripts are classic scripts loaded in order, so the global bindings stay com
 the code is split. The next refactor step converts them to ES modules/TypeScript under `src/`
 (see [architecture](documentation/architecture.md)).
 
+## NASA GMAT (optional, automatic)
+
+The game asks NASA's [General Mission Analysis Tool](https://software.nasa.gov/software/GSC-19468-1) to compute
+the ΔV of every transfer, plus the real **eclipse time, ground-station contacts and orbit decay** of the player's
+working orbit (shown in the *GMAT analysis* card of the Orbit Budget, the build gauges, the PDR and the report).
+GMAT runs in a Docker container; `npm run dev` starts it for you (`scripts/gmat-up.mjs`). Without Docker the game
+quietly falls back to its own numbers, and every value says which source it came from.
+
+- First run pulls the prebuilt base image from GitHub Container Registry, or builds it once (about 420 MB download).
+- The base image is published by `.github/workflows/gmat-base-image.yml` (manual run, or when `docker/gmat/Dockerfile.base` changes).
+- After editing `scripts/gmat-*.mjs` or `public/game/02-orbit.js`: `docker compose restart gmat`.
+
 ## Branches and deployment
 
 Work goes into `dev` through pull requests; every push to `dev` deploys to **staging**. Merging

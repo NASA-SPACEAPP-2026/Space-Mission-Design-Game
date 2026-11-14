@@ -1,0 +1,17 @@
+# NASA GMAT as a service for the game (see docker/gmat/). `npm run dev` starts it via scripts/gmat-up.mjs.
+services:
+  gmat:
+    build:
+      context: .
+      dockerfile: docker/gmat/Dockerfile
+      args:
+        BASE: smdg-gmat-base:r2025a
+    platform: linux/amd64
+    image: smdg-gmat
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      # development: edits to the bridge or the orbit script apply with `docker compose restart gmat`, no rebuild
+      - ./scripts:/app/scripts:ro
+      - ./public/game/02-orbit.js:/app/public/game/02-orbit.js:ro
+    restart: unless-stopped
