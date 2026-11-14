@@ -1,106 +1,108 @@
-# Architettura e flussi del progetto
+**English** | [Italiano](architecture.it.md)
 
-[Indice](README.md) · [Database](authentication.md) · [GMAT](gmat-integration-report.md)
+# Architecture and application flows
 
-## Vista d'insieme
+[Index](README.md) · [Database](authentication.md) · [GMAT](gmat-integration-report.md)
 
-Go No-Go comprende tre componenti: un gioco eseguito nel browser, un backend Node per file e account, un servizio GMAT opzionale. Gli asset frontend sono compilabili e distribuibili come sito statico; le funzioni account richiedono Node e PostgreSQL.
+## Overview
+
+Go No-Go has three components: browser gameplay, a Node backend for files and accounts, and an optional GMAT service. Frontend assets can be built and hosted statically; account features require Node and PostgreSQL.
 
 ```mermaid
 flowchart TB
   subgraph Browser
-    UI[Interfacce, campus e laboratori]
-    SIM[Dati, logica e meccanica orbitale]
+    UI[UI, campus, and labs]
+    SIM[Data, rules, and orbital mechanics]
     SAVE[localStorage v32]
-    ACCOUNT[Interfaccia account]
+    ACCOUNT[Account UI]
     UI --> SIM
     SIM --> SAVE
   end
-  ACCOUNT -->|/api/auth/*| NODE[Server Node]
+  ACCOUNT -->|/api/auth/*| NODE[Node server]
   NODE --> PG[(PostgreSQL)]
-  SIM -->|/api/gmat* tramite proxy| GMAT[Bridge Node e GmatConsole]
-  NODE --> DIST[File compilati in dist]
+  SIM -->|/api/gmat* through proxy| GMAT[Node bridge and GmatConsole]
+  NODE --> DIST[Compiled files in dist]
 ```
 
-Il proxy verso GMAT è presente in Vite durante lo sviluppo. In produzione `server.mjs` gestisce gli account, ma risponde `404` alle altre API sconosciute: l'instradamento GMAT va predisposto separatamente.
+Vite supplies GMAT routing during development. Production `server.mjs` handles accounts but returns `404` for other unknown APIs: GMAT routing must be supplied separately.
 
-## Frontend e ordine degli script
+## Frontend and script order
 
-`index.html` contiene struttura e stili. Gli script del gioco sono **script classici**, con identificatori e dipendenze condivisi. L'ordine effettivo, usato anche dal compilatore del bundle, è:
+`index.html` contains markup and styles. Game files are **classic scripts** sharing identifiers and dependencies. The actual load order, also used by the bundle builder, is:
 
-| Ordine | File in `public/game/` | Responsabilità |
+| Order | File in `public/game/` | Responsibility |
 | --- | --- | --- |
-| 1 | `00-three.js` | Libreria Three.js locale |
-| 2 | `00-toon.js` | Stile e supporti grafici |
-| 3 | `01-data.js` | Cataloghi e dati del gioco |
-| 4 | `02-orbit.js` | Meccanica orbitale e calcoli |
-| 5 | `03-logic.js` | Regole e simulazione di missione |
-| 6 | `04-stubs.js` | Editor e visualizzazioni 3D, inclusi satellite e volo |
-| 7 | `05-campus.js` | Campus e strutture |
-| 8 | `06-rooms.js` | Ambienti e stanze |
-| 9 | `08-minigames.js` | Minigiochi e prove |
-| 10 | `07-main.js` | Avvio, stato, interfacce, salvataggio e integrazioni |
+| 1 | `00-three.js` | Local Three.js library |
+| 2 | `00-toon.js` | Rendering style and helpers |
+| 3 | `01-data.js` | Catalogs and game data |
+| 4 | `02-orbit.js` | Orbital mechanics and calculations |
+| 5 | `03-logic.js` | Rules and mission simulation |
+| 6 | `04-stubs.js` | 3D editors and views, including satellite and flight |
+| 7 | `05-campus.js` | Campus and facilities |
+| 8 | `06-rooms.js` | Rooms and interiors |
+| 9 | `08-minigames.js` | Minigames and tests |
+| 10 | `07-main.js` | Startup, state, screens, saves, and integrations |
 
-L'ordine non coincide con l'ordinamento alfabetico: `08-minigames.js` precede `07-main.js`. Una modifica deve mantenere coerenti HTML, `scripts/build-game.mjs` e test del contratto.
+This is not alphabetical order: `08-minigames.js` comes before `07-main.js`. Keep HTML, `scripts/build-game.mjs`, and contract tests consistent when changing it.
 
-`public/account.js` viene caricato separatamente come modulo e gestisce il pulsante e il dialogo account. Non trasforma lo stato del gioco in dati associati all'utente.
+`public/account.js` loads separately as a module and manages the account button and dialog. It does not associate game state with the authenticated user.
 
-## Rendering e risorse
+## Rendering and resources
 
-Il progetto include campus e stanze 3D, editor del satellite e dell'orbita e viste SVG/2D. Three.js richiede WebGL. Il codice prevede controlli di disponibilità e viste alternative, ma la copertura dei fallback va verificata per la schermata interessata.
+The project includes a 3D campus and rooms, satellite and orbit editors, and SVG/2D views. Three.js needs WebGL. Availability checks and alternative views exist, but fallback coverage must be verified for the screen being changed.
 
-Un regolatore delle prestazioni modifica qualità e rapporto pixel, con preferenza salvata in `gngQ`. `?perf=1`, `?q=0..3` e `?mob=1` aiutano il collaudo. Le animazioni considerano `prefers-reduced-motion`.
+A performance governor adjusts quality and pixel ratio, with the preference in `gngQ`. Use `?perf=1`, `?q=0..3`, and `?mob=1` for inspection. Animation considers `prefers-reduced-motion`.
 
-I font locali si trovano in `public/fonts/`, con licenze OFL. La pagina richiede anche famiglie a Google Fonts: avere font locali non equivale a completa assenza di richieste esterne. `public/audio/theme.mp3` è caricato separatamente e non incorporato nel normale HTML.
+Local fonts and OFL licenses live in `public/fonts/`. The page also requests Google Fonts families, so local font files do not imply zero external requests. `public/audio/theme.mp3` loads separately rather than being embedded in normal HTML.
 
-## Stato e persistenza
+## State and persistence
 
-L'oggetto di gioco `G` viene creato da `newG()` e serializzato da `save()` nella chiave `gng32.save`. `load()` accetta soltanto oggetti con `v === 32`. Non c'è uno schema dichiarativo completo per le missioni né un migratore generale dei salvataggi.
+`newG()` creates game object `G`; `save()` serializes it to `gng32.save`. `load()` accepts objects only when `v === 32`. Mission objects do not have a complete declared schema or a general save migration system.
 
-Il backend conserva soltanto utenti, sessioni e limiti ai tentativi. Il servizio GMAT gestisce calcoli e cache separati dal database account. I risultati orbitali incorporati nella missione seguono il salvataggio locale della missione.
+The backend stores only users, sessions, and authentication limits. GMAT computations and caches are separate from the account database. Orbital results attached to missions follow the mission's local save.
 
-Consulta [formato dei salvataggi](legacy-save-format.md) e [schema PostgreSQL](authentication.md) per i due modelli distinti.
+See [save format](legacy-save-format.md) and [PostgreSQL schema](authentication.md) for the separate persistence models.
 
-## Routing in sviluppo
+## Development routing
 
-| Percorso/porta | Destinazione |
+| Path/port | Destination |
 | --- | --- |
-| `localhost:5173` | Vite, file frontend e ricaricamento sviluppo |
-| `/api/gmat*` da Vite | `http://localhost:8787` |
-| Altri `/api*` da Vite | `http://127.0.0.1:8080` |
-| `localhost:8080` | Server Node, API account e `dist/` |
-| `localhost:4173` | Anteprima Vite, senza i proxy definiti per `server` |
-| `127.0.0.1:5432` | PostgreSQL Docker locale |
+| `localhost:5173` | Vite, frontend files, and development reload |
+| `/api/gmat*` through Vite | `http://localhost:8787` |
+| Other `/api*` through Vite | `http://127.0.0.1:8080` |
+| `localhost:8080` | Node server, account APIs, and `dist/` |
+| `localhost:4173` | Vite preview, without proxies defined under `server` |
+| `127.0.0.1:5432` | Local Docker PostgreSQL |
 
-La regola GMAT precede quella generale `/api`. `APP_ORIGIN` si riferisce all'origine vista dal browser, quindi normalmente `http://localhost:5173` durante lo sviluppo.
+The GMAT proxy rule comes before the general `/api` rule. `APP_ORIGIN` refers to the origin the browser visits, normally `http://localhost:5173` during development.
 
-## Backend HTTP
+## HTTP backend
 
-`server.mjs` usa il server HTTP nativo di Node. Serve `dist/`, gestisce `/api/auth/*` tramite `createAuth()` e risponde a `/api/health` con `{ "status": "ok" }`.
+`server.mjs` uses Node's native HTTP server. It serves `dist/`, delegates `/api/auth/*` to `createAuth()`, and responds to `/api/health` with `{ "status": "ok" }`.
 
-Per i file supporta GET/HEAD, MIME, Brotli/gzip precalcolati o compressione dinamica, `ETag`, `Last-Modified`, richieste condizionali e risposta `304`. Blocca percorsi non validi e traversal; applica fallback SPA alle sole rotte senza estensione.
+File handling supports GET/HEAD, MIME types, precompressed or dynamic Brotli/gzip, `ETag`, `Last-Modified`, conditional requests, and `304`. It rejects invalid paths and traversal, and applies SPA fallback only to extensionless routes.
 
-| Risorsa | Cache |
+| Resource | Cache policy |
 | --- | --- |
-| HTML principale e `/game/*` | `no-cache` |
-| `/assets/*`, `/audio/*`, `/fonts/*` | Un anno, `immutable` |
-| Altri file | Un'ora |
-| API account e sonda JSON | `no-store` |
+| Main HTML and `/game/*` | `no-cache` |
+| `/assets/*`, `/audio/*`, `/fonts/*` | One year, `immutable` |
+| Other files | One hour |
+| Account APIs and JSON probe | `no-store` |
 
-La chiusura su `SIGTERM`/`SIGINT` attende la chiusura del server e del pool PostgreSQL. In produzione la configurazione account è obbligatoria; in locale il server può partire senza DB e restituire `503` agli account.
+`SIGTERM`/`SIGINT` shutdown closes the server and PostgreSQL pool. Production requires account configuration; locally, the server can start without a DB and return `503` for accounts.
 
-## Pipeline di build
+## Build pipeline
 
-1. Vite compila `index.html` e i moduli frontend in `dist/`.
-2. `scripts/build-game.mjs` concatena gli script classici nell'ordine definito, li minifica con esbuild e produce `assets/game-<hash>.js`.
-3. Il compilatore sostituisce i tag sorgenti nell'HTML, aggiunge il preload ed elimina `dist/game/`.
-4. `scripts/precompress.mjs` genera gli asset testuali `.br` e `.gz`.
-5. `scripts/verify-build.mjs`, eseguito da `npm run check`, verifica il contratto della build.
+1. Vite compiles `index.html` and frontend modules into `dist/`.
+2. `scripts/build-game.mjs` concatenates classic scripts in their defined order, minifies with esbuild, and writes `assets/game-<hash>.js`.
+3. The builder replaces source script tags, adds preload, and removes `dist/game/`.
+4. `scripts/precompress.mjs` generates `.br` and `.gz` text assets.
+5. `scripts/verify-build.mjs`, run by `npm run check`, verifies the build contract.
 
-`package:azure` raccoglie la build e il runtime Node; `package:single` genera un'esportazione HTML del gioco. Sono artefatti con capacità diverse: nessuna esportazione frontend incorpora un server PostgreSQL.
+`package:azure` collects the build and Node runtime files; `package:single` creates a game HTML export. Their capabilities differ: a frontend export does not embed PostgreSQL.
 
-## Evoluzione possibile
+## Possible evolution
 
-Una conversione a moduli ES/TypeScript può separare stato, simulazione, renderer e schermate. È una proposta, non la struttura attuale: non esiste già una nuova architettura `src/` da usare al posto degli script.
+An ES module/TypeScript refactor could separate state, simulation, rendering, and screens. This is a proposal rather than the current layout: there is no completed new `src/` architecture replacing the classic scripts.
 
-Prima di spostare codice condiviso, individuare dipendenze globali e verificare ordine, salvataggi e schermate reali. L'eventuale introduzione di salvataggi cloud richiederà schema DB, autorizzazione per utente, versionamento e una decisione esplicita sul trasferimento dei salvataggi locali.
+Before moving shared code, identify global dependencies and verify load order, saves, and actual screens. Cloud saves would require DB schema, per-user authorization, versioning, and an explicit decision on importing existing local games.

@@ -1,45 +1,47 @@
-# Documentazione di Go No-Go
+**English** | [Italiano](README.it.md)
 
-Le guide descrivono il funzionamento presente nei sorgenti del repository. Sono in italiano; nomi di file, variabili, endpoint e identificatori restano quelli effettivi del codice.
+# Go No-Go documentation
 
-## Percorsi di lettura
+The guides describe the implementation in the repository and are available in English and Italian. Filenames, variables, endpoints, and identifiers retain their actual code names.
 
-| Se vuoi… | Leggi |
+## Reading paths
+
+| Goal | Guide |
 | --- | --- |
-| Installare e giocare | [README principale](../README.md) |
-| Capire moduli, rendering e build | [Architettura](architecture.md) |
-| Capire cosa finisce nel DB | [Account e database](authentication.md) |
-| Capire dove resta la partita | [Salvataggi locali](legacy-save-format.md) |
-| Attivare o diagnosticare NASA GMAT | [Integrazione GMAT](gmat-integration-report.md) |
-| Distribuire o gestire Azure | [Distribuzione](deployment.md) |
-| Eseguire test e verifiche browser | [Verifiche](testing.md) |
-| Comprendere gli obiettivi educativi | [Challenge](challenge.md) |
+| Install and play | [Main README](../README.md) |
+| Understand modules, rendering, and builds | [Architecture](architecture.md) |
+| Understand what goes into the DB | [Accounts and database](authentication.md) |
+| Find where missions are saved | [Local saves](legacy-save-format.md) |
+| Enable or diagnose NASA GMAT | [GMAT integration](gmat-integration-report.md) |
+| Deploy or operate Azure | [Deployment](deployment.md) |
+| Run tests and browser checks | [Testing](testing.md) |
+| Understand educational objectives | [Challenge](challenge.md) |
 
-I vecchi percorsi [README.it.md](../README.it.md) e [challenge.it.md](challenge.it.md) rimangono disponibili come rimandi alle guide canoniche italiane.
+Every guide has a language link at the top. English uses `.md`; Italian uses `.it.md`, including the [Italian project README](../README.it.md) and [Italian challenge brief](challenge.it.md).
 
-## Tre ambiti distinti
+## Three separate concerns
 
-1. **Gioco locale:** simulazione nel browser e salvataggio `gng32.save` nel `localStorage`.
-2. **Account:** API Node e PostgreSQL per utenti, sessioni e limiti ai tentativi.
-3. **Analisi orbitale:** servizio GMAT opzionale, raggiunto tramite proxy Vite in sviluppo.
+1. **Local gameplay:** browser simulation and `gng32.save` in `localStorage`.
+2. **Accounts:** Node APIs and PostgreSQL for users, sessions, and request limits.
+3. **Orbital analysis:** optional GMAT service, accessed through Vite's development proxy.
 
-La registrazione non carica una partita nel DB. Il deploy del server Node non distribuisce il servizio GMAT. La sonda `/api/health` verifica il processo, mentre `/api/auth/me` interroga anche lo schema account.
+Registration does not upload a mission. Deploying the Node server does not deploy GMAT. `/api/health` checks the process; `/api/auth/me` also queries the account schema.
 
-## Fonti di verità
+## Sources of truth
 
-| Argomento | File da consultare |
+| Subject | Files |
 | --- | --- |
-| Comandi e dipendenze | [`package.json`](../package.json), [`package-lock.json`](../package-lock.json) |
-| Schema DB | [`db/001-auth.sql`](../db/001-auth.sql) |
-| Connessione e migrazione | [`backend/database.mjs`](../backend/database.mjs), [`scripts/migrate.mjs`](../scripts/migrate.mjs) |
-| Contratto account | [`backend/auth.mjs`](../backend/auth.mjs), [`public/account.js`](../public/account.js) |
-| Routing e servizio file | [`server.mjs`](../server.mjs), [`vite.config.ts`](../vite.config.ts) |
-| Salvataggio e interfacce | [`public/game/07-main.js`](../public/game/07-main.js) |
-| Servizi locali | [`compose.yaml`](../compose.yaml), [`docker-compose.yml`](../docker-compose.yml) |
-| Pipeline | [CI/CD](../.github/workflows/ci-cd.yml), [immagine GMAT](../.github/workflows/gmat-base-image.yml) |
+| Commands and dependencies | [`package.json`](../package.json), [`package-lock.json`](../package-lock.json) |
+| DB schema | [`db/001-auth.sql`](../db/001-auth.sql) |
+| Connection and migration | [`backend/database.mjs`](../backend/database.mjs), [`scripts/migrate.mjs`](../scripts/migrate.mjs) |
+| Account contract | [`backend/auth.mjs`](../backend/auth.mjs), [`public/account.js`](../public/account.js) |
+| Routing and file serving | [`server.mjs`](../server.mjs), [`vite.config.ts`](../vite.config.ts) |
+| Saves and UI | [`public/game/07-main.js`](../public/game/07-main.js) |
+| Local services | [`compose.yaml`](../compose.yaml), [`docker-compose.yml`](../docker-compose.yml) |
+| Pipelines | [CI/CD](../.github/workflows/ci-cd.yml), [GMAT image](../.github/workflows/gmat-base-image.yml) |
 
-## Aggiornare queste guide
+## Maintaining the guides
 
-Quando cambia un contratto, aggiorna la guida specialistica e il riepilogo nel README. Mantieni un solo documento completo per argomento. Distingui funzionalità implementate, proposte future e risultati di prove storiche; non presentare un ambiente remoto come verificato senza averlo controllato.
+When a contract changes, update both language versions of its guide and the README summary. Distinguish implemented behavior, future proposals, and historical measurements. Do not claim a remote environment has been verified without checking it.
 
-I file `Go No-Go.html` e `dist/` sono risultati di build, non guide da modificare manualmente. Le licenze dei font in `public/fonts/` conservano il testo originale.
+`Go No-Go.html` and `dist/` are build outputs, not documentation to edit manually. Font licenses in `public/fonts/` retain their original text.

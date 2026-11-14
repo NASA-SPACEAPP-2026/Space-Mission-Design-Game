@@ -1,58 +1,60 @@
+**English** | [Italiano](README.it.md)
+
 <div align="center">
 
 # 🚀 GO / NO-GO
 ### Space Mission Design Game
 
-**Dall'idea al lancio: progetta una missione, costruisci il tuo CubeSat e dimostra che può funzionare.**
+**From idea to launch: design a mission, build your CubeSat, and prove it can work.**
 
-Campus e laboratori 3D · Progettazione orbitale · Gestione delle risorse · Analisi NASA GMAT · Account PostgreSQL
+3D campus and labs · Orbital design · Resource management · NASA GMAT analysis · PostgreSQL accounts
 
-[Inizia subito](#avvio-rapido) · [Come funziona il database](documentation/authentication.md) · [Documentazione](documentation/README.md) · [Distribuzione Azure](documentation/deployment.md)
+[Get started](#quick-start) · [How the database works](documentation/authentication.md) · [Documentation](documentation/README.md) · [Azure deployment](documentation/deployment.md)
 
 </div>
 
 ---
 
-## Il progetto
+## The project
 
-**Go No-Go** è un gioco web educativo sulla progettazione di missioni spaziali. Gestisci un'agenzia, negozi gli obiettivi con gli stakeholder, scegli strumenti e sottosistemi, assembli un satellite, pianifichi l'orbita e affronti revisioni, test e lancio. Ogni scelta cambia il bilancio di massa, energia, costo, dati e valore scientifico.
+**Go No-Go** is an educational web game about space mission design. Run an agency, negotiate goals with stakeholders, select instruments and subsystems, assemble a satellite, plan its orbit, and work through reviews, tests, and launch. Each decision affects mass, energy, cost, data, and scientific value.
 
-Il progetto usa **Node.js 24+, Vite, JavaScript, Three.js e PostgreSQL**. Il gioco e le sue simulazioni immediate girano nel browser. Un server Node serve gli asset e gestisce gli account; un servizio separato, opzionale, esegue NASA GMAT R2025a per approfondire i calcoli orbitali.
+The project uses **Node.js 24+, Vite, JavaScript, Three.js, and PostgreSQL**. Gameplay and immediate simulation run in the browser. A Node server serves assets and manages accounts; a separate optional service runs NASA GMAT R2025a for more detailed orbital calculations.
 
-> **Account e partite sono due cose diverse:** PostgreSQL conserva utenti e sessioni. La partita viene salvata nel `localStorage` del browser. Accedere da un altro dispositivo non recupera la missione.
+> **Accounts and saved games are separate:** PostgreSQL stores users and sessions. Missions are saved in browser `localStorage`. Signing in on another device does not retrieve your mission.
 
-Questa documentazione descrive il codice presente nel repository; non certifica lo stato di un ambiente Azure o di un workflow remoto.
+These documents describe the repository implementation; they do not certify the state of any Azure environment or remote workflow.
 
-## Indice
+## Contents
 
-- [Esperienza di gioco](#esperienza-di-gioco)
-- [Avvio rapido](#avvio-rapido)
-- [Avvio completo con account](#avvio-completo-con-account)
+- [Gameplay](#gameplay)
+- [Quick start](#quick-start)
+- [Full setup with accounts](#full-setup-with-accounts)
 - [NASA GMAT](#nasa-gmat)
-- [Architettura e database](#architettura-e-database)
-- [Comandi disponibili](#comandi-disponibili)
-- [Struttura del repository](#struttura-del-repository)
-- [Build e distribuzione](#build-e-distribuzione)
-- [Qualità grafica e accessibilità](#qualità-grafica-e-accessibilità)
-- [Verifiche e risoluzione dei problemi](#verifiche-e-risoluzione-dei-problemi)
-- [Guide di approfondimento](#guide-di-approfondimento)
+- [Architecture and database](#architecture-and-database)
+- [Available commands](#available-commands)
+- [Repository layout](#repository-layout)
+- [Build and deployment](#build-and-deployment)
+- [Graphics and accessibility](#graphics-and-accessibility)
+- [Checks and troubleshooting](#checks-and-troubleshooting)
+- [Further reading](#further-reading)
 
-## Esperienza di gioco
+## Gameplay
 
-| Fase | Cosa fai | Cosa impari |
+| Stage | What you do | What you learn |
 | --- | --- | --- |
-| Agenzia e campus | Organizzi strutture, personale e sviluppo | Risorse e infrastrutture condizionano le missioni |
-| Obiettivi e requisiti | Confronti priorità e aspettative degli stakeholder | I requisiti devono essere compatibili tra loro |
-| Progettazione | Configuri struttura, payload e sottosistemi | Massa, potenza, dati e costo sono interdipendenti |
-| Orbita e lanciatore | Definisci destinazione, trasferimenti e lancio | Il budget di ΔV e la capacità del lanciatore limitano il progetto |
-| Revisioni e test | Verifichi il progetto e affronti prove e minigiochi | I problemi devono emergere prima del volo |
-| Missione e rapporto | Valuti operazioni, risultati e fine vita | Il successo dipende dall'intero sistema |
+| Agency and campus | Organize facilities, staff, and development | Resources and infrastructure constrain missions |
+| Goals and requirements | Compare stakeholder priorities | Requirements must work together |
+| Design | Configure structure, payload, and subsystems | Mass, power, data, and cost are interconnected |
+| Orbit and launcher | Choose destination, transfers, and launch | ΔV and launcher capacity constrain the design |
+| Reviews and tests | Check the design and complete tests and minigames | Problems should surface before flight |
+| Mission and report | Assess operations, outcomes, and end of life | Success depends on the whole system |
 
-Sono presenti tutorial e modalità sandbox. L'interfaccia del gioco supporta italiano e inglese; le guide del repository sono in italiano. La richiesta della challenge di cooperazione fino a quattro persone è un obiettivo progettuale: non è presente un backend multiplayer o una classifica condivisa.
+Tutorial and sandbox modes are available. The game supports Italian and English, as do the repository guides. Cooperation for up to four people is an objective from the challenge brief: there is currently no multiplayer backend or shared leaderboard.
 
-## Avvio rapido
+## Quick start
 
-Prerequisiti: **Node.js 24 o successivo**, npm e Git. La versione di riferimento è indicata in `.nvmrc`. Docker Desktop è necessario per PostgreSQL locale e per GMAT, ma il gioco può funzionare senza questi servizi.
+Requirements: **Node.js 24 or newer**, npm, and Git. `.nvmrc` identifies the reference version. Docker Desktop is needed for local PostgreSQL and GMAT, but gameplay can run without either service.
 
 ```powershell
 git clone https://github.com/NASA-SPACEAPP-2026/Space-Mission-Design-Game.git
@@ -61,15 +63,15 @@ npm ci
 npm run dev
 ```
 
-Apri l'indirizzo stampato da Vite, normalmente **http://localhost:5173**. In PowerShell, se l'esecuzione di `npm.ps1` è bloccata, usa `npm.cmd` al posto di `npm`.
+Open the address printed by Vite, normally **http://localhost:5173**. In PowerShell, use `npm.cmd` instead of `npm` if script execution policy blocks `npm.ps1`.
 
-Questa modalità permette di giocare come ospite. Senza backend le chiamate account inoltrate da Vite non riescono; il backend avviato senza configurazione DB risponde invece `503` alle API account.
+This setup supports guest gameplay. Without the backend, Vite's proxied account requests fail; a backend started without DB configuration instead returns `503` for account APIs.
 
-`npm run dev` esegue prima `scripts/gmat-up.mjs`: tenta di avviare GMAT e prosegue anche se Docker o il servizio non sono disponibili. Leggi la nota sui due file Compose nella sezione GMAT.
+`npm run dev` first runs `scripts/gmat-up.mjs`. It attempts to start GMAT and continues even if Docker or the service is unavailable. Read the two-file Compose caveat below.
 
-## Avvio completo con account
+## Full setup with accounts
 
-Esegui dalla radice del repository, con Docker Desktop attivo:
+From the repository root, with Docker Desktop running:
 
 ```powershell
 npm ci
@@ -79,199 +81,199 @@ npm run db:migrate
 npm run dev:api
 ```
 
-Copia `.env.example` solo se non hai già un `.env` da conservare. Lascia il backend aperto e, in un **secondo terminale**, esegui:
+Copy `.env.example` only if you do not already have a `.env` to preserve. Leave the API terminal running and start this in a **second terminal**:
 
 ```powershell
 npm run dev
 ```
 
-Apri **http://localhost:5173**, quindi il pulsante **Account**. Puoi registrarti e accedere con username oppure email. Vite inoltra `/api/auth/*` al backend sulla porta 8080.
+Open **http://localhost:5173**, then **Account**. Register or sign in with a username or email address. Vite forwards `/api/auth/*` to the backend on port 8080.
 
-| Variabile | Sviluppo locale | Funzione |
+| Variable | Local development | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | Valore di `.env.example` | Connessione PostgreSQL locale, database `gng` |
-| `DATABASE_SSL` | `false` | Disabilita TLS solo per il database locale |
-| `APP_ORIGIN` | `http://localhost:5173` | Origine esatta ammessa per i POST account |
-| `NODE_ENV` | `development` | Consente HTTP e cookie senza `Secure` in locale |
-| `PORT` | `8080` se non impostata | Porta del server Node |
+| `DATABASE_URL` | Value from `.env.example` | Local PostgreSQL connection to database `gng` |
+| `DATABASE_SSL` | `false` | Disable TLS for the local DB only |
+| `APP_ORIGIN` | `http://localhost:5173` | Exact allowed origin for account POST requests |
+| `NODE_ENV` | `development` | Allow local HTTP and cookies without `Secure` |
+| `PORT` | Defaults to `8080` | Node server port |
 
-Le credenziali di esempio sono esclusivamente di sviluppo. `dev:api` e `db:migrate` caricano `.env`; **`npm start` non lo carica automaticamente**.
+Example credentials are for development only. `dev:api` and `db:migrate` load `.env`; **`npm start` does not load it automatically**.
 
-Per fermare PostgreSQL conservando gli account:
+Stop PostgreSQL while keeping accounts:
 
 ```powershell
 docker compose -f compose.yaml stop postgres
 ```
 
-Il volume `postgres-data` mantiene i dati. `docker compose -f compose.yaml down -v` elimina anche il volume: non usarlo se vuoi conservarli.
+The `postgres-data` volume persists data. `docker compose -f compose.yaml down -v` also removes that volume: do not use it if you want to retain local accounts.
 
 ## NASA GMAT
 
-Il gioco calcola subito le proprie stime e può chiedere a **NASA GMAT R2025a** ulteriori risultati per Terra, Luna, Marte e Venere:
+The game produces immediate estimates and can request more detailed results from **NASA GMAT R2025a** for Earth, the Moon, Mars, and Venus:
 
-- ΔV dei trasferimenti;
-- eclissi e contatti con stazioni a terra;
-- evoluzione dell'orbita e deriva nodale;
-- durata orbitale e scenari di fine vita.
+- transfer ΔV;
+- eclipses and ground-station contacts;
+- orbital evolution and nodal drift;
+- orbital lifetime and end-of-life scenarios.
 
-I risultati vengono mostrati nell'analisi orbitale, nei bilanci, nelle revisioni e nei rapporti, con indicazione della fonte. Se GMAT non è disponibile, rimane il modello interno.
+Results appear in orbital analysis, budgets, reviews, and reports, with their source identified. When GMAT is unavailable, the internal model remains in use.
 
-**Attenzione ai file Compose:** `compose.yaml` definisce PostgreSQL, mentre `docker-compose.yml` definisce GMAT. L'avvio automatico usa `docker compose` senza `-f`: con entrambi i file presenti la selezione predefinita può escludere GMAT. Per un avvio riproducibile usa entrambi esplicitamente:
+**Compose file caveat:** `compose.yaml` defines PostgreSQL, while `docker-compose.yml` defines GMAT. The automatic startup calls `docker compose` without `-f`; with both files present, default selection can exclude GMAT. For predictable startup, select both explicitly:
 
 ```powershell
 docker compose -f compose.yaml -f docker-compose.yml up -d --build gmat
 ```
 
-La base locale richiesta è `smdg-gmat-base:r2025a`. Lo script automatico tenta prima di scaricarla da GHCR, poi di costruirla; il primo download GMAT è di circa 420 MB. Se la base manca, trovi i comandi manuali nella [guida GMAT](documentation/gmat-integration-report.md).
+The required local base image is `smdg-gmat-base:r2025a`. Automatic startup tries GHCR first, then a local build; the first NASA download is approximately 420 MB. If the base image is missing, use the manual commands in the [GMAT guide](documentation/gmat-integration-report.md).
 
-Dopo modifiche ai file montati `scripts/gmat-*.mjs` o `public/game/02-orbit.js`:
+After editing mounted `scripts/gmat-*.mjs` files or `public/game/02-orbit.js`:
 
 ```powershell
 docker compose -f compose.yaml -f docker-compose.yml restart gmat
 ```
 
-Vite inoltra `/api/gmat*` alla porta **8787**. Il server di produzione `server.mjs` non contiene questo proxy: pubblicare soltanto il pacchetto Azure non rende GMAT disponibile online.
+Vite forwards `/api/gmat*` to port **8787**. Production `server.mjs` does not implement this proxy: deploying the Azure web package alone does not make GMAT available online.
 
-## Architettura e database
+## Architecture and database
 
 ```mermaid
 flowchart LR
-  B[Browser: gioco e interfaccia account] --> L[localStorage: partita e preferenze]
-  B -->|API account| N[Server Node]
-  N --> P[(PostgreSQL: utenti e sessioni)]
-  B -->|API GMAT tramite proxy| G[Servizio GMAT opzionale]
+  B[Browser: game and account UI] --> L[localStorage: mission and preferences]
+  B -->|Account API| N[Node server]
+  N --> P[(PostgreSQL: users and sessions)]
+  B -->|GMAT API through proxy| G[Optional GMAT service]
 ```
 
-In sviluppo il proxy è Vite. In produzione occorre configurare separatamente l'instradamento verso GMAT.
+Vite supplies the development proxy. Production routing to GMAT must be configured separately.
 
-**Il database oggi contiene tre tabelle:**
+**The database currently has three tables:**
 
-| Tabella | Contenuto | Scopo |
+| Table | Contents | Purpose |
 | --- | --- | --- |
-| `users` | UUID, username, email, hash password, data di creazione | Identità dell'utente |
-| `sessions` | Hash del token, utente, scadenza | Accessi persistenti per sette giorni |
-| `auth_limits` | Chiave hash, contatore, scadenza | Limiti condivisi ai tentativi di accesso e registrazione |
+| `users` | UUID, username, email, password hash, creation time | User identity |
+| `sessions` | Token hash, user, expiry | Persistent sign-in lasting seven days |
+| `auth_limits` | Hashed key, counter, expiry | Shared login and registration limits |
 
-La password viene trasformata con **scrypt e sale casuale**. Il browser riceve un cookie `gng_session` con un token casuale; nel DB viene salvato solo l'hash SHA-256 del token. In produzione il cookie usa `HttpOnly`, `Secure` e `SameSite=Lax`.
+Passwords are processed with **scrypt and a random salt**. The browser receives a random token in the `gng_session` cookie; PostgreSQL stores only its SHA-256 hash. Production cookies use `HttpOnly`, `Secure`, and `SameSite=Lax`.
 
-Non esistono tabelle per missioni, satelliti o inventario. La chiave `gng32.save` nel browser conserva lo stato di gioco. Due account sullo stesso profilo browser usano lo stesso salvataggio; il logout non lo cancella.
+There are no tables for missions, satellites, or inventory. Browser key `gng32.save` holds game state. Two accounts using the same browser profile share that saved game; logout does not delete it.
 
-Lo schema è in [`db/001-auth.sql`](db/001-auth.sql), applicato esplicitamente con `npm run db:migrate`. Non viene creato all'avvio del server. La [guida account e database](documentation/authentication.md) descrive schema, API, sicurezza, manutenzione e limiti.
+The schema is in [`db/001-auth.sql`](db/001-auth.sql), explicitly applied with `npm run db:migrate`. Server startup does not create it. The [account and database guide](documentation/authentication.md) covers schema, APIs, security, maintenance, and limitations.
 
-## Comandi disponibili
+## Available commands
 
-| Comando | Risultato e prerequisiti |
+| Command | Result and prerequisites |
 | --- | --- |
-| `npm ci` | Installa le versioni del lockfile |
-| `npm run dev` | Tenta l'avvio GMAT, poi avvia Vite sulla porta 5173 |
-| `npm run dev:api` | Backend sulla porta 8080, modalità watch, caricamento `.env` |
-| `npm run db:migrate` | Applica lo schema account al DB configurato in `.env` o nell'ambiente |
-| `npm test` | Suite Vitest: gioco, server, account e bridge GMAT |
-| `npm run build` | Vite, bundle gioco con hash, compressione Brotli/gzip in `dist/` |
-| `npm run preview` | Anteprima Vite sulla porta 4173; non avvia API o proxy account |
-| `npm start` | Server Node su `dist/`; variabili da fornire nell'ambiente |
-| `npm run check` | Test, build e verifica del risultato compilato |
-| `npm run smoke` | Controllo browser del gioco; richiede server attivo e Chromium |
-| `node scripts/smoke-account.mjs` | Controllo browser account con PGlite temporaneo e build esistente |
-| `npm run package:azure` | Crea `release.zip` da build esistente; richiede Bash, zip e npm |
-| `npm run package:single` | Compila e rigenera `Go No-Go.html` |
+| `npm ci` | Install the versions recorded in the lockfile |
+| `npm run dev` | Attempt GMAT startup, then start Vite on port 5173 |
+| `npm run dev:api` | Backend on port 8080, watch mode, loads `.env` |
+| `npm run db:migrate` | Apply account schema to the DB configured by `.env` or the environment |
+| `npm test` | Vitest suite for game, server, accounts, and GMAT bridge |
+| `npm run build` | Vite build, hashed game bundle, Brotli/gzip files in `dist/` |
+| `npm run preview` | Vite preview on port 4173; does not start account APIs or their proxy |
+| `npm start` | Node server for `dist/`; supply environment variables separately |
+| `npm run check` | Tests, production build, and build verification |
+| `npm run smoke` | Browser gameplay smoke test; needs a running server and Chromium |
+| `node scripts/smoke-account.mjs` | Browser account smoke with temporary PGlite and an existing build |
+| `npm run package:azure` | Package existing build as `release.zip`; needs Bash, zip, and npm |
+| `npm run package:single` | Build and regenerate `Go No-Go.html` |
 
-## Struttura del repository
+## Repository layout
 
 ```text
-index.html                    Struttura HTML e stili dell'interfaccia
+index.html                    UI markup and styles
 public/
-  account.js                  Interfaccia account indipendente dal gioco
-  game/                       Motore, dati, renderer, interfacce e minigiochi
-  fonts/                      Font WOFF2 e licenze OFL
-  audio/theme.mp3              Colonna sonora caricata separatamente
+  account.js                  Account UI independent of gameplay
+  game/                       Data, logic, renderers, screens, and minigames
+  fonts/                      WOFF2 fonts and OFL licenses
+  audio/theme.mp3              Separately loaded soundtrack
 backend/
-  auth.mjs                    Registrazione, login, cookie e limiti
-  database.mjs                Pool PostgreSQL e applicazione schema
-db/001-auth.sql               Schema account
-server.mjs                    Server asset, API account e sonda di processo
-vite.config.ts                Build frontend e proxy di sviluppo
-compose.yaml                  PostgreSQL 17 locale con volume persistente
-docker-compose.yml            Servizio GMAT su localhost:8787
-docker/gmat/                  Immagine base e immagine applicativa GMAT
-scripts/                      Build, migrazione, GMAT, pacchetti e smoke test
-tests/                        Test automatici
-infra/                        Provisioning e rimozione risorse Azure
-.github/workflows/            CI/CD e pubblicazione immagine base GMAT
-documentation/                Guide tecniche in italiano
-Go No-Go.html                 Esportazione generata, da rigenerare dai sorgenti
+  auth.mjs                    Registration, login, cookies, and limits
+  database.mjs                PostgreSQL pool and schema application
+db/001-auth.sql               Account schema
+server.mjs                    Asset server, account APIs, and process probe
+vite.config.ts                Frontend build and development proxy
+compose.yaml                  Local PostgreSQL 17 with persistent volume
+docker-compose.yml            GMAT service on localhost:8787
+docker/gmat/                  GMAT base and application images
+scripts/                      Build, migration, GMAT, packaging, and smoke tools
+tests/                        Automated tests
+infra/                        Azure provisioning and teardown
+.github/workflows/            CI/CD and GMAT base image publishing
+documentation/                English and Italian technical guides
+Go No-Go.html                 Generated export; regenerate from source
 ```
 
-I file in `public/game/` sono script classici con dipendenze nell'ordine di caricamento: non sono ancora moduli ES indipendenti. La [guida architetturale](documentation/architecture.md) dettaglia l'ordine effettivo.
+Files under `public/game/` remain classic scripts with ordered dependencies; they are not independent ES modules. The [architecture guide](documentation/architecture.md) documents their actual order.
 
-## Build e distribuzione
+## Build and deployment
 
-Per provare la build con gli account e caricare anche `.env`:
+To try the production build with accounts while loading `.env`:
 
 ```powershell
 npm run build
-# Per questa prova diretta, imposta APP_ORIGIN=http://localhost:8080 nel .env.
+# For this direct test, set APP_ORIGIN=http://localhost:8080 in .env.
 node --env-file-if-exists=.env server.mjs
 ```
 
-Apri **http://localhost:8080**. Ripristina `APP_ORIGIN=http://localhost:5173` prima di tornare allo sviluppo con Vite. `APP_ORIGIN` deve coincidere con l'origine visitata, senza slash finale: `localhost` e `127.0.0.1` sono origini diverse.
+Open **http://localhost:8080**. Restore `APP_ORIGIN=http://localhost:5173` before returning to Vite development. `APP_ORIGIN` must match the visited origin without a trailing slash: `localhost` and `127.0.0.1` are different origins.
 
-La CI esegue controlli e packaging per PR verso `dev` e `main`. Un push su `dev` distribuisce in **staging**, un push su `main` in **produzione**. In produzione il server richiede DB e origine HTTPS; le migrazioni vanno applicate prima del deploy. Consulta la [guida Azure](documentation/deployment.md).
+CI checks and packages PRs targeting `dev` and `main`. Pushes to `dev` deploy to **staging**; pushes to `main` deploy to **production**. Production requires a DB and an HTTPS origin; apply migrations before deployment. See [Azure deployment](documentation/deployment.md).
 
-### Esportazione HTML
+### HTML export
 
 ```powershell
 npm run package:single
-# Dopo la build, per una cartella trasportabile con audio:
+# After building, create a portable folder including audio:
 node scripts/build-single-file.mjs --bundle out/
 ```
 
-L'esportazione incorpora il bundle del gioco, i font locali e l'icona. L'audio resta separato. Non incorpora Node, PostgreSQL o GMAT; lo script segnala eventuali percorsi assoluti residui. Non considerarla un pacchetto autonomo delle funzioni account: dipendenze remote e comportamento `file://` richiedono una verifica dedicata.
+The export embeds the game bundle, local fonts, and icon. Audio remains separate. It does not embed Node, PostgreSQL, or GMAT; the script reports remaining absolute paths. Do not treat it as a self-contained account application: remote dependencies and `file://` behavior need separate verification.
 
-## Qualità grafica e accessibilità
+## Graphics and accessibility
 
-Il campus 3D include illuminazione, ombre e animazioni. Un regolatore adatta qualità e rapporto pixel alle prestazioni del dispositivo; il livello viene conservato in `gngQ`.
+The 3D campus includes lighting, shadows, and animation. A performance governor adjusts quality and pixel ratio to the device, storing the level in `gngQ`.
 
-| Parametro URL | Uso |
+| URL parameter | Purpose |
 | --- | --- |
-| `?perf=1` | Mostra indicatori di prestazioni |
-| `?q=0` … `?q=3` | Forza il livello grafico; 3 è il più alto |
-| `?mob=1` | Attiva percorsi mobili anche sul desktop |
+| `?perf=1` | Show performance indicators |
+| `?q=0` … `?q=3` | Force a quality level; 3 is highest |
+| `?mob=1` | Enable mobile paths on desktop |
 
-Il codice considera `prefers-reduced-motion`. Le viste 3D dipendono da WebGL; sono presenti percorsi alternativi, ma non va presunta la parità di tutte le viste su ogni dispositivo. Oltre ai font locali, la pagina richiede famiglie a Google Fonts.
+The code considers `prefers-reduced-motion`. 3D views require WebGL; alternative paths exist, but full parity across every view and device should not be assumed. Alongside local fonts, the page requests Google Fonts families.
 
-## Verifiche e risoluzione dei problemi
+## Checks and troubleshooting
 
 ```powershell
 npm run check
 ```
 
-I test account usano **PGlite temporaneo**, senza richiedere il DB Docker né usare account reali. Le prove GMAT includono generatori, parser e un eseguibile simulato: superarle non equivale a eseguire il vero GMAT nel container.
+Account tests use **temporary PGlite**, without the Docker database or real users. GMAT tests cover generators, parsers, and a simulated executable: passing them does not mean real GMAT has run in Docker.
 
-| Sintomo | Controllo |
+| Symptom | Check |
 | --- | --- |
-| Account non disponibili | Backend attivo, `DATABASE_URL` corretta, PostgreSQL avviato, migrazione applicata |
-| `403` agli account | `APP_ORIGIN` uguale a protocollo, host e porta del browser |
-| `503` agli account | Distinguere DB non configurato da DB/schema irraggiungibile; consultare log backend |
-| GMAT non si avvia | Docker attivo, immagine base disponibile e file Compose espliciti |
-| GMAT assente in Azure | Il pacchetto applicativo non ospita né inoltra il servizio GMAT |
-| Partita assente dopo il login | Verificare browser, profilo e origine: non esiste salvataggio cloud |
-| `npm start` ignora `.env` | Usare variabili di ambiente o il comando Node con `--env-file-if-exists` |
-| Smoke test senza browser | Impostare `CHROME_PATH` al percorso dell'eseguibile Chromium/Chrome |
+| Accounts unavailable | Running backend, valid `DATABASE_URL`, PostgreSQL up, schema applied |
+| Account `403` | `APP_ORIGIN` matches browser protocol, host, and port |
+| Account `503` | Distinguish missing DB configuration from unreachable DB/schema; check backend logs |
+| GMAT does not start | Docker running, base image available, explicit Compose files |
+| No GMAT in Azure | Web package neither hosts nor proxies the separate GMAT service |
+| Mission missing after login | Check browser, profile, and origin: there is no cloud save |
+| `npm start` ignores `.env` | Supply environment variables or use Node with `--env-file-if-exists` |
+| No browser for smoke tests | Set `CHROME_PATH` to the installed Chromium/Chrome executable |
 
-Per gli smoke test e i controlli manuali consulta la [guida alle verifiche](documentation/testing.md).
+See the [testing guide](documentation/testing.md) for browser smoke tests and manual checks.
 
-## Guide di approfondimento
+## Further reading
 
-| Guida | Contenuto |
+| Guide | Contents |
 | --- | --- |
-| [Indice documentazione](documentation/README.md) | Percorsi di lettura e fonti nel codice |
-| [Architettura](documentation/architecture.md) | Componenti, renderer, flussi e build |
-| [Account e database](documentation/authentication.md) | Schema PostgreSQL, sessioni, API e gestione operativa |
-| [Salvataggi locali](documentation/legacy-save-format.md) | Formato v32, preferenze, backup e compatibilità |
-| [GMAT](documentation/gmat-integration-report.md) | Avvio, API, modelli fisici e limiti |
-| [Distribuzione](documentation/deployment.md) | Azure, CI/CD, configurazione e rollback |
-| [Verifiche](documentation/testing.md) | Test automatici, smoke test e checklist manuale |
-| [Challenge](documentation/challenge.md) | Obiettivi educativi e distinzione dalle funzioni implementate |
+| [Documentation index](documentation/README.md) | Reading paths and source-of-truth files |
+| [Architecture](documentation/architecture.md) | Components, rendering, flows, and build |
+| [Accounts and database](documentation/authentication.md) | PostgreSQL schema, sessions, API, and operations |
+| [Local saves](documentation/legacy-save-format.md) | v32 format, preferences, backup, and compatibility |
+| [GMAT](documentation/gmat-integration-report.md) | Startup, API, physical models, and limitations |
+| [Deployment](documentation/deployment.md) | Azure, CI/CD, configuration, and rollback |
+| [Testing](documentation/testing.md) | Automated tests, browser checks, and manual checklist |
+| [Challenge](documentation/challenge.md) | Educational objectives versus implemented features |
 
-[`README.it.md`](README.it.md) rimane un punto d'ingresso in italiano alla guida principale, per conservare i collegamenti esistenti.
+The complete Italian version is available in [`README.it.md`](README.it.md).
