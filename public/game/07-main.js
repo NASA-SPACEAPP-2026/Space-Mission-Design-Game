@@ -1038,6 +1038,24 @@ Trascina lo sfondo per girare la vista, rotella o due dita per lo zoom. Trascina
 Trascina {s} su un macchinario per provarlo ({n} cr a prova). Ogni prova scopre un tipo di difetto prima che lo scopra lo spazio.	Drag {s} onto a machine to test it ({n} cr per test). Every test uncovers a type of defect before space does.
 Trascinalo su un macchinario	Drag it onto a machine
 Trascinalo su una postazione	Drag it onto a station
+Detriti in avvicinamento	Debris approaching
+La sorveglianza spaziale segnala un frammento di detrito che passerà a meno di 200 metri dal satellite.	Space surveillance reports a debris fragment that will pass less than 200 metres from the satellite.
+Manovra evasiva	Evasive manoeuvre
+serve un propulsore	needs a propulsion system
+Non fare nulla	Do nothing
+1 probabilità su 8 di collisione	1 in 8 chance of collision
+Manovra evasiva riuscita: il frammento passa lontano.	Evasive manoeuvre done: the fragment passes far away.
+Collisione con un detrito: il satellite si frammenta.	Collision with debris: the satellite breaks up.
+Il frammento è passato a 150 metri. È andata bene.	The fragment passed 150 metres away. Lucky.
+Errore software	Software error
+Il software di uno strumento si è bloccato: lo strumento non risponde più ai comandi.	An instrument's software has frozen: the instrument no longer responds to commands.
+Carica la patch da terra	Upload the patch from the ground
+lo strumento riparte	the instrument restarts
+Lascia così	Leave it
+50% che resti bloccato: scienza dimezzata	50% it stays frozen: science halved
+Patch caricata: lo strumento riparte.	Patch uploaded: the instrument restarts.
+Lo strumento resta bloccato: scienza dimezzata.	The instrument stays frozen: science halved.
+Lo strumento si è riavviato da solo.	The instrument restarted by itself.
 Toccalo per metterlo sul tavolo	Tap it to put it on the table
 Tocca o trascina il satellite	Tap or drag the satellite
 Tratto {n}	Leg {n}
@@ -4430,9 +4448,12 @@ function mccRefresh(full){ const M=cur(); if(view!=='mcc') return; const fl=M&&M
   if(full&&log) log.innerHTML=fl.log.slice().reverse().map(l=>'<li class="'+l.tone+'">'+(l.m?'M'+l.m+' · ':'')+esc(l.t)+'</li>').join('');
   const c=teleUpTo(M); c.id=M.id; paintCode(code,c); paintCode(all,c); decCard(M,fl); }
 // Il giocatore al posto dell'autopilota: ogni evento con più strade si ferma qui
+/* problema in volo con una soluzione consigliata: si paga in crediti per farla, altrimenti si sceglie l'opzione rischiosa */
+function decFix(M,p){ const ev=E.EV&&E.EV[p.id], fx=ev&&ev.fix; if(!fx) return ''; const ro=p.opts.find(o=>o.k===fx.k&&!o.off), rk=p.opts.find(o=>o.k===fx.risk); if(!ro||!rk) return ''; const c=fx.cost, poor=G.money<c;
+  return '<p class="dfix">'+TX('Il controllo missione consiglia: ','Mission control recommends: ')+'<b>'+esc(ro.l)+'</b></p><div class="dops"><button class="btn primary" data-act="decfix" data-k="'+fx.k+'" data-c="'+c+'"'+(poor?' disabled':'')+'><b>'+TX('Fallo','Do it')+' · −'+keur(c)+'</b><small>'+esc(ro.h||'')+(poor?' · '+TX('crediti insufficienti','not enough credits'):'')+'</small></button><button class="btn" data-act="decide" data-k="'+fx.risk+'"><b>'+TX('Non farlo','Don’t')+'</b><small>'+esc(rk.h||'')+' · '+TX('rischi che la missione fallisca','you risk the mission failing')+'</small></button></div>'; }
 function decCard(M,fl){ const el=$('#dec'); if(!el){ document.body.classList.remove('decon'); return; } const p=fl&&fl.pending; if(!p){ document.body.classList.remove('decon'); if(!el.hidden){ el.hidden=true; el.dataset.k=''; } return; }
   document.body.classList.add('decon'); $('#toast').hidden=true; const key=M.id+p.m; if(el.dataset.k===key&&!el.hidden) return; el.dataset.k=key; el.hidden=false;
-  el.innerHTML='<div class="dh"><span class="pause">🛰 '+TX('SAFE MODE · automatico · tempo fermo','SAFE MODE · automatic · time paused')+'</span><b>Mese '+p.m+' · '+esc(p.t)+'</b></div><p class="fine">'+TX('Il satellite ha rilevato un problema e si è messo in sicurezza da solo. Adesso tocca a te decidere come ripartire.','The satellite detected a problem and put itself in a safe state. Now it\'s up to you to decide how to carry on.')+'</p><p>'+esc(p.q)+'</p><div class="dops">'+p.opts.map(o=>'<button class="btn'+(o.k===p.auto?'':'')+'" data-act="decide" data-k="'+o.k+'"'+(o.off?' disabled':'')+'><b>'+esc(o.l)+'</b><small>'+esc(o.h||'')+'</small></button>').join('')+'</div>'+
+  el.innerHTML='<div class="dh"><span class="pause">🛰 '+TX('SAFE MODE · automatico · tempo fermo','SAFE MODE · automatic · time paused')+'</span><b>Mese '+p.m+' · '+esc(p.t)+'</b></div><p class="fine">'+TX('Il satellite ha rilevato un problema e si è messo in sicurezza da solo. Adesso tocca a te decidere come ripartire.','The satellite detected a problem and put itself in a safe state. Now it\'s up to you to decide how to carry on.')+'</p><p>'+esc(p.q)+'</p>'+(decFix(M,p)||'<div class="dops">'+p.opts.map(o=>'<button class="btn'+(o.k===p.auto?'':'')+'" data-act="decide" data-k="'+o.k+'"'+(o.off?' disabled':'')+'><b>'+esc(o.l)+'</b><small>'+esc(o.h||'')+'</small></button>').join('')+'</div>')+
     '<p class="fine">ΔV '+nf(Math.max(0,p.fuel),0)+' m/s · gas '+Math.max(0,Math.round(p.gas))+'% · '+(M.duration-p.m)+' mesi ancora. <button class="lnk small" data-act="autodec">Fai decidere all’autopilota</button></p>'; }
 // pianeta disegnato una volta per destinazione
 const PLAN={};
@@ -4785,6 +4806,8 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
       $('#smk').innerHTML=[-60,-20,20,60,-100,100].map((x,i)=>'<circle class="puff" cx="'+(500+x)+'" cy="'+(478-Math.abs(x)*.1)+'" r="'+(26+i*3)+'" fill="#fff" style="animation-delay:'+(i*.08)+'s"/>').join('');
       startFlight(M); setTimeout(()=>{ el.hidden=true; toast(M.name+' in volo: segui la telemetria dal Mission Control Center.'); if(view==='pad') render(); },2600); } },700); },
   decide(t){ const M=cur(), p=L.decide(M,t.dataset.k,now()); if(!p) return; delete TELE[M.id]; const c=$('#code'); if(c) c.dataset.m=''; M.alert=false; sfx.put(); mccRefresh(true); hud(); save(); },
+  /* prima si registra la decisione, poi si paga: se la decisione non passa, nessun credito viene tolto */
+  decfix(t){ const M=cur(), c=+t.dataset.c||0; if(!M) return; if(G.money<c){ toast(TX('Non hai abbastanza crediti.','Not enough credits.')); return; } const n0=Object.keys(M.choices||{}).length; ACT.decide(t); if(Object.keys(M.choices||{}).length>n0) addMoney(-c,TX('Intervento in volo: −','In-flight fix: −')+keur(c)); },
   autodec(){ const M=cur(), fl=L.flight(M,999); if(!fl.pending) return; ACT.decide({dataset:{k:fl.pending.auto}}); M.choiceL[fl.pending.m].auto=true; },
   mcr(t){ const M=G.missions[+t.dataset.i]; $('#drawer').hidden=true; mcrReview(M); },
   whatif(t){ const M=MCRM, o=WIO[+t.dataset.i]; if(!M||!o) return; const w=L.whatIf(M,Object.assign({visit:hasB('visit')},o)), r=M.result, x=w.out, d=x.net-r.net, el=$('#wires');
