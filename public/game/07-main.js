@@ -5543,7 +5543,7 @@ const IR3=(()=>{
   const RW=18, RD=14, RH=3.6; const DEF={yaw:.32,pit:.74};
   let R=null, scene=null, cam=null, host=null, raf=0, running=false, okGL=null, dirty=true, lastT=0, built=null, sig='', ghostG=null, ghostK='';
   let CROWD=[], MACHP=[], NF=[], anims=[], walkers=[], HS=[], TG=[], hotEl=null, tagEl=null, PAR=null, FP=[], curRoom='', curSt=null, ro=null, hotEls=[], tagEls=[];
-  const CAM={yaw:DEF.yaw,pit:DEF.pit,zoom:1,tx:RW/2,tz:RD/2,dFit:30}; let camDirty=true; const WSAVE={}; let SUN=null, HEM=null, FILL=null, SK='room', MEET=null, LCH=null, liveShadow=false; const SKIND=r=>r==='meet'?'meet':r==='launch'?'launch':'room';
+  const CAM={yaw:DEF.yaw,pit:DEF.pit,zoom:1,tx:RW/2,tz:RD/2,dFit:30}; let camDirty=true, WG=null, yawTo=null; const WSAVE={}; let SUN=null, HEM=null, FILL=null, SK='room', MEET=null, LCH=null, liveShadow=false; const SKIND=r=>r==='meet'?'meet':r==='launch'?'launch':'room';
   const col=h=>new THREE.Color(h).convertSRGBToLinear();
   const MC={};
   function mat(h,o){ o=o||{}; const k=h+'|'+(o.r==null?.75:o.r)+'|'+(o.m||0)+'|'+(o.e||'')+'|'+(o.ei||'')+'|'+(o.t||'')+'|'+(o.b||'');
@@ -5729,17 +5729,28 @@ const IR3=(()=>{
       g.position.x=W.x; g.position.z=W.z; g.rotation.y=W.h; u.update(dt); }); }
 
   /* ---------- guscio della stanza ---------- */
+  /* quattro pareti intere, ognuna in un suo gruppo (y0 = fondo, x0 = sinistra, y1 = davanti, x1 = destra): wallsFor() nasconde quelle tra la camera e la stanza, cosi' la stanza si puo' ruotare */
   function shell(o){ bx(-.3,-.3,RW,RD,-.3,0,o.floor,{r:.9,cs:false}); const t=pl(0,0,RW,RD,.003,'#ffffff',{r:.9}); t.material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9,map:floorTex(o.floor,o.tileC||o.floor,[RW/(o.tile||1),RD/(o.tile||1)])}); t.receiveShadow=true;
-    bx(-.3,-.3,RW,0,0,RH,o.wallR,{r:.9}); bx(-.3,0,0,RD,0,RH,o.wallL,{r:.9}); bx(-.34,-.34,RW,.04,RH,RH+.12,o.cap,{r:.6}); bx(-.34,0,.04,RD,RH,RH+.12,o.cap,{r:.6});
-    bx(0,.0,RW,.02,.0,.14,o.skirt||'#C9CCC8',{r:.7,cs:false}); bx(.0,0,.02,RD,.0,.14,o.skirt||'#C9CCC8',{r:.7,cs:false});
-    if(o.stripe){ bx(0,.02,RW,.04,o.stripe[0],o.stripe[0]+.2,o.stripe[1],{r:.5,cs:false}); bx(.02,0,.04,RD,o.stripe[0],o.stripe[0]+.2,o.stripe[1],{r:.5,cs:false}); }
-    bx(RW,0,RW+.25,RD+.25,-.3,.38,o.cap,{r:.6}); bx(0,RD,RW,RD+.25,-.3,.38,o.cap,{r:.6}); }
-  function onWall(wall,a,b,z0,z1,c,o,depth){ o=o||{}; const d=depth||.05; return wall==='y'?bx(a,.0,b,d,z0,z1,c,Object.assign({cs:false},o)):bx(.0,a,d,b,z0,z1,c,Object.assign({cs:false},o)); }
+    WG={}; ['y0','x0','y1','x1'].forEach(k=>{ const g=new THREE.Group(); g.userData.dyn=true; PAR.add(g); WG[k]=g; });
+    const sk=o.skirt||'#C9CCC8', st=o.stripe;
+    inGrp(WG.y0,()=>{ bx(-.3,-.3,RW,0,0,RH,o.wallR,{r:.9}); bx(-.34,-.34,RW,.04,RH,RH+.12,o.cap,{r:.6}); bx(0,.0,RW,.02,.0,.14,sk,{r:.7,cs:false}); if(st) bx(0,.02,RW,.04,st[0],st[0]+.2,st[1],{r:.5,cs:false}); });
+    inGrp(WG.x0,()=>{ bx(-.3,0,0,RD,0,RH,o.wallL,{r:.9}); bx(-.34,0,.04,RD,RH,RH+.12,o.cap,{r:.6}); bx(.0,0,.02,RD,.0,.14,sk,{r:.7,cs:false}); if(st) bx(.02,0,.04,RD,st[0],st[0]+.2,st[1],{r:.5,cs:false}); });
+    /* le pareti davanti non fanno ombra: la luce le attraversa come prima, quando erano solo un bordino */
+    inGrp(WG.y1,()=>{ bx(-.3,RD,RW+.3,RD+.3,-.3,RH,o.wallR,{r:.9,cs:false}); bx(-.34,RD-.04,RW+.34,RD+.34,RH,RH+.12,o.cap,{r:.6,cs:false}); bx(0,RD-.02,RW,RD,.0,.14,sk,{r:.7,cs:false}); if(st) bx(0,RD-.04,RW,RD-.02,st[0],st[0]+.2,st[1],{r:.5,cs:false}); });
+    inGrp(WG.x1,()=>{ bx(RW,-.3,RW+.3,RD,-.3,RH,o.wallL,{r:.9,cs:false}); bx(RW-.04,-.34,RW+.34,RD,RH,RH+.12,o.cap,{r:.6,cs:false}); bx(RW-.02,0,RW,RD,.0,.14,sk,{r:.7,cs:false}); if(st) bx(RW-.04,0,RW-.02,RD,st[0],st[0]+.2,st[1],{r:.5,cs:false}); }); }
+  /* contorni e unione dei pezzi fatti parete per parete, cosi' ogni parete resta un blocco a se' che si puo' nascondere */
+  function wallsPrep(){ if(!WG) return; Object.values(WG).forEach(g=>{ g.userData.dyn=false; TOON.outlineStatic(g,{minDim:.05}); mergeStatic(g); g.userData.dyn=true; }); }
+  /* nasconde le pareti tra la camera e la stanza: conta solo la direzione da cui si guarda, non lo spostamento della vista */
+  function wallsFor(){ if(!WG) return; const s=Math.sin(CAM.yaw), c=Math.cos(CAM.yaw), e=.02, was=WG.y0.visible+''+WG.x0.visible+WG.y1.visible+WG.x1.visible;
+    WG.y1.visible=!(c>e); WG.y0.visible=!(c<-e); WG.x1.visible=!(s>e); WG.x0.visible=!(s<-e);
+    /* le ombre sono calcolate una volta sola: si rifanno solo quando una parete compare o sparisce, cosi' una parete nascosta non lascia la sua ombra */
+    if(R&&was!==WG.y0.visible+''+WG.x0.visible+WG.y1.visible+WG.x1.visible) R.shadowMap.needsUpdate=true; }
+  function onWall(wall,a,b,z0,z1,c,o,depth){ o=o||{}; const d=depth||.05; let m; inGrp(WG[wall==='y'?'y0':'x0'],()=>{ m=wall==='y'?bx(a,.0,b,d,z0,z1,c,Object.assign({cs:false},o)):bx(.0,a,d,b,z0,z1,c,Object.assign({cs:false},o)); }); return m; }
   function windows(wall,a,b,z0,z1,n){ const w=(b-a)/n; onWall(wall,a,b,z0,z1,'#2B3A44',{r:.5},.07); for(let i=0;i<n;i++){ onWall(wall,a+i*w+.06,a+(i+1)*w-.06,z0+.06,z1-.06,'#9CCBE3',{r:.1,e:'#5FA3C8',ei:.35,m:.2},.09); onWall(wall,a+i*w+w/2-.015,a+i*w+w/2+.015,z0+.06,z1-.06,'#2B3A44',{r:.5},.1); } onWall(wall,a,b,z0-.04,z0+.04,'#D9DDE0',{r:.5},.12); }
   function rollDoor(wall,a,b,z1){ onWall(wall,a-.1,b+.1,0,z1+.1,'#8A929A',{r:.6},.08); const n=Math.round(z1/.22); for(let i=0;i<n;i++) onWall(wall,a,b,i*.22+.02,i*.22+.2,i%2?'#D5D9DC':'#E4E7E9',{r:.5},.12); onWall(wall,(a+b)/2-.2,(a+b)/2+.2,.85,.95,'#2B2F36',{r:.4},.16); }
   function wallScreen(wall,a,b,z0,z1,kind,seed){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:screenTex(kind,seed)})); m.scale.set(b-a,z1-z0,1);
-    if(wall==='y'){ m.position.set((a+b)/2,(z0+z1)/2,.075); } else { m.rotation.y=Math.PI/2; m.position.set(.075,(z0+z1)/2,(a+b)/2); } PAR.add(m); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
-  function wallPanel(wall,a,b,z0,z1,tex){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tex})); m.scale.set(b-a,z1-z0,1); if(wall==='y') m.position.set((a+b)/2,(z0+z1)/2,.075); else { m.rotation.y=Math.PI/2; m.position.set(.075,(z0+z1)/2,(a+b)/2); } PAR.add(m); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
+    if(wall==='y'){ m.position.set((a+b)/2,(z0+z1)/2,.075); } else { m.rotation.y=Math.PI/2; m.position.set(.075,(z0+z1)/2,(a+b)/2); } WG[wall==='y'?'y0':'x0'].add(m); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
+  function wallPanel(wall,a,b,z0,z1,tex){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tex})); m.scale.set(b-a,z1-z0,1); if(wall==='y') m.position.set((a+b)/2,(z0+z1)/2,.075); else { m.rotation.y=Math.PI/2; m.position.set(.075,(z0+z1)/2,(a+b)/2); } WG[wall==='y'?'y0':'x0'].add(m); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
   function textTex(lines,bg,fg){ return ctex(512,256,(g,w,h)=>{ g.fillStyle=bg||'#0B141C'; g.fillRect(0,0,w,h); g.font='700 44px monospace'; g.textBaseline='middle'; lines.forEach((l,i)=>{ g.fillStyle=l[1]||fg||'#43D3E0'; g.fillText(l[0],24,60+i*72); }); g.strokeStyle='#1A1F24'; g.lineWidth=12; g.strokeRect(0,0,w,h); }); }
 
   /* ---------- macchinari del laboratorio ---------- */
@@ -6004,7 +6015,7 @@ const IR3=(()=>{
     if(room==='build'){ [[4.4,3],[7.6,3],[4.4,8],[7.6,8]].forEach((b,i)=>{ const m=(st.benches||[])[i]; addHS(m?'data-act="openyard" data-id="'+m.id+'"':'data-act="benchfree"',b[0],b[1],b[0]+2.6,b[1]+1.2,0,m?1.6:.9,m?m.label:'Free bench'); { const cm=cur(), hint=!!(m&&cm&&cm.id===m.id&&cm.phase==='B'&&cm.stage==='sat'); addTag(b[0]+1.3,b[1]+.6,m?2.0:1.2,hint?'Design table · click to open':m?m.label:'free bench',hint?'#EB7D44':m?m.col:'#9A9A90',hint?'on':'','',HS.length-1); } }); }
     if(room==='clean'){ [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>{ const m=(st.stations||[])[i]; addHS('data-act="station" data-i="'+i+'"',p[0]-1.1,p[1]-1.1,p[0]+1.1,p[1]+1.1,0,m?1.9:1.1,m?m.label:'Free station'); addTag(p[0],p[1],m?2.2+m.size*.4:1.5,m?m.label:'free station',m?m.col:'#9A9A90','','',HS.length-1); }); addTag(2,12,2.6,'Gowning','#45A9A3','','',null,1.5); addTag(16.1,12.2,2.9,'Air shower','#45A9A3','','',null,1.3); }
     if(room==='test'){ (st.machines||[]).forEach(m=>{ if(m.i===st.moveI) return; const f=IR.FOOT[m.k]||[2,2], h={vib:1.2,tvac:2.7,emc:2.4,mass:1.1,func:1.3,shock:2.8}[m.k]||1.5; addHS('data-act="mach" data-k="'+m.k+'"',m.x,m.y,m.x+f[0],m.y+f[1],0,h,m.n); addTag(m.x+f[0]/2,m.y+f[1]/2,h+.5,m.n+(m.lab?' · '+m.lab:''),m.col||'#45A9A3','','',HS.length-1); }); }
-    if(room==='mcc'){ addHS('data-act="mccwall"',0,0,RW,.1,1.3,3.2,'Control room screens'); addHS('data-act="mccwall"',0,0,.1,13.4,1.3,3.2,'Control room screens'); addTag(2.1,12,2.9,'Guest room','#45A9A3','','',null,1.6); }
+    if(room==='mcc'){ addHS('data-act="mccwall"',0,0,RW,.1,1.3,3.2,'Control room screens'); HS[HS.length-1].wall='y0'; addHS('data-act="mccwall"',0,0,.1,13.4,1.3,3.2,'Control room screens'); HS[HS.length-1].wall='x0'; addTag(2.1,12,2.9,'Guest room','#45A9A3','','',null,1.6); }
     if(room==='factory'){ addTag(9,6.5,3.2,'Integration line · times halved','#EB7D44','','',null,2.4); (st.sats||[]).forEach((m,i)=>{ if(m) addTag([3.4,8,12.6][i]+.6,6.5,2.5,m.label,'#EB7D44','','',null,1.2); }); }
     if(room==='ground') addTag(15.6,12.4,3.1,'Antenna model','#45A9A3','','',null,1.4);
     if(room==='rnd'){ addTag(14.8,9.8,3.1,'Prototype under test','#45A9A3','','',null,1.4); addTag(13.2,4.2,1.9,'3D printer','#8E5BB0','','',null,1.1); }
@@ -6029,13 +6040,13 @@ const IR3=(()=>{
   function clearBuilt(){ if(!built) return; scene.remove(built); const cached=new Set(Object.values(MC)), tcache=new Set(Object.values(TC)), shr=new Set(Object.values(SCRM).concat(Object.values(CELLM),[BLOBM]));
     built.traverse(o=>{ if(o.geometry&&SHARED.indexOf(o.geometry)<0) o.geometry.dispose(); const m=o.material; if(m&&!cached.has(m)&&!shr.has(m)){ if(m.map&&m.map!==BLOB&&!tcache.has(m.map)) m.map.dispose(); m.dispose(); } }); }
   function saveWalkers(){ if(curRoom&&walkers.length) WSAVE[curRoom]=walkers.map(w=>({x:w.x,z:w.z})); }
-  function rebuild(room,st){ if(room===curRoom) saveWalkers(); clearBuilt(); built=new THREE.Group(); scene.add(built); anims=[]; walkers=[]; FP=[]; NF=[]; MACHP=[]; MEET=null; LCH=null; clearGhost(); PAR=built; const kind=SKIND(room); applyScene(kind);
+  function rebuild(room,st){ if(room===curRoom) saveWalkers(); clearBuilt(); built=new THREE.Group(); scene.add(built); anims=[]; walkers=[]; FP=[]; NF=[]; MACHP=[]; MEET=null; LCH=null; WG=null; clearGhost(); PAR=built; const kind=SKIND(room); applyScene(kind);
     if(kind==='room'){ CROWD=[]; buildRoom(room,st); adjustCrowd(room); navBuild(); walkers.forEach(w=>{ if(w.fresh||!freeAt(w.x,w.z)){ const p=randFree(); w.x=p[0]; w.z=p[1]; w.fresh=false; } w.P.g.position.set(w.x,0,w.z); }); }
     else if(kind==='meet') buildMeet(st); else buildLaunch(st);
     if(kind!=='launch'){ const ao=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:aoTex(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2})); ao.rotation.x=-Math.PI/2; ao.scale.set(RW,RD,1); ao.position.set(RW/2,.012,RD/2); ao.userData.keep=true; built.add(ao); }
-    TOON.outlineStatic(built,{minDim:.05}); mergeStatic(built); TOON.outlineEach(built,{minDim:.05}); R.shadowMap.needsUpdate=true; dirty=true; }
+    wallsPrep(); TOON.outlineStatic(built,{minDim:.05}); mergeStatic(built); TOON.outlineEach(built,{minDim:.05}); wallsFor(); R.shadowMap.needsUpdate=true; dirty=true; }
   /* camera orbitale attorno al centro della stanza; la distanza base inquadra la stanza intera con un margine */
-  function placeCam(){ const cp=Math.cos(CAM.pit), d=CAM.dFit/CAM.zoom; cam.position.set(CAM.tx+Math.sin(CAM.yaw)*cp*d,.6+Math.sin(CAM.pit)*d,CAM.tz+Math.cos(CAM.yaw)*cp*d); cam.lookAt(CAM.tx,.6,CAM.tz); cam.updateMatrixWorld(true); cam.updateProjectionMatrix(); }
+  function placeCam(){ const cp=Math.cos(CAM.pit), d=CAM.dFit/CAM.zoom; cam.position.set(CAM.tx+Math.sin(CAM.yaw)*cp*d,.6+Math.sin(CAM.pit)*d,CAM.tz+Math.cos(CAM.yaw)*cp*d); cam.lookAt(CAM.tx,.6,CAM.tz); cam.updateMatrixWorld(true); cam.updateProjectionMatrix(); wallsFor(); }
   function fit(){ const w=host.clientWidth||900, h=host.clientHeight||560; R.setSize(w,h,false); R.domElement.style.width=w+'px'; R.domElement.style.height=h+'px'; cam.aspect=w/h; if(SK!=='room'){ fitFixed(); layout(); return; }
     const pts=[[0,0,0],[RW,0,0],[0,0,RD],[RW,0,RD],[0,RH,0],[RW,RH,0],[0,RH,RD],[RW,.4,RD],[RW,.4,0],[0,.4,RD]].map(p=>new THREE.Vector3(p[0],p[1],p[2])); const sv=[CAM.zoom,CAM.tx,CAM.tz,CAM.yaw,CAM.pit]; CAM.zoom=1; CAM.tx=RW/2; CAM.tz=RD/2; CAM.yaw=DEF.yaw; CAM.pit=DEF.pit;
     let d=14; for(let i=0;i<120;i++){ CAM.dFit=d; placeCam(); let ok=true; for(const p of pts){ V.copy(p).project(cam); if(Math.abs(V.x)>.97||V.y>.80||V.y<-.96){ ok=false; break; } } if(ok) break; d*=1.025; }
@@ -6045,7 +6056,7 @@ const IR3=(()=>{
   function setView(yaw,pit){ DEF.yaw=yaw; DEF.pit=pit; if(host){ CAM.yaw=yaw; CAM.pit=pit; fit(); } return host?cover():null; }
   function scr(x,y,z){ V.set(x,z,y).project(cam); return [(V.x+1)/2*host.clientWidth,(1-V.y)/2*host.clientHeight]; }
   function layout(){ if(!hotEl) return;
-    HS.forEach((h,k)=>{ const b=h.b, el=hotEls[k]; if(!el) return; let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; [b[0],b[2]].forEach(x=>[b[1],b[3]].forEach(y=>[b[4],b[5]].forEach(z=>{ const p=scr(x,y,z); x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); y0=Math.min(y0,p[1]); y1=Math.max(y1,p[1]); })));
+    HS.forEach((h,k)=>{ const b=h.b, el=hotEls[k]; if(!el) return; const off=!!(h.wall&&WG&&WG[h.wall]&&!WG[h.wall].visible); el.hidden=off; if(off) return; let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; [b[0],b[2]].forEach(x=>[b[1],b[3]].forEach(y=>[b[4],b[5]].forEach(z=>{ const p=scr(x,y,z); x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); y0=Math.min(y0,p[1]); y1=Math.max(y1,p[1]); })));
       const cd=cam.position.distanceTo(V.set((b[0]+b[2])/2,(b[4]+b[5])/2,(b[1]+b[3])/2)); const s=el.style; s.zIndex=String(Math.max(1,2000-Math.round(cd*20))); s.left=x0.toFixed(1)+'px'; s.top=y0.toFixed(1)+'px'; s.width=(x1-x0).toFixed(1)+'px'; s.height=(y1-y0).toFixed(1)+'px'; });
     TG.forEach((t,k)=>{ const el=tagEls[k]; if(!el) return; const p=scr(t.x,t.y,t.z); el.style.left=p[0].toFixed(1)+'px'; el.style.top=p[1].toFixed(1)+'px'; });
     const bub=document.getElementById('mbub'); if(bub&&MEET&&bub.dataset.seat!=null&&MSEATP[+bub.dataset.seat]){ const q=MSEATP[+bub.dataset.seat], p=scr(q.x,q.y,2.35), hr=host.getBoundingClientRect(), w=bub.offsetWidth||260, hud=document.getElementById('hud'); bub.style.left=Math.max(hr.left+w/2+8,Math.min(hr.right-w/2-8,hr.left+p[0]))+'px'; bub.style.top=Math.max(((hud&&hud.getBoundingClientRect().bottom)||60)+bub.offsetHeight+8,hr.top+p[1])+'px'; } }
