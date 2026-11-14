@@ -4,8 +4,8 @@ const $=(q,el)=>(el||document).querySelector(q), $$=(q,el)=>Array.from((el||docu
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf=(x,d)=>Number(x).toLocaleString('it-IT',{maximumFractionDigits:d==null?1:d}), keur=x=>nf(Math.round(x),0)+' cr', pct=x=>Math.round(x*100)+'%';
 const P=E.PARTS, PEO=L.PEOPLE, CELL=64, ACC=E.ACC;
-const phn=m=>PHN[m&&m.phase==='D'&&m.ready?'E':m&&m.phase]||'';
-const PHN={'0':'Fase 0','A':'Fase A','B':'Fase B','C':'Fase C','D':'Fase D','E':'Fase E','F':'Fase F','done':'Completata'};
+const phn=m=>PHN[m&&m.phase]||'';
+const PHN={'0':'Pre-fase A','A':'Fase A','B':'Fase B','C':'Fase C','D':'Fase D','E':'Fase E','F':'Fase F','done':'Completata'};
 let G=null, view='hub', sel=null, raf=0, teleTick=0; const evShown={};
 
 /* ---------- salvataggio ---------- */
@@ -290,7 +290,7 @@ Due radio: una di riserva	Two radios: one spare
 Durata totale	Total duration
 Durata ≥ {n} mesi	Duration ≥ {n} months
 E se…?	What if…?
-Ecco la revisione di fine missione (MCR): scienza raccolta, rate e cosa è successo. Chiudila.	Here is the mission close-out review (MCR): science collected, instalments and what happened. Close it.
+Ecco la revisione di fine missione (MCR): scienza raccolta, rate e cosa è successo. Chiudila.	Here is the Decommissioning Review (DR): science collected, instalments and what happened. Close it.
 Eclisse	Eclipse
 Eclisse di {n} minuti: Eclisse passata senza danni.	{n}-minute eclipse: Eclipse passed without damage.
 Edifici	Buildings
@@ -334,6 +334,8 @@ Fase C: progetto congelato. Con la revisione CDR compri i pezzi.	Phase C: design
 Fase C: puoi ancora ritoccare la quota e la strategia; il lancio è già prenotato.	Phase C: you can still tweak the altitude and the strategy; the launch is already booked.
 Fase D	Phase D
 Fase E	Phase E
+Pre-fase A	Pre-Phase A
+Fine della pre-fase A	End of Pre-Phase A
 Fase F: la missione ha raggiunto la durata promessa. Il controllo missione chiude le operazioni e prepara il rientro.	Phase F: the mission has reached the promised duration. Mission control closes operations and prepares the re-entry.
 Fase {n}	Phase {n}
 Fasi E e F	Phases E and F
@@ -367,8 +369,9 @@ Gli stakeholder. Quello che accetti diventa un requisito di missione. Tocca lo s
 Griglia	Grid
 Guarda avanti, evita le nuvole e punta lo strumento dove serve.	Looks ahead, avoids clouds and points the instrument where needed.
 Guarda le stelle per sapere dove punta	Looks at the stars to know where it points
+Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (pre-fase A), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio, prove e lancio (D), operazioni in volo (E) e chiusura (F).	You went through every phase of a real NASA mission: requirements with the stakeholders (Pre-Phase A), satellite and system requirements (Phase A), orbit and launch plan (B), final design (C), assembly, tests and launch (D), operations (E) and closeout (F).
 Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (fase {n}), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio e prove (D), volo (E) e chiusura (F).	You went through every phase of a real mission: requirements with the stakeholders (phase {n}), satellite and system requirements (A), mission, satellite and orbit (B), design freeze and parts (C), assembly and tests (D), flight (E) and close-out (F).
-Hai i requisiti di missione. Chiudi la riunione: segue la revisione MDR.	You have the mission requirements. Close the meeting: the MDR review follows.
+Hai i requisiti di missione. Chiudi la riunione: segue la revisione MDR.	You have the mission requirements. Close the meeting: the Mission Concept Review (MCR) follows.
 Hai scelto «Misura» ({n} scienza	You chose «Measure» ({n} science
 Hai scelto «Reset a freddo» ({n}% torna	You chose «Cold reset» ({n}% comes back
 Hai un campus, {n} cr e nessun satellite. La NASA finanzia il tuo primo CubeSat e ti apre il suo catalogo di tecnologie: si parte con poche carte, le altre si sbloccano salendo di livello.	You have a campus, {n} cr and no satellite. NASA funds your first CubeSat and opens its technology catalogue to you: you start with a few cards, the others unlock as you level up.
@@ -520,6 +523,7 @@ Microscopio a fluorescenza robusto	Rugged fluorescence microscope
 Microscopio robusto a fluorescenza per la biologia nello spazio.	Rugged fluorescence microscope for biology in space.
 Microscopio senza lenti	Lensless microscope
 Microscopio senza lenti per osservare campioni biologici in volo.	Lensless microscope to observe biological samples in flight.
+Mission Concept Review: i requisiti di missione sono approvati. Premi per chiudere la pre-fase A e incassare la prima rata.	Mission Concept Review: the mission requirements are approved. Press to close Pre-Phase A and collect the first instalment.
 Mission Definition Review: i requisiti di missione sono approvati. Premi per chiudere la fase {n} e incassare la prima rata.	Mission Definition Review: the mission requirements are approved. Press to close phase {n} and collect the first instalment.
 Missione	Mission
 Missione disegnata. Ora progetta il satellite che deve farla.	Mission drawn. Now design the satellite that has to fly it.
@@ -756,9 +760,9 @@ Revisione CDR	CDR review
 Revisione PDR	PDR review
 Revisione di volo	Flight review
 Revisione di volo superata.	Flight review passed.
-Revisione di volo superata: comincia la fase E.	Flight review passed: phase E begins.
-Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio. Tocca l’edificio sulla mappa.	Flight review passed: phase E begins. Go to the administration building for the launch. Tap the building on the map.
-Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio: prima torna al campus con la casetta in basso a destra.	Flight review passed: phase E begins. Go to the administration building for the launch: first go back to the campus with the house button at the bottom right.
+Revisione di volo superata: comincia la fase E.	Flight review passed: Phase D continues with launch & checkout.
+Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio. Tocca l’edificio sulla mappa.	Flight review passed: Phase D continues with launch & checkout. Go to the administration building for the launch. Tap the building on the map.
+Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio: prima torna al campus con la casetta in basso a destra.	Flight review passed: Phase D continues with launch & checkout. Go to the administration building for the launch: first go back to the campus with the house button at the bottom right.
 Ricerca	Research
 Ricevitore GPS	GPS receiver
 Richiesta di un partner: Richiesta declinata.	Partner request: Request declined.
@@ -902,7 +906,15 @@ Tocca un punto libero per mettere la pianta. Esc per annullare.	Tap a free spot 
 Tocca un punto libero per posizionare: tavola vibrante. Esc per annullare.	Tap a free spot to place: shaker table. Esc to cancel.
 Togli	Remove
 Torna al campus	Back to campus
-Torna alla fase B	Back to phase B
+Torna alla fase B	Back to Phase B
+Torna alla pre-fase A	Back to Pre-Phase A
+Torna alla fase A	Back to Phase A
+Torna alla fase C	Back to Phase C
+studi di concetto	Concept Studies
+concetto e sviluppo tecnologico	Concept & Technology Development
+progetto preliminare	Preliminary Design & Technology Completion
+progetto finale e fabbricazione	Final Design & Fabrication
+assemblaggio, integrazione, prove e lancio	System Assembly, Integration & Test, Launch & Checkout
 Totale	Total
 Totale ({n}% di margine sul piano)	Total ({n}% margin on the plan)
 Tra {n} e {n} km: osservazione, costellazioni, prove.	Between {n} and {n} km: observation, constellations, tests.
@@ -925,7 +937,7 @@ Tutti i dati arrivano a terra.	All the data reach the ground.
 Tutti i pezzi	All parts
 Tutto sbloccato, nessun vincolo di budget	Everything unlocked, no budget constraints
 Ufficio partnership	Partnership office
-Ultima rata (MCR)	Last instalment (MCR)
+Ultima rata (MCR)	Last instalment (DR)
 Un broker di lancio ti mette in un dispenser insieme ad altri satelliti	A launch broker puts you in a dispenser with other satellites
 Un lander commerciale ti porta giù: ingresso, paracadute, retrorazzi.	A commercial lander takes you down: entry, parachute, retro-rockets.
 Un solo propulsore che lavora sia chimico (spinta forte) sia ionico (efficiente).	A single thruster that works both chemically (strong thrust) and as an ion engine (efficient).
@@ -1109,7 +1121,7 @@ vibrazione superata	vibration passed
 {s} è assemblato: esci e portalo all’edificio di testing per le prove.	{s} is assembled: go out and take it to the test building for the tests.
 {s} è assemblato: portalo all’edificio di testing per le prove.	{s} is assembled: take it to the test building for the tests.
 {s} è in orbita: esci e vai al Mission Control Center per seguirlo.	{s} is in orbit: go out to the Mission Control Center to follow it.
-{s} è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.	{s} is ready: phase E begins. Go to the administration building for the launch.
+{s} è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.	{s} is ready for launch & checkout (Phase D). Go to the administration building for the launch.
 {s} è sulla postazione: i tecnici iniziano l’assemblaggio.	{s} is on the station: the technicians start assembly.
 {s}: assemblaggio completato. Portalo al laboratorio prove.	{s}: assembly completed. Take it to the test lab.
 {s}: prova di vibrazione con problemi.	{s}: vibration test with problems.
@@ -1228,7 +1240,7 @@ Sposta	Move
 ✥ Sposta	✥ Move
 Puoi cambiare la disposizione del laboratorio quando vuoi.	You can rearrange the lab whenever you like.
 Prova già fatta per {s}.	Test already done for {s}.
-Revisione di volo superata: comincia la fase E.	Flight review passed: phase E begins.
+Revisione di volo superata: comincia la fase E.	Flight review passed: Phase D continues with launch & checkout.
 Esci dal laboratorio e vai	Leave the lab and go
 alla rampa di lancio	to the launch pad
 del campus	on campus
@@ -1518,7 +1530,7 @@ satellite in assemblaggio.	satellite in assembly.
 Tocca una postazione per vedere a che punto è; quando è pronto, toccalo per portarlo al laboratorio.	Tap a station to see its progress; when it is ready, tap it to take it to the lab.
 Satellite in integrazione	Satellite in integration
 deroga, il difetto vola:	waiver, the defect flies:
-Revisione di volo superata: comincia la fase E. Esci dal laboratorio e vai	Flight review passed: phase E begins. Leave the lab and go
+Revisione di volo superata: comincia la fase E. Esci dal laboratorio e vai	Flight review passed: Phase D continues with launch & checkout. Leave the lab and go
 alla rampa di lancio del campus	to the campus launch pad
 all’ edificio amministrativo : da lì segui il lancio con l’ente terzo	to the administration building: from there follow the third-party launch
 all’	to the
@@ -1656,8 +1668,8 @@ Torna alle prove	Back to the tests
 Senza prova superata:	Without a passed test:
 Eventuali difetti voleranno con il satellite.	Any defects will fly with the satellite.
 Tutte le prove superate.	All tests passed.
-è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.	is ready: phase E begins. Go to the administration building for the launch.
-è sulla rampa di lancio: comincia la fase E.	is on the launch pad: phase E begins.
+è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.	is ready for launch & checkout (Phase D). Go to the administration building for the launch.
+è sulla rampa di lancio: comincia la fase E.	is on the launch pad: launch & checkout (Phase D).
 è in orbita: esci e vai al Mission Control Center per seguirlo.	is in orbit: go out to the Mission Control Center to follow it.
 Rampa di lancio costruita: da ora puoi lanciare in casa, con il 40% in meno.	Launch pad built: from now on you can launch at home, 40% cheaper.
 in volo: segui la telemetria dal Mission Control Center.	in flight: follow the telemetry from the Mission Control Center.
@@ -1731,8 +1743,12 @@ Tutti i posti auto sono occupati: per assumere costruisci un parcheggio nel camp
 Nessuna agenzia in classifica: chiudi una missione e sarai la prima.	No agencies in the ranking: close a mission and you will be the first.
 punti per la Lega	points for the League
 punti scienza ed entra nella Lega	science points and join the League
+A · concetto e sviluppo tecnologico	A · Concept & Technology Development
+pre-fase A · studi di concetto	Pre-Phase A · Concept Studies
 A · fattibilità	A · feasibility
+C · progetto finale e fabbricazione	C · Final Design & Fabrication
 C · progetto di dettaglio	C · detailed design
+D · assemblaggio, integrazione, prove e lancio	D · System Assembly, Integration & Test, Launch & Checkout
 D · assemblaggio e prove	D · assembly and tests
 Si riapre il tavolo con gli stakeholder: i requisiti di missione e di sistema accettati vengono cancellati e si rinegoziano.	The table with the stakeholders reopens: accepted mission and system requirements are cancelled and renegotiated.
 La prima rata è già incassata: non arriva una seconda volta.	The first instalment is already collected: it does not come a second time.
@@ -1747,7 +1763,7 @@ Le prove fatte vanno rifatte. I macchinari del laboratorio restano.	Tests done m
 La revisione FRR va ripetuta: la rata è già incassata.	The FRR review must be repeated: the instalment is already collected.
 Da questa fase non si torna indietro.	There is no going back from this phase.
 Ritorno di fase	Phase rollback
-Torna alla fase	Go back to phase
+Torna alla fase	Go back to
 Tornare indietro è possibile, ma costa: tempo, soldi e fiducia degli stakeholder. È quello che succede in un progetto vero quando una revisione scopre un problema.	Going back is possible, but it costs: time, money and stakeholder trust. That is what happens in a real project when a review uncovers a problem.
 Costo della revisione straordinaria	Cost of the extraordinary review
 Rimborso della prenotazione +	Booking refund +
@@ -1773,7 +1789,7 @@ Servono pannelli solari: scegli le ali dispiegabili, danno più potenza di quell
 Apri la scheda dei pannelli solari.	Open the solar panels tab.
 Passo 3: torna al Centro di dinamica del volo	Step 3: go back to the flight dynamics centre
 Tocca il banco di	Tap the bench of
-Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio	Flight review passed: phase E begins. Go to the administration building for the launch
+Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio	Flight review passed: Phase D continues with launch & checkout. Go to the administration building for the launch
 Al laboratorio prove: i requisiti chiedono la prova di vibrazione.	To the test lab: the requirements ask for the vibration test.
 Prova di vibrazione	Vibration test
 in corso…	in progress…
@@ -2481,7 +2497,7 @@ spazio occupato	space already taken
 cr a testa). Se le missioni sono ferme non paghi nulla.	cr each). If missions are paused you pay nothing.
 · lega massima	· top league
 · sei	· you are
-B · progetto preliminare	B · preliminary design
+B · progetto preliminare	B · Preliminary Design & Technology Completion
 Rimborso della prenotazione	Booking refund
 Soddisfazione della NASA	NASA satisfaction
 Tutorial finito: torni alla tua partita.	Tutorial finished: you are back to your game.
@@ -3304,7 +3320,7 @@ function vSatType(v,M){ const lvN=L.level(G.xp), dest=M.sat.dest||'leo', why=k=>
     '<h3 style="margin:18px 0 8px">Altre classi</h3><div class="sts"><div class="stc lock"><b>Microsatellite</b><span class="fine">Classe ESPA, fino a circa 180 kg</span><small class="lk">🔒 in arrivo</small></div></div>'; }
 function vPartners(v,M){ const lv=L.level(G.xp), ini=(t,c)=>{ const ag=AGENCIES.find(a=>a[1]===t); return FLAGS(ag?ag[0]:String(t),c,'ini'); }, ini0=(t,c)=>'<span class="ini" style="background:'+c+'">'+esc(String(t).replace(/[^A-Za-zÀ-ú ]/g,'').split(' ').map(w=>w[0]||'').join('').slice(0,3).toUpperCase())+'</span>';
   const lockedAg=AGENCIES.filter(a=>a[4]>lv), lockedSp=L.SPONSORS.filter(x=>!E.stk(x.id));
-  v.innerHTML=meetBg(M)+'<div class="head"><div><h3>Edificio amministrativo · Fase 0</h3><h1>Stakeholders</h1></div></div>'+
+  v.innerHTML=meetBg(M)+'<div class="head"><div><h3>Edificio amministrativo · Pre-fase A</h3><h1>Stakeholders</h1></div></div>'+
     '<div class="pgrid" id="stks">'+E.STAKE.map(k=>'<button class="pt pstk" data-act="stk" data-id="'+k.id+'">'+emb(k.id)+'<span><b>'+esc(k.n.split(' · ')[0])+'</b><small>'+esc(k.k)+'</small><span class="fund">+'+keur(L.fund(k.id,M))+'</span></span><span class="pinfo" data-act="pinfo" data-id="'+k.id+'" title="Dettagli">i</span></button>').join('')+'</div>'+
     '<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn primary" id="p0go" data-act="sit">Convoca la riunione</button></div>'+
     (lockedAg.length?'<div class="pgh">🔒 Agenzie partner della NASA Space Apps Challenge</div><div class="pgrid">'+lockedAg.map(a=>'<div class="pt lock">'+ini(a[1],a[6])+'<span><b>'+esc(a[1])+'</b><small>'+esc(a[3])+'</small><small>livello '+a[4]+'</small></span></div>').join('')+'</div>':'')+
@@ -4005,7 +4021,7 @@ function vTest(v){ const M=cur(), ready=G.missions.filter(m=>m.phase==='D'&&m.st
   const pend=inLab&&Object.keys(inLab.tr).some(t=>['run','defect','struct'].indexOf(inLab.tr[t].res)>=0), own=G.lab.filter(Boolean);
   const resBad=res.split(/(?=<div class="result )/).filter(x=>x.indexOf('result bad')>=0).join('');
   const labActs=inLab?'<div class="acts">'+(resBad?'<div class="panel">'+resBad+'</div>':'')+(inLab.ready?'':'<button class="btn primary" data-act="frr" '+(pend?'disabled':'')+'>Revisione di volo</button>')+'</div>':'';
-  v.innerHTML='<div class="head"><div><h3>Edificio di testing · '+(cur()&&cur().ready&&cur().phase==='D'?'Fase E':'Fase D')+'</h3><h1>Laboratorio prove</h1></div></div>'+
+  v.innerHTML='<div class="head"><div><h3>Edificio di testing · '+'Fase D'+'</h3><h1>Laboratorio prove</h1></div></div>'+
     stage(roomBox('test',null,inLab&&!inLab.ready&&!Object.keys(inLab.tr).some(t=>inLab.tr[t].res==='run')&&G.lab.some(k=>!inLab.tr[k])?dsatHTML('test',inLab,'Trascinalo su un macchinario · '+testC(inLab)+' cr'):''),'rbx')+'<div class="docks"><aside class="dockL"><div class="panel"><h2 style="margin:0;font-size:16px">Magazzino</h2><div class="ware">'+(ready.length?ready.map(m=>{ const ts=testState(m); return '<button class="wcard'+(m===M?' on':'')+'" data-act="pick" data-id="'+m.id+'"><div>'+satThumb(m)+'</div><div><b>'+esc(m.name)+'</b><div class="tchips">'+(own.length?own.map(t=>'<span class="tchip '+(ts[t]==='pass'||ts[t]==='fixed'?'ok':ts[t]==='defect'||ts[t]==='struct'?'bad':ts[t]==='waived'?'w':'')+'">'+L.MACH[t].short+'</span>').join(''):'<span class="tchip">nessun macchinario</span>')+'</div>'+(m.ready?'<div class="fine">sulla rampa</div>':'')+'</div></button>'; }).join(''):'<p class="fine">Nessun satellite assemblato. Costruiscilo in fase C e assemblalo in camera bianca.</p>')+'</div></div></aside>'+
     '</div>'+labActs+'<div hidden><div class="bays3">'+G.lab.map((k,i)=>btn(k,i).replace(/ style="[^"]*"/,'')).join('')+(G.lab.length<LABMAX?'<button class="mbtn buy" data-act="labadd">+ Installa macchinario<small>'+G.lab.length+' di '+LABMAX+' · lo metti dove vuoi</small></button>':'')+'</div>'+
     (inLab?'<div class="panel">'+(res||'<p class="fine">Scegli quali prove fare su '+esc(inLab.name)+'. Ogni prova saltata resta un rischio nel registro dei rischi.</p>')+(inLab.ready?(inLab.sat.lv==='HOME'?'<p><b>Revisione di volo superata.</b> Il satellite è sulla tua rampa di lancio.</p>':'<div class="row" style="justify-content:space-between"><p><b>Revisione di volo superata.</b> Il lancio è affidato a un ente terzo.</p><button class="btn primary" data-act="xopen">Lancia</button></div>'):'<div class="row"><button class="btn primary" data-act="frr" '+(pend?'disabled':'')+'>Revisione di volo</button></div>')+'</div>'+riskBtn(inLab):'')+'</div>'; scn(v,{L:1,bg:'#E9EDE6',railL:[{ic:'🛰',t:'Satelliti',side:'L',bd:ready.length||''}],railR:[{ic:'＋',t:'Macchinario',act:'labadd'}]}); }
@@ -4152,8 +4168,8 @@ function mccLoop(){ mccStop(); const cv=$('#orb'); if(!cv) return; let last=0, a
 
 /* ---------- revisioni ---------- */
 function review(o){ const el=$('#ov'); let body=o.body||'';
-  if(o.short){ const warn=(body.match(/<p class="bad">[\s\S]*?<\/p>/g)||[]).join(''); body='<p class="rv-short">'+o.short+'</p>'+warn+'<details class="why"><summary>Perché?</summary>'+body.replace(/<p class="bad">[\s\S]*?<\/p>/g,'')+'<p class="rv-code"><span>ECSS: '+o.code+'</span><span>NASA: '+o.nasa+'</span></p></details>'; }
-  else if(o.code&&o.code!=='—') body+='<p class="rv-code"><span>ECSS: '+o.code+'</span><span>NASA: '+o.nasa+'</span></p>';
+  if(o.short){ const warn=(body.match(/<p class="bad">[\s\S]*?<\/p>/g)||[]).join(''); body='<p class="rv-short">'+o.short+'</p>'+warn+'<details class="why"><summary>Perché?</summary>'+body.replace(/<p class="bad">[\s\S]*?<\/p>/g,'')+'<p class="rv-code"><span>NASA: '+(o.nc?o.nc+' · ':'')+o.nasa+'</span></p></details>'; }
+  else if(o.code&&o.code!=='—') body+='<p class="rv-code"><span>NASA: '+(o.nc?o.nc+' · ':'')+o.nasa+'</span></p>';
   el.innerHTML='<div class="rv'+(o.stamp?' hasst':'')+'" role="dialog" aria-modal="true"><div class="rv-top"><div><h3>'+o.eb+'</h3><h2>'+o.name+'</h2></div>'+(o.stamp?'<div class="stamp'+(o.no?' no':'')+'">'+o.stamp+'</div>':'')+'</div>'+body+'<div class="row">'+o.actions+'</div></div>'; el.hidden=false; if(o.stamp) (o.no?sfx.bad:sfx.stamp)(); }
 const closeOv=()=>{ rankModal.open=false; $('#ov').hidden=true; };
 function pdrList(M){ return L.status(M,M.sat,G.money+(M.lvPaid||0)+(M.partsCredit||0)).list.filter(x=>!x.ok&&x.kind!=='tests'); }
@@ -4263,7 +4279,7 @@ function mcrParts(M){ const r=M.result, fl=L.flight(M,M.duration+2,true);
   return {r,fl,rows,head,money,why}; }
 function mcrReview(M){ const r=M.result; if(!r) return; const X=mcrParts(M), fl=X.fl, head=X.head, money=X.money, why=X.why; MCRM=M; WIO=whatIfOpts(M,fl);
   const wi=WIO.length?'<h3>E se…?</h3><p class="fine">Rigioca il volo cambiando una sola cosa.</p><div class="wis">'+WIO.map((o,i)=>'<button class="btn small" data-act="whatif" data-i="'+i+'">'+esc(o.l)+'</button>').join('')+'</div><div class="result w" id="wires" hidden></div>':'';
-  review({eb:'Fine fase F',name:'Mission Close-out Review',code:'MCR',nasa:'Decommissioning Review',stamp:r.ok?'CHIUSA':'NON RIUSCITA',no:!r.ok,short:head+(LANG==='en'?' Science ':' Scienza ')+'<b class="num">'+r.sci+'</b>.',
+  review({eb:'Fine fase F',name:'Decommissioning Review',code:'MCR',nc:'DR',nasa:'Decommissioning Review',stamp:r.ok?'CHIUSA':'NON RIUSCITA',no:!r.ok,short:head+(LANG==='en'?' Science ':' Scienza ')+'<b class="num">'+r.sci+'</b>.',
     body:money+(r.quests.length?'<p class="fine">'+r.quests.map(q=>esc(E.stk(q.id).n)+(q.ok?' soddisfatto (+'+q.bonus+' cr)':' deluso')).join(' · ')+'</p>':'')+why+wi,
     actions:'<button class="btn primary" data-act="closeov">Chiudi</button>'+(!M.tut?'<button class="btn" data-act="report" data-id="'+M.id+'">⬇ Resoconto</button>':'')+(r.ok&&!M.published&&!M.tut?'<button class="btn" data-act="folder">Pubblica</button>':'')});
   $('#ov .rv').classList.add('wide'); }
@@ -4328,8 +4344,8 @@ const ACT={
   no(){ const M=cur(); if(L.R(M.queue[0]).rule) return; let ci=-1; try{ ci=(M.table||L.cast(M,M.meetPh||M.phase)).indexOf(L.R(M.queue[0]).who); }catch(e){} const lv=L.answer(M,M.queue[0],false); sfx.bad(); if(lv) gone(M,lv); render(); if(ci>=0) setTimeout(()=>{ try{ IR3.slam(ci); }catch(e){} },80); },
   endmeet(){ const M=cur();
     if(M.meetPh==='0'){ const fund=L.pledged(M); M.funded=fund; M.stage='done'; const inst=L.installment(M,'MDR');
-      review({eb:'Fine fase 0',name:'Mission Definition Review',code:'MDR',nasa:'Mission Concept Review',stamp:'GO',short:LANG==='en'?'Mission requirements approved. <b class="num">'+keur(fund)+'</b> promised, paid in instalments.':'Requisiti di missione approvati. Promessi <b class="num">'+keur(fund)+'</b>, pagati a rate.',body:'<p>'+M.reqs.length+' requisiti di missione. Gli stakeholder promettono <b class="num">'+keur(fund)+'</b>, ma pagano a rate, alle revisioni.</p>'+payPlan(M,'MDR'),actions:'<button class="btn primary" data-act="toA">Incassa la prima rata e vai avanti</button>'}); }
-    else { M.stage='done'; review({eb:'Fine fase A',name:'System Requirements Review',code:'PRR',nasa:'System Requirements Review',stamp:'GO',short:LANG==='en'?'System requirements set. Now you draw the orbit.':'Requisiti di sistema fissati. Ora si disegna l’orbita.',body:'<p>'+esc(E.RIDES[M.sat.ride].n)+' · '+M.reqs.filter(x=>x.kind==='SYS').length+' requisiti di sistema. In fase B si fa l’analisi orbitale nel Centro di dinamica del volo.</p>',actions:'<button class="btn primary" data-act="toB">Avanti</button>'}); } },
+      review({eb:'Fine della pre-fase A',name:'Mission Concept Review',code:'MDR',nc:'MCR',nasa:'Mission Concept Review',stamp:'GO',short:LANG==='en'?'Mission requirements approved. <b class="num">'+keur(fund)+'</b> promised, paid in instalments.':'Requisiti di missione approvati. Promessi <b class="num">'+keur(fund)+'</b>, pagati a rate.',body:'<p>'+M.reqs.length+' requisiti di missione. Gli stakeholder promettono <b class="num">'+keur(fund)+'</b>, ma pagano a rate, alle revisioni.</p>'+payPlan(M,'MDR'),actions:'<button class="btn primary" data-act="toA">Incassa la prima rata e vai avanti</button>'}); }
+    else { M.stage='done'; review({eb:'Fine fase A',name:'System Requirements Review',code:'PRR',nc:'SRR',nasa:'System Requirements Review',stamp:'GO',short:LANG==='en'?'System requirements set. Now you draw the orbit.':'Requisiti di sistema fissati. Ora si disegna l’orbita.',body:'<p>'+esc(E.RIDES[M.sat.ride].n)+' · '+M.reqs.filter(x=>x.kind==='SYS').length+' requisiti di sistema. In fase B si fa l’analisi orbitale nel Centro di dinamica del volo.</p>',actions:'<button class="btn primary" data-act="toB">Avanti</button>'}); } },
   toA(){ const M=cur(); closeOv(); const first=once(M,'MDR'), inst=first?L.installment(M,'MDR'):0; M.got=(M.got||0)+inst; if(inst) addMoney(inst); if(first) gainXP(L.XP.MDR); M.phase='A'; M.stage='type'; render(); toast((inst?'Prima rata: '+keur(inst)+'. ':'')+'Fase A: rientra nell’edificio amministrativo per scegliere il satellite e sentire lo staff tecnico.'); },
   pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.stake=M.stake; d.acc=d.acc||{}; E.prune(d); d.sol=L.availSol(M,d.ride)[0]||d.sol; L.startMeeting(M,'A'); sfx.ok(); render(); },
   toB(){ const M=cur(); closeOv(); if(once(M,'SRR')) gainXP(L.XP.PRR); M.phase='B'; M.stage='drm'; if(!M.sat.lv){ const ks=Object.keys(E.LV).filter(k=>lvShown(k,M)&&!lvLock(k,M)&&E.LV[k].fits.indexOf(M.sat.ride)>=0); if(ks.length) M.sat.lv=ks[0]; } go('hub'); toast('Fase B: vai al Centro di dinamica del volo per disegnare la missione (DRM).'); },
@@ -4375,8 +4391,8 @@ const ACT={
   fix(t){ const M=cur(); if(G.money<L.FIXC){ toast('Non hai abbastanza soldi.'); return; } addMoney(-L.FIXC); M.tr[t.dataset.t].res='fixed'; M.tests[t.dataset.t]=true; sfx.ok(); render(); },
   stiff(){ const M=cur(); if(G.money<L.STIFFC){ toast('Non hai abbastanza soldi.'); return; } addMoney(-L.STIFFC); M.stiff=true; if(M.defects.vib) M.tr.vib.res='defect'; else { M.tr.vib.res='pass'; M.tests.vib=true; } sfx.ok(); render(); },
   frr(){ const M=cur(), miss=L.status(M,M.sat).list.filter(x=>x.kind==='tests'&&!x.ok).sort((a,b)=>(L.R(a.id).rule?1:0)-(L.R(b.id).rule?1:0)), un=L.TESTS.filter(t=>!M.tests[t]), RK=L.risks(M,G.lab.filter(Boolean)).list, hi=RK.filter(x=>x.p*x.i>=6);
-    if(miss.length){ review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nasa:'Flight Readiness Review',stamp:'NO-GO',no:true,body:'<p>'+miss.map(x=>x.code+' · '+esc(x.t)).join('<br>')+'</p><p class="fine">'+(L.R(miss[0].id).rule?'L’ente regolatore non autorizza il lancio senza queste prove: niente deroghe.':esc(PEO.pa.n)+' non firma senza queste prove.')+'</p>',actions:'<button class="btn primary" data-act="closeov">Torna alle prove</button>'+(L.R(miss[0].id).rule?'':'<button class="btn no" data-act="waive" data-id="'+miss[0].id+'">Deroga</button>')}); return; }
-    review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nasa:'Flight Readiness Review',short:(LANG==='en'?'Open risks: ':'Rischi aperti: ')+'<b>'+RK.length+'</b>'+(hi.length?', <b class="bad">'+hi.length+(LANG==='en'?' high':' alti')+'</b>':'')+(LANG==='en'?'. The Go is your call.':'. Il Go lo decidi tu.'),body:(un.length?'<p>Senza prova superata: '+un.map(t=>L.MACH[t].n).join(', ')+'. Eventuali difetti voleranno con il satellite.</p>':'<p>Tutte le prove superate.</p>')+'<p><b>Rischi aperti: '+RK.length+'</b>, di cui <b>'+hi.length+' alti</b>'+(hi.length?': '+hi.map(x=>esc(x.t)).join(', '):'')+'.</p><p>Con il Go gli stakeholder versano la terza rata: <b class="num">'+keur(L.installment(M,'FRR'))+'</b>.</p><p>La decisione è tua.</p>',actions:'<button class="btn primary" data-act="go">Go</button><button class="btn" data-act="closeov">No-go</button>'}); },
+    if(miss.length){ review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nc:'FRR',nasa:'Flight Readiness Review',stamp:'NO-GO',no:true,body:'<p>'+miss.map(x=>x.code+' · '+esc(x.t)).join('<br>')+'</p><p class="fine">'+(L.R(miss[0].id).rule?'L’ente regolatore non autorizza il lancio senza queste prove: niente deroghe.':esc(PEO.pa.n)+' non firma senza queste prove.')+'</p>',actions:'<button class="btn primary" data-act="closeov">Torna alle prove</button>'+(L.R(miss[0].id).rule?'':'<button class="btn no" data-act="waive" data-id="'+miss[0].id+'">Deroga</button>')}); return; }
+    review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nc:'FRR',nasa:'Flight Readiness Review',short:(LANG==='en'?'Open risks: ':'Rischi aperti: ')+'<b>'+RK.length+'</b>'+(hi.length?', <b class="bad">'+hi.length+(LANG==='en'?' high':' alti')+'</b>':'')+(LANG==='en'?'. The Go is your call.':'. Il Go lo decidi tu.'),body:(un.length?'<p>Senza prova superata: '+un.map(t=>L.MACH[t].n).join(', ')+'. Eventuali difetti voleranno con il satellite.</p>':'<p>Tutte le prove superate.</p>')+'<p><b>Rischi aperti: '+RK.length+'</b>, di cui <b>'+hi.length+' alti</b>'+(hi.length?': '+hi.map(x=>esc(x.t)).join(', '):'')+'.</p><p>Con il Go gli stakeholder versano la terza rata: <b class="num">'+keur(L.installment(M,'FRR'))+'</b>.</p><p>La decisione è tua.</p>',actions:'<button class="btn primary" data-act="go">Go</button><button class="btn" data-act="closeov">No-go</button>'}); },
   go(){ const M=cur(); M.ready=true; M.winAt=now()+winWait(M); closeOv(); sfx.stamp(); const first=once(M,'FRR'); if(first) gainXP(L.XP.FRR); const inst=first?L.installment(M,'FRR'):0; M.got=(M.got||0)+inst; addMoney(inst); /* dopo il Go si torna al campus (go qui e' la funzione di navigazione, non questo metodo) */ go('hub'); if(M.sat.lv!=='HOME'){ toast(M.name+' è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.'); return; } toast(M.name+' è sulla rampa di lancio: comincia la fase E.'); },
   xopen(){ xLaunchModal(cur()); },
   xlaunch(){ const M=cur(); if(!M||M.phase!=='D'||!M.ready||LBUSY) return; if(winLeft(M)>0){ sfx.bad(); toast(TX('La finestra di lancio non è ancora aperta.','The launch window is not open yet.')); return; } LBUSY=true; document.body.classList.add('lfly'); M.duration=LDUR||M.duration; const rk=$('#lrk'), cnt=$('#lcnt'); $$('.lbtn,.ldur').forEach(b=>b.classList.add('dis')); let n=10; sfx.tap();
@@ -4464,7 +4480,7 @@ function gone(M,lv){ const P2=PEO[lv.who]; sfx.leave(); if(!lv.staff) M.funded=L
   toast(lv.staff?P2.n+' se ne va: d’ora in poi nessuno ti segnala i rischi del suo sottosistema.':P2.org+' lascia la missione: niente più rate da lui. Le sue tecnologie non sono più disponibili.'); }
 // rate: chi è contento paga tutto, chi è scontento paga meno
 function payPlan(M,gate){ const G2=['MDR','PDR','FRR','MCR'], i=G2.indexOf(gate);
-  return '<div class="tw"><table class="pay"><tr><th>Stakeholder</th><th>Soddisfazione</th>'+G2.map((g,k)=>'<th'+(k===i?' class="now"':'')+'>'+g+' '+Math.round(L.PAY[g]*100)+'%</th>').join('')+'</tr>'+
+  return '<div class="tw"><table class="pay"><tr><th>Stakeholder</th><th>Soddisfazione</th>'+G2.map((g,k)=>'<th'+(k===i?' class="now"':'')+'>'+({MDR:'MCR',MCR:'DR'}[g]||g)+' '+Math.round(L.PAY[g]*100)+'%</th>').join('')+'</tr>'+
     M.stake.map(id=>{ const j=M.joy[id]==null?60:M.joy[id], k=L.joyK(j); return '<tr><td>'+esc(E.stk(id).n)+'</td><td class="'+(k<1?'bad':'')+'">'+j+'%'+(k<1?' · paga il '+Math.round(k*100)+'%':'')+'</td>'+G2.map((g,n)=>'<td class="num'+(n===i?' now':'')+'">'+keur(L.fund(id,M)*L.PAY[g]*k*L.SCALE.inst())+'</td>').join('')+'</tr>'; }).join('')+
     '</table></div><p class="fine">Le rate future dipendono dalla soddisfazione di quel momento. Sotto il 50% di soddisfazione si paga l’80%, sotto il 25% solo la metà. L’ultima rata arriva solo se la missione riesce.</p>'; }
 document.addEventListener('click',e=>{ if(document.body.classList.contains('hmo')&&!(e.target.closest&&e.target.closest('.hud-r'))){ document.body.classList.remove('hmo'); hud(); } },true);
@@ -4610,7 +4626,7 @@ const TUT={ seed:7, capC:320, parts:['BASE-DOSE','BASE-OBC','BASE-BAT20','BASE-U
     'BASE-UHF':'La radio UHF manda i dati a terra. Toccala.', 'BASE-MAG':'Le bobine magnetiche orientano il satellite usando il campo magnetico terrestre. Toccale.' } };
 const once=(M,k)=>{ M.once=M.once||{}; if(M.once[k]) return false; M.once[k]=1; return true; };
 const costDue=M=>Math.max(0,E.budget(M.sat).cost-(M.lvPaid||0)-(M.partsCredit||0));
-const PHN2={'0':'0 · definizione','A':'A · fattibilità','B':'B · progetto preliminare','C':'C · progetto di dettaglio','D':'D · assemblaggio e prove'};
+const PHN2={'0':'pre-fase A · studi di concetto','A':'A · concetto e sviluppo tecnologico','B':'B · progetto preliminare','C':'C · progetto finale e fabbricazione','D':'D · assemblaggio, integrazione, prove e lancio'};
 function backInfo(M){ if(!M||M.tut) return null; const ph=M.phase, nasa=M.stake[0];
   if(ph==='A') return {to:'0',fee:20,joy:10,items:['Si riapre il tavolo con gli stakeholder: i requisiti di missione e di sistema accettati vengono cancellati e si rinegoziano.','La prima rata è già incassata: non arriva una seconda volta.']};
   if(ph==='B') return {to:'A',fee:15,joy:5,items:['Puoi cambiare taglia del satellite. Lo staff tecnico torna al tavolo: i requisiti di sistema si rinegoziano.']};
@@ -4618,9 +4634,9 @@ function backInfo(M){ if(!M||M.tut) return null; const ph=M.phase, nasa=M.stake[
   if(ph==='D'){ const val=M.partsVal||M.paid||0, keep=Math.round(val*.6), lose=val-keep; return {to:'C',fee:10,joy:8,lost:lose,items:['Il satellite si smonta: i pezzi comprati valgono ancora '+keur(keep)+' (60%) quando ripassi la CDR, '+keur(lose)+' sono persi tra smontaggio e pezzi da buttare.','Le prove fatte vanno rifatte. I macchinari del laboratorio restano.',(M.ready?'La revisione FRR va ripetuta: la rata è già incassata.':'')].filter(Boolean)}; }
   return null; }
 function backModal(){ const M=cur(), b=backInfo(M); $('#pop').hidden=true; if(!b){ toast('Da questa fase non si torna indietro.'); return; }
-  review({eb:'Ritorno di fase',name:'Torna alla fase '+PHN2[b.to],code:'—',nasa:'Delta review',body:'<p>Tornare indietro è possibile, ma costa: tempo, soldi e fiducia degli stakeholder. È quello che succede in un progetto vero quando una revisione scopre un problema.</p><ul class="reqs">'+b.items.map(t=>'<li><span class="c">↩</span><span>'+esc(t)+'</span><span></span></li>').join('')+
+  review({eb:'Ritorno di fase',name:'Torna alla '+(b.to==='0'?'':'fase ')+PHN2[b.to],code:'—',nasa:'Delta review',body:'<p>Tornare indietro è possibile, ma costa: tempo, soldi e fiducia degli stakeholder. È quello che succede in un progetto vero quando una revisione scopre un problema.</p><ul class="reqs">'+b.items.map(t=>'<li><span class="c">↩</span><span>'+esc(t)+'</span><span></span></li>').join('')+
     (b.fee?'<li><span class="c">cr</span><span>Costo della revisione straordinaria</span><span class="num">'+keur(b.fee)+'</span></li>':'')+(b.refund?'<li><span class="c">cr</span><span>Rimborso della prenotazione</span><span class="num">+'+keur(b.refund)+'</span></li>':'')+'<li><span class="c">☺</span><span>Soddisfazione della NASA</span><span class="num">−'+b.joy+'</span></li></ul>'+(G.money<b.fee?'<p class="bad">Non hai abbastanza crediti.</p>':''),
-    actions:'<button class="btn primary" data-act="backgo"'+(G.money<b.fee?' disabled':'')+'>Torna alla fase '+b.to+'</button><button class="btn" data-act="closeov">Annulla</button>'}); }
+    actions:'<button class="btn primary" data-act="backgo"'+(G.money<b.fee?' disabled':'')+'>Torna alla '+(b.to==='0'?'pre-fase A':'fase '+b.to)+'</button><button class="btn" data-act="closeov">Annulla</button>'}); }
 function backGo(){ const M=cur(), b=backInfo(M); if(!b||G.money<b.fee) return; closeOv(); const d=M.sat;
   if(b.refund) addMoney(b.refund); if(b.fee) addMoney(-b.fee);
   M.stake.forEach(id=>{ M.joy[id]=Math.max(1,(M.joy[id]||60)-b.joy); });
@@ -4634,14 +4650,14 @@ function startTutorial(){ const M=L.newMission('FIRST FLIGHT','tut'+Date.now().t
 function endTutorial(skipped){ const co=G.co, av=G.avatar, mu=G.music, bg=G.big; let prev=null; try{ prev=JSON.parse(localStorage.getItem('gngPrev')||'null'); localStorage.removeItem('gngPrev'); }catch(e){} if(prev){ G=prev; G.recruited=G.recruited||[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m)); closeOv(); view='hub'; render(); save(); coach(); toast(TX('Tutorial finito: torni alla tua partita.','Tutorial done: back to your game.')); return; } G=newG(); G.co=co; G.avatar=av; G.crew=[av||'giulia']; G.music=mu; G.big=bg; applyStartPerks(); G.tutDone=true; closeOv(); view='hub'; render(); save(); coach();
   if(skipped) toast(TX('Tutorial saltato. Crea la tua prima missione con il tasto + in basso a sinistra.','Tutorial skipped. Create your first mission with the + button bottom left.')); else setTimeout(newMission,200); }
 function tutEndModal(){ const M=G.missions[0], r=M.result||{};
-  $('#ov').innerHTML='<div class="rv" role="dialog" aria-modal="true"><h3>Tutorial completato</h3><h2>'+(r.ok?'Primo volo riuscito!':'Fine del primo volo')+'</h2><p>Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (fase 0), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio e prove (D), volo (E) e chiusura (F).</p>'+
+  $('#ov').innerHTML='<div class="rv" role="dialog" aria-modal="true"><h3>Tutorial completato</h3><h2>'+(r.ok?'Primo volo riuscito!':'Fine del primo volo')+'</h2><p>Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (pre-fase A), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio, prove e lancio (D), operazioni in volo (E) e chiusura (F).</p>'+
     '<p>Era una prova: non dà punti, non va in bacheca e la tua agenzia riparte da '+keur(L.START_MONEY)+', come se l’avessi saltato. Da adesso le missioni sono vere: le richieste cambiano ogni volta e decidi tu.</p><div class="row"><button class="btn primary" data-act="tutend">Crea la tua prima missione</button></div></div>'; $('#ov').hidden=false; }
 let coachEl=null;
 function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d=M.sat, ph=M.phase, st=M.stage, ovOn=!$('#ov').hidden, S=(sel,t,n)=>({sel,t,n}), here=k=>view===k, go2=(k,t,n)=>view!=='hub'?S('[data-act="home"]',t.replace(/\.$/,'')+'. Prima torna al campus: tocca la casetta.',n):S('.b3h[data-k="'+k+'"],#camsvg .wobj[data-act="enter"][data-k="'+k+'"]',t.replace(/\.$/,'')+'. Tocca l’edificio sulla mappa.',n);
   if(ovOn){ const has=q=>$('#ov '+q);
     if(has('#xcnt:not([hidden])')) return S(null,'Conto alla rovescia… decollo!',8);
     if(has('[data-act="tutend"]')) return S('#ov [data-act="tutend"]','Bravo! Hai chiuso il tutorial.',10);
-    if(has('[data-act="toA"]')) return S('#ov [data-act="toA"]','Mission Definition Review: i requisiti di missione sono approvati. Premi per chiudere la fase 0 e incassare la prima rata.',1);
+    if(has('[data-act="toA"]')) return S('#ov [data-act="toA"]','Mission Concept Review: i requisiti di missione sono approvati. Premi per chiudere la pre-fase A e incassare la prima rata.',1);
     if(has('[data-act="toB"]')) return S('#ov [data-act="toB"]','System Requirements Review: i requisiti di sistema sono fissati. Passa alla fase B.',3);
     if(has('[data-act="toC"]')) return S('#ov [data-act="toC"]','Preliminary Design Review: orbita e lancio vanno bene. Prenota il lancio: arriva anche la seconda rata.',4);
     if(has('[data-act="toD"]')) return S('#ov [data-act="toD"]','Critical Design Review: il progetto rispetta tutti i requisiti. Compra i pezzi e passa all’assemblaggio.',6);
@@ -6284,7 +6300,7 @@ Object.assign(ACT,{
 function lvlRing(){ const lv=L.level(G.xp), a=L.LEVELS[lv-1], b=L.LEVELS[lv], pc=b?(G.xp-a)/(b-a):1, R=19, C=2*Math.PI*R;
   return '<button class="ring" data-act="road" title="'+G.xp+' XP · roadmap" aria-label="'+TX('Livello ','Level ')+lv+'"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="'+R+'" fill="rgba(20,18,22,.55)" stroke="rgba(255,255,255,.25)" stroke-width="4"/><circle cx="24" cy="24" r="'+R+'" fill="none" stroke="#F2EDE6" stroke-width="4" stroke-linecap="round" stroke-dasharray="'+(C*pc).toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 24 24)"/></svg><b>'+lv+'</b><small>'+TX('LIV','LV')+'</small></button>'; }
 const RICO={cr:'<svg viewBox="0 0 24 24" fill="none" stroke="#F2B640" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 5H17.5L6.5 19H17.5"/><path d="M4 10.3H15.5M4 13.7H15.5" stroke-width="2"/></svg>',sci:'<svg viewBox="0 0 24 24"><path d="M12 3l8 9-8 9-8-9z" fill="#8FD3FF"/><path d="M12 3v18M4 12h16" stroke="#3E8FC9" stroke-width="1.6"/></svg>',stf:'<svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4" fill="#E58BE0"/><path d="M4 21c0-5 3.5-8 8-8s8 3 8 8z" fill="#E58BE0"/></svg>'};
-function hudObjective(M){ if(!M) return TX('Crea una missione con +','Create a mission with +'); let h=I18N.tr(hint(M)||''); h=h.replace(/^(Fase|Phase) [0-9A-F]+(, (passo|step) \d)?:\s*/i,''); return h.charAt(0).toUpperCase()+h.slice(1); }
+function hudObjective(M){ if(!M) return TX('Crea una missione con +','Create a mission with +'); let h=I18N.tr(hint(M)||''); h=h.replace(/^(Pre-)?(Fase|Phase) [0-9A-F]+(, (passo|step) \d)?:\s*/i,''); return h.charAt(0).toUpperCase()+h.slice(1); }
 function hudFlagEl(){ return ''; }
 
 /* volto degli stakeholder al tavolo, coerente con il loro aspetto nella sala riunioni */
@@ -6343,7 +6359,7 @@ const ZORTY=(()=>{
     tele:()=>[A('Telemetria','Telemetry'),A('I dati che il satellite ci rimanda a casa: batteria, temperature, posizione, stato dei sistemi. È il suo modo di dirci "sto bene" o "ho un problema".','The data the satellite sends back home: battery, temperatures, position, system health. It\'s the satellite\'s way of saying "I\'m fine" or "I\'ve got a problem".')],
     ride:()=>[A('Rideshare','Rideshare'),A('Dividere il razzo con altri satelliti: costa molto meno che prenotarne uno tutto per te, ma parti quando e dove parte il gruppo.','Sharing the rocket with other satellites: much cheaper than booking one just for you, but you go when and where the group goes.')],
     pad:()=>[A('Lanciatore','Launcher'),A('Il razzo che ci porta su. All\'inizio paghi un ente esterno; più avanti puoi costruirti una rampa tua e lanciare quando vuoi.','The rocket that takes us up. At first you pay an outside provider; later you can build your own pad and launch when you like.')],
-    phase:()=>[A('Le fasi (0, A, B… F)','The phases (0, A, B… F)'),A('Ogni missione spaziale si fa a tappe. 0 e A: capire cosa serve. B: progettare. C: congelare il progetto. D: costruire e provare. E: lanciare. F: far lavorare il satellite e chiudere bene.','Every space mission is done in steps. 0 and A: work out what\'s needed. B: design it. C: freeze the design. D: build and test. E: launch. F: operate it and wrap up properly.')],
+    phase:()=>[A('Le fasi NASA (pre-A, A, B… F)','The NASA phases (Pre-A, A, B… F)'),A('Ogni missione NASA si fa a tappe. Pre-fase A: studi di concetto. A: concetto e sviluppo tecnologico. B: progetto preliminare. C: progetto finale e fabbricazione. D: assemblaggio, integrazione, prove e lancio. E: operazioni. F: chiusura.','Every NASA mission is done in steps. Pre-Phase A: Concept Studies. A: Concept & Technology Development. B: Preliminary Design & Technology Completion. C: Final Design & Fabrication. D: System Assembly, Integration & Test, Launch & Checkout. E: Operations & Sustainment. F: Closeout.')],
     xp:()=>[A('Livello e punti scienza','Level and science points'),A('Ogni missione ti dà esperienza: salendo di livello sblocchi edifici, macchinari e tecnologie nuove. I punti scienza sono il tuo punteggio in classifica.','Every mission gives you experience: levelling up unlocks new buildings, machines and technologies. Science points are your score in the ranking.')],
     safe:()=>[A('Safe mode','Safe mode'),A('È la modalità di sicurezza che il satellite attiva DA SOLO quando qualcosa non va: spegne il superfluo, si orienta verso il Sole e aspetta istruzioni. Non la scegli tu: quando scatta, il gioco si ferma e ti chiede cosa fare.','It\'s the protective mode the satellite switches on BY ITSELF when something goes wrong: it shuts down the non-essentials, points at the Sun and waits for instructions. You don\'t choose it: when it kicks in, the game pauses and asks you what to do.')],
     cr:()=>[A('Crediti','Credits'),A('I soldi della tua agenzia. Li spendi per pezzi, prove e lanci, e li guadagni portando a termine le fasi e le missioni.','Your agency\'s money. You spend it on parts, tests and launches, and earn it by finishing phases and missions.')]
@@ -6355,8 +6371,9 @@ const ZORTY=(()=>{
   function tick(){ const M=cur(); if(!M) return; const p=M.phase, k=M.id||M.name, was=lastPhase[k]; if(was!=null&&was!==p&&p!=='0') celeb=Date.now()+60000; lastPhase[k]=p; }
   function scene(){ const M=cur(), ph=M?M.phase:null, st=M?M.stage:null, B=BN(), v=view; const o={M,ph,st,key:v,where:'',see:[],now:[],terms:[],pose:'benvenuto'};
     const hint0=M?I18N.tr(hint(M)||''):'';
-    const hintTxt=hint0?hint0.replace(/^(Fase|Phase) [0-9A-F]+(, (passo|step) \d)?:\s*/i,''):'';
-    const phaseWord={'0':A('Fase 0 · capire perché andiamo nello spazio e con chi','Phase 0 · working out why we\'re going to space and with whom'),A:A('Fase A · mettere nero su bianco cosa deve fare il satellite','Phase A · writing down what the satellite must do'),B:A('Fase B · progettare missione e satellite','Phase B · designing the mission and the satellite'),C:A('Fase C · progetto congelato: ultimi ritocchi e acquisto dei pezzi','Phase C · design frozen: last touches and buying the parts'),D:A('Fase D · costruire in camera bianca e fare le prove','Phase D · building in the clean room and running the tests'),E:A('Fase E · lancio e prime operazioni','Phase E · launch and first operations'),F:A('Fase F · il satellite lavora, poi si chiude la missione','Phase F · the satellite works, then the mission wraps up'),done:A('Missione completata','Mission complete')};
+    const hintTxt=hint0?hint0.replace(/^(Pre-)?(Fase|Phase) [0-9A-F]+(, (passo|step) \d)?:\s*/i,''):'';
+    /* nomi delle fasi secondo il ciclo di vita NASA (NPR 7120.5) */
+    const phaseWord={'0':A('Pre-fase A · studi di concetto: perché andiamo nello spazio e con chi','Pre-Phase A · Concept Studies: why we\'re going to space and with whom'),A:A('Fase A · concetto e sviluppo tecnologico: cosa deve fare il satellite','Phase A · Concept & Technology Development: what the satellite must do'),B:A('Fase B · progetto preliminare: missione e satellite','Phase B · Preliminary Design & Technology Completion: mission and satellite'),C:A('Fase C · progetto finale e fabbricazione: progetto congelato e acquisto dei pezzi','Phase C · Final Design & Fabrication: design frozen, parts bought'),D:A('Fase D · assemblaggio, integrazione, prove e lancio','Phase D · System Assembly, Integration & Test, Launch & Checkout'),E:A('Fase E · operazioni: il satellite lavora in orbita','Phase E · Operations & Sustainment: the satellite at work in orbit'),F:A('Fase F · chiusura della missione','Phase F · Closeout: the mission wraps up'),done:A('Missione completata','Mission complete')};
     const nowHint=()=>{ if(hintTxt) o.now.unshift(A('Il suggerimento del gioco: ','The game\'s hint: ')+hintTxt); };
     if(!M&&v!=='hub'&&v!=='fac'){ o.where=A('Non hai ancora una missione attiva.','You don\'t have an active mission yet.'); }
     switch(v){
@@ -6365,7 +6382,7 @@ const ZORTY=(()=>{
       else { o.pose=ph==='done'?'festa':'suggerisce'; o.where=(phaseWord[ph]||'')+(M.name?' ('+M.name+')':''); o.see=[A('Gli edifici del campus: ognuno serve in una fase diversa. Il punto esclamativo giallo indica dove devi andare adesso.','The campus buildings: each one is used in a different phase. The yellow exclamation mark shows where to go now.'),A('In alto a sinistra la missione in corso, a destra i tuoi punti, il personale e i crediti.','Top left is your current mission; top right your points, staff and credits.')]; const np=nextPlace(M); if(np&&B[np]) o.now.push(A('Prossima tappa: ','Next stop: ')+B[np]+'.'); nowHint(); o.terms=['phase','xp','cr']; if(riskInfo(M).hi) o.terms.unshift('risk'); }
       break;
     case 'admin':
-      o.pose='manager'; o.where=ph==='0'?(st==='meeting'?A('Sala riunioni: gli stakeholder sono seduti al tavolo e ti fanno le loro richieste.','Meeting room: the stakeholders are sitting at the table and making their requests.'):A('Edificio amministrativo, Fase 0: scegli chi coinvolgere nella missione.','Administration building, Phase 0: choose who to involve in the mission.')):(phaseWord[ph]||A('Edificio amministrativo','Administration building'));
+      o.pose='manager'; o.where=ph==='0'?(st==='meeting'?A('Sala riunioni: gli stakeholder sono seduti al tavolo e ti fanno le loro richieste.','Meeting room: the stakeholders are sitting at the table and making their requests.'):A('Edificio amministrativo, Pre-fase A: scegli chi coinvolgere nella missione.','Administration building, Pre-Phase A: choose who to involve in the mission.')):(phaseWord[ph]||A('Edificio amministrativo','Administration building'));
       o.see=st==='meeting'||ph==='A'?[A('Le persone intorno al tavolo sono gli stakeholder; chi parla ha il fumetto sopra la testa.','The people around the table are the stakeholders; whoever\'s speaking has the bubble above their head.'),A('Nella scheda in basso vedi cosa chiedono e quanto costerebbe dire di sì (crediti e chili).','The card at the bottom shows what they ask and what saying yes would cost (credits and kilos).'),A('Lo schermo alle spalle elenca i requisiti che hai già accettato.','The screen behind them lists the requirements you\'ve already accepted.')]:[A('Le carte delle agenzie: ognuna porta i suoi soldi e le sue richieste.','The agency cards: each brings its own money and its own requests.'),A('Gli sponsor in grigio si sbloccano salendo di livello.','The greyed-out sponsors unlock as you level up.')];
       o.now=st==='meeting'||ph==='A'?[A('Per ogni richiesta scegli: Accetta, Controproposta o Rifiuta. Guarda la barra di gradimento: un no pesa, soprattutto se è la richiesta principale.','For each request pick: Accept, Counter-proposal or Refuse. Watch the happiness bar: a no hurts, especially on their main request.'),A('Meno requisiti accetti, più facile sarà costruire il satellite.','The fewer requirements you accept, the easier the satellite will be to build.')]:[A('Tocca le carte degli stakeholder che vuoi al tavolo, poi "Convoca la riunione".','Tap the stakeholder cards you want at the table, then "Call the meeting".')]; nowHint(); o.terms=['stake','req','counter','phase']; break;
     case 'fd':
