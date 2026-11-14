@@ -18,16 +18,18 @@ The zip contains:
 
 ```text
 dist/          static 2D game (index.html + hashed assets/ + audio + .br/.gz)
-server.mjs     minimal static server, Node built-ins only
-package.json   runtime manifest, no dependencies
+server.mjs     minimal static server and account API
+package.json   runtime manifest plus lockfile and production dependencies
 ```
 
 The build minifies the split game scripts into one content-hashed
 `assets/game-<hash>.js` and precompresses text assets. `server.mjs` serves the `.br`/`.gz`
 version, sets `ETag`/`Last-Modified`/`Content-Length` and answers `304` on revalidation.
 
-App Service runs `node server.mjs`. There is no API process, no database and no build step on
-the server.
+App Service runs `node server.mjs`, serving assets and account APIs. PostgreSQL runs separately.
+Apply the migration before deploying and configure account environment settings as described in
+[Account e database](./authentication.md). The package also contains `backend/`, `db/`,
+`scripts/migrate.mjs` and production `node_modules/`; there is no server-side build step.
 
 ## One-time setup
 
