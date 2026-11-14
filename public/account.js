@@ -1,6 +1,6 @@
-// Entry flow: splash -> account -> game. Session tokens remain in HttpOnly cookies.
+// Account gate: the game's own title screen is the home page. The account form opens over it when the
+// player tries to enter the game (Continue / New game). Session tokens remain in HttpOnly cookies.
 const root = document.querySelector('#account-entry');
-const splash = root.querySelector('#entry-splash');
 const panel = root.querySelector('#entry-panel');
 const artwork = root.querySelector('#entry-art');
 artwork.innerHTML = window.gngEntryArtwork?.() || '';
@@ -8,8 +8,9 @@ const form = root.querySelector('#account-form');
 const message = root.querySelector('#account-message');
 const submit = root.querySelector('#account-submit');
 const toggle = root.querySelector('#account-toggle');
+const back = root.querySelector('#account-back');
 const password = form.elements.password;
-let register = true, busy = false, advanced = false, sessionUser = null;
+let register = true, busy = false, sessionUser = null, waiting = null;
 let sessionError = '';
 const en = (() => { try { return localStorage.getItem('gngLang') === 'en'; } catch { return false; } })();
 const t = (it, eng) => en ? eng : it;
@@ -47,32 +48,37 @@ document.body.append(accountButton, dialog);
 function enter(user) {
   if (!user?.username) throw new Error(t('Sessione non valida. Accedi di nuovo.', 'Invalid session. Please sign in again.'));
   sessionUser = user;
+  window.gngUser = { username: user.username };
   form.reset();
-  root.remove();
-  document.body.classList.remove('auth-pending');
+  root.hidden = true;
   accountButton.textContent = `Account: ${user.username}`;
   accountButton.hidden = false;
   dialog.querySelector('#session-user').textContent = user.username;
-  window.dispatchEvent(new CustomEvent('gng-authenticated', { detail: { username: user.username } }));
-  document.querySelector('#view')?.focus();
+  const done = waiting; waiting = null;
+  done?.(window.gngUser);
 }
-const sessionReady = request('me').then(({user}) => { sessionUser = user; }).catch(error => { sessionError = error.message; });
-async function advance() {
-  if (advanced) return;
-  advanced = true;
-  splash.disabled = true;
-  root.classList.add('entry-checking');
+const sessionReady = request('me').then(({user}) => { if (user?.username) enter(user); }).catch(error => { sessionError = error.message; });
+function cancel() {
+  if (busy || root.hidden) return;
+  root.hidden = true;
+  const done = waiting; waiting = null;
+  done?.(null);
+}
+// The game calls this before letting the player in. It resolves with the user, or null if the form is dismissed.
+window.gngRequireAccount = async () => {
   await sessionReady;
-  if (sessionUser) { enter(sessionUser); return; }
-  splash.hidden = true;
-  panel.hidden = false;
-  root.classList.remove('entry-checking');
-  root.classList.add('entry-login');
-  mode();
-  // Do not summon a phone keyboard before the visitor chooses a field.
-  root.querySelector('#account-heading').focus();
-}
-splash.addEventListener('click', advance);
+  if (sessionUser) return window.gngUser;
+  waiting?.(null);
+  return new Promise(resolve => {
+    waiting = resolve;
+    root.hidden = false;
+    mode();
+    // Do not summon a phone keyboard before the visitor chooses a field.
+    root.querySelector('#account-heading').focus();
+  });
+};
+back.addEventListener('click', cancel);
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && !root.hidden) cancel(); });
 toggle.addEventListener('click', () => { if (busy) return; register = !register; sessionError = ''; mode(); });
 root.querySelector('#password-show').addEventListener('click', event => {
   const shown = password.type === 'password'; password.type = shown ? 'text' : 'password';

@@ -6821,10 +6821,15 @@ const HEXI={home:'<path d="M5 12L12 6l7 6"/><path d="M7 11v8h10v-8"/><path d="M1
 const hexB=(act,t,ic,on,extra)=>'<button class="hx6'+(on?' on':'')+'" data-act="'+act+'" title="'+t+'" aria-label="'+t+'"'+(extra||'')+'>'+ICO(({x:'close',build:'home'})[ic]||ic)+'</button>';
 /* ---------- schermate iniziali ---------- */
 let TTL={s:'main',mode:'career',diff:'normale',crew:'giulia',from:'title'};
+<<<<<<< HEAD
 /* il tutorial si fa una volta per giocatore: il segno resta anche se si cancella la partita (la chiave non comincia con "gng") */
 const TUTK='goNoGo.tutorialSeen', tutSeen=()=>{ try{ return localStorage.getItem(TUTK)==='1'; }catch(e){ return false; } }, tutMark=()=>{ try{ localStorage.setItem(TUTK,'1'); }catch(e){} };
 /* prima missione di un giocatore nuovo (anche dopo il login, che salta il menu): prima si fa il tutorial, poi riparte la stessa modalità da zero */
 function tutFirst(){ if(!G||G.tut) return false; if(tutSeen()) return false; if(G.missions.length||G.xp>0&&!G.sandbox){ tutMark(); return false; } const keep={co:G.co,av:G.avatar,mu:G.music,bg:G.big,m:G.sandbox?'sand':'career',diff:G.diff||'normale'}; G=newG(); G.co=keep.co; G.avatar=keep.av; G.crew=[keep.av||'giulia']; G.music=keep.mu; G.big=keep.bg; G.after={m:keep.m,diff:keep.diff}; closeOv(); sfx.ok(); startTutorial(); save(); return true; }
+=======
+/* L'account serve per entrare nel gioco (CONTINUA / NEW GAME). Il menu iniziale resta la homepage; il modulo account si apre sopra. */
+function gate(next){ if(window.gngUser) return true; if(window.gngRequireAccount) window.gngRequireAccount().then(u=>{ if(u) next(); }); return false; }
+>>>>>>> origin/dev
 function hasSave(){ return !!(G&&(G.tut||G.tutDone&&(G.missions.length||G.xp>0||G.co))); }
 const MODES=[
   {k:'career',n:'Career',s:'Run your agency from one CubeSat to the stars. Level up to unlock new worlds.',ic:'<path d="M12 2c3 3 4 7 3 11l-3 3-3-3c-1-4 0-8 3-11z"/><path d="M9 13l-3 2 1 4 3-2M15 13l3 2-1 4-3-2M12 16v5"/>'},
@@ -6876,9 +6881,9 @@ function setupMode(m,dd){ G.tutDone=true; delete G.after;
   else { WDIFF=dd||'normale'; G.diff=WDIFF; G.money=Math.round(L.START_MONEY*dif().money); applyStartPerks(); } }
 function applyStartPerks(){ const c=crewOf(G.avatar); if(c.k==='money') G.money+=c.v; if(c.k==='staff') G.staff+=c.v; }
 Object.assign(ACT,{
-  ttl(t){ TTL.del=false; if(t.dataset.s==='modes2') TTL.s='modes'; openTitle(t.dataset.s==='modes2'?'modes':t.dataset.s, TTL.from); sfx.tap(); },
+  ttl(t){ if(t.dataset.s==='modes'&&!gate(()=>ACT.ttl(t))) return; TTL.del=false; if(t.dataset.s==='modes2') TTL.s='modes'; openTitle(t.dataset.s==='modes2'?'modes':t.dataset.s, TTL.from); sfx.tap(); },
   tback(){ sfx.tap(); TTL.del=false; if(TTL.s==='crew') return openTitle('modes',TTL.from); openTitle(TTL.from==='game'?'pause':'main',TTL.from); },
-  tresume(){ sfx.ok(); closeTitle(); render(); },
+  tresume(){ if(TTL.from!=='game'&&!gate(()=>ACT.tresume())) return; sfx.ok(); closeTitle(); render(); },
   ttut(){ TTL.mode='tut'; TTL.crew=G.avatar||TTL.crew; openTitle('crew',TTL.from); sfx.tap(); },
   tmode(t){ TTL.mode=t.dataset.k; sfx.tap(); drawTitle(); },
   tdiff(t){ TTL.diff=t.dataset.k; TTL.mode='career'; sfx.tap(); drawTitle(); },
@@ -7123,11 +7128,6 @@ function uxObs(){ const q=id=>document.getElementById(id); const sync=()=>{ cons
   if(!q('zpanel')) setTimeout(uxObs,800); }
 // Share the game's own artwork with the entry screen, including in the IIFE build.
 window.gngEntryArtwork = () => artSVG('title');
-window.addEventListener('gng-authenticated', event => {
-  start();
-  if (!G.co) { G.co = event.detail.username; G.tutDone = true; save(); }
-  closeTitle();
-  render();
-}, { once: true });
+start();
 setTimeout(uxObs,300);
 })();
