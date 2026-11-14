@@ -6783,6 +6783,8 @@ const HEXI={home:'<path d="M5 12L12 6l7 6"/><path d="M7 11v8h10v-8"/><path d="M1
 const hexB=(act,t,ic,on,extra)=>'<button class="hx6'+(on?' on':'')+'" data-act="'+act+'" title="'+t+'" aria-label="'+t+'"'+(extra||'')+'>'+ICO(({x:'close',build:'home'})[ic]||ic)+'</button>';
 /* ---------- schermate iniziali ---------- */
 let TTL={s:'main',mode:'career',diff:'normale',crew:'giulia',from:'title'};
+/* L'account serve per entrare nel gioco (CONTINUA / NEW GAME). Il menu iniziale resta la homepage; il modulo account si apre sopra. */
+function gate(next){ if(window.gngUser) return true; if(window.gngRequireAccount) window.gngRequireAccount().then(u=>{ if(u) next(); }); return false; }
 function hasSave(){ return !!(G&&(G.tut||G.tutDone&&(G.missions.length||G.xp>0||G.co))); }
 const MODES=[
   {k:'tut',n:'Tutorial',s:'Learn the basics with one guided mission, about 10 minutes.',ic:'<path d="M12 3l10 5-10 5L2 8z"/><path d="M6 10.5V16c3 2.5 9 2.5 12 0v-5.5"/><path d="M22 8v6"/>'},
@@ -6831,9 +6833,9 @@ function beginGame(){ const m=TTL.mode, co=(($('#tco')&&$('#tco').value)||'Perig
   closeTitle(); view='hub'; sfx.ok(); render(); save(); toast(m==='sand'?TX('Modalità libera: tutto sbloccato. Non conta per la classifica.','Sandbox: everything unlocked. Does not count for the leaderboard.'):TX('Crea la tua prima missione con il tasto + in basso a sinistra.','Create your first mission with the + button bottom left.')); }
 function applyStartPerks(){ const c=crewOf(G.avatar); if(c.k==='money') G.money+=c.v; if(c.k==='staff') G.staff+=c.v; }
 Object.assign(ACT,{
-  ttl(t){ TTL.del=false; if(t.dataset.s==='modes2') TTL.s='modes'; openTitle(t.dataset.s==='modes2'?'modes':t.dataset.s, TTL.from); sfx.tap(); },
+  ttl(t){ if(t.dataset.s==='modes'&&!gate(()=>ACT.ttl(t))) return; TTL.del=false; if(t.dataset.s==='modes2') TTL.s='modes'; openTitle(t.dataset.s==='modes2'?'modes':t.dataset.s, TTL.from); sfx.tap(); },
   tback(){ sfx.tap(); TTL.del=false; if(TTL.s==='crew') return openTitle('modes',TTL.from); openTitle(TTL.from==='game'?'pause':'main',TTL.from); },
-  tresume(){ sfx.ok(); closeTitle(); render(); },
+  tresume(){ if(TTL.from!=='game'&&!gate(()=>ACT.tresume())) return; sfx.ok(); closeTitle(); render(); },
   ttut(){ TTL.mode='tut'; TTL.crew=G.avatar||TTL.crew; openTitle('crew',TTL.from); sfx.tap(); },
   tmode(t){ TTL.mode=t.dataset.k; sfx.tap(); drawTitle(); },
   tdiff(t){ TTL.diff=t.dataset.k; TTL.mode='career'; sfx.tap(); drawTitle(); },
@@ -7078,11 +7080,6 @@ function uxObs(){ const q=id=>document.getElementById(id); const sync=()=>{ cons
   if(!q('zpanel')) setTimeout(uxObs,800); }
 // Share the game's own artwork with the entry screen, including in the IIFE build.
 window.gngEntryArtwork = () => artSVG('title');
-window.addEventListener('gng-authenticated', event => {
-  start();
-  if (!G.co) { G.co = event.detail.username; G.tutDone = true; save(); }
-  closeTitle();
-  render();
-}, { once: true });
+start();
 setTimeout(uxObs,300);
 })();

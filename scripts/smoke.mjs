@@ -65,13 +65,20 @@ try {
   if (!process.env.GNG_USERNAME || !process.env.GNG_PASSWORD) {
     throw new Error('Set GNG_USERNAME and GNG_PASSWORD for an existing test account, or use node scripts/smoke-account.mjs for a temporary database.');
   }
-  await page.click('#entry-splash');
-  await page.waitForSelector('#entry-panel', { timeout: 20_000 });
+  // The game's own title screen is the home page; entering the game requires an account.
+  const newGame = '#title [data-act="ttl"][data-s="modes"]';
+  await page.waitForSelector(newGame, { timeout: 20_000 });
+  await page.click(newGame);
+  await page.waitForSelector('#entry-panel', { state: 'visible', timeout: 20_000 });
   await page.click('#account-toggle');
   await page.fill('[name="username"]', process.env.GNG_USERNAME);
   await page.fill('[name="password"]', process.env.GNG_PASSWORD);
   await page.click('#account-submit');
-  await page.waitForSelector('#account-entry', { state: 'detached', timeout: 20_000 });
+  await page.waitForSelector('#account-entry', { state: 'hidden', timeout: 20_000 });
+  await page.waitForSelector('#title .tmodes', { timeout: 10_000 });
+  await page.click('#title [data-act="tnext"]');
+  await page.click('#title [data-act="tstart"]');
+  await page.waitForSelector('#title', { state: 'detached', timeout: 10_000 });
   await page.waitForSelector("#view:not(:empty)", { timeout: 10_000 });
 
   const hud = await page.locator("#hud").innerText();
