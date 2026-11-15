@@ -61,6 +61,9 @@ const COMPRESSIBLE = new Set([
 
 const MIN_COMPRESS_BYTES = 1024;
 
+// The landing page (public/landing/) answers on the site root; without it "/" stays the game.
+const LANDING = { "/": "/landing/index.html", "/en": "/landing/en.html" };
+
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
@@ -94,6 +97,10 @@ const safeJoin = (root, pathname) => {
 
 const cacheControl = (relative) => {
   if (relative === "/" || relative.endsWith("/index.html") || relative === "/index.html") {
+    return "no-cache";
+  }
+  // The landing pages and their unhashed kit files: always revalidate.
+  if (relative.startsWith("/landing/") && !relative.startsWith("/landing/img/")) {
     return "no-cache";
   }
   // Vite output in /assets/ has a content hash in the file name.
@@ -313,6 +320,18 @@ export const createStaticServer = (options = {}) => {
 
     let target = file;
     let relative = url.pathname;
+    // "/" is the landing page and "/en" its English version; the game is "/play" (the SPA fallback below).
+    // An old link to "/" with a query (?clan=demo, ?q=2 ...) was meant for the game, so it goes to /play.
+    const landing = LANDING[url.pathname];
+    if (landing && (await isFile(resolve(root, `.${landing}`)))) {
+      if (url.pathname === "/" && url.search) {
+        response.writeHead(302, { ...SECURITY_HEADERS, Location: `/play${url.search}`, "Cache-Control": "no-store" });
+        response.end();
+        return;
+      }
+      target = resolve(root, `.${landing}`);
+      relative = landing;
+    }
     if (!(await isFile(target))) {
       // SPA fallback: only for routes without a file extension.
       if (extname(url.pathname) === "") {
