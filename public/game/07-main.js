@@ -1640,6 +1640,7 @@ punti di soddisfazione invece di guadagnarne	satisfaction points instead of gain
 una deroga più avanti	a waiver later
 Qui si costruisce il satellite in fase C e lo si assembla in fase D.	Here the satellite is built in phase C and assembled in phase D.
 Banchi di lavoro	Workbenches
+Scegli il satellite da assemblare su questa postazione.	Choose the satellite to assemble at this station.
 Nessun satellite da costruire. Una missione arriva qui in fase C, dopo la revisione PDR.	No satellite to build. A mission arrives here in phase C, after the PDR review.
 Nessun satellite in assemblaggio. Ci arrivano dopo la CDR, in fase D. Più satelliti possono essere assemblati insieme.	No satellite in assembly. They arrive after the CDR, in phase D. Several satellites can be assembled together.
 costruisci la tua rampa di lancio	build your launch pad
@@ -4967,11 +4968,11 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
   tutskip(){ endTutorial(true); },
   drw(t){ const v=$('#view'), side=t.dataset.k, key=v.dataset.key, on=!v.classList.contains('open'+side); DRW[key+side]=on; v.classList.toggle('open'+side,on); if(on&&(innerWidth<900||innerHeight<=520)){ const o2=side==='L'?'R':'L'; if(v.classList.contains('open'+o2)){ DRW[key+o2]=false; v.classList.remove('open'+o2); $$('.rb[data-k="'+o2+'"]').forEach(b=>b.classList.remove('on')); } } $$('.rb[data-k="'+side+'"]').forEach(b=>b.classList.toggle('on',on)); sfx.tap(); setTimeout(()=>{ dispatchEvent(new Event('resize')); },30); },
   reqlist(){ const M=cur(); if(!M) return; review({eb:'Sala riunioni',name:'Requisiti accettati',code:'—',nasa:'Requirements',body:M.reqs.length?'<ul class="reqs">'+M.reqs.map(x=>'<li><span class="c">'+x.code+'</span><span>'+esc(L.R(x.id).t)+'</span><span></span></li>').join('')+'</ul>':'<p class="fine">Nessun requisito accettato finora.</p>',actions:'<button class="btn primary" data-act="closeov">Chiudi</button>'}); },
-  station(t){ const m=G.missions.find(x=>x.phase==='D'&&x.stage==='assembly'&&!x.asmWait&&x.station===+t.dataset.i); if(!m){ const W=G.missions.filter(x=>x.phase==='D'&&x.stage==='assembly'&&x.asmWait); if(W.length===1){ dropOn({kind:'clean',id:W[0].id},t); return; } if(W.length>1){ PICKST={i:+t.dataset.i}; render(); return; } toast('Postazione libera: qui arriva un satellite dopo la CDR.'); return; } const i=G.missions.indexOf(m); G.cur=i;
+  station(t){ const m=G.missions.find(x=>x.phase==='D'&&x.stage==='assembly'&&!x.asmWait&&x.station===+t.dataset.i); if(!m){ const W=G.missions.filter(x=>x.phase==='D'&&x.stage==='assembly'&&x.asmWait); if(W.length){ PICKST={i:+t.dataset.i}; satPick(TX('Quale satellite assembli su questa postazione?','Which satellite do you assemble at this station?'),W.map(x=>({act:'cleanpick',M:x,sub:esc(E.RIDES[x.sat.ride].n)})),'cleanpickx'); return; } toast('Postazione libera: qui arriva un satellite dopo la CDR.'); return; } const i=G.missions.indexOf(m); G.cur=i;
     if(now()>=m.buildEnd){ ACT.cdr(); return; } const p=Math.min(1,1-(m.buildEnd-now())/(m.buildDur||L.TIME.build)); toast(m.name+': integrazione '+pct(Math.max(0,p))+', mancano '+Math.ceil((m.buildEnd-now())/1000/G.speed)+' s.'); hud(); },
-  cleanpick(t){ const st=PICKST; PICKST=null; if(!st){ render(); return; } dropOn({kind:'clean',id:t.dataset.id},{dataset:{i:st.i}}); },
+  cleanpick(t){ closeOv(); const st=PICKST; PICKST=null; if(!st){ render(); return; } dropOn({kind:'clean',id:t.dataset.id},{dataset:{i:st.i}}); },
   popx(){ const p=$('#pop'); if(p) p.hidden=true; },
-  cleanpickx(){ PICKST=null; render(); },
+  cleanpickx(){ closeOv(); PICKST=null; render(); },
   durm(){ const o=durList(cur()), i=Math.max(0,o.indexOf(LDUR)-1); LDUR=o[i]; render(); }, durp(){ const o=durList(cur()), i=Math.min(o.length-1,o.indexOf(LDUR)+1); LDUR=o[i]; render(); },
   abort(){ if(LBUSY) return; sfx.tap(); go('hub'); },
   road(){ roadModal(); },
@@ -4985,10 +4986,10 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
   plantsel(t){ RSEL={room:t.dataset.r,i:+t.dataset.i}; sfx.tap(); render(); },
   rplantdel(){ if(!RSEL) return; const R=G.rooms[RSEL.room]; R.plants.splice(RSEL.i,1); RSEL=null; sfx.tap(); toast('Pianta rimossa: squadra al '+morale()+'%.'); save(); render(); },
   labadd(){ if(G.lab.length>=LABMAX){ toast('Il laboratorio ha posto per '+LABMAX+' macchinari.'); return; } bayModal(G.lab.length); },
-  mmove(){ if(MSEL==null) return; const k=G.lab[MSEL], M=cur(), r=M&&M.tr&&M.tr[k]; if(r&&r.res==='run'){ toast('Prova in corso: lo sposti quando ha finito.'); return; } G.lab.forEach((_,j)=>{ if(!G.labPos[j]) G.labPos[j]={x:1+j*2,y:9}; }); RPLACE={room:'test',k,moveI:MSEL}; MSEL=null; sfx.tap(); render(); }, mselx(){ MSEL=null; render(); },
+  mmove(){ closeOv(); if(MSEL==null) return; const k=G.lab[MSEL], M=cur(), r=M&&M.tr&&M.tr[k]; if(r&&r.res==='run'){ toast('Prova in corso: lo sposti quando ha finito.'); return; } G.lab.forEach((_,j)=>{ if(!G.labPos[j]) G.labPos[j]={x:1+j*2,y:9}; }); RPLACE={room:'test',k,moveI:MSEL}; MSEL=null; sfx.tap(); render(); }, mselx(){ closeOv(); MSEL=null; render(); },
   /* toccare un macchinario apre il suo menu: lì si sceglie il satellite da provare (labPop) */
-  mach(t){ MSEL=G.lab.indexOf(t.dataset.k); if(MSEL<0) MSEL=null; sfx.tap(); render(); },
-  mtest(t){ const i=G.missions.findIndex(m=>m.id===t.dataset.id); if(i<0) return; G.cur=i; MSEL=null; ACT.runtest({dataset:{k:t.dataset.k}}); },
+  mach(t){ MSEL=G.lab.indexOf(t.dataset.k); if(MSEL<0) MSEL=null; sfx.tap(); if(MSEL!=null) machPick(); else render(); },
+  mtest(t){ closeOv(); const i=G.missions.findIndex(m=>m.id===t.dataset.id); if(i<0) return; G.cur=i; MSEL=null; ACT.runtest({dataset:{k:t.dataset.k}}); },
   openyard(t){ const id=t.dataset.id; const i=G.missions.findIndex(m=>m.id===id); if(i>=0){ G.cur=i; const m=G.missions[i]; if(m.phase==='B'&&m.stage==='orb') m.stage='sat'; } /* dalle orbite in dettaglio si puo' tornare al progetto */ BVIEW='yard'; sfx.tap(); render(); },
   benchfree(){ toast('Banco libero: crea una nuova missione con il tasto + e portala in fase C.'); },
   broom(t){ BROOM=t.dataset.k; BVIEW='room'; sfx.tap(); render(); }, toroom(){ BVIEW='room'; sfx.tap(); render(); },
@@ -5129,12 +5130,17 @@ function labMachines(){ const M=cur(), inLab=M&&M.phase==='D'&&M.stage!=='assemb
 const SF2={teal:'#45A9A3'};
 /* menu del macchinario nel laboratorio prove: si sceglie quale satellite provarci (al posto del magazzino a sinistra), oppure lo si sposta */
 function labCands(k){ return G.missions.filter(m=>m.phase==='D'&&m.stage!=='assembly'&&!m.ready&&!(m.tr&&m.tr[k])&&!Object.keys(m.tr||{}).some(x=>m.tr[x].res==='run')); }
+/* menu a tutto schermo per scegliere il satellite: tavolo della camera bianca e macchine del laboratorio prove */
+function satPick(title,items,closeAct,none,extra){ const el=$('#ov');
+  el.innerHTML='<div class="rv spick" role="dialog" aria-modal="true"><h3>'+TX('Scegli il satellite','Choose the satellite')+'</h3><h2>'+title+'</h2><div class="spgrid">'+(items.length?items.map(o=>'<button class="spc" data-act="'+o.act+'" data-id="'+o.M.id+'"'+(o.k?' data-k="'+o.k+'"':'')+'><span class="spt">'+satThumb(o.M)+'</span><b>'+esc(o.M.name)+'</b><small>'+o.sub+'</small></button>').join(''):'<p class="fine">'+(none||'')+'</p>')+'</div><div class="row">'+(extra||'')+'<button class="btn" data-act="'+closeAct+'">'+TX('Chiudi','Close')+'</button></div></div>';
+  el.hidden=false; }
+function machPick(){ const k=G.lab[MSEL], c=labCands(k); satPick(esc(L.MACH[k].n),c.map(m=>({act:'mtest',k,M:m,sub:TX('Prova','Test')+' · '+testC(m)+' cr'})),'mselx',TX('Nessun satellite da provare qui','No satellite to test here'),'<button class="btn" data-act="mmove">✥ '+TX('Sposta','Move')+'</button>'); }
 function labPop(){ const k=G.lab[MSEL], c=labCands(k);
   return '<div class="cpop mpop"><b>'+esc(L.MACH[k].n)+'</b><div class="row">'+(c.length?c.map(m=>'<button class="btn small primary" data-act="mtest" data-id="'+m.id+'" data-k="'+k+'">'+TX('Prova ','Test ')+esc(m.name)+' · '+testC(m)+' cr</button>').join(''):'<span class="mnone">'+TX('Nessun satellite da provare qui','No satellite to test here')+'</span>')+'<button class="btn small" data-act="mmove">✥ Sposta</button><button class="btn small" data-act="mselx">Chiudi</button></div><span class="fine">Puoi cambiare la disposizione del laboratorio quando vuoi.</span></div>'; }
 function roomSt(room,extra){ G.rooms=G.rooms||{}; const R=G.rooms[room]||(G.rooms[room]={plants:[]}); return Object.assign({plants:R.plants,sel:RSEL&&RSEL.room===room?RSEL.i:null,machines:room==='test'?labMachines():[],moveI:(RPLACE&&RPLACE.room===room&&RPLACE.moveI!=null)?RPLACE.moveI:null},extra||{}); }
 function roomBox(room,extra,ovl){ const pl=(G.rooms[room]||{plants:[]}).plants.length, pk=RPLACE&&RPLACE.room===room;
   const tools='<div class="ctools">'+(IR3.can()?'<button data-act="rrot" title="Ruota la stanza" aria-label="Ruota la stanza">⟳</button>':'')+(room==='clean'||room==='test'?'':'<button data-act="rplant" data-r="'+room+'" title="Le piante rendono più felici i dipendenti">🪴<span class="tl"> Pianta · '+keur(PLANTC)+'</span></button>')+(pk?'<button class="on" data-act="resc">Annulla</button>':'')+'</div>';
-  const pop=room==='clean'&&PICKST&&!pk?'<div class="cpop"><b>'+TX('Quale satellite assembli qui?','Which satellite do you assemble here?')+'</b><div class="row">'+G.missions.filter(x=>x.phase==='D'&&x.stage==='assembly'&&x.asmWait).map(x=>'<button class="btn small primary" data-act="cleanpick" data-id="'+x.id+'">'+esc(x.name)+'</button>').join('')+'<button class="btn small" data-act="cleanpickx">'+TX('Chiudi','Close')+'</button></div></div>':room==='test'&&MSEL!=null&&!pk&&G.lab[MSEL]?labPop():RSEL&&RSEL.room===room&&!pk?'<div class="cpop"><b>Pianta da interno</b><div class="row"><button class="btn small" data-act="rplantdel">Rimuovi</button><button class="btn small" data-act="rselx">Chiudi</button></div><span class="fine">'+plantsN()+' piante in tutto · squadra felice al '+morale()+'%</span></div>':'';
+  const ovOff=$('#ov').hidden, pop=room==='clean'&&PICKST&&!pk&&ovOff?'<div class="cpop"><b>'+TX('Quale satellite assembli qui?','Which satellite do you assemble here?')+'</b><div class="row">'+G.missions.filter(x=>x.phase==='D'&&x.stage==='assembly'&&x.asmWait).map(x=>'<button class="btn small primary" data-act="cleanpick" data-id="'+x.id+'">'+esc(x.name)+'</button>').join('')+'<button class="btn small" data-act="cleanpickx">'+TX('Chiudi','Close')+'</button></div></div>':room==='test'&&MSEL!=null&&!pk&&ovOff&&G.lab[MSEL]?labPop():RSEL&&RSEL.room===room&&!pk?'<div class="cpop"><b>Pianta da interno</b><div class="row"><button class="btn small" data-act="rplantdel">Rimuovi</button><button class="btn small" data-act="rselx">Chiudi</button></div><span class="fine">'+plantsN()+' piante in tutto · squadra felice al '+morale()+'%</span></div>':'';
   const hint=false?'<div class="chint" id="rhint">'+(RPLACE.k==='plant'?'Tocca un punto libero per mettere la pianta.':(RPLACE.moveI!=null?'Tocca il nuovo posto per: ':'Tocca un punto libero per posizionare: ')+L.MACH[RPLACE.k].n.toLowerCase()+'.')+' Esc per annullare.</div>':'';
   const st0=roomSt(room,extra), use3=IR3.can(); if(use3){ IR3.pending={room,st:st0}; queueMicrotask(IR3.sync); }
   return '<section class="room3 fsc'+(use3?' r3full':'')+'" style="--ar:1000/620">'+(use3?'<div id="roomsvg" class="r3host'+(pk?' placing':'')+'" data-3d="1" data-room="'+room+'" role="img" aria-label="Interno dell’edificio"></div>':'<svg id="roomsvg" data-room="'+room+'" class="'+(pk?'placing':'')+'" viewBox="'+IR.view+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Interno dell’edificio">'+(()=>{ IR.setWalkers(wkScene(room,st0)); return IR[room](st0); })()+'<g id="rghost"></g></svg>')+tools+pop+hint+(ovl||'')+'</section>'; }
@@ -5246,6 +5252,7 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
     if(BVIEW!=='yard') return S('#roomsvg [data-act="openyard"]','Tocca il banco di '+M.name+'.',6);
     return S('[data-act="pdr"]','Fase C: progetto congelato. Con la revisione CDR compri i pezzi.',6); }
   if(ph==='D'&&st==='assembly'){ if(!here('build')) return go2('build','Fase D: entra nell’edificio di costruzione, in camera bianca.',6);
+    if(M.asmWait&&$('#ov:not([hidden]) [data-act="cleanpick"]')) return S('#ov [data-act="cleanpick"]','Scegli il satellite da assemblare su questa postazione.',6);
     if(M.asmWait) return $('.dsat')?S('#roomsvg','Tocca una postazione libera: lì i tecnici assemblano il satellite.',6):S('[data-act="broom"][data-k="clean"]','Apri la camera bianca.',6);
     return now()>=M.buildEnd?S('[data-act="station"][data-i="0"]','Assemblaggio finito. Tocca il satellite sulla postazione per portarlo al laboratorio prove.',7):S(null,'I tecnici stanno assemblando il satellite in camera bianca, pezzo dopo pezzo. Aspetta qualche secondo.',6); }
   if(ph==='D'&&M.ready){ if(here('launch')||here('pad')||(here('admin')&&$('#lsvg'))) return LBUSY?S(null,'Conto alla rovescia… decollo!',8):S('[data-act="xlaunch"]','Il razzo è pronto sulla rampa e il servizio è già pagato. Premi LAUNCH!',8); return go2(M.sat.lv==='HOME'?'pad':'admin','Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio',8); }
@@ -6358,7 +6365,7 @@ const IR3=(()=>{
   const SCRM={}; function scrMat(map,k){ return SCRM[k]||(SCRM[k]=new THREE.MeshBasicMaterial({map})); }
   const CELLM={}; function cellMat(c,r){ const k=c+'x'+r; return CELLM[k]||(CELLM[k]=new THREE.MeshStandardMaterial({map:cellTex(c,r),roughness:.35,metalness:.3})); }
   /* ombre morbide pre-calcolate sul pavimento: le impronte degli arredi, sfocate una volta sola */
-  function aoTex(){ const S=48; return ctex(RW*S,RD*S,(g,w,h)=>{ g.clearRect(0,0,w,h); FP.forEach(f=>{ g.save(); g.shadowColor='rgba(46,36,28,'+Math.min(.7,f[4]*1.6)+')'; g.shadowBlur=26; g.shadowOffsetX=20000; g.fillStyle='#000'; g.fillRect(f[0]*S-20000-3,f[1]*S-3,(f[2]-f[0])*S+6,(f[3]-f[1])*S+6); g.restore(); }); }); }
+  function aoTex(){ const S=48; return ctex(RW*S,RD*S,(g,w,h)=>{ g.clearRect(0,0,w,h); FP.forEach(f=>{ if(f.w) return; g.save(); g.shadowColor='rgba(46,36,28,'+Math.min(.7,f[4]*1.6)+')'; g.shadowBlur=26; g.shadowOffsetX=20000; g.fillStyle='#000'; g.fillRect(f[0]*S-20000-3,f[1]*S-3,(f[2]-f[0])*S+6,(f[3]-f[1])*S+6); g.restore(); }); }); }
   let BLOB=null; function blobTex(){ return BLOB||(BLOB=ctex(64,64,(g)=>{ const r=g.createRadialGradient(32,32,2,32,32,30); r.addColorStop(0,'rgba(40,30,24,.5)'); r.addColorStop(1,'rgba(40,30,24,0)'); g.fillStyle=r; g.fillRect(0,0,64,64); })); }
   let BLOBM=null; const blobMat=()=>BLOBM||(BLOBM=new THREE.MeshBasicMaterial({map:blobTex(),transparent:true,depthWrite:false}));
 
@@ -6507,23 +6514,46 @@ const IR3=(()=>{
   /* contorni e unione dei pezzi fatti parete per parete, cosi' ogni parete resta un blocco a se' che si puo' nascondere */
   function wallsPrep(){ if(!WG) return; Object.values(WG).forEach(g=>{ g.userData.dyn=false; TOON.outlineStatic(g,{minDim:.05}); mergeStatic(g); g.userData.dyn=true; }); }
   /* nasconde le pareti tra la camera e la stanza: conta solo la direzione da cui si guarda, non lo spostamento della vista */
+  /* le pareti (e gli scaffali alti appoggiati) non spariscono di colpo: sfumano in circa 0,2 s */
+  let WA=null, WT=null;
   function wallsFor(){ if(!WG) return; const s=Math.sin(CAM.yaw), c=Math.cos(CAM.yaw), e=.02, was=WG.y0.visible+''+WG.x0.visible+WG.y1.visible+WG.x1.visible;
-    WG.y1.visible=!(c>e); WG.y0.visible=!(c<-e); WG.x1.visible=!(s>e); WG.x0.visible=!(s<-e);
+    WT={y1:!(c>e),y0:!(c<-e),x1:!(s>e),x0:!(s<-e)}; if(!WA){ WA={}; Object.keys(WT).forEach(k=>{ WA[k]=WT[k]?1:0; wallAlpha(k,WA[k]); }); }
     /* le ombre sono calcolate una volta sola: si rifanno solo quando una parete compare o sparisce, cosi' una parete nascosta non lascia la sua ombra */
     if(R&&was!==WG.y0.visible+''+WG.x0.visible+WG.y1.visible+WG.x1.visible) R.shadowMap.needsUpdate=true; }
+  function wallAlpha(k,a){ const g=WG[k]; g.visible=a>.01; g.traverse(o=>{ if(!o.isMesh) return; if(o.userData.ol||o.material===TOON.mat){ o.visible=a>.99; return; } const m=o.material; if(!m||Array.isArray(m)) return; if(!o.userData.wm){ o.material=m.clone(); o.userData.wm=1; } const q=o.material; q.transparent=a<.99; q.opacity=a; q.depthWrite=a>=.99; }); }
+  function wallFade(dt){ if(!WG||!WA||!WT) return false; let act=false, sh=false; Object.keys(WT).forEach(k=>{ const tg=WT[k]?1:0; if(WA[k]===tg) return; const v0=WA[k]>.01; WA[k]=tg>WA[k]?Math.min(1,WA[k]+dt/.2):Math.max(0,WA[k]-dt/.2); wallAlpha(k,WA[k]); if(v0!==WA[k]>.01) sh=true; act=true; }); if(sh&&R) R.shadowMap.needsUpdate=true; return act; }
   /* pareti: 'y' = fondo (y=0), 'x' = sinistra (x=0), 'y1' = davanti (y=RD), 'x1' = destra (x=RW); a..b e' il tratto lungo la parete, depth quanto sporge verso l'interno */
   const WK={y:'y0',x:'x0',y1:'y1',x1:'x1'};
-  function onWall(wall,a,b,z0,z1,c,o,depth){ o=Object.assign({cs:false},o||{}); const d=depth||.05; let m; inGrp(WG[WK[wall]],()=>{ m=wall==='y'?bx(a,.0,b,d,z0,z1,c,o):wall==='x'?bx(.0,a,d,b,z0,z1,c,o):wall==='y1'?bx(a,RD-d,b,RD,z0,z1,c,o):bx(RW-d,a,RW,b,z0,z1,c,o); }); return m; }
+  /* oggetti "da illuminare" (banchi, postazioni, macchine, schermi): restano fuori dall'unione dei pezzi, cosi' l'alone arancione segue la loro sagoma
+     come nel campus, al posto del riquadro sopra il tasto. Si accende quando il tutorial lo indica, sul suggerimento e al passaggio del mouse. */
+  let GK={}, GLW={}, WSUB=null, GLM2=null; const wgOf=wall=>WSUB&&WSUB.w===WK[wall]?WSUB.g:WG[WK[wall]];
+  function gkG(key,fn){ const g=new THREE.Group(); g.userData.dyn=true; PAR.add(g); GK[key]=g; inGrp(g,fn); return g; }
+  function gkW(wall,key,fn){ const g=new THREE.Group(); g.userData.dyn=true; g.userData.rects=[]; WG[WK[wall]].add(g); GK[key]=g; const k=WSUB; WSUB={w:WK[wall],g}; fn(); WSUB=k; return g; }
+  /* schermi a parete: oltre al guscio, una cornice arancione pulsante appena fuori dal bordo di ogni schermo */
+  let GLP=null; const glowPlane=()=>GLP||(GLP=new THREE.MeshBasicMaterial({color:'#EB7D44',transparent:true,opacity:.9,depthWrite:false,toneMapped:false}));
+  function glowMat2(){ if(GLM2) return GLM2; const m=TOON.mat; GLM2=new THREE.ShaderMaterial({uniforms:Object.assign({},m.uniforms,{uG:{value:4},uA:{value:.8},uC:{value:new THREE.Color('#EB7D44')}}),side:THREE.BackSide,transparent:true,depthWrite:false,fog:true,toneMapped:false,
+      vertexShader:m.vertexShader.replace('uniform float uW;','uniform float uW; uniform float uG;').replace('uW*k','uW*uG*k'),fragmentShader:'#include <fog_pars_fragment>\nuniform vec3 uC; uniform float uA;\nvoid main(){ gl_FragColor=vec4(uC,uA);\n#include <fog_fragment>\n}'}); return GLM2; }
+  const GLSK2={PlaneGeometry:1,CircleGeometry:1,RingGeometry:1,ShapeGeometry:1};
+  function glowOn2(id){ const g=GK[id]; if(!g||GLW[id]) return; const src=[], out=[]; g.traverse(o=>{ if(o.isMesh&&!o.isInstancedMesh&&!o.userData.ol&&o.material!==TOON.mat&&o.geometry&&o.geometry.attributes.position&&!GLSK2[o.geometry.type]) src.push(o); });
+    src.forEach(o=>{ TOON.onrm(o.geometry); const h=new THREE.Mesh(o.geometry,glowMat2()); h.userData.ol=1; h.castShadow=h.receiveShadow=false; h.raycast=()=>{}; h.renderOrder=-1; o.add(h); out.push(h); });
+    (g.userData.rects||[]).forEach(r=>{ const m=new THREE.Mesh(PLN,glowPlane()); m.scale.set(r[2]-r[1]+.24,r[4]-r[3]+.24,1); m.userData.ol=1; m.raycast=()=>{}; onWallPlane(r[0],m,r[1]-.12,r[2]+.12,r[3]-.12,r[4]+.12,.066); out.push(m); }); GLW[id]=out; }
+  function glowOff2(id){ (GLW[id]||[]).forEach(h=>{ if(h.parent) h.parent.remove(h); }); delete GLW[id]; }
+  function glowRoom(t){ const want={}; hotEls.forEach(el=>{ const k=el.dataset&&el.dataset.gk; if(k&&!el.hidden&&(el.classList.contains('coach-hl')||el.dataset.hint||el.matches(':hover'))) want[k]=1; });
+    let ch=false; Object.keys(GLW).forEach(id=>{ if(!want[id]){ glowOff2(id); ch=true; } }); Object.keys(want).forEach(id=>{ if(!GLW[id]){ glowOn2(id); ch=true; } });
+    const on=Object.keys(GLW).length>0; if(on&&GLM2){ const p=.5+.5*Math.sin(t*3.9); GLM2.uniforms.uA.value=.65+.35*p; GLM2.uniforms.uG.value=4+3*p; if(GLP) GLP.opacity=.55+.4*p; } return on||ch; }
+  /* scaffali alti appoggiati a una parete: sfumano con lei (e non lasciano la loro macchia d'ombra sul pavimento) */
+  function wallShelf(k,fn){ const n=FP.length; inGrp(WG[k],fn); for(let i=n;i<FP.length;i++) FP[i].w=1; }
+  function onWall(wall,a,b,z0,z1,c,o,depth){ o=Object.assign({cs:false},o||{}); const d=depth||.05; let m; inGrp(wgOf(wall),()=>{ m=wall==='y'?bx(a,.0,b,d,z0,z1,c,o):wall==='x'?bx(.0,a,d,b,z0,z1,c,o):wall==='y1'?bx(a,RD-d,b,RD,z0,z1,c,o):bx(RW-d,a,RW,b,z0,z1,c,o); }); return m; }
   /* piano (schermo o pannello) appeso alla parete, rivolto verso l'interno della stanza */
-  function onWallPlane(wall,m,a,b,z0,z1){ const c=(a+b)/2, zc=(z0+z1)/2; if(wall==='y') m.position.set(c,zc,.075); else if(wall==='x'){ m.rotation.y=Math.PI/2; m.position.set(.075,zc,c); } else if(wall==='y1'){ m.rotation.y=Math.PI; m.position.set(c,zc,RD-.075); } else { m.rotation.y=-Math.PI/2; m.position.set(RW-.075,zc,c); } WG[WK[wall]].add(m); }
+  function onWallPlane(wall,m,a,b,z0,z1,off){ const c=(a+b)/2, zc=(z0+z1)/2, f=off==null?.075:off; if(wall==='y') m.position.set(c,zc,f); else if(wall==='x'){ m.rotation.y=Math.PI/2; m.position.set(f,zc,c); } else if(wall==='y1'){ m.rotation.y=Math.PI; m.position.set(c,zc,RD-f); } else { m.rotation.y=-Math.PI/2; m.position.set(RW-f,zc,c); } wgOf(wall).add(m); }
   /* porta a due ante con oblo' e insegna verde di uscita */
   function door(wall,a,b){ const m=(a+b)/2, g={r:.1,e:'#5FA3C8',ei:.3}; onWall(wall,a-.12,b+.12,0,2.4,'#5B656D',{r:.6},.07); onWall(wall,a,m-.02,0,2.25,'#D9DEE2',{r:.5},.1); onWall(wall,m+.02,b,0,2.25,'#D9DEE2',{r:.5},.1);
     onWall(wall,a+.18,m-.2,1.3,1.95,'#9CCBE3',g,.12); onWall(wall,m+.2,b-.18,1.3,1.95,'#9CCBE3',g,.12); onWall(wall,m-.12,m-.06,.95,1.1,'#2B2F36',{r:.4},.14); onWall(wall,m+.06,m+.12,.95,1.1,'#2B2F36',{r:.4},.14); onWall(wall,m-.35,m+.35,2.5,2.75,'#2FA35B',{e:'#2FA35B',ei:.8},.09); }
   function windows(wall,a,b,z0,z1,n){ const w=(b-a)/n; onWall(wall,a,b,z0,z1,'#2B3A44',{r:.5},.07); for(let i=0;i<n;i++){ onWall(wall,a+i*w+.06,a+(i+1)*w-.06,z0+.06,z1-.06,'#9CCBE3',{r:.1,e:'#5FA3C8',ei:.35,m:.2},.09); onWall(wall,a+i*w+w/2-.015,a+i*w+w/2+.015,z0+.06,z1-.06,'#2B3A44',{r:.5},.1); } onWall(wall,a,b,z0-.04,z0+.04,'#D9DDE0',{r:.5},.12); }
   function rollDoor(wall,a,b,z1){ onWall(wall,a-.1,b+.1,0,z1+.1,'#8A929A',{r:.6},.08); const n=Math.round(z1/.22); for(let i=0;i<n;i++) onWall(wall,a,b,i*.22+.02,i*.22+.2,i%2?'#D5D9DC':'#E4E7E9',{r:.5},.12); onWall(wall,(a+b)/2-.2,(a+b)/2+.2,.85,.95,'#2B2F36',{r:.4},.16); }
-  function wallScreen(wall,a,b,z0,z1,kind,seed){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:screenTex(kind,seed)})); m.scale.set(b-a,z1-z0,1);
+  function wallScreen(wall,a,b,z0,z1,kind,seed){ if(WSUB&&WSUB.w===WK[wall]&&WSUB.g.userData.rects) WSUB.g.userData.rects.push([wall,a,b,z0,z1]); const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:screenTex(kind,seed)})); m.scale.set(b-a,z1-z0,1);
     onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
-  function liveScreen(wall,a,b,z0,z1,draw){ const cv=document.createElement('canvas'); cv.width=512; cv.height=320; const g=cv.getContext('2d'), tx=new THREE.CanvasTexture(cv); tx.encoding=THREE.sRGBEncoding; tx.anisotropy=4;
+  function liveScreen(wall,a,b,z0,z1,draw){ if(WSUB&&WSUB.w===WK[wall]&&WSUB.g.userData.rects) WSUB.g.userData.rects.push([wall,a,b,z0,z1]); const cv=document.createElement('canvas'); cv.width=512; cv.height=320; const g=cv.getContext('2d'), tx=new THREE.CanvasTexture(cv); tx.encoding=THREE.sRGBEncoding; tx.anisotropy=4;
     const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tx})); m.scale.set(b-a,z1-z0,1); onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06);
     let last=-1; const paint=t=>{ try{ draw(g,cv.width,cv.height,t); }catch(e){} tx.needsUpdate=true; }; paint(0); anims.push(t=>{ if(t-last<.1) return; last=t; paint(t); dirty=true; }); }
   function wallPanel(wall,a,b,z0,z1,tex){ const m=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:tex})); m.scale.set(b-a,z1-z0,1); onWallPlane(wall,m,a,b,z0,z1); onWall(wall,a-.05,b+.05,z0-.05,z1+.05,'#1A1F24',{r:.5},.06); }
@@ -6559,10 +6589,10 @@ const IR3=(()=>{
       pl(.5,6.6,RW-.5,6.85,.006,'#F2C14E'); pl(11.4,.5,11.65,RD-.5,.006,'#F2C14E'); pl(12.2,7.6,17.2,13.2,.006,'#A9AFB2');
       windows('y',.5,8.5,1.7,3.3,10); rollDoor('y',12.4,16.6,2.6);
       onWall('x',.6,3.2,1.2,2.6,'#3F6FB0',{r:.6},.06); wallScreen('x',4,9,1.5,3.1,'chart',2); wallScreen('x',9.6,13,1.5,3.1,'sat',3);
-      [0,1,2].forEach(i=>shelf(.4+i*3.6,.3,3.6+i*3.6,1.2,2.6,3,cols.slice(i*2).concat(cols.slice(0,i*2))));
-      [0,1].forEach(i=>shelf(.3,1.6+i*3.4,1.2,4.6+i*3.4,2.6,3,cols.slice(3+i).concat(cols.slice(0,3+i))));
-      [[4.4,3],[7.6,3],[4.4,8],[7.6,8]].forEach((b,i)=>{ const m=(st.benches||[])[i]; desk(b[0],b[1],b[0]+2.6,b[1]+1.2,.82,'#E9EEF2',{drawers:false}); rb(b[0]+.1,b[1]+.1,b[0]+2.5,b[1]+1.1,.82,.85,m?'#5FA87A':'#B9C9BE',{cs:false}); computer(b[0]+2.1,b[1]+.6,.85,-Math.PI/2,{kind:'chart',s:.9}); bx(b[0]+.2,b[1]+.2,b[0]+.7,b[1]+.55,.85,.9,'#2B3138'); bx(b[0]+.3,b[1]+.75,b[0]+.7,b[1]+1.0,.85,.92,'#F06EAA');
-        if(m){ bx(b[0]+.8,b[1]+.25,b[0]+1.4,b[1]+.95,.85,.9,'#4A545C',{cs:false}); satellite(b[0]+1.1,b[1]+.6,.9,m.size*1.4,{wings:true}); } });
+      wallShelf('y0',()=>[0,1,2].forEach(i=>shelf(.4+i*3.6,.3,3.6+i*3.6,1.2,2.6,3,cols.slice(i*2).concat(cols.slice(0,i*2)))));
+      wallShelf('x0',()=>[0,1].forEach(i=>shelf(.3,1.6+i*3.4,1.2,i?7.3:4.6,2.6,3,cols.slice(3+i).concat(cols.slice(0,3+i))))); /* il secondo scaffale e' piu' corto: prima entrava nella scrivania vicina */
+      [[4.4,3],[7.6,3],[4.4,8],[7.6,8]].forEach((b,i)=>gkG('bench'+i,()=>{ const m=(st.benches||[])[i]; desk(b[0],b[1],b[0]+2.6,b[1]+1.2,.82,'#E9EEF2',{drawers:false}); rb(b[0]+.1,b[1]+.1,b[0]+2.5,b[1]+1.1,.82,.85,m?'#5FA87A':'#B9C9BE',{cs:false}); computer(b[0]+2.1,b[1]+.6,.85,-Math.PI/2,{kind:'chart',s:.9}); bx(b[0]+.2,b[1]+.2,b[0]+.7,b[1]+.55,.85,.9,'#2B3138'); bx(b[0]+.3,b[1]+.75,b[0]+.7,b[1]+1.0,.85,.92,'#F06EAA');
+        if(m){ bx(b[0]+.8,b[1]+.25,b[0]+1.4,b[1]+.95,.85,.9,'#4A545C',{cs:false}); satellite(b[0]+1.1,b[1]+.6,.9,m.size*1.4,{wings:true}); } }));
       const who=[{top:'#3F6FB0',hair:'#6B4A30',skin:SKIN[0]},{top:'#7A3E58',hair:'#1C1714',skin:SKIN[2],hs:'long'},{top:'#4F6B48',hair:'#B98A4E',skin:SKIN[3],hs:'bun'}];
       [0,1,2].forEach(i=>workstation(.9,7.6+i*1.9,2.4,9.0+i*1.9,.78,'x1',[who[i]],{n:1,k:i,tower:true}));
       [0,1].forEach(i=>{ rb(9+i*1.3,11.1,10+i*1.3,12,0,1.1,'#E9EEF2',{fp:.25}); rb(9.1+i*1.3,11.2,9.9+i*1.3,11.9,.3,.95,'#BFE2EE',{t:.7,cs:false}); bx(9.2+i*1.3,11.92,9.8+i*1.3,11.94,.4,.9,'#8A929A',{cs:false}); });
@@ -6573,22 +6603,22 @@ const IR3=(()=>{
       pl(3,2.2,8.2,7,.006,'#9CC9A3'); pl(10.2,2.2,15.4,7,.006,'#9CC9A3'); [[2.8,2,8.4,7.2],[10,2,15.6,7.2]].forEach(r=>{ pl(r[0],r[1],r[2],r[1]+.12,.008,'#F2C14E'); pl(r[0],r[3]-.12,r[2],r[3],.008,'#F2C14E'); pl(r[0],r[1],r[0]+.12,r[3],.008,'#F2C14E'); pl(r[2]-.12,r[1],r[2],r[3],.008,'#F2C14E'); });
       for(let i=0;i<10;i++) onWall('y',.5+i*1.75,1.95+i*1.75,2.5,3.05,'#FFFFFF',{r:.4},.05); for(let i=0;i<7;i++) onWall('x',.5+i*1.9,1.95+i*1.9,2.5,3.05,'#FFFFFF',{r:.4},.05);
       windows('y',11,17.4,.9,2.3,7); onWall('y',.8,2.8,1,1.9,'#2F8580',{r:.5},.06); wallScreen('x',9,12.5,1.3,2.6,'chart',4);
-      [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>{ const m=(st.stations||[])[i]; cy(p[0],p[1],1.1,0,.12,'#C9D3DD',{fp:.3,m:.2}); cy(p[0],p[1],.3,.12,1,'#9AA9B6',{m:.3}); for(let k=0;k<4;k++){ const a=k*1.57+.78; cy(p[0]+Math.cos(a)*.9,p[1]+Math.sin(a)*.9,.05,.12,1,'#9AA9B6'); } rb(p[0]-.65,p[1]-.65,p[0]+.65,p[1]+.65,1,1.08,'#D9E0E5'); bx(p[0]-.5,p[1]-.5,p[0]+.5,p[1]+.5,1.08,1.1,'#7FB6C8',{cs:false}); if(m) satellite(p[0],p[1],1.1,m.size*1.4,{wings:m.n>=5}); });
+      [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>gkG('station'+i,()=>{ const m=(st.stations||[])[i]; cy(p[0],p[1],1.1,0,.12,'#C9D3DD',{fp:.3,m:.2}); cy(p[0],p[1],.3,.12,1,'#9AA9B6',{m:.3}); for(let k=0;k<4;k++){ const a=k*1.57+.78; cy(p[0]+Math.cos(a)*.9,p[1]+Math.sin(a)*.9,.05,.12,1,'#9AA9B6'); } rb(p[0]-.65,p[1]-.65,p[0]+.65,p[1]+.65,1,1.08,'#D9E0E5'); bx(p[0]-.5,p[1]-.5,p[0]+.5,p[1]+.5,1.08,1.1,'#7FB6C8',{cs:false}); if(m) satellite(p[0],p[1],1.1,m.size*1.4,{wings:m.n>=5}); }));
       rb(.3,10.4,3.6,13.6,0,.04,'#DCE6EA',{cs:false}); [[.3,10.4,3.6,10.45],[3.55,10.4,3.6,13.6]].forEach(r=>bx(r[0],r[1],r[2],r[3],0,2.4,'#BFE2EE',{t:.35})); FP.push([.3,10.4,3.6,13.6,.2]); rb(.5,11,1.3,12.8,0,.5,'#E9EEF2'); rb(2.2,12.6,3.3,13.4,0,1.9,'#BFE2EE',{t:.6});
-      shelf(.4,.3,4,1.1,2.2,3,['#E9EEF2','#DCE6EA','#BFE2EE','#F4F7F8']); workstation(.5,4.8,2.4,6.4,.82,'x1',[{suit:1,skin:SKIN[1]}],{n:1,laptop:true});
+      wallShelf('y0',()=>shelf(.4,.3,4,1.1,2.2,3,['#E9EEF2','#DCE6EA','#BFE2EE','#F4F7F8'])); workstation(.5,4.8,2.4,6.4,.82,'x1',[{suit:1,skin:SKIN[1]}],{n:1,laptop:true});
       [[8.9,2],[16.4,2],[9,8.4]].forEach((c,i)=>{ rb(c[0],c[1],c[0]+1.2,c[1]+.8,.6,.66,'#F4F7F8',{fp:.2}); [[0,0],[1.05,0],[0,.65],[1.05,.65]].forEach(q=>bx(c[0]+q[0],c[1]+q[1],c[0]+q[0]+.1,c[1]+q[1]+.1,0,.6,'#9AA9B6')); rb(c[0]+.3,c[1]+.2,c[0]+.6,c[1]+.5,.66,.9,['#F06EAA','#7C8CFF','#F0B43A'][i]); });
       rb(14.8,11,17.4,13.4,0,2.4,'#E8EEF1',{fp:.3}); bx(14.85,13.35,16.6,13.45,.1,2.2,'#BFE2EE',{t:.7}); bx(14.85,11.6,14.95,12.6,2.1,2.3,'#3FA86B',{cs:false});
       worker(5.6,6.1,{suit:1,skin:SKIN[0],h:Math.PI}); worker(12.8,6.1,{suit:1,skin:SKIN[2],h:Math.PI}); walkers_('clean',4,['suit']); }
     else if(room==='test'){ shell({floor:'#C9CDCF',tile:1,tileC:'#BEC3C6',wallR:'#ECEBE5',wallL:'#E0DFD7',stripe:[1.3,'#EB7D44'],cap:'#46525A'});
       rollDoor('y',.8,4.6,2.8); windows('y',5.4,17.4,2.2,3.3,12); wallScreen('x',1,6,1.5,3.2,'chart',5); wallScreen('x',6.6,10,1.5,3.2,'gauges',6);
-      (st.machines||[]).forEach(m=>{ if(m.i!==st.moveI) machine(m); });
+      (st.machines||[]).forEach(m=>{ if(m.i!==st.moveI) gkG('mach'+m.k,()=>machine(m)); });
       workstation(15.8,5.4,17.4,8.4,.8,'x0',[{coat:1,top:'#F7F8F6',hair:'#8A8A8A',skin:SKIN[0],headset:1}],{n:2,only:[0],k:1,tower:true}); forklift(13.2,.9);
       walkers_('test',3,['coat','vest','head']); }
     else if(room==='mcc'){ shell({floor:'#8E959B',tile:1,tileC:'#838A90',wallR:'#C5CAD0',wallL:'#B6BCC3',skirt:'#7D858D',cap:'#2A323A'});
       onWall('y',0,RW,3.3,RH,'#2E363E',{r:.6},.06); onWall('x',0,RD,3.3,RH,'#262D34',{r:.6},.06);
       for(let i=0;i<22;i++) onWall('y',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1); for(let i=0;i<17;i++) onWall('x',.3+i*.8,.5+i*.8,3.4,3.5,'#FFF3D6',{e:'#FFF3D6',ei:1},.1);
-      liveScreen('y',.6,3.6,1.4,3.15,flyScreen); [[3.9,9.4,'globe',2],[12.5,17.4,'chart',3]].forEach(v=>wallScreen('y',v[0],v[1],1.4,3.15,v[2],v[3])); wallScreen('y',9.7,12.2,2.35,3.15,'clock',9); wallScreen('y',9.7,12.2,1.4,2.15,'bars',8);
-      wallScreen('x',.6,6,1.3,3.15,'grid',11); wallScreen('x',6.4,10.6,1.4,3.05,'gauges',12); wallScreen('x',11,13.4,1.6,2.9,'bars',13);
+      gkW('y','mccy0',()=>{ liveScreen('y',.6,3.6,1.4,3.15,flyScreen); [[3.9,9.4,'globe',2],[12.5,17.4,'chart',3]].forEach(v=>wallScreen('y',v[0],v[1],1.4,3.15,v[2],v[3])); wallScreen('y',9.7,12.2,2.35,3.15,'clock',9); wallScreen('y',9.7,12.2,1.4,2.15,'bars',8); });
+      gkW('x','mccx0',()=>{ wallScreen('x',.6,6,1.3,3.15,'grid',11); wallScreen('x',6.4,10.6,1.4,3.05,'gauges',12); wallScreen('x',11,13.4,1.6,2.9,'bars',13); });
       /* 3 file di postazioni, ciascuna in 3 sezioni staccate da corridoi (come in un vero MCC); in ogni sezione siede una sola persona, gli altri girano in piedi */
       const cx=9, cy0=20.5, RR=[11.4,13.9,16.4], inst=[];
       RR.forEach((r,ri)=>{ for(let sec=0;sec<3;sec++) for(let j=0;j<3;j++){ const tm=((sec-1)*4.05+(j-1)*.75)/(r+.4), mx=cx+(r+.4)*Math.sin(tm), my=cy0-(r+.4)*Math.cos(tm); if(my<.6||mx<.6||mx>RW-.6||my>RD-.6) continue; inst.push({x:mx,y:my,a:tm,ri,k:j,sec,r}); } });
@@ -6602,7 +6632,7 @@ const IR3=(()=>{
       windows('y',.5,10.5,1.8,3.3,12); rollDoor('y',12,16.8,2.7); wallScreen('x',.8,6,1.4,3.1,'bars',3); wallScreen('x',6.6,11,1.4,3.1,'chart',5);
       rb(2,5.8,16,7.2,0,.7,'#4A545C',{fp:.35}); rb(2,5.9,16,7.1,.7,.78,'#2E353B'); for(let i=0;i<14;i++) cy(2.5+i,6.5,.12,.78,.82,'#6C767E',{rz:.62,cs:false});
       [3.4,8,12.6].forEach((x,i)=>satellite(x+.6,6.5,.82,(st.sats&&st.sats[i])?1.5:1.1,{wings:i===2,panels:i!==0})); [[6,4.4,0],[10.6,4.4,1],[13.6,8.6,0]].forEach(p=>arm(p[0],p[1],p[2]));
-      shelf(.4,.3,3.4,1.2,2.6,3,['#F28B50','#7C8CFF','#4DB8E8','#DDE2E6']); shelf(.3,1.6,1.2,4.6,2.6,3,['#6CC4A1','#F0B43A','#B783E3']); forklift(14.5,11.2);
+      wallShelf('y0',()=>shelf(.4,.3,3.4,1.2,2.6,3,['#F28B50','#7C8CFF','#4DB8E8','#DDE2E6'])); wallShelf('x0',()=>shelf(.3,1.6,1.2,4.6,2.6,3,['#6CC4A1','#F0B43A','#B783E3'])); forklift(14.5,11.2);
       workstation(1.6,11,3.6,12.6,.82,'y0',[{top:'#3F6FB0',hair:'#6B4A30',skin:SKIN[0]}],{n:1,tower:true}); walkers_('factory',4,['vest','vest','coat','vest']); }
     else if(room==='ground'){ shell({floor:'#7E878F',tile:1.2,tileC:'#747C84',wallR:'#D9DDE0',wallL:'#CDD2D6',stripe:[1.1,'#43D3E0'],cap:'#2A323A'});
       wallScreen('y',1.5,12.5,1.1,3.3,'globe',4); wallPanel('y',13,17,1.6,3.3,textTex([['ANTENNAS '+(st.dishes||0)+'/6'],['DATA +'+(20+3*(st.dishes||0))+'%','#9EE6B8'],['RADIO '+(60+5*(st.dishes||0))+'%','#FFE08A']]));
@@ -6804,10 +6834,10 @@ const IR3=(()=>{
   /* le etichette non restano a schermo: si mostrano solo passando il cursore sulla zona sensibile (hsi = zona gia' creata, altrimenti se ne crea una attorno al punto) */
   function addTag(x,y,z,text,c,cls,dot,hsi,half){ if(hsi==null){ const hh=half||.8; HS.push({attr:'data-na="1"',b:[x-hh,y-hh,x+hh,y+hh,0,Math.max(.8,z-.4)],label:text}); hsi=HS.length-1; } TG.push({x,y,z,text,c,cls,dot}); HS[hsi].tg=TG.length-1; }
   function hotFor(room,st){ HS=[]; TG=[];
-    if(room==='build'){ [[4.4,3],[7.6,3],[4.4,8],[7.6,8]].forEach((b,i)=>{ const m=(st.benches||[])[i]; addHS(m?'data-act="openyard" data-id="'+m.id+'"':'data-act="benchfree"',b[0],b[1],b[0]+2.6,b[1]+1.2,0,m?1.6:.9,m?m.label:'Free bench'); { const cm=cur(), hint=!!(m&&cm&&cm.id===m.id&&cm.phase==='B'&&cm.stage==='sat'); addTag(b[0]+1.3,b[1]+.6,m?2.0:1.2,hint?'Design table · click to open':m?m.label:'free bench',hint?'#EB7D44':m?m.col:'#9A9A90',hint?'on':'','',HS.length-1); } }); }
-    if(room==='clean'){ [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>{ const m=(st.stations||[])[i]; addHS('data-act="station" data-i="'+i+'"',p[0]-1.1,p[1]-1.1,p[0]+1.1,p[1]+1.1,0,m?1.9:1.1,m?m.label:'Free station'); addTag(p[0],p[1],m?2.2+m.size*.4:1.5,m?m.label:'free station',m?m.col:'#9A9A90','','',HS.length-1); }); addTag(2,12,2.6,'Gowning','#45A9A3','','',null,1.5); addTag(16.1,12.2,2.9,'Air shower','#45A9A3','','',null,1.3); }
-    if(room==='test'){ (st.machines||[]).forEach(m=>{ if(m.i===st.moveI) return; const f=IR.FOOT[m.k]||[2,2], h={vib:1.2,tvac:2.7,emc:2.4,mass:1.1,func:1.3,shock:2.8}[m.k]||1.5; addHS('data-act="mach" data-k="'+m.k+'"',m.x,m.y,m.x+f[0],m.y+f[1],0,h,m.n); addTag(m.x+f[0]/2,m.y+f[1]/2,h+.5,m.n+(m.lab?' · '+m.lab:''),m.col||'#45A9A3','','',HS.length-1); }); }
-    if(room==='mcc'){ addHS('data-act="mccwall"',0,0,RW,.1,1.3,3.2,'Control room screens'); HS[HS.length-1].wall='y0'; addHS('data-act="mccwall"',0,0,.1,13.4,1.3,3.2,'Control room screens'); HS[HS.length-1].wall='x0'; addTag(2.1,12,2.9,'Guest room','#45A9A3','','',null,1.6); }
+    if(room==='build'){ [[4.4,3],[7.6,3],[4.4,8],[7.6,8]].forEach((b,i)=>{ const m=(st.benches||[])[i]; addHS((m?'data-act="openyard" data-id="'+m.id+'"':'data-act="benchfree"')+' data-gk="bench'+i+'"'+(m&&cur()&&cur().id===m.id&&cur().phase==='B'&&cur().stage==='sat'?' data-hint="1"':''),b[0],b[1],b[0]+2.6,b[1]+1.2,0,m?1.6:.9,m?m.label:'Free bench'); { const cm=cur(), hint=!!(m&&cm&&cm.id===m.id&&cm.phase==='B'&&cm.stage==='sat'); addTag(b[0]+1.3,b[1]+.6,m?2.0:1.2,hint?'Design table · click to open':m?m.label:'free bench',hint?'#EB7D44':m?m.col:'#9A9A90',hint?'on':'','',HS.length-1); } }); }
+    if(room==='clean'){ [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>{ const m=(st.stations||[])[i]; addHS('data-act="station" data-i="'+i+'" data-gk="station'+i+'"',p[0]-1.1,p[1]-1.1,p[0]+1.1,p[1]+1.1,0,m?1.9:1.1,m?m.label:'Free station'); addTag(p[0],p[1],m?2.2+m.size*.4:1.5,m?m.label:'free station',m?m.col:'#9A9A90','','',HS.length-1); }); addTag(2,12,2.6,'Gowning','#45A9A3','','',null,1.5); addTag(16.1,12.2,2.9,'Air shower','#45A9A3','','',null,1.3); }
+    if(room==='test'){ (st.machines||[]).forEach(m=>{ if(m.i===st.moveI) return; const f=IR.FOOT[m.k]||[2,2], h={vib:1.2,tvac:2.7,emc:2.4,mass:1.1,func:1.3,shock:2.8}[m.k]||1.5; addHS('data-act="mach" data-k="'+m.k+'" data-gk="mach'+m.k+'"',m.x,m.y,m.x+f[0],m.y+f[1],0,h,m.n); addTag(m.x+f[0]/2,m.y+f[1]/2,h+.5,m.n+(m.lab?' · '+m.lab:''),m.col||'#45A9A3','','',HS.length-1); }); }
+    if(room==='mcc'){ addHS('data-act="mccwall" data-gk="mccy0"',0,0,RW,.1,1.3,3.2,'Control room screens'); HS[HS.length-1].wall='y0'; addHS('data-act="mccwall" data-gk="mccx0"',0,0,.1,13.4,1.3,3.2,'Control room screens'); HS[HS.length-1].wall='x0'; addTag(2.1,12,2.9,'Guest room','#45A9A3','','',null,1.6); }
     if(room==='factory'){ addTag(9,6.5,3.2,'Integration line · times halved','#EB7D44','','',null,2.4); (st.sats||[]).forEach((m,i)=>{ if(m) addTag([3.4,8,12.6][i]+.6,6.5,2.5,m.label,'#EB7D44','','',null,1.2); }); }
     if(room==='ground') addTag(15.6,12.4,3.1,'Antenna model','#45A9A3','','',null,1.4);
     if(room==='rnd'){ addTag(14.8,9.8,3.1,'Prototype under test','#45A9A3','','',null,1.4); addTag(13.2,4.2,1.9,'3D printer','#8E5BB0','','',null,1.1); }
@@ -6832,7 +6862,7 @@ const IR3=(()=>{
   function clearBuilt(){ if(!built) return; scene.remove(built); const cached=new Set(Object.values(MC)), tcache=new Set(Object.values(TC)), shr=new Set(Object.values(SCRM).concat(Object.values(CELLM),[BLOBM]));
     built.traverse(o=>{ if(o.geometry&&SHARED.indexOf(o.geometry)<0) o.geometry.dispose(); const m=o.material; if(m&&!cached.has(m)&&!shr.has(m)){ if(m.map&&m.map!==BLOB&&!tcache.has(m.map)) m.map.dispose(); m.dispose(); } }); }
   function saveWalkers(){ if(curRoom&&walkers.length) WSAVE[curRoom]=walkers.map(w=>({x:w.x,z:w.z})); }
-  function rebuild(room,st){ if(room===curRoom) saveWalkers(); clearBuilt(); built=new THREE.Group(); scene.add(built); anims=[]; walkers=[]; FP=[]; NF=[]; MACHP=[]; MEET=null; LCH=null; WG=null; clearGhost(); PAR=built; const kind=SKIND(room); applyScene(kind);
+  function rebuild(room,st){ if(room===curRoom) saveWalkers(); clearBuilt(); built=new THREE.Group(); scene.add(built); anims=[]; walkers=[]; FP=[]; NF=[]; MACHP=[]; MEET=null; LCH=null; WG=null; WA=null; WT=null; GK={}; GLW={}; clearGhost(); PAR=built; const kind=SKIND(room); applyScene(kind);
     if(kind==='room'){ CROWD=[]; buildRoom(room,st); adjustCrowd(room); navBuild(); walkers.forEach(w=>{ if(w.fresh||!freeAt(w.x,w.z)){ const p=randFree(); w.x=p[0]; w.z=p[1]; w.fresh=false; } w.P.g.position.set(w.x,0,w.z); }); }
     else if(kind==='meet') buildMeet(st); else buildLaunch(st);
     if(kind!=='launch'){ const ao=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:aoTex(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2})); ao.rotation.x=-Math.PI/2; ao.scale.set(RW,RD,1); ao.position.set(RW/2,.012,RD/2); ao.userData.keep=true; built.add(ao); }
@@ -6854,15 +6884,15 @@ const IR3=(()=>{
     const bub=document.getElementById('mbub'); if(bub&&MEET&&bub.dataset.seat!=null&&MSEATP[+bub.dataset.seat]){ const q=MSEATP[+bub.dataset.seat], p=scr(q.x,q.y,2.35), hr=host.getBoundingClientRect(), w=bub.offsetWidth||260, hud=document.getElementById('hud'); bub.style.left=Math.max(hr.left+w/2+8,Math.min(hr.right-w/2-8,hr.left+p[0]))+'px'; bub.style.top=Math.max(((hud&&hud.getBoundingClientRect().bottom)||60)+bub.offsetHeight+8,hr.top+p[1])+'px'; } }
   function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); if(ts-lastT<33) return; const dt=Math.min(.05,(ts-lastT)/1000||.033); lastT=ts; const t=ts/1000; /* 30 fps regolari (con tolleranza), dt limitato a 50 ms */
     if(yawTo!=null){ const k=Math.min(1,dt*9); CAM.yaw+=(yawTo-CAM.yaw)*k; if(Math.abs(yawTo-CAM.yaw)<.002){ CAM.yaw=yawTo; yawTo=null; } camDirty=true; }
-    if(camDirty){ if(SK==='room') placeCam(); layout(); camDirty=false; dirty=true; } anims.forEach(f=>f(t,dt)); stepWalkers(dt,t); if(!anims.length&&!walkers.length&&!dirty) return; dirty=false; R.render(scene,cam); }
+    if(camDirty){ if(SK==='room') placeCam(); layout(); camDirty=false; dirty=true; } anims.forEach(f=>f(t,dt)); stepWalkers(dt,t); if(wallFade(dt)) dirty=true; if(glowRoom(t)) dirty=true; if(!anims.length&&!walkers.length&&!dirty) return; dirty=false; R.render(scene,cam); }
 
   /* ---------- controlli della camera: trascina per ruotare, rotella per lo zoom, tasto destro per spostare ---------- */
   const PT=new Map(); let drag=null, moved=false, pinch=null;
   const isPlacing=()=>host&&host.classList.contains('placing');
-  /* un dito sposta la vista (la stanza resta sotto il dito); due dita: allargarle o stringerle zooma, girarle come una manopola ruota la stanza (insieme, come nelle mappe); col mouse tasto destro o Maiusc ruota */
+  /* un dito sposta la vista (la stanza resta sotto il dito); due dita: allargarle o stringerle zooma, girarle come una manopola ruota la stanza (insieme, come nelle mappe); col mouse il tasto sinistro ruota e il destro sposta (Maiusc inverte) */
   const fang=a=>Math.atan2(a[1][1]-a[0][1],a[1][0]-a[0][0]);
   function onDown(e){ if(!running||SK!=='room') return; PT.set(e.pointerId,[e.clientX,e.clientY]); yawTo=null;
-    if(PT.size===1){ moved=false; drag={x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,tx:CAM.tx,tz:CAM.tz,rot:e.button===2||e.shiftKey}; }
+    if(PT.size===1){ moved=false; drag={x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,tx:CAM.tx,tz:CAM.tz,rot:e.pointerType==='mouse'?((e.button===0)!==!!e.shiftKey&&!isPlacing()):e.shiftKey}; }
     else if(PT.size===2){ const a=Array.from(PT.values()); pinch={d0:Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])),z0:CAM.zoom,a:fang(a)}; drag=null; moved=true; } }
   function onMove(e){ if(!PT.has(e.pointerId)) return; PT.set(e.pointerId,[e.clientX,e.clientY]);
     if(pinch&&PT.size>=2){ const a=Array.from(PT.values()), d=Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])); CAM.zoom=Math.max(.7,Math.min(3.2,pinch.z0*d/pinch.d0));
