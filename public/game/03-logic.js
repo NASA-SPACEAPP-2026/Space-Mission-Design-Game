@@ -458,7 +458,10 @@ const L = (function () {
     return { f, log };
   }
   // A che mese siamo: il tempo della missione si ferma mentre aspetta una tua decisione
-  function monthsNow(M, now, speed) { if (!M.launchAt) return 0; const t = (M.pauseAt || now) - M.launchAt - (M.pausedMs || 0); return Math.max(0, t * (speed || 1) / (TIME.month * (M.tut ? 0.35 : 1))); }
+  function monthsNow(M, now, speed) { if (!M.launchAt) return 0; const t = (M.pauseAt || now) - M.launchAt - (M.pausedMs || 0);
+    /* simulazione compressa (circa 15 s): introduzione (lancio, detumbling, pannelli), poi i mesi della missione, poi la fase F un po' piu' lenta per vederla */
+    if (M.sim) { const S = M.sim, D = Math.max(1, M.duration), e = t - S.intro; if (e <= 0) return 0; return e < D * S.mspm ? e / S.mspm : D + (e - D * S.mspm) / S.fms; }
+    return Math.max(0, t * (speed || 1) / (TIME.month * (M.tut ? 0.35 : 1))); }
   function decide(M, k, now) { const fl = flight(M, 999), p = fl.pending; if (!p) return null; M.choices = M.choices || {}; M.choices[p.m] = k;
     M.choiceL = M.choiceL || {}; const o = p.opts.find(x => x.k === k); M.choiceL[p.m] = { t: p.t, l: o ? o.l : k, h: o ? o.h : '', alt: p.opts.filter(x => x.k !== k && !x.off).map(x => ({ k: x.k, l: x.l })) };
     if (M.pauseAt) { M.pausedMs = (M.pausedMs || 0) + (now - M.pauseAt); M.pauseAt = 0; } return p; }
