@@ -35,6 +35,14 @@ const sfx={tap:()=>tone(520,.05,'triangle',.04),put:()=>{tone(300,.06,'square',.
 const LANG='en'; window.gngLang=LANG; /* account.js (entry form) follows the game's language */
 const I18N=(()=>{ const RAW=`Particelle solari in arrivo: il satellite è passato da solo in safe mode per proteggersi. Riaccendi gli strumenti per misurare la tempesta?	Solar particles incoming: the satellite switched to safe mode by itself to protect itself. Switch the instruments back on to measure the storm?
 Riaccendi e misura	Switch on and measure
+Laboratorio chimico in miniatura montato su un robot.	Miniature chemistry lab mounted on a robot.
+Prima della revisione di volo guarda la matrice dei rischi: ogni prova saltata resta un rischio aperto. Tocca «Rischi» in alto.	Before the flight review, look at the risk matrix: every skipped test stays an open risk. Tap «Risks» at the top.
+Questa è la matrice dei rischi: più un rischio è in alto a destra, più è probabile e grave. I numeri sono i rischi aperti, spiegati sotto. Quando hai visto, chiudi.	This is the risk matrix: the further up and right a risk sits, the more likely and serious it is. The numbers are the open risks, explained below. When you have seen it, close it.
+NO-GO: questa prova al livello 1 non si può fare. Concedi una deroga: il requisito si chiude, ma il rischio vola con il satellite.	NO-GO: this test cannot be done at level 1. Grant a waiver: the requirement closes, but the risk flies with the satellite.
+Prova in termovuoto con Camera termovuoto (da installare)	Thermal-vacuum test with Thermal-vacuum chamber (to be installed)
+Prova funzionale con FlatSat (da installare)	Functional test with FlatSat (to be installed)
+Deroga	Waiver
+Computer ridondato	Redundant computer
 Resta in safe mode	Stay in safe mode
 Gli stakeholder chiedono questa finestra di lancio: accettala.	The stakeholders ask for this launch window: accept it.
 Il razzo ti lascia a {n} × {n} km: nessun’altra orbita serve, rispondi No.	The rocket drops you at {n} × {n} km: no other orbit is needed, answer No.
@@ -3441,7 +3449,8 @@ function wkSlot(el,d){ const par=el.parentNode; if(!par) return; let arr=par._dz
 WK.raf=requestAnimationFrame(wkFrame);
 
 function cCtx(){ const M=cur(), next=nextPlace(M), labels={}; ['admin','mcc','fd','build','test','pad'].forEach(k=>{ const w=waitOf(k); labels[k]=next===k?'!':w?w.replace('⏳',''):''; });
-  labels.council=CLANST.member?(CLANST.unread?CLANST.unread+' 💬':''):TX('Entra in un consorzio','Join a Consortium'); labels.events='🔒 '+TX('Chiusa','Locked');
+  /* Sala del Consiglio e Sala delle Ricorrenze: niente cartello fisso, il nome compare solo passandoci sopra (resta solo il numero di messaggi nuovi) */
+  labels.council=CLANST.member&&CLANST.unread?CLANST.unread+' 💬':''; labels.events='';
   const pm=padMission(); return { walkers:wkScene('campus'), labels, flag:G.flag||null, pad:{ rocket:!!pm, rocketH:pm?.85*(E.LV[pm.sat.lv]||{h:1}).h:1, ready:!!(pm&&pm.phase==='D'&&pm.ready), name:pm?pm.name:'' } }; }
 /* anteprima 3D dell'edificio (stesso modello del campus); se il 3D non c'e', resta il disegno 2D */
 function tileImg(k){ let u=null; try{ u=C3.can()&&C3.snap?C3.snap(k):null; }catch(e){ u=null; } return u?'<img class="timg" alt="" src="'+u+'">':'<svg viewBox="-48 -44 96 66" aria-hidden="true">'+CAM.mini(k)+'</svg>'; }
@@ -3562,7 +3571,8 @@ function clanInit(){ if(!window.GNGCLAN) return; const en=()=>TX('it','en')==='e
     onState:st=>{ const was=CLANST; CLANST=st; if(view==='hub'&&(was.level|0)!==(st.level|0)){ C3.hall(st,cCtx().labels.council,true); render(); return; } if(view==='hub'&&(was.member!==st.member||was.unread!==st.unread||was.joint!==st.joint||was.name!==st.name||JSON.stringify(was.crest)!==JSON.stringify(st.crest))) C3.hall(st,cCtx().labels.council); } }); }
 /* campus: tasto del consorzio sotto il nome dell'agenzia: «Entra in un consorzio» oppure nome e stemma del proprio consorzio */
 const clanCoop=()=>{ if(!window.GNGCLAN) return ''; const n=CLANST.joint|0; return '<button class="clanpill coop" data-act="coop" aria-label="'+TX('Gioca insieme: missione congiunta','Play together: joint mission')+'"><span>👥 '+TX('Gioca insieme','Play together')+'</span>'+(n?'<b class="clbdg">'+n+'</b>':'')+'</button>'; };
-const clanPill=()=>{ if(!window.GNGCLAN) return ''; const m=CLANST.member; return '<button class="clanpill'+(m?' in':'')+'" data-act="clan" data-k="pill" aria-label="'+(m?esc(CLANST.name||TX('Il tuo consorzio','Your consortium')):TX('Entra in un consorzio','Join a Consortium'))+'">'+(m&&CLANST.crest&&GNGCLAN.crestSVG?GNGCLAN.crestSVG(CLANST.crest,18):'<svg viewBox="0 0 24 24" fill="none" stroke="#7FD8CC" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.4 2.7-6 6-6s6 2.6 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.6 14.1c3 .3 5.4 2.7 5.4 5.9"/></svg>')+'<span>'+(m?esc(CLANST.name||TX('Il tuo consorzio','Your consortium')):TX('Entra in un consorzio','Join a Consortium'))+'</span>'+GNGCLAN.badgeHTML()+'</button>'; };
+const clanPill=()=>{ if(!window.GNGCLAN) return ''; const m=CLANST.member; /* stessa targa scura dei RISCHI: icona in un riquadro colorato, sopra la parola «Consorzio», sotto l'azione o il nome */
+  return '<button class="clanpill cp2'+(m?' in':'')+'" data-act="clan" data-k="pill" aria-label="'+(m?esc(CLANST.name||TX('Il tuo consorzio','Your consortium')):TX('Entra in un consorzio','Join a Consortium'))+'"><i class="cpi">'+(m&&CLANST.crest&&GNGCLAN.crestSVG?GNGCLAN.crestSVG(CLANST.crest,20):'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.4 2.7-6 6-6s6 2.6 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.6 14.1c3 .3 5.4 2.7 5.4 5.9"/></svg>')+'</i><span><small>'+TX('Consorzio','Consortium')+'</small><b>'+(m?esc(CLANST.name||TX('Il tuo consorzio','Your consortium')):TX('Unisciti','Join'))+'</b></span>'+GNGCLAN.badgeHTML()+'</button>'; };
 function hud(){ try{ staffPlan(); }catch(e){} document.documentElement.classList.remove('big'); /* testo grande tolto */ const M0=cur(), M=M0&&M0.phase==='done'&&view==='hub'?null:M0;
   const al=G.missions.some(m=>m.alert||m.pauseAt), cl=crewList(), mo=Math.round(morale());
   $('#hud').innerHTML='<div class="hud-l"><div class="crew">'+cl.map((c,i)=>'<button class="cface" data-act="crewinfo" data-i="'+i+'" title="'+esc(c.n)+'" aria-label="'+esc(c.n)+'">'+faceSVG(c)+'<small>'+esc(c.n.split(' ')[0])+'</small><i><u style="width:'+mo+'%"></u></i></button>').join('')+'</div>'+
@@ -3652,7 +3662,7 @@ let NOTE=0, NOTEID='';
 function vMeeting(v,M,idle){
   const castIds=M.table||L.cast(M,M.meetPh||M.phase); const r=M.queue.length?L.R(M.queue[0]):null, speaker=r?r.who:null;
   const seats=castIds.slice(0,7).map(id=>({name:PEO[id].n,col:PEO[id].col,look:IR.lookOf(id,PEO[id].col,PEO[id].n),joy:M.joy[id]==null?60:M.joy[id],speak:id===speaker,gone:M.left.indexOf(id)>=0}));
-  const left=['REQUISITI'].concat(M.reqs.slice(-7).map(x=>({t:x.code+' '+L.R(x.id).t,ok:1}))); if(left.length===1) left.push('nessuno ancora');
+  const left=['REQUISITI'].concat(M.reqs.slice(-7).map(x=>({t:x.code+' '+(LANG==='en'?I18N.tr(L.R(x.id).t):L.R(x.id).t),ok:1}))/* il codice davanti impedisce la traduzione della riga intera: si traduce solo il testo */); if(left.length===1) left.push('nessuno ancora');
   const right=[String(M.name).toUpperCase(),phn(M),'Requisiti '+M.reqs.length,'Budget '+keur(L.budgetOf?L.budgetOf(M):G.money)];
   let bubble=''; if(r){ const i=castIds.indexOf(r.who), p=IR.MSEAT[Math.max(0,Math.min(6,i))]; bubble='<div class="bubble mbub" id="mbub" data-seat="'+Math.max(0,Math.min(6,i))+'" data-x="'+p[0]+'" data-y="'+(p[1]-128*p[2]-30)+'">'+esc(r.say)+'</div>'; }
   const who=r?PEO[r.who]:null;
@@ -4047,13 +4057,24 @@ function obItems(M,p){ const it=[]; p.orbits.forEach((o,k)=>{ if(o.mid) it.push(
 /* pianeta con le mappe NASA (public/tex, ridisegnate in stile cartone da scripts/toon-planets.mjs): l'immagine equirettangolare si avvolge sulla sfera con la stessa rotazione delle orbite (az/tilt),
    con la luce del Sole da in alto a sinistra. Si ridisegna solo quando cambiano vista o dimensione; finche' l'immagine non e' caricata resta il disegno a sfumatura. */
 const PTEX={}, GLB={c:null,key:''};
-function ptex(dest){ const k={leo:'earth',moon:'moon',mars:'mars',venus:'venus'}[dest]; if(!k) return null; let t=PTEX[k]; if(t) return t.ok?t:null; t=PTEX[k]={ok:false};
-  const im=new Image(); im.onload=()=>{ try{ const W=Math.min(1024,im.naturalWidth), H=Math.round(W/2), c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d'); x.drawImage(im,0,0,W,H); t.d=x.getImageData(0,0,W,H).data; t.w=W; t.h=H; t.ok=true; GLB.key=''; }catch(e){} }; im.src='tex/'+k+'.jpg'; return null; }
+/* mappe cartoon (tratte dalle mappe reali, scripts/toon-planets.mjs) per tutti i corpi, Sole compreso */
+const PTEXK={leo:'earth',moon:'moon',mars:'mars',venus:'venus',mercury:'mercury',jupiter:'jupiter',saturn:'saturn',uranus:'uranus',neptune:'neptune',sun:'sun'};
+function ptex(dest){ const k=PTEXK[dest]; if(!k) return null; let t=PTEX[k]; if(t) return t.ok?t:null; t=PTEX[k]={ok:false};
+  const im=new Image(); im.onload=()=>{ try{ const W=Math.min(1024,im.naturalWidth), H=Math.round(W/2), c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d'); x.drawImage(im,0,0,W,H); t.d=x.getImageData(0,0,W,H).data; t.w=W; t.h=H; t.ok=true; GLB.key=''; document.dispatchEvent(new CustomEvent('gng-tex',{detail:dest})); }catch(e){} }; im.src='tex/'+k+'.jpg'; return null; }
+/* icona del corpo celeste: sfera disegnata con la mappa cartoon (luce a 3 fasce; il Sole e' acceso, niente ombra). null finche' la mappa non e' caricata */
+const TICO={};
+const TICOL={leo:15,moon:0,mars:-60,venus:0,mercury:0,jupiter:20,saturn:0,uranus:0,neptune:0,sun:0}; /* longitudine al centro dell'icona: la Terra mostra Europa e Africa */
+function texIco(dest){ if(TICO[dest]) return TICO[dest]; const t=ptex(dest); if(!t) return null; const R=48, S=R*2, c=document.createElement('canvas'); c.width=S; c.height=S; const x=c.getContext('2d'), img=x.createImageData(S,S), o=img.data, D=Math.PI/180, ct=Math.cos(14*D), st=Math.sin(14*D), l0=(TICOL[dest]||0)*D, sun=dest==='sun', P2=2*Math.PI;
+  for(let py=0;py<S;py++){ const yy=(R-py-.5)/R; for(let px=0;px<S;px++){ const xx=(px+.5-R)/R, r2=xx*xx+yy*yy; if(r2>1) continue; const z=Math.sqrt(1-r2), ys=yy*ct+z*st, zs=-yy*st+z*ct, lat=Math.asin(ys>1?1:ys<-1?-1:ys), lon=Math.atan2(xx,zs)+l0, u=(((lon+Math.PI)/P2)%1+1)%1, v=.5-lat/Math.PI, ti=((Math.min(t.h-1,(v*t.h)|0))*t.w+Math.min(t.w-1,(u*t.w)|0))*4, d=xx*-.45+yy*.5+z*.74, sh=sun?(r2>.8?.92:1.04):d>.55?1.08:d>.22?.84:d>0?.6:.3, i=(py*S+px)*4;
+    if(r2>.94&&!sun){ o[i]=18; o[i+1]=24; o[i+2]=34; } else { o[i]=Math.min(255,t.d[ti]*sh); o[i+1]=Math.min(255,t.d[ti+1]*sh); o[i+2]=Math.min(255,t.d[ti+2]*sh); } o[i+3]=r2>.975?Math.round(255*(1-(r2-.975)/.025)):255; } }
+  x.putImageData(img,0,0); return TICO[dest]=c.toDataURL('image/png'); }
+/* appena arriva una mappa, le icone gia' a schermo passano dal disegno vettoriale alla sfera cartoon */
+document.addEventListener('gng-tex',e=>{ const k=e.detail; document.querySelectorAll('svg.pico[data-k="'+k+'"]').forEach(s=>{ try{ s.outerHTML=planet(k,+s.dataset.r||undefined); }catch(er){} }); });
 function globe(dest,Rp,az,tilt){ const t=ptex(dest); if(!t||!(Rp>0)) return null; /* diametro a passi di 8 px e al massimo 480 px (poi ingrandito): poco lavoro e niente ricalcoli mentre lo zoom si assesta */ const R=Math.max(8,Math.min(240,Math.round(Rp/4)*4)), key=dest+'|'+R+'|'+az.toFixed(0)+'|'+tilt.toFixed(0); if(GLB.key===key) return GLB.c;
   const S=R*2, c=GLB.c&&GLB.c.width===S?GLB.c:document.createElement('canvas'); c.width=S; c.height=S; const x=c.getContext('2d'), img=x.createImageData(S,S), o=img.data, D=Math.PI/180, ca=Math.cos(az*D), sa=Math.sin(az*D), ct=Math.cos(tilt*D), st=Math.sin(tilt*D), tw=t.w, th=t.h, td=t.d, L0=-.45, L1=.5, L2=.74, P2=2*Math.PI;
   for(let py=0;py<S;py++){ const yy=(R-py-.5)/R; for(let px=0;px<S;px++){ const xx=(px+.5-R)/R, r2=xx*xx+yy*yy; if(r2>1) continue; const z=Math.sqrt(1-r2), y=yy*ct+z*st, Z=-yy*st+z*ct, X=xx*ca+y*sa, Y=-xx*sa+y*ca;
-    /* nel sistema del gioco il polo +Z punta verso il basso dello schermo: si gira la mappa di 180 gradi (Z e Y opposti) per avere il nord in alto senza specchiarla */ const u=Math.atan2(-Y,X)/P2+.5, v=.5+Math.asin(Z>1?1:Z<-1?-1:Z)/Math.PI, ti=((Math.min(th-1,(v*th)|0))*tw+Math.min(tw-1,(u*tw)|0))*4, d=xx*L0+yy*L1+z*L2, sh=d>.55?1.08:d>.22?.84:d>0?.6:.3, i=(py*S+px)*4; /* luce a 3 fasce, come i materiali cartoon del gioco */
-    if(r2>.955){ o[i]=18; o[i+1]=24; o[i+2]=34; } /* contorno scuro del pianeta */ else { o[i]=Math.min(255,td[ti]*sh); o[i+1]=Math.min(255,td[ti+1]*sh); o[i+2]=Math.min(255,td[ti+2]*sh); } o[i+3]=r2>.985?Math.round(255*(1-(r2-.985)/.015)):255; } }
+    /* nel sistema del gioco il polo +Z punta verso il basso dello schermo: si gira la mappa di 180 gradi (Z e Y opposti) per avere il nord in alto senza specchiarla */ const u=Math.atan2(-Y,X)/P2+.5, v=.5+Math.asin(Z>1?1:Z<-1?-1:Z)/Math.PI, ti=((Math.min(th-1,(v*th)|0))*tw+Math.min(tw-1,(u*tw)|0))*4, d=xx*L0+yy*L1+z*L2, sh=dest==='sun'?(r2>.8?.92:1.04):d>.55?1.08:d>.22?.84:d>0?.6:.3, i=(py*S+px)*4; /* luce a 3 fasce, come i materiali cartoon del gioco (il Sole e' acceso, niente lato in ombra) */
+    if(r2>.955&&dest!=='sun'){ o[i]=18; o[i+1]=24; o[i+2]=34; } /* contorno scuro del pianeta */ else { o[i]=Math.min(255,td[ti]*sh); o[i+1]=Math.min(255,td[ti+1]*sh); o[i+2]=Math.min(255,td[ti+2]*sh); } o[i+3]=r2>.985?Math.round(255*(1-(r2-.985)/.015)):255; } }
   x.putImageData(img,0,0); GLB.c=c; GLB.key=key; return c; }
 function obDraw(){ const cv=$('#obcv'), M=cur(); if(!cv||!M||!document.body.contains(cv)) return false; const p=O.plan(M), B=obBody(M), dest=M.sat.dest||'leo', W=cv.clientWidth, H=cv.clientHeight, dpr=Math.min(2,window.devicePixelRatio||1);
   if(!W||!H) return true; if(cv.width!==Math.round(W*dpr)) { cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); } const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
@@ -4594,10 +4615,16 @@ function mccRefresh(full){ const M=cur(); if(view!=='mcc') return; const fl=M&&M
 function decFix(M,p){ const ev=E.EV&&E.EV[p.id], fx=ev&&ev.fix; if(!fx) return ''; const ro=p.opts.find(o=>o.k===fx.k&&!o.off), rk=p.opts.find(o=>o.k===fx.risk); if(!ro||!rk) return ''; const c=fx.cost, poor=G.money<c;
   if(fx.own) return '<div class="dops own"><button class="btn primary" data-act="decfix" data-k="'+fx.k+'" data-c="'+c+'"'+(poor?' disabled':'')+'><b>'+esc(ro.l)+' · −'+keur(c)+'</b><small>'+esc(ro.h||'')+(poor?' · '+TX('crediti insufficienti','not enough credits'):'')+'</small></button><button class="btn" data-act="decide" data-k="'+fx.risk+'"><b>'+esc(rk.l)+'</b><small>'+esc(rk.h||'')+'</small></button></div>';
   return '<p class="dfix">'+TX('Il controllo missione consiglia: ','Mission control recommends: ')+'<b>'+esc(ro.l)+'</b></p><div class="dops"><button class="btn primary" data-act="decfix" data-k="'+fx.k+'" data-c="'+c+'"'+(poor?' disabled':'')+'><b>'+TX('Fallo','Do it')+' · −'+keur(c)+'</b><small>'+esc(ro.h||'')+(poor?' · '+TX('crediti insufficienti','not enough credits'):'')+'</small></button><button class="btn" data-act="decide" data-k="'+fx.risk+'"><b>'+TX('Non farlo','Don’t')+'</b><small>'+esc(rk.h||'')+' · '+TX('rischi che la missione fallisca','you risk the mission failing')+'</small></button></div>'; }
-function decCard(M,fl){ const el=$('#dec'); if(!el){ document.body.classList.remove('decon'); return; } const p=fl&&fl.pending; if(!p){ document.body.classList.remove('decon'); if(!el.hidden){ el.hidden=true; el.dataset.k=''; if(M&&M.sim&&(M.phase==='E'||M.phase==='F')&&!$('#mzoomBox')){ const o=$('#orb'), s=o&&o.closest('.scr'); if(s) MZOOM.open(s); } } return; }
-  document.body.classList.add('decon'); $('#toast').hidden=true; if($('#mzoomBox')) MZOOM.close(); const key=M.id+p.m; if(el.dataset.k===key&&!el.hidden) return; el.dataset.k=key; el.hidden=false;
-  el.innerHTML='<div class="dh"><span class="pause">🛰 '+TX('SAFE MODE · automatico · tempo fermo','SAFE MODE · automatic · time paused')+'</span><b>Mese '+p.m+' · '+esc(p.t)+'</b></div><p class="fine">'+TX('Il satellite ha rilevato un problema e si è messo in sicurezza da solo. Adesso tocca a te decidere come ripartire.','The satellite detected a problem and put itself in a safe state. Now it\'s up to you to decide how to carry on.')+'</p><p>'+esc(p.q)+'</p>'+(decFix(M,p)||'<div class="dops">'+p.opts.map(o=>'<button class="btn'+(o.k===p.auto?'':'')+'" data-act="decide" data-k="'+o.k+'"'+(o.off?' disabled':'')+'><b>'+esc(o.l)+'</b><small>'+esc(o.h||'')+'</small></button>').join('')+'</div>')+
-    '<p class="fine">ΔV '+nf(Math.max(0,p.fuel),0)+' m/s · gas '+Math.max(0,Math.round(p.gas))+'% · '+(M.duration-p.m)+' mesi ancora. <button class="lnk small" data-act="autodec">Fai decidere all’autopilota</button></p>'; }
+/* safe mode: niente finestra sopra la sala. Resta aperta la pagina della telemetria orbitale e la scelta sta in basso, dentro la pagina:
+   in alto solo «SAFE MODE» e la causa; il «?» chiede a Zorty cos'e' (niente autopilota) */
+let DECP=null;
+function decCard(M,fl){ const el=$('#dec'); if(!el){ document.body.classList.remove('decon'); return; } const p=fl&&fl.pending; el.hidden=true;
+  if(!p){ const dz=$('#decz'); if(dz){ dz.remove(); document.body.classList.remove('decon'); DECP=null; } else document.body.classList.remove('decon'); return; }
+  DECP={M,p}; document.body.classList.add('decon'); $('#toast').hidden=true;
+  if(!$('#mzoomBox #orb')){ const o=$('#orb'), s=o&&o.closest('.scr'); if(s) MZOOM.open(s); }
+  const box=$('#mzoomBox'); if(!box) return; const key=M.id+p.m; const old=$('#decz'); if(old&&old.dataset.k===key&&old.parentNode===box) return; if(old) old.remove();
+  box.insertAdjacentHTML('beforeend','<div id="decz" class="decz" data-k="'+key+'" role="group" aria-label="Safe mode"><div class="dzh"><span class="pause">SAFE MODE</span><b>'+esc(p.t)+'</b><button class="dzq" type="button" data-act="decwhy" aria-label="'+TX('Cos’è? Chiedi a Zorty','What is it? Ask Zorty')+'" title="'+TX('Cos’è? Chiedi a Zorty','What is it? Ask Zorty')+'">?</button></div>'+
+    (decFix(M,p)||'<div class="dops">'+p.opts.map(o=>'<button class="btn" data-act="decide" data-k="'+o.k+'"'+(o.off?' disabled':'')+'><b>'+esc(o.l)+'</b><small>'+esc(o.h||'')+'</small></button>').join('')+'</div>')+'</div>'); }
 // pianeta disegnato una volta per destinazione
 const PLAN={};
 function planetCanvas(k){ if(PLAN[k]) return PLAN[k]; const S=256, cv=document.createElement('canvas'); cv.width=cv.height=S; const g=cv.getContext('2d'), r=E.rng(k.length*31+7), R=S/2-6;
@@ -4618,7 +4645,16 @@ function simPt(o,th){ const r=o.a*(1-o.e*o.e)/(1+o.e*Math.cos(th)); return [r*Ma
 function simSat(c,x,y,ang,pan,wings,dead,z){ c.save(); c.translate(x,y); c.scale(z||1,z||1); c.rotate(ang); const L=(wings?13:5)*pan; c.lineWidth=1; c.strokeStyle='#0B1626';
   if(L>.5){ c.fillStyle=dead?'#5A6170':'#3E7BD6'; c.fillRect(-5-L,-2.5,L,5); c.fillRect(5,-2.5,L,5); c.strokeRect(-5-L,-2.5,L,5); c.strokeRect(5,-2.5,L,5); }
   c.fillStyle=dead?'#7A808A':'#F0B43A'; c.fillRect(-5,-5,10,10); c.strokeRect(-5,-5,10,10); c.restore(); }
-function simPlanet(c,dest,cx,cy,Rp){ const gl=typeof globe==='function'?globe(dest,Rp,20,15):null; if(gl) c.drawImage(gl,cx-Rp,cy-Rp,Rp*2,Rp*2); else c.drawImage(planetCanvas(dest),cx-Rp-3,cy-Rp-3,(Rp+3)*2,(Rp+3)*2); }
+/* pianeta della simulazione: calcolato alla risoluzione vera dello schermo (prima veniva ingrandito e sgranava) e con l'alone dell'atmosfera */
+const SIMATM={leo:'111,168,255',mars:'255,150,96',venus:'255,214,150'};
+function simPlanet(c,dest,cx,cy,Rp){ const dpr=Math.min(2,window.devicePixelRatio||1), ac=SIMATM[dest];
+  if(ac&&Rp>4){ const g=c.createRadialGradient(cx,cy,Rp*.94,cx,cy,Rp*1.2); g.addColorStop(0,'rgba('+ac+',.38)'); g.addColorStop(1,'rgba('+ac+',0)'); c.fillStyle=g; c.beginPath(); c.arc(cx,cy,Rp*1.2,0,7); c.fill(); }
+  const gl=typeof globe==='function'?globe(dest,Rp*dpr,20,15):null; if(gl) c.drawImage(gl,cx-Rp,cy-Rp,Rp*2,Rp*2); else c.drawImage(planetCanvas(dest),cx-Rp-3,cy-Rp-3,(Rp+3)*2,(Rp+3)*2); }
+/* esito del fine vita deciso dal volo intero (stesso calcolo della revisione finale), una volta per missione e per scelte fatte: l'animazione non mostra un rientro se poi il satellite resta in orbita come detrito */
+const EOLC=new Map();
+function simEolOk(M){ const key=M.id+'|'+JSON.stringify(M.choiceL||{}); const c=EOLC.get(M.id); if(c&&c.key===key) return c.ok; let ok=true; try{ const fl=L.flight(M,999); ok=!(fl&&fl.f&&fl.f.alive&&fl.f.impact==null); }catch(e){} EOLC.set(M.id,{key,ok}); return ok; }
+/* scia dietro al satellite lungo l'orbita che sta percorrendo */
+function simTrail(c,P,o,th,col){ c.lineCap='round'; for(let i=0;i<16;i++){ const a0=th-i*.06, a1=th-(i+1)*.06, q0=P(simPt(o,a0)), q1=P(simPt(o,a1)); c.strokeStyle='rgba('+col+','+(.55*(1-i/16)).toFixed(3)+')'; c.lineWidth=2.6*(1-i/16)+.6; c.beginPath(); c.moveTo(q0[0],q0[1]); c.lineTo(q1[0],q1[1]); c.stroke(); } c.lineCap='butt'; }
 function simDraw(c,w,h,M,ts){ const dest=M.sat.dest||'leo', B=O.BODY[dest];
   if(M.simWait){ simPlanet(c,dest,w/2,h/2+8,Math.min(w,h)*.26); return; }
   const p=O.plan(M), fl=flightNow(M), f=fl.f, D=Math.max(1,M.duration), endM=f.endMonth||D+1, mo=fl.mo, S=M.sim, e=Math.max(0,(M.pauseAt||now())-M.launchAt-(M.pausedMs||0));
@@ -4628,7 +4664,8 @@ function simDraw(c,w,h,M,ts){ const dest=M.sat.dest||'leo', B=O.BODY[dest];
   const eol=(M.drm&&M.drm.eol&&M.drm.eol.k)||'reentry', zz=O.zoneOf(M), lnd=!!(zz&&(zz.surf||(zz.moon&&!zz.to))), gR=eol==='grave'?B.R+(gA?gA*K:(W0.a-B.R)*1.4):0;
   let rmax=B.R*1.25; os.forEach(o=>{ rmax=Math.max(rmax,o.a*(1+o.e)); }); rmax=Math.max(rmax,gR);
   const sc=Math.min(w,h-40)/2*.9/rmax, cx=w/2, cy=h/2+10, P=q=>[cx+q[0]*sc,cy-q[1]*sc], Rp=B.R*sc, z=Math.max(1,Math.min(2.4,Math.min(w,h)/260)); simPlanet(c,dest,cx,cy,Rp);
-  os.forEach((o,k)=>{ c.strokeStyle=k===wi?'rgba(111,168,255,.9)':'rgba(111,168,255,.35)'; c.lineWidth=k===wi?1.6:1; c.setLineDash(k===wi?[]:[4,4]); c.beginPath(); for(let i=0;i<=72;i++){ const q=P(simPt(o,i/72*6.2832)); if(i) c.lineTo(q[0],q[1]); else c.moveTo(q[0],q[1]); } c.stroke(); }); c.setLineDash([]);
+  const oPath=o=>{ c.beginPath(); for(let i=0;i<=120;i++){ const q=P(simPt(o,i/120*6.2832)); if(i) c.lineTo(q[0],q[1]); else c.moveTo(q[0],q[1]); } };
+  os.forEach((o,k)=>{ if(k===wi){ c.strokeStyle='rgba(111,168,255,.16)'; c.lineWidth=6; oPath(o); c.stroke(); } c.strokeStyle=k===wi?'rgba(140,190,255,.95)':'rgba(111,168,255,.35)'; c.lineWidth=k===wi?1.8:1; c.setLineDash(k===wi?[]:[4,4]); oPath(o); c.stroke(); c.setLineDash([]); });
   if(gR){ c.strokeStyle='rgba(190,190,200,.35)'; c.setLineDash([2,5]); c.beginPath(); c.arc(cx,cy,gR*sc,0,7); c.stroke(); c.setLineDash([]); }
   const wings=!!(E.SOLAR[M.sat.sol]&&E.SOLAR[M.sat.sol].wings), dead=!f.alive, relTh=2.3, T1=1200, T2=2300, T3=S.intro, trT=Math.min(2500,900*wi), wSpd=2.4*Math.pow(rel.a/Math.max(rel.a,W0.a),1.2);
   let phase='', x, y, ang=0, pan=1;
@@ -4638,12 +4675,27 @@ function simDraw(c,w,h,M,ts){ const dest=M.sat.dest||'leo', B=O.BODY[dest];
     if(e<T3){ th=relTh+(e-T1)/1000*.25; pan=e<T2?0:Math.min(1,(e-T2)/(T3-T2)); ang=e<T2?(ts/1000)*(14*(1-(e-T1)/(T2-T1))+.5):0; phase=e<T2?'DETUMBLING':TX('APERTURA DEI PANNELLI SOLARI','SOLAR PANELS DEPLOY'); }
     else if(mo<D||dead){ const em=e-T3; if(wi>0&&em<trT){ const k=Math.min(wi-1,Math.floor(em/trT*wi)), u=em/trT*wi-k; orb=os[k]; th=relTh+(k+u)*Math.PI; phase=TX('TRASFERIMENTO ','TRANSFER ')+(k+1)+'/'+wi; }
       else { orb=W0; th=relTh+wi*Math.PI+(em-trT)/1000*wSpd; phase=lnd?TX('SULLA SUPERFICIE','ON THE SURFACE'):TX('ORBITA DI LAVORO','WORKING ORBIT'); } }
+    else if(!dead&&!lnd&&!simEolOk(M)){ /* disposal non riuscito: niente rientro disegnato, il satellite resta sull'orbita di lavoro */
+      const em=e-T3; orb=W0; th=relTh+wi*Math.PI+(em-trT)/1000*wSpd; phase=TX('FASE F · DISPOSAL NON RIUSCITO','PHASE F · DISPOSAL FAILED'); }
+    else if((eol==='reentry'||eol==='impact')&&!dead&&!lnd){
+      /* rientro con la sua orbita: un'ellisse che parte dall'apocentro dell'orbita di lavoro e scende dentro l'atmosfera fino al suolo */
+      const u=Math.max(0,Math.min(1,(mo-D)/Math.max(.3,endM-D))), th0=relTh+wi*Math.PI+(D*S.mspm-trT)/1000*wSpd, ra=Math.max(W0.a*(1+W0.e),B.R*1.05), rp=B.R*.55, ro={a:(ra+rp)/2,e:(ra-rp)/(ra+rp),rot:th0-Math.PI};
+      const val=Math.max(-1,Math.min(1,(ro.a*(1-ro.e*ro.e)/B.R-1)/ro.e)), thHit=2*Math.PI-Math.acos(val), atmR=B.R+(W0.a-B.R)*.35, U=.85, k=Math.min(1,u/U), ez=k*k*(3-2*k);
+      c.strokeStyle='rgba(255,150,70,.18)'; c.lineWidth=6; c.beginPath(); for(let i=0;i<=60;i++){ const q=P(simPt(ro,Math.PI+(thHit-Math.PI)*i/60)); if(i) c.lineTo(q[0],q[1]); else c.moveTo(q[0],q[1]); } c.stroke();
+      c.strokeStyle='rgba(255,170,90,.95)'; c.lineWidth=1.8; c.setLineDash([6,5]); c.lineDashOffset=-ts/60; c.stroke(); c.setLineDash([]); c.lineDashOffset=0;
+      phase=eol==='impact'?TX('FASE F · IMPATTO CONTROLLATO','PHASE F · CONTROLLED IMPACT'):TX('FASE F · RIENTRO','PHASE F · RE-ENTRY');
+      if(u<U){ const thr=Math.PI+(thHit-Math.PI)*ez, q=P(simPt(ro,thr)), r=Math.hypot(...simPt(ro,thr)); simTrail(c,P,ro,thr,'255,170,90');
+        if(r<atmR&&eol==='reentry'){ const hot=Math.min(1,(atmR-r)/Math.max(1,atmR-B.R)), fl0=c.createRadialGradient(q[0],q[1],0,q[0],q[1],(10+hot*12)*z); fl0.addColorStop(0,'rgba(255,240,200,.95)'); fl0.addColorStop(.4,'rgba(255,150,60,.75)'); fl0.addColorStop(1,'rgba(255,80,30,0)'); c.fillStyle=fl0; c.beginPath(); c.arc(q[0],q[1],(10+hot*12)*z,0,7); c.fill(); }
+        simSat(c,q[0],q[1],ts/900,1,wings,false,z*(1-.35*ez)); }
+      else { const q=P(simPt(ro,thHit)), b=(u-U)/(1-U), R0=(8+b*26)*z; const g0=c.createRadialGradient(q[0],q[1],0,q[0],q[1],R0); g0.addColorStop(0,'rgba(255,235,190,'+(.9*(1-b)).toFixed(3)+')'); g0.addColorStop(1,'rgba(255,110,40,0)'); c.fillStyle=g0; c.beginPath(); c.arc(q[0],q[1],R0,0,7); c.fill();
+        phase=eol==='impact'?TX('FASE F · IMPATTO','PHASE F · IMPACT'):TX('RIENTRO COMPLETATO','RE-ENTRY COMPLETE'); }
+      x=null; }
     else { const u=Math.max(0,Math.min(1,(mo-D)/Math.max(.3,endM-D))), r1=eol==='grave'?gR:B.R; th=relTh+wi*Math.PI+(D*S.mspm-trT)/1000*wSpd+u*7; orb={a:W0.a+(r1-W0.a)*u,e:0,rot:0}; fire=eol!=='grave';
       phase=eol==='grave'?TX('FASE F · ORBITA CIMITERO','PHASE F · GRAVEYARD ORBIT'):eol==='impact'?TX('FASE F · IMPATTO CONTROLLATO','PHASE F · CONTROLLED IMPACT'):eol==='surf'?TX('FASE F · FINE MISSIONE','PHASE F · END OF MISSION'):TX('FASE F · RIENTRO','PHASE F · RE-ENTRY'); }
-    const q=P(simPt(orb,th)); x=q[0]; y=q[1];
+    if(x!==null){ const q=P(simPt(orb,th)); x=q[0]; y=q[1]; if(e>=T3&&!dead&&!lnd) simTrail(c,P,orb,th,'140,190,255');
     if(lnd&&e>=T3&&!(wi>0&&e-T3<trT)){ const s=P(simPt({a:B.R,e:0,rot:0},relTh)); x=s[0]; y=s[1]; fire=false; }
     if(dead) ang=ts/700; if(fire&&!dead){ c.fillStyle='rgba(255,140,60,.85)'; c.beginPath(); c.arc(x,y,(6+(ts%5))*z,0,7); c.fill(); }
-    simSat(c,x,y,ang,pan,wings,dead,z); }
+    simSat(c,x,y,ang,pan,wings,dead,z); } }
   c.font='700 12px IBM Plex Mono, monospace'; c.fillStyle='#43D3E0'; c.textAlign='left'; c.fillText(phase,10,18);
   c.fillStyle='rgba(207,227,255,.85)'; c.textAlign='right'; c.fillText(TX('MESE ','MONTH ')+Math.min(D,Math.floor(mo))+' / '+D,w-10,18); c.textAlign='left';
   if(dead){ c.fillStyle='#FF7466'; c.fillText('LOSS OF SIGNAL',10,36); } else if(M.pauseAt&&Math.floor(ts/400)%2){ c.fillStyle='#FFB454'; c.fillText('SAFE MODE · '+TX('SCEGLI COSA FARE','CHOOSE WHAT TO DO'),10,36); }
@@ -4716,7 +4768,7 @@ function flyScreen(c,w,h,t){ const fly=G.missions.filter(m=>m.phase==='E'||m.pha
   if(al){ const on=Math.floor(t*2)%2===0; c.strokeStyle=on?'#FF3B2F':'#8A1C14'; c.lineWidth=16; c.strokeRect(8,8,w-16,h-16); c.fillStyle=on?'rgba(255,59,47,.92)':'rgba(160,30,24,.92)'; c.fillRect(0,h-58,w,58); c.fillStyle='#fff'; c.font='800 21px IBM Plex Mono, monospace'; c.fillText(TX('⚠ PROBLEMA IN VOLO · TOCCA LO SCHERMO','⚠ FLIGHT PROBLEM · TAP THE SCREEN'),16,h-21); } }
 function mccLoop(){ mccStop(); const cv=$('#orb'); if(!cv) return; let last=0, ang=0;
   (function loop(ts){ if(!cv.isConnected||$('#orb')!==cv){ mccRaf=0; return; } mccRaf=requestAnimationFrame(loop); const dt=Math.min(.05,(ts-last)/1000||0); last=ts; const M=cur(), w=cv.clientWidth, h=cv.clientHeight, dpr=Math.min(2,window.devicePixelRatio||1);
-    if(cv.width!==Math.round(w*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); } const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.fillStyle='#0E1A2E'; c.fillRect(0,0,w,h);
+    if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); } /* anche l'altezza: la fascia del safe mode si apre e si chiude sotto lo schermo */ const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.fillStyle='#0E1A2E'; c.fillRect(0,0,w,h);
     STARS.forEach(s2=>{ c.fillStyle='rgba(220,230,255,.7)'; c.fillRect(s2[0]*w,s2[1]*h,s2[2],s2[2]); });
     if(!M) return; if(M.simWait||(M.sim&&M.launchAt&&(M.phase==='E'||M.phase==='F'))){ simDraw(c,w,h,M,ts); return; } const dest=M.sat.dest||'leo', B=O.BODY[dest], p=O.plan(M), el=p.final, fly=M.phase==='E'||M.phase==='F';
     const zz0=O.zoneOf(M), rp=B.R+el.pe, ra=Math.max(B.R+(isFinite(el.ap)?el.ap:el.pe), zz0&&zz0.alt?B.R+zz0.alt:0), a=(rp+ra)/2, e=(ra-rp)/(ra+rp), bb=a*Math.sqrt(1-e*e), sc=Math.min(w,h)/2*.86/ra, cx=w/2, cy=h/2+6;
@@ -4774,11 +4826,12 @@ function bodyArt(k,R,cy,id){ const c=BODYC[k]; if(!c) return '<circle r="'+R+'" 
     '<radialGradient id="'+id+'h" cx=".3" cy=".24" r=".42"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>'+
     '<radialGradient id="'+id+'a" r=".5"><stop offset="'+e1+'" stop-color="'+glow+'" stop-opacity="'+(sun?.85:.5)+'"/><stop offset="1" stop-color="'+glow+'" stop-opacity="0"/></radialGradient>'+
     '<clipPath id="'+id+'c"><circle r="17"/></clipPath></defs>';
+  const tx=texIco(k); /* con la mappa cartoon caricata il corpo e' la sfera vera; prima resta il disegno vettoriale */
   return '<g transform="translate(0 '+cy+') scale('+(R/17).toFixed(4)+')">'+defs+'<circle r="'+(17*ex).toFixed(2)+'" fill="url(#'+id+'a)"/>'+(A.corona||'')+(A.back||'')+
-    '<circle r="17" fill="url(#'+id+'g)"/><g clip-path="url(#'+id+'c)">'+(A.art||'')+'<circle r="17" fill="url(#'+id+'t)"/><circle r="17" fill="url(#'+id+'h)"/></g>'+(A.rim||'')+
+    (tx?'<image href="'+tx+'" x="-17" y="-17" width="34" height="34"/><circle r="17" fill="url(#'+id+'h)" opacity=".5"/>':'<circle r="17" fill="url(#'+id+'g)"/><g clip-path="url(#'+id+'c)">'+(A.art||'')+'<circle r="17" fill="url(#'+id+'t)"/><circle r="17" fill="url(#'+id+'h)"/></g>'+(A.rim||''))+
     '<path d="M-15.7-5.8A16.7 16.7 0 0 1-5.7-15.7" fill="none" stroke="#fff" stroke-width=".8" stroke-linecap="round" opacity="'+(sun?.5:.4)+'"/>'+(A.front||'')+'</g>'; }
 function planet(k,r){ const ex=BODYX[k]||1, R=ex>1.2?Math.min(r||30,38/ex):(r||30), gid='pg'+k+(++PGN);
-  return '<svg viewBox="-40 -40 80 80" aria-hidden="true">'+bodyArt(k,R,0,gid)+'</svg>'; }
+  return '<svg class="pico" data-k="'+k+'"'+(r?' data-r="'+r+'"':'')+' viewBox="-40 -40 80 80" aria-hidden="true">'+bodyArt(k,R,0,gid)+'</svg>'; }
 const fmtKm=n=>nf(n,0);
 function zoneBand(z){ return z.band?fmtKm(z.band[0])+'–'+fmtKm(z.band[1])+' km':z.alt?'a '+fmtKm(z.alt)+' km da Marte':z.surf?'sul suolo':'atterraggio'; }
 function zoneIcon(body,z){ const col=E.DEST[body].col, id='zi'+body+(z.k||'')+Math.random().toString(36).slice(2,6);
@@ -4858,7 +4911,10 @@ let TVS=0; function tick(){ if(!G||SPECT) return; clock(); let dirty=false;
     if(M.phase==='D'&&M.stage==='assembly'&&M.buildEnd&&now()>=M.buildEnd&&!M.buildNote){ M.buildNote=true; dirty=true; toast(M.name+': assemblaggio completato. Portalo al laboratorio prove.'); sfx.ok(); }
     Object.keys(M.tr).forEach(t=>{ const r=M.tr[t]; if(r.res==='run'&&now()>=r.end){ dirty=true; const Lx=E.layout(M.sat); if(t==='vib'&&Lx.topHeavy&&!M.stiff) r.res='struct'; else if(M.defects[t]) r.res='defect'; else { r.res='pass'; M.tests[t]=true; } (r.res==='pass'?sfx.ok:sfx.bad)(); toast(M.name+': prova '+L.MACH[t].tn+(r.res==='pass'?' superata.':' con problemi.')); } });
     if(M.phase==='E'||M.phase==='F'){ if(M.simWait) return; const fl=flightNow(M), f=fl.f, endM=f.endMonth||M.duration+1;
-      if(fl.pending&&!M.pauseAt){ M.pauseAt=now(); M.alert=true; dirty=true; sfx.bad(); toast(TX('🛰 '+M.name+' · '+fl.pending.t+': il satellite è passato da solo in safe mode. Scegli cosa fare in sala controllo.','🛰 '+M.name+' · '+I18N.tr(fl.pending.t)+': the satellite switched to safe mode on its own. Choose what to do in the control room.')); hud(); return; }
+      if(fl.pending&&!M.pauseAt){ M.pauseAt=now(); M.alert=true; dirty=true; sfx.bad(); toast(TX('🛰 '+M.name+' · '+fl.pending.t+': il satellite è passato da solo in safe mode. Scegli cosa fare in sala controllo.','🛰 '+M.name+' · '+I18N.tr(fl.pending.t)+': the satellite switched to safe mode on its own. Choose what to do in the control room.'));
+        /* safe mode: si va subito alla pagina della telemetria di quella missione, la scelta e' li' */
+        if(!SPECT){ const i=G.missions.indexOf(M); if(i>=0) G.cur=i; if(!$('#ov').hidden) closeOv(); if(view!=='mcc') go('mcc'); if(MCCV!=='wall'){ MCCV='wall'; render(); } }
+        hud(); return; }
       if(fl.pending) return;
       const bad=fl.log.filter(l=>l.tone==='bad').length; if(bad>(M.seenBad||0)){ if(view==='mcc'&&M===cur()) M.seenBad=bad; else if(!M.alert||bad>(M.alertN||0)){ M.alert=true; M.alertN=bad; sfx.bad(); toast('⚠ '+M.name+': problema in volo. Controlla il Mission Control Center.'); hud(); } }
       if(M.phase==='E'&&(fl.mo>=M.duration||f.early)&&f.alive){ M.phase='F'; dirty=true; }
@@ -4868,7 +4924,7 @@ let TVS=0; function tick(){ if(!G||SPECT) return; clock(); let dirty=false;
   if(dirty){ if(view==='mcc') mccRefresh(true); else if(view!=='build'||!yardOn(C)) render(); else hud(); save(); }
   else { if(view==='build') cleanUpdate(); if(view==='test'&&!DSAT&&cur()&&cur().phase==='D'&&Object.keys(cur().tr).some(t=>cur().tr[t].res==='run')&&(TVS!==(TVS=Math.floor(Date.now()/1000)))) vTest($('#view')); if(view==='mcc') mccRefresh(false); }
   winRefresh(); if(Math.random()<.1) save(); }
-function finish(M,fl){ if(M.phase==='done') return; const x=L.closeOut(M,fl,hasB('visit'));
+function finish(M,fl){ if(M.phase==='done') return; /* animazione finita (rientro compreso): la telemetria ingrandita si chiude da sola */ if(M===cur()&&view==='mcc'&&$('#mzoomBox')) MZOOM.close(); const x=L.closeOut(M,fl,hasB('visit'));
   M.joy=x.joy; gainXP(x.ok?L.XP.win:L.XP.lose); M.result=Object.assign({},x,{joy:undefined}); M.phase='done'; M.got=(M.got||0)+x.inst;
   addMoney(x.net); if(!M.tut){ const l0=leagueOf(G.sciTotal||0); G.sciTotal=(G.sciTotal||0)+Math.max(0,Math.round((x.sci|0)*perk('sci'))); const l1=leagueOf(G.sciTotal); pushRank(); if(!G.sandbox&&window.GNGCLAN){ /* i dati della missione servono alla sfida della settimana del consorzio */ let cost=0; try{ cost=Math.max(0,Math.round(E.budget(M.sat).cost||0)); }catch(e){} GNGCLAN.science(M.id,Math.round((x.sci|0)*perk('sci')),M.name,{ok:!!x.ok,dest:String((M.sat&&M.sat.dest)||'leo'),type:String(M.type||'sci'),cost,months:Math.max(0,Math.min(600,x.months|0))}); } if(l1>l0) setTimeout(()=>leagueUp(l1),2600); hud(); } if(M===cur()) setTimeout(()=>mcrReview(M),300); else toast(M.name+': missione '+(x.ok?'riuscita':'chiusa')+'. Bilancio '+keur(x.net)+'.'); }
 // La revisione di chiusura: i conti, le cause di ogni evento, e il "e se..."
@@ -4999,7 +5055,9 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
   acc(t){ const d=cur().sat, k=t.dataset.k; unfresh(k); d.acc=d.acc||{}; d.acc[k]=!d.acc[k]; sfx.tap(); bRefresh(); },
   rot(){ rotateSel(); }, del(){ const d=cur().sat; if(sel){ delete d.placed[sel]; delete d.heat[sel]; sel=null; bRefresh(); } }, heat(){ const d=cur().sat; if(sel){ d.heat[sel]=!d.heat[sel]; sfx.tap(); bRefresh(); } },
   pdr(){ const M=cur(), bad=pdrList(M);
-    if(!bad.length){ const cost=costDue(M); review({eb:'Fine fase C',name:'Critical Design Review',code:'CDR',nasa:'Critical Design Review',stamp:'GO',short:(LANG==='en'?'The design meets the requirements. Parts: ':'Il progetto rispetta i requisiti. Pezzi: ')+'<b class="num">'+keur(cost)+'</b>.',body:'<p>Il progetto rispetta tutti i requisiti. I pezzi costano <b class="num">'+keur(cost)+'</b>; l’assemblaggio in camera bianca richiede '+Math.round(L.TIME.build/1000)+' s.</p>'+(G.money<cost?'<p class="bad">In cassa ci sono solo '+keur(G.money)+'. Serve un progetto più economico.</p>':''),actions:'<button class="btn primary" data-act="toD">Compra i pezzi e assembla</button><button class="btn" data-act="closeov">Non ancora</button>'}); return; }
+    if(!bad.length){ const cost=costDue(M); review({eb:'Fine fase C',name:'Critical Design Review',code:'CDR',nasa:'Critical Design Review',short:(LANG==='en'?'The design meets the requirements. Parts: ':'Il progetto rispetta i requisiti. Pezzi: ')+'<b class="num">'+keur(cost)+'</b>.',body:'<p>Il progetto rispetta tutti i requisiti. I pezzi costano <b class="num">'+keur(cost)+'</b>; l’assemblaggio in camera bianca richiede '+Math.round(L.TIME.build/1000)+' s.</p>'+(G.money<cost?'<p class="bad">In cassa ci sono solo '+keur(G.money)+'. Serve un progetto più economico.</p>':''),
+      /* il GO e l'acquisto dei pezzi sono un tasto solo: dare il GO vuol dire comprare e assemblare */
+      actions:'<button class="btn primary gobuy" data-act="toD"><b class="gob">GO</b><span>'+TX('Compra i pezzi e assembla','Buy the parts and assemble')+'</span></button><button class="btn" data-act="closeov">'+TX('Non ancora','Not yet')+'</button>'}); sfx.stamp(); return; }
     const base=bad.filter(x=>x.base), soft=bad.filter(x=>!x.base);
     review({eb:'Fine fase C',name:'Critical Design Review',code:'CDR',nasa:'Critical Design Review',stamp:'NO-GO',no:true,body:'<ul class="reqs">'+bad.map(x=>'<li><span class="c">'+(x.base?'BASE':x.code)+'</span><span>'+esc(x.t)+(x.who?' <span class="fine">· '+esc(PEO[x.who].n)+'</span>':'')+'</span><span>'+(x.base?'':L.R(x.id).rule?'<span class="fine">regola</span>':'<button class="btn small no" data-act="waive" data-id="'+x.id+'">Deroga</button>')+'</span></li>').join('')+'</ul>'+
       (soft.length?'<p class="fine">Una deroga chiude il requisito, ma è una promessa rotta: chi lo ha chiesto perde '+L.JOY.waive+' punti di soddisfazione, e con loro una parte delle rate.</p>':'')+(base.length?'<p class="fine">I requisiti di base non si derogano.'+(base.some(x=>x.fd)?' Il piano di volo si progetta nel Centro di dinamica del volo.':'')+'</p>':''),actions:'<button class="btn primary" data-act="closeov">Torna al progetto</button>'}); },
@@ -5026,12 +5084,13 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
   buildb(t){ const k=t.dataset.k, b=L.BUILD[k]; if(G.money<b.c){ toast('Non hai abbastanza soldi.'); sfx.bad(); return; } addMoney(-b.c); G.plots[+t.dataset.i]=k; closeOv(); sfx.stamp(); toast(b.n+' costruito: '+b.s); render(); },
   binfo(t){ facK=t.dataset.k||G.plots[+t.dataset.i]; sfx.tap(); go('fac'); },
   binfoOld(t){ const k=G.plots[+t.dataset.i], b=L.BUILD[k]; review({eb:'Edificio',name:b.n,code:'—',nasa:'—',body:'<p>'+b.s+'</p><p class="fine">Effetto attivo su tutte le missioni.</p>',actions:'<button class="btn primary" data-act="closeov">Chiudi</button>'}); },
-  runtest(t){ const M=cur(), k=t.dataset.k, tc=testC(M); if(G.money<tc){ toast('Non hai abbastanza soldi.'); return; } addMoney(-tc); const td=L.TIME.test*(M.tut?.2:1)*workK()*perk('test'); M.tr[k]={res:'run',end:now()+td,dur:td}; sfx.tap(); render();
+  runtest(t){ const M=cur(), k=t.dataset.k, tc=testC(M); if(G.money<tc){ toast('Non hai abbastanza soldi.'); return; } addMoney(-tc); const td=M.tut?L.TIME.test:L.TIME.test*workK()*perk('test'); /* il satellite resta sul macchinario circa 2 s, poi la prova finisce */ M.tr[k]={res:'run',end:now()+td,dur:td}; sfx.tap(); render();
     if(!M.tut&&window.GNGMINI&&GNGMINI.has(k)) GNGMINI.play(k,{en:TX('it','en')==='en'},sc=>{ const r=M.tr[k]; if(sc==null||!r||r.res!=='run') return; if(sc>=.45){ const f=sc>=.8?.15:.5, left=Math.max(0,r.end-now()); r.end=now()+left*f; r.dur=Math.max(1,r.dur-left*(1-f)); sfx.ok(); toast(TX('Ottimo lavoro: la prova finisce prima.','Nice work: the test finishes sooner.')); } else sfx.bad(); if(view==='test') render(); }); },
   fix(t){ const M=cur(); if(G.money<L.FIXC){ toast('Non hai abbastanza soldi.'); return; } addMoney(-L.FIXC); M.tr[t.dataset.t].res='fixed'; M.tests[t.dataset.t]=true; sfx.ok(); render(); },
   stiff(){ const M=cur(); if(G.money<L.STIFFC){ toast('Non hai abbastanza soldi.'); return; } addMoney(-L.STIFFC); M.stiff=true; if(M.defects.vib) M.tr.vib.res='defect'; else { M.tr.vib.res='pass'; M.tests.vib=true; } sfx.ok(); render(); },
   frr(){ const M=cur(), miss=L.status(M,M.sat).list.filter(x=>x.kind==='tests'&&!x.ok).sort((a,b)=>(L.R(a.id).rule?1:0)-(L.R(b.id).rule?1:0)), un=L.TESTS.filter(t=>!M.tests[t]), RK=L.risks(M,G.lab.filter(Boolean)).list, hi=RK.filter(x=>x.p*x.i>=6);
-    if(miss.length){ review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nc:'FRR',nasa:'Flight Readiness Review',stamp:'NO-GO',no:true,body:'<p>'+miss.map(x=>x.code+' · '+esc(x.t)).join('<br>')+'</p><p class="fine">'+(L.R(miss[0].id).rule?'L’ente regolatore non autorizza il lancio senza queste prove: niente deroghe.':esc(PEO.pa.n)+' non firma senza queste prove.')+'</p>',actions:'<button class="btn primary" data-act="closeov">Torna alle prove</button>'+(L.R(miss[0].id).rule?'':'<button class="btn no" data-act="waive" data-id="'+miss[0].id+'">Deroga</button>')}); return; }
+    if(miss.length){ review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nc:'FRR',nasa:'Flight Readiness Review',stamp:'NO-GO',no:true,body:'<p>'+miss.map(x=>x.code+' · '+esc(x.t)).join('<br>')+'</p><p class="fine">'+(L.R(miss[0].id).rule?'L’ente regolatore non autorizza il lancio senza queste prove: niente deroghe.':esc(PEO.pa.n)+' non firma senza queste prove.')+'</p>',/* nel tutorial le altre prove non si possono fare: la strada e' la deroga, quindi e' il tasto principale */
+      actions:(M.tut&&!L.R(miss[0].id).rule?'<button class="btn primary" data-act="waive" data-id="'+miss[0].id+'">Deroga</button><button class="btn" data-act="closeov">Torna alle prove</button>':'<button class="btn primary" data-act="closeov">Torna alle prove</button>'+(L.R(miss[0].id).rule?'':'<button class="btn no" data-act="waive" data-id="'+miss[0].id+'">Deroga</button>'))}); return; }
     review({eb:'Fine fase D',name:'Flight Readiness Review',code:'AR, FRR',nc:'FRR',nasa:'Flight Readiness Review',short:(LANG==='en'?'Open risks: ':'Rischi aperti: ')+'<b>'+RK.length+'</b>'+(hi.length?', <b class="bad">'+hi.length+(LANG==='en'?' high':' alti')+'</b>':'')+(LANG==='en'?'. The Go is your call.':'. Il Go lo decidi tu.'),body:(un.length?'<p>Senza prova superata: '+un.map(t=>L.MACH[t].n).join(', ')+'. Eventuali difetti voleranno con il satellite.</p>':'<p>Tutte le prove superate.</p>')+'<p><b>Rischi aperti: '+RK.length+'</b>, di cui <b>'+hi.length+' alti</b>'+(hi.length?': '+hi.map(x=>esc(x.t)).join(', '):'')+'.</p><p>Con il Go gli stakeholder versano la terza rata: <b class="num">'+keur(L.installment(M,'FRR'))+'</b>.</p><p>La decisione è tua.</p>',actions:'<button class="btn primary" data-act="go">Go</button><button class="btn" data-act="closeov">No-go</button>'}); },
   go(){ const M=cur(); M.ready=true; M.winAt=now()+winWait(M); closeOv(); sfx.stamp(); const first=once(M,'FRR'); if(first) gainXP(L.XP.FRR); const inst=first?L.installment(M,'FRR'):0; M.got=(M.got||0)+inst; addMoney(inst); /* dopo il Go si torna al campus (go qui e' la funzione di navigazione, non questo metodo) */ go('hub'); if(M.sat.lv!=='HOME'){ toast(M.name+' è pronto: comincia la fase E. Vai all’edificio amministrativo per il lancio.'); return; } toast(M.name+' è sulla rampa di lancio: comincia la fase E.'); },
   xopen(){ xLaunchModal(cur()); },
@@ -5051,6 +5110,8 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
   /* prima si registra la decisione, poi si paga: se la decisione non passa, nessun credito viene tolto */
   decfix(t){ const M=cur(), c=+t.dataset.c||0; if(!M) return; if(G.money<c){ toast(TX('Non hai abbastanza crediti.','Not enough credits.')); return; } const n0=Object.keys(M.choices||{}).length; ACT.decide(t); if(Object.keys(M.choices||{}).length>n0) addMoney(-c,TX('Intervento in volo: −','In-flight fix: −')+keur(c)); },
   autodec(){ const M=cur(), fl=L.flight(M,999); if(!fl.pending) return; ACT.decide({dataset:{k:fl.pending.auto}}); M.choiceL[fl.pending.m].auto=true; },
+  /* «?» accanto alla causa del safe mode: Zorty spiega cos'e' (es. una tempesta solare) e cosa vuol dire safe mode */
+  decwhy(){ if(!DECP) return; const p=DECP.p; ZORTY.show({pose:'dubbio',greet:TX('Ecco cosa è successo','Here is what happened'),sections:[[esc(p.t),esc(p.q)],['Safe mode',TX('Il satellite si è messo in sicurezza da solo: ha spento il superfluo e aspetta istruzioni. Il tempo è fermo finché non scegli.','The satellite put itself in a safe state on its own: it switched off the non-essentials and is waiting for instructions. Time is paused until you choose.')]]}); },
   mcr(t){ const M=G.missions[+t.dataset.i]; $('#drawer').hidden=true; mcrReview(M); },
   whatif(t){ const M=MCRM, o=WIO[+t.dataset.i]; if(!M||!o) return; const w=L.whatIf(M,Object.assign({visit:hasB('visit')},o)), r=M.result, x=w.out, d=x.net-r.net, el=$('#wires');
     el.innerHTML='<b>'+esc(o.l)+'</b><br>'+(x.ok?'Missione riuscita':!x.alive?'Satellite perso: '+esc(x.cause||''):'Missione chiusa male')+' · '+x.months+' mesi · scienza '+x.sci+' · bilancio <span class="num">'+keur(x.net)+'</span> <b class="'+(d>=0?'okc':'bad')+'">('+(d>=0?'+':'')+keur(d)+' rispetto a com’è andata)</b><div class="fine">Un solo cambiamento, poi il caso e l’autopilota fanno il resto: rigioca più volte la stessa idea e i numeri cambiano.</div>'; el.hidden=false; sfx.tap(); },
@@ -5077,7 +5138,7 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
   abort(){ if(LBUSY) return; sfx.tap(); go('hub'); },
   road(){ roadModal(); },
   pinfo(t){ const M=cur(), k=E.stk(t.dataset.id); if(!k||!M) return; review({eb:k.k,name:k.n,code:'—',nasa:'Stakeholder',body:'<p class="num" style="color:#1F8A4C;font-weight:700">+'+keur(L.fund(k.id,M))+'</p><ul class="cast info" style="list-style:none;padding:0;display:grid;gap:6px"><li>'+ico('gift')+' '+(k.id==='nasa'?TX('Il catalogo NASA: '+E.DBX.filter(x=>x.code.indexOf('NASA')===0).length+' tecnologie, sbloccate con i livelli','The NASA catalogue: '+E.DBX.filter(x=>x.code.indexOf('NASA')===0).length+' technologies, unlocked with levels'):k.spec?TX('Carte di '+esc(k.spec.toLowerCase())+' un livello prima','Cards for '+esc(I18N.tr(k.spec).toLowerCase())+' one level earlier'):TX('Fondi per la missione','Funding for the mission'))+'</li><li>'+TX('Ci tiene a: ','Cares about: ')+L.interests(k.id).map(i=>I18N.tr(L.INTN[i]||i)).join(', ')+'</li><li>'+TX('Al tavolo: ','At the table: ')+esc(PEO[k.id].n)+', '+esc(PEO[k.id].role.toLowerCase())+'</li>'+(L.fits4(k.id,M)?'<li class="nope">Non pertinente: '+L.fits4(k.id,M)+'</li>':'')+'</ul>',actions:'<button class="btn primary" data-act="closeov">Chiudi</button>'}); },
-  staff(){ staffModal(); }, risks(){ riskModal(); }, cdrm(t){ const i=G.missions.findIndex(m=>m.id===t.dataset.id); if(i<0) return; G.cur=i; ACT.cdr(); }, arch(){ $('#pop').hidden=true; folder('mine'); $('#drawer').hidden=false; }, rank(){ closeOv(); rankModal(); },
+  staff(){ staffModal(); }, risks(){ const M=cur(); if(M&&M.tut) M.riskSeen=true; riskModal(); }, cdrm(t){ const i=G.missions.findIndex(m=>m.id===t.dataset.id); if(i<0) return; G.cur=i; ACT.cdr(); }, arch(){ $('#pop').hidden=true; folder('mine'); $('#drawer').hidden=false; }, rank(){ closeOv(); rankModal(); },
   hire(){ if(G.staff>=spaces()){ toast('Tutti i posti auto sono occupati: costruisci un parcheggio.'); return; } if(G.money<HIRE){ toast('Non hai abbastanza crediti.'); return; } addMoney(-HIRE); G.staff++; sfx.ok(); save(); staffModal(); hud(); if(view==='hub') render(); },
   fire(){ if(G.staff<=staffNeed()) return; G.staff--; sfx.tap(); save(); staffModal(); if(view==='hub') render(); },
   rplant(t){ if(G.money<PLANTC){ toast('Non hai abbastanza crediti.'); return; } RPLACE={room:t.dataset.r,k:'plant'}; RSEL=null; sfx.tap(); render(); },
@@ -5325,6 +5386,8 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
     if(has('[data-act="toC"]')) return S('#ov [data-act="toC"]','Preliminary Design Review: orbita e lancio vanno bene. Prenota il lancio: arriva anche la seconda rata.',4);
     if(has('[data-act="toD"]')) return S('#ov [data-act="toD"]','Critical Design Review: il progetto rispetta tutti i requisiti. Compra i pezzi e passa all’assemblaggio.',6);
     if(has('[data-act="go"]')) return S('#ov [data-act="go"]','Flight Readiness Review: le prove sono superate. Dai il GO.',8);
+    if(has('.rvrisk')) return S('#ov .rvrisk .mx','Questa è la matrice dei rischi: più un rischio è in alto a destra, più è probabile e grave. I numeri sono i rischi aperti, spiegati sotto. Quando hai visto, chiudi.',8);
+    if(has('[data-act="waive"]')&&ph==='D'&&!M.ready) return S('#ov [data-act="waive"]','NO-GO: questa prova al livello 1 non si può fare. Concedi una deroga: il requisito si chiude, ma il rischio vola con il satellite.',8);
     if(has('[data-act="xlaunch"]:not([disabled])')) return S('#ov [data-act="xlaunch"]','Il razzo di un ente terzo è pronto, il servizio è già pagato. Lancia!',8);
     for(const k of ['vib','func']) if(has('[data-act="install"][data-k="'+k+'"]:not([disabled])')&&G.lab.indexOf(k)<0) return S('#ov [data-act="install"][data-k="'+k+'"]',k==='vib'?'Installa la tavola vibrante: simula le vibrazioni del razzo.':'Installa il banco per la prova funzionale: accende tutto e controlla che risponda.',7);
     if(has('[data-act="decide"]')) return S('#ov [data-act="decide"]','Un imprevisto in orbita: scegli tu cosa fare.',9);
@@ -5365,6 +5428,8 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
     if(RPLACE&&RPLACE.room==='test') return S('#roomsvg','Tocca un punto libero del laboratorio per posizionare il macchinario: lo metti dove vuoi, ma senza toccare gli altri.',7);
     for(const k of need) if(G.lab.indexOf(k)<0) return S('.rb[data-act="labadd"]','Ogni prova vuole il suo macchinario. Tocca «Macchinario» a destra per installarne uno.',7);
     for(const k of need){ const r=M.tr[k]; if(r&&r.res==='run') return S(null,(k==='vib'?'Prova di vibrazione':'Prova funzionale')+' in corso…',7); if(!M.tests[k]&&!r){ if($('[data-act="mtest"]')) return S('[data-act="mtest"]','Scegli il satellite da provare: la prova parte subito.',7); return S('#roomsvg',k==='vib'?'Tocca la tavola vibrante per lanciare la prova di vibrazione.':'Tocca il banco per la prova funzionale.',7); } }
+    /* prima della FRR il tutorial fa aprire la matrice dei rischi: e' su quella che si decide il GO */
+    if(!M.riskSeen&&$('[data-act="risks"]')) return S('[data-act="risks"]','Prima della revisione di volo guarda la matrice dei rischi: ogni prova saltata resta un rischio aperto. Tocca «Rischi» in alto.',8);
     return S('[data-act="frr"]','Prova superata. Al livello 1 hai solo la tavola vibrante: gli altri macchinari si sbloccano salendo di livello. Chiedi la revisione FRR: decide se il satellite può volare.',8); }
   if(ph==='E'){ if(!here('mcc')) return go2('mcc','Il satellite è in orbita! Seguilo dalla sala controllo.',9);
     if(MCCV!=='wall') return S('#roomsvg [data-act="mccwall"]','Il satellite è in orbita! Tocca gli schermi della sala controllo per seguire la telemetria.',9);
@@ -7165,7 +7230,7 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
   let h='';
   if(s==='main'||s==='pause'){ const music=G.music!==false;
     const items=(s==='pause'?[['tresume',TX('RIPRENDI','RESUME')],['ttl:settings',TX('IMPOSTAZIONI','SETTINGS')],['trank',TX('CLASSIFICA','LEADERBOARD')],['troad','ROADMAP'],['tarch',TX('ARCHIVIO MISSIONI','MISSION ARCHIVE')],['ttl:main',TX('MENU PRINCIPALE','MAIN MENU')]].concat(window.gngUser?[['tlogout',TTL.out?TX('CONFERMA USCITA?','CONFIRM SIGN OUT?'):TX('ESCI DALL’ACCOUNT','SIGN OUT')]]:[]):
-      [hasSave()?['tresume',TX('CONTINUA','CONTINUE')]:null,['ttl:modes','NEW GAME'],['ttl:settings',TX('IMPOSTAZIONI','SETTINGS')],['ttl:credits',TX('CREDITI','CREDITS')],['ttl:quit',TX('ESCI','QUIT GAME')]]).filter(Boolean);
+      [hasSave()&&window.gngUser?['tresume',TX('CONTINUA','CONTINUE')]:null,['ttl:modes','NEW GAME'],['ttl:settings',TX('IMPOSTAZIONI','SETTINGS')],['ttl:credits',TX('CREDITI','CREDITS')],['ttl:quit',TX('ESCI','QUIT GAME')]]).filter(Boolean);
     h='<div class="tmain"><div class="tleft"><div class="tlogo">'+logoSVG()+'<b>GO<br>NO-GO</b></div><nav class="tmenu">'+items.map(x=>{ const [a,v]=x[0].split(':'); return '<button data-act="'+a+'"'+(v?' data-s="'+v+'"':'')+'>'+x[1]+(x[2]?'<i class="tdia">!</i>':'')+'</button>'; }).join('')+'</nav><small class="tver">NASA Space Apps 2026</small></div>'+
       '<div class="tright">'+acctChip()+'<button class="tnow" data-act="tmusic"><span><small>'+TX('IN RIPRODUZIONE','NOW PLAYING')+'</small>'+(music?'Go No-Go · '+TX('tema principale','main theme'):TX('Musica spenta','Music off'))+'</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l12-2v11.5a3 3 0 1 1-2-2.8V6.3L9 7.8z"/></svg></button>'+lvlBox()+'</div></div>';
     if(s==='pause') h='<div class="tmain tpause"><div class="tleft"><div class="tlogo sm">'+logoSVG()+'<b>'+TX('PAUSA','PAUSED')+'</b></div><nav class="tmenu">'+items.map(x=>{ const [a,v]=x[0].split(':'); return '<button data-act="'+a+'"'+(v?' data-s="'+v+'"':'')+'>'+x[1]+'</button>'; }).join('')+'</nav></div><div class="tright">'+lvlBox()+'<div class="tunl"><h4>'+esc(G.co||TX('La tua agenzia','Your agency'))+'</h4><div class="tfaces">'+crewList().map(c=>'<span>'+faceSVG(c)+'<small>'+c.n.split(' ')[0]+'</small></span>').join('')+'</div></div></div></div>'; }
@@ -7173,7 +7238,7 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
     h='<div class="tsec"><h2 class="tt">SELECT A MODE</h2>'+(hasSave()&&!G.tut?'<p class="twarn">A new game replaces your saved game.</p>':'')+'<div class="tmodes">'+MODES.map(m=>'<button class="tmode'+(TTL.mode===m.k?' sel':'')+'" data-act="tmode" data-k="'+m.k+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+m.ic+'</svg><b>'+m.n+'</b><small>'+m.s+'</small></button>').join('')+'</div>'+
       '<div class="tdiff'+(car?'':' off')+'"><span>DIFFICULTY</span>'+DIFFS.map(d=>'<button class="'+(TTL.diff===d[0]?'sel':'')+'" data-act="tdiff" data-k="'+d[0]+'"'+(car?'':' disabled')+'><b>'+d[1]+'</b><small>'+d[2]+'</small></button>').join('')+'</div></div>'+foot(1,'tnext','CHOOSE'); }
   else if(s==='crew'){ const c=crewOf(TTL.crew), tut=!tutSeen()&&!(G&&G.tutDone&&(G.missions.length||G.xp>0));
-    h='<div class="tsec narrow"><h2 class="tt">'+TX('LA TUA AGENZIA','YOUR AGENCY')+'</h2><div class="tbox tsel">'+'<label for="tco">'+TX('Nome dell’agenzia','Agency name')+'</label><input type="text" id="tco" maxlength="28" value="" placeholder="'+TX('Es. Perigeo Labs','e.g. Perigeo Labs')+'" autocomplete="off">'+
+    h='<div class="tsec narrow"><h2 class="tt">'+TX('LA TUA AGENZIA','YOUR AGENCY')+'</h2><div class="tbox tsel">'+'<label for="tco">'+TX('Nome dell’agenzia','Agency name')+' <small class="topt">· '+TX('facoltativo','optional')+'</small></label><input type="text" id="tco" maxlength="28" value="" placeholder="'+TX('Lascia vuoto per «Perigeo Labs»','Leave empty for “Perigeo Labs”')+'" autocomplete="off">'+
       (tut?'<p class="tnote">'+TX('Prima partita: si comincia con un breve tutorial guidato su Marte, poi parte la modalità che hai scelto.','First game: you start with a short guided tutorial on Mars, then the mode you chose begins.')+'</p>':'')+'</div></div>'+foot(1,'tstart',tut?TX('INIZIA IL TUTORIAL','START TUTORIAL'):TX('INIZIA','START')); }
   else if(s==='settings'){ const fsOk=document.fullscreenEnabled||document.webkitFullscreenEnabled;
     const row=(t,d,act,v)=>'<div class="tset"><span><b>'+t+'</b><small>'+d+'</small></span><button class="tsw'+(v===true?' on':'')+'" data-act="'+act+'">'+(v===true?'ON':v===false?'OFF':v)+'</button></div>';
@@ -7446,6 +7511,50 @@ function uxObs(){ const q=id=>document.getElementById(id); const sync=()=>{ cons
   if(!q('zpanel')) setTimeout(uxObs,800); }
 // Share the game's own artwork with the entry screen, including in the IIFE build.
 window.gngEntryArtwork = () => artSVG('title');
+/* correzioni di Andrea, giro 5: stile aggiunto dal gioco (index.html deve restare sotto i 200 kB) */
+(function(){ const st=document.createElement('style'); st.id='mfix5'; st.textContent=`
+/* ===== Correzioni di Andrea, giro 5 ===== */
+/* nome dell'agenzia: facoltativo */
+.topt{font:600 11px/1 var(--f-b,Inter);letter-spacing:.06em;text-transform:none;color:var(--muted,#9AA6B2);opacity:.9}
+/* tasto del consorzio: stessa targa scura del tasto RISCHI, non piu' una pillola */
+.clanpill.cp2{border:0;border-radius:4px;background:rgba(18,16,20,.6);box-shadow:none;padding:4px 12px 4px 4px;gap:8px;max-width:240px;text-transform:none;letter-spacing:0;transition:background .15s}
+.clanpill.cp2:hover{background:rgba(18,16,20,.82)}
+.clanpill.cp2:focus-visible{outline:2px solid #7FD8CC;outline-offset:2px}
+.clanpill.cp2 .cpi{flex:none;width:28px;height:28px;display:grid;place-items:center;border-radius:3px;background:#2F8F86;color:#fff;font-style:normal}
+.clanpill.cp2.in .cpi{background:#3A3328}
+.clanpill.cp2 .cpi svg{width:18px;height:18px}
+.clanpill.cp2>span{display:flex;flex-direction:column;gap:2px;min-width:0;text-align:left}
+.clanpill.cp2 small{font:600 9.5px/1 var(--f-d,Inter);letter-spacing:.16em;text-transform:uppercase;color:#A9B6BC}
+.clanpill.cp2 b{font:700 13px/1.05 var(--f-d,Inter);letter-spacing:.06em;text-transform:uppercase;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* dinamica del volo: legenda e «Rivedi la missione» sopra la fila dei tasti in basso (casetta, Revisione PDR), non coperti */
+body.fs #view .fdleg{max-width:min(calc(100% - 600px),820px)}
+body.fs #view .fdleg .legend{color:#B8C4D0}
+body.fs #view .fdleg.obplay{bottom:calc(54px + env(safe-area-inset-bottom,0px))}
+/* CDR: GO e «compra i pezzi e assembla» in un solo tasto */
+.btn.gobuy{display:inline-flex;align-items:center;gap:12px;padding-left:8px!important;background:#1F7A4D!important;border-color:#3FD08A!important}
+.btn.gobuy .gob{display:inline-grid;place-items:center;min-width:46px;height:30px;padding:0 8px;border:2px solid #9FF2C6;border-radius:3px;font:800 18px/1 var(--f-d,Inter);letter-spacing:.14em;color:#fff;transform:rotate(-4deg)}
+.btn.gobuy:hover{background:#249159!important}
+/* safe mode dentro la pagina della telemetria: fascia in basso, poche parole */
+#mzoomBox .decz{flex:none;border-top:2px solid #F07B3F;background:#17191F;padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px}
+#mzoomBox .decz .dzh{display:flex;align-items:center;gap:10px}
+#mzoomBox .decz .pause{background:#F07B3F;color:#fff;border-radius:3px;padding:4px 10px;font:800 12px/1 var(--f-d,Inter);letter-spacing:.12em;animation:dzp 1.4s ease-in-out infinite}
+@keyframes dzp{50%{opacity:.6}}
+@media (prefers-reduced-motion:reduce){#mzoomBox .decz .pause{animation:none}}
+#mzoomBox .decz .dzh b{font:800 18px/1.1 var(--f-d,Inter);letter-spacing:.06em;text-transform:uppercase;color:#fff}
+#mzoomBox .decz .dzq{width:26px;height:26px;border-radius:50%;border:2px solid #fff;background:#EB7D44;color:#fff;font:800 15px/1 var(--f-d,Inter);display:grid;place-items:center;padding:0;cursor:pointer}
+#mzoomBox .decz .dzq:focus-visible{outline:3px solid #fff;outline-offset:2px}
+#mzoomBox .decz .dfix{margin:0;font-size:12px;color:#C9D3DD}
+#mzoomBox .decz .dops{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+#mzoomBox .decz .dops .btn{min-height:48px;padding:8px 10px;text-align:left;display:flex;flex-direction:column;gap:3px}
+#mzoomBox .decz .dops .btn small{font-size:11px;line-height:1.25;opacity:.85}
+@media (max-height:520px){#mzoomBox .decz{padding:6px 10px 8px;gap:6px}#mzoomBox .decz .dops .btn{min-height:40px;padding:6px 8px}#mzoomBox .decz .dops .btn small{display:none}}
+/* matrice dei rischi: «Chiudi» a destra, il fumetto di Zorty in basso a sinistra non lo copre */
+#ov .rvrisk>.row{justify-content:flex-end!important}
+@media (max-height:520px){body:has(#ov:not([hidden]) .rvrisk) #tbub{left:auto!important;right:calc(12px + env(safe-area-inset-right,0px))!important;bottom:auto!important;top:calc(10px + env(safe-area-inset-top,0px))!important}}
+/* tasti esagonali a lato (Macchinario e gli altri): icona bianca, non scura su scuro */
+#view .rb>i,#view .rb i{color:#fff}
+@media (max-height:420px){.clanpill.cp2{padding:3px 9px 3px 3px}.clanpill.cp2 .cpi{width:24px;height:24px}.clanpill.cp2 small{display:none}}
+`; document.head.appendChild(st); })();
 // Must live inside the IIFE: it needs G, TTL and drawTitle. When the session cookie is validated after the title is drawn,
 // this redraws the account chip (otherwise it keeps saying 'Sign in' for a player who is already logged in).
 window.addEventListener('gng:user',()=>{ try{
@@ -7455,4 +7564,7 @@ window.addEventListener('gng:user',()=>{ try{
   if(document.getElementById('title')&&TTL.s==='main') drawTitle(); }catch(e){ console.warn(e); } });
 start();
 setTimeout(uxObs,300);
+/* mappe dei pianeti scaricate e decodificate quando il browser e' libero: entrando nel Centro di dinamica del volo il pianeta e' gia' pronto, senza passare dal disegno di ripiego */
+(function texWarm(){ const go=()=>{ try{ const ds=['leo','moon','mars','venus'].concat(((G&&G.missions)||[]).map(m=>m&&m.sat&&m.sat.dest).filter(Boolean)); [...new Set(ds)].forEach((d,i)=>setTimeout(()=>{ try{ ptex(d); if(typeof FD3!=='undefined'&&FD3.ok&&FD3.preload) FD3.preload(d); }catch(e){} },i*350)); }catch(e){} };
+  if('requestIdleCallback' in window) requestIdleCallback(go,{timeout:4000}); else setTimeout(go,2500); })();
 })();
