@@ -1567,7 +1567,7 @@ body.decon #dec>p.fine:last-of-type{font-size:11.5px!important}
 /* --- 14. telefono in verticale: invito a ruotare --- */
 #rotHint{display:none}
 @media (orientation:portrait) and (max-width:600px) and (pointer:coarse){
-  body:not(.ttl-on) #rotHint{display:flex;position:fixed;inset:0;z-index:300;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#1C1A1F;color:#F1ECE6;text-align:center;padding:24px;font:600 16px/1.4 var(--f-b)}
+  #rotHint{display:flex;position:fixed;inset:0;z-index:200000;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#1C1A1F;color:#F1ECE6;text-align:center;padding:24px;font:600 16px/1.4 var(--f-b)}
   #rotHint svg{width:72px;height:72px;animation:rotph 2.2s ease-in-out infinite}
   #rotHint b{font:800 20px/1.1 var(--f-d);letter-spacing:.08em;text-transform:uppercase}
 }
@@ -1721,7 +1721,7 @@ body:has(#mzoomBox) #zbtn,body:has(#mzoomBox) #dock{visibility:hidden!important}
 #ov .rvrank .rkpts{font:800 20px/1.1 var(--f-d)}
 #ov .rvrank .rkhead .mbar{width:220px;margin-top:5px}
 #ov .rvrank .rkworld{margin-left:auto;max-width:42%;min-width:0}
-#ov .rvrank .rkworld .ladder{max-height:72px;overflow:auto}
+#ov .rvrank .rkworld .ladder{max-height:clamp(96px,34vh,260px);overflow:auto}
 #ov .rvrank .lgrail{flex:1 1 auto;min-height:0;display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:10px 4px 6px;scroll-snap-type:x mandatory;scrollbar-width:thin}
 #ov .rvrank .lgc{flex:0 0 132px;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:16px;padding:10px 8px;background:linear-gradient(#2A2618,#1C1A12);border:2px solid #3A3524;text-align:center}
 #ov .rvrank .lgc svg{width:64px;height:64px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.45))}

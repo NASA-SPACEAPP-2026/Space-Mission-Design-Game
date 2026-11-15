@@ -124,3 +124,17 @@ describe("ported mission rules", () => {
     expect(Math.abs(L.installment(mission, "FRR") - original * 0.85)).toBeLessThanOrEqual(1);
   });
 });
+
+describe("level 1 battery", () => {
+  it("a starter Earth satellite with the camera passes the battery check before the orbit is planned", async () => {
+    const mod = { exports: {} };
+    new Function("module", await read("public/game/01-data.js"))(mod);
+    const E = mod.exports;
+    const d = { dest: "leo", ride: "S3", sol: "BASE-SOL3D", heat: {}, acc: {}, placed: {}, stake: [] };
+    for (const [cat, id] of [["avi", "BASE-OBC"], ["adcs", "BASE-MAG"], ["bat", "BASE-BAT20"], ["com", "BASE-UHF"], ["ray", "BASE-CAM"]]) d.placed[cat] = { id };
+    const b = E.budget(d);
+    expect(b.wh).toBe(30);
+    expect(b.dod).toBeLessThanOrEqual(E.M.dodMax);
+    expect(E.checks(d).list.find((x) => x.k === "bat").ok).toBe(true);
+  });
+});

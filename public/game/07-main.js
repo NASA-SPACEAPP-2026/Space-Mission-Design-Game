@@ -5260,11 +5260,14 @@ function staffModal(){ const need=staffNeed(), free=G.staff-need, sp=spaces(), m
     '<p class="fine">'+plantsN()+' piante da interno. Più piante, più felicità: con la squadra al '+mo+'% assemblaggio e prove durano ×'+String(workK()).replace('.',',')+'. Serve circa una pianta per dipendente per arrivare al 100%. Le piante si mettono dentro gli edifici.</p>'+
     (G.staff>=sp?'<p class="bad">Tutti i posti auto sono occupati: per assumere costruisci un parcheggio nel campus (Costruisci → Infrastrutture).</p>':'')+
     '<div class="row stkbar"><button class="btn primary" data-act="hire"'+(G.staff>=sp?' disabled':'')+'>Assumi · '+keur(HIRE)+'</button><button class="btn" data-act="fire"'+(G.staff<=need?' disabled':'')+'>Licenzia</button><button class="btn" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; }
+let WORLD=null, worldAt=0;
+function loadWorld(){ if(Date.now()-worldAt<15000) return; worldAt=Date.now(); fetch('/api/consortia/leaderboard',{credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(d=>{ if(!d||!d.players) return; WORLD=d; if(rankModal.open&&!$('#ov').hidden&&$('.ladder')) rankModal(); }).catch(()=>{}); }
 function rankModal(){ const me=G.sciTotal|0, li=leagueOf(me), nx=LEAGUES[li+1], el=$('#ov');
   const road=LEAGUES.map((l,i)=>'<div class="lrow'+(i===li?' on':i>li?' lock':'')+'">'+badge(i)+'<div><b>Lega '+l[1]+'</b><div class="fine">da '+l[0]+' punti scienza</div></div><span class="fine">'+(i<li?'✓':i===li?'sei qui':'🔒')+'</span></div>').reverse().join('');
-  const rows=(shared?RANK:[]).map(r=>({id:r._id,co:String(r.co||'Agenzia').slice(0,28),sci:Math.max(0,+r.sci|0)})).sort((a,b)=>b.sci-a.sci);
-  const mine=rows.findIndex(r=>r.id===MYID);
-  const list=rows.length?rows.slice(0,50).map((r,i)=>'<div class="rk'+(r.id===MYID?' me':'')+'"><b class="num">'+(i+1)+'</b>'+badge(leagueOf(r.sci))+'<span>'+esc(r.co)+(r.id===MYID?' <span class="fine">(tu)</span>':'')+'</span><b class="num">'+r.sci+'</b></div>').join(''):'<p class="fine">'+(shared?'Nessuna agenzia in classifica: chiudi una missione e sarai la prima.':'La classifica mondiale si vede nella pagina pubblicata.')+'</p>';
+  loadWorld(); const myId=WORLD?WORLD.me.username:MYID;
+  const rows=(WORLD?WORLD.players.map(r=>({id:r.username,co:r.username,sci:Math.max(0,+r.science|0)})):(shared?RANK:[]).map(r=>({id:r._id,co:String(r.co||'Agenzia').slice(0,28),sci:Math.max(0,+r.sci|0)}))).sort((a,b)=>b.sci-a.sci);
+  const mine=rows.findIndex(r=>r.id===myId);
+  const list=rows.length?rows.slice(0,50).map((r,i)=>'<div class="rk'+(r.id===myId?' me':'')+'"><b class="num">'+(i+1)+'</b>'+badge(leagueOf(r.sci))+'<span>'+esc(r.co)+(r.id===myId?' <span class="fine">(tu)</span>':'')+'</span><b class="num">'+r.sci+'</b></div>').join(''):'<p class="fine">'+(shared||WORLD?'Nessuna agenzia in classifica: chiudi una missione e sarai la prima.':'La classifica mondiale si vede nella pagina pubblicata.')+'</p>';
   const cards=LEAGUES.map((l,i)=>'<div class="lgc'+(i===li?' on':i>li?' lock':' done')+'">'+badge(i)+'<b>Lega '+l[1]+'</b><span class="num">'+l[0]+' '+TX('punti','pts')+'</span><em>'+(i<li?'✓':i===li?TX('sei qui','you are here'):'🔒')+'</em></div>').join('');
   el.innerHTML='<div class="rv wide rvfix rvrank" role="dialog" aria-modal="true">'+
     '<div class="rkhead">'+badge(li).replace('<svg ','<svg style="width:52px;height:52px" ')+'<div><h3>'+TX('Scopo del gioco','Goal of the game')+' · Science ranking</h3><b class="rkpts">'+me+' '+TX('punti scienza','science points')+'</b><div class="fine"><span>Lega '+LEAGUES[li][1]+'</span> · <span>'+(nx?TX('mancano '+(nx[0]-me)+' punti per la Lega '+nx[1],(nx[0]-me)+' points to the '+I18N.tr('Lega '+nx[1])):TX('lega massima','top league'))+'</span></div>'+(nx?'<div class="mbar"><i style="width:'+Math.round((me-LEAGUES[li][0])/(nx[0]-LEAGUES[li][0])*100)+'%"></i></div>':'')+'</div>'+
@@ -5461,7 +5464,7 @@ const ALN=(()=>{ if(typeof THREE==='undefined') return null;
 const ramp=(()=>{ const d=new Uint8Array([90,170,255]); const t=new THREE.DataTexture(d,3,1,THREE.LuminanceFormat); t.minFilter=t.magFilter=THREE.NearestFilter; t.needsUpdate=true; return t; })();
 const C=h=>new THREE.Color(h).convertSRGBToLinear();
 const MT={}; const toon=h=>MT[h]||(MT[h]=new THREE.MeshToonMaterial({color:C(h),gradientMap:ramp}));
-const OUT=new THREE.MeshBasicMaterial({color:0x14181f,side:THREE.BackSide}); let OLM=1, OLTH=0; /* OLTH: sotto questo raggio una parte non ha contorno (solo a basso dettaglio) */
+const OUT=new THREE.MeshBasicMaterial({color:0x14181f,side:THREE.BackSide,fog:false}); /* fog:false: la nebbia del campus (camera lontana) schiariva il contorno in grigio */ let OLM=1, OLTH=0; /* OLTH: sotto questo raggio una parte non ha contorno (solo a basso dettaglio) */
 function mesh(g,h,parent,ol){ const m=new THREE.Mesh(g,toon(h)); parent.add(m); if(OLTH>0){ g.computeBoundingSphere(); if(g.boundingSphere.radius<OLTH) return m; } if(ol!==0){ const o=new THREE.Mesh(g,OUT); o.scale.setScalar(1+(ol||.06)/Math.max(.05,g.boundingSphere?g.boundingSphere.radius:1)); g.computeBoundingSphere(); o.scale.setScalar(1+(ol||.025)*OLM/g.boundingSphere.radius); m.add(o); } return m; }
 const BLUE='#3A9BD5', BLUED='#2B78B8', BLUEL='#7CC8EE', EYE='#BFEFFF';
 function fin(pts,depth,col){ const s=new THREE.Shape(); s.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length;i++) s.quadraticCurveTo(...pts[i]); const g=new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:true,bevelThickness:depth*.4,bevelSize:depth*.4,bevelSegments:2,curveSegments:10}); g.translate(0,0,-depth/2); return g; }
@@ -5995,7 +5998,8 @@ const C3=(()=>{
     const bl=new THREE.Mesh(new THREE.SphereGeometry(.04,8,6),EMI('#FF4A3A')); bl.position.set(.22,.5,0); bl.userData.skipOL=1; g.add(bl); g.userData.wh=wh; g.userData.bl=bl; return g; }
   /* coloni: busto, testa, capelli, braccia e gambe che si muovono */
   const SKIN=['#F2CBA8','#D9A37E','#B97F55','#8A5A3C','#F0D2B8'], HAIR=['#2A1D18','#5B3A26','#C9342E','#E7C15A','#1B1414','#8D8A86'];
-  function colonist(i,N){ const OL=ALN.LIST.filter(q=>!q.hood), c=ALN.make(Object.assign({lo:(MOB||N>14)?2:1,ol:2.6},OL[i%OL.length])); c.scale.setScalar(ALN.SC.campus); c.userData.play('walk'); return c; }
+  /* ol 5.5: a scala campus (.26) il contorno-scafo a 2.6 restava sotto il pixel e si vedeva grigio */
+  function colonist(i,N){ const OL=ALN.LIST.filter(q=>!q.hood), c=ALN.make(Object.assign({lo:(MOB||N>14)?2:1,ol:5.5},OL[i%OL.length])); c.scale.setScalar(ALN.SC.campus); c.userData.play('walk'); return c; }
   /* ---------- natura: alberi a chioma multipla, pini, cipressi, cespugli ---------- */
   function trees(all0,isFar){ const FAR=[], list=[]; all0.forEach(t=>(isFar&&isFar(t)?FAR:list).push(t)); const kinds={round:[],pine:[],poplar:[]}; list.forEach(t=>kinds[t.k==='tree'||t.k==='round'?'round':t.k==='pine'?'pine':'poplar'].push(t));
     const dummy=new THREE.Object3D(), C=new THREE.Color();
@@ -6041,7 +6045,7 @@ const C3=(()=>{
   /* ---------- persone e veicoli in movimento ---------- */
   /* gatti: percorrono i marciapiedi, ogni tanto si siedono o dormono (a terra, senza cuccia); se incontrano uno Zorty si fermano a farsi coccolare */
   const CATS=[{skin:'#3A9BD5',dark:'#2B78B8'},{skin:'#7C6BD8',dark:'#5646AE'},{skin:'#3FB8A0',dark:'#2A8672'}];
-  function cats(paths,N){ if(!paths||!paths.length||!N) return; for(let i=0;i<N;i++){ const pl=paths[(i*3+2)%paths.length], c=ALN.cat(Object.assign({lo:1,ol:2.6},CATS[i%CATS.length])); c.scale.setScalar(ALN.SC.campus*1.05); built.add(c); let L=0; const seg=[]; for(let k=1;k<pl.length;k++){ const d=hyp(pl[k][0]-pl[k-1][0],pl[k][1]-pl[k-1][1]); seg.push(d); L+=d; } walkers.push({g:c,pl,seg,L,u:((i*.382+.17)%1)*L,sp:.32,dir:i%2?-1:1,kind:'c',st:'walk',t:3+Math.random()*6,cool:5+Math.random()*8,ang:0}); c.userData.play('walk'); } }
+  function cats(paths,N){ if(!paths||!paths.length||!N) return; for(let i=0;i<N;i++){ const pl=paths[(i*3+2)%paths.length], c=ALN.cat(Object.assign({lo:1,ol:5.5},CATS[i%CATS.length])); c.scale.setScalar(ALN.SC.campus*1.05); built.add(c); let L=0; const seg=[]; for(let k=1;k<pl.length;k++){ const d=hyp(pl[k][0]-pl[k-1][0],pl[k][1]-pl[k-1][1]); seg.push(d); L+=d; } walkers.push({g:c,pl,seg,L,u:((i*.382+.17)%1)*L,sp:.32,dir:i%2?-1:1,kind:'c',st:'walk',t:3+Math.random()*6,cool:5+Math.random()*8,ang:0}); c.userData.play('walk'); } }
   /* parco: punti dove gatti e Zorty possono passeggiare sull'erba (dentro il recinto, lontano da edifici, strade, alberi e siepi); i percorsi sono "uscite" di 2 tappe + ritorno al punto di partenza */
   let PARK=null;
   const PSR=[0,0]; function parkSep(self,x,z,dt){ let rx=0,rz=0; for(let i=0;i<walkers.length;i++){ const o=walkers[i]; if(o===self||(o.kind!=='p'&&o.kind!=='c')) continue; const ox=o.g.position.x-x, oz=o.g.position.z-z, d=Math.sqrt(ox*ox+oz*oz); if(d<.55&&d>1e-3){ rx-=ox/d*(.55-d); rz-=oz/d*(.55-d); } } const k=Math.min(1,dt*3), nx=x+rx*k, nz=z+rz*k; if(PARK.ok(nx,nz)){ PSR[0]=nx; PSR[1]=nz; } else { PSR[0]=x; PSR[1]=z; } return PSR; }

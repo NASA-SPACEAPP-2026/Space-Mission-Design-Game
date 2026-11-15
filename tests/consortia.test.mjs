@@ -454,4 +454,17 @@ describe('Consortia API', () => {
         'message_reports', 'science_awards', 'live_sessions', 'joint_missions', 'consortium_challenges', 'challenge_scores']));
     } finally { await old.close(); }
   }, 15000);
+
+  it('ranks all players worldwide by total science points', async () => {
+    await post('Ada', '/science', { mission: 'lb1', points: 30 });
+    await post('Ada', '/science', { mission: 'lb2', points: 20 });
+    await post('Bob', '/science', { mission: 'lb3', points: 70 });
+    const r = (await get('Ada', '/leaderboard')).body;
+    const sci = r.players.map(p => p.science);
+    expect(sci).toEqual([...sci].sort((a, b) => b - a)); // best first
+    expect(r.players.find(p => p.username === 'Bob').science).toBeGreaterThanOrEqual(70);
+    const me = r.players.findIndex(p => p.username === 'Ada');
+    expect(r.me).toMatchObject({ username: 'Ada', science: r.players[me].science });
+    expect(r.me.rank).toBeLessThanOrEqual(me + 1); // ties share a place
+  });
 });
