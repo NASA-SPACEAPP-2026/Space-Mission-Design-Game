@@ -162,7 +162,7 @@ window.GNGCLAN = (function () {
 
   /* ---------- stato ---------- */
   const S = { asked: {}, ok: '', open: false, tab: 'chat', noTab: 'search', mine: null, loaded: false, down: false, list: null, q: '', free: false,
-    msgs: [], lastId: 0, coolUntil: 0, draft: '', err: '', busy: false, confirm: '', share: false, codeFor: '', unread: 0, edit: null,
+    msgs: [], lastId: 0, coolUntil: 0, draft: '', err: '', busy: false, confirm: '', share: false, codeFor: '', unread: 0, joint: 0, edit: null,
     form: { name: '', motto: '', kind: 'open', minScience: 0, maxMembers: 20, crest: { shape: 'shield', color: COLORS[0], symbol: 'rocket' } } };
   let root = null, chatT = 0, mineT = 0, pollT = 0, searchT = 0, confirmT = 0;
   const member = () => !!(S.mine && S.mine.consortium);
@@ -201,7 +201,7 @@ window.GNGCLAN = (function () {
   function pushState() {
     const c = member() ? S.mine.consortium : null;
     if (typeof document !== 'undefined') document.querySelectorAll('[data-clan-badge]').forEach(b => { b.textContent = S.unread > 9 ? '9+' : String(S.unread); b.hidden = !S.unread; });
-    try { host.onState({ auth: loggedIn(), member: !!c, name: c ? c.name : '', crest: c ? c.crest : null, unread: S.unread, level: c ? c.level || 1 : 0 }); } catch (e) {}
+    try { host.onState({ auth: loggedIn(), member: !!c, name: c ? c.name : '', crest: c ? c.crest : null, unread: S.unread, joint: S.joint, level: c ? c.level || 1 : 0 }); } catch (e) {}
   }
   async function loadMine() {
     const r = await api('GET', '/mine');
@@ -255,12 +255,13 @@ window.GNGCLAN = (function () {
     // l'animazione d'ingresso solo all'apertura: i ridisegni (schede, azioni) non devono far lampeggiare il pannello
     root.classList.add('opening'); setTimeout(() => root.classList.remove('opening'), 300);
     if (tab === 'challenge') { S.tab = S.noTab = 'challenge'; }
-    else if (tab) { if (['chat', 'members', 'info'].includes(tab)) S.tab = tab; else S.noTab = tab; }
+    else if (tab) { if (['chat', 'members', 'info', 'missions'].includes(tab)) S.tab = tab; else S.noTab = tab; }
     draw();
     if (!loggedIn()) return;
     await loadMine(); await flushPending();
     if (!member() && !S.down) await search();
     if ((member() ? S.tab : S.noTab) === 'challenge' && !S.down) await loadChallenge();
+    if (member() && S.tab === 'missions') { J.id = null; J.m = null; J.list = null; draw(); await jList(); draw(); jPoll(); return; }
     draw(); startChat();
   }
   function close() {
@@ -317,7 +318,7 @@ window.GNGCLAN = (function () {
   }
   /* fumetto di Zorty in cima al pannello quando lo si apre dal tasto «Entra in un consorzio» del campus */
   const zImg = p => { try { const s = window.GNG && window.GNG.ZORTY && window.GNG.ZORTY.SPR; return (s && (s[p] || s.benvenuto)) || ''; } catch (e) { return ''; } };
-  const ziHTML = () => S.zi ? '<div class="clzi"><img alt="" src="' + zImg('spiega') + '"><p><b>Zorty</b>' + T('Un consorzio è una squadra di agenzie spaziali come la tua: chattate, condividete le missioni, affrontate insieme la sfida della settimana e mettete in comune i punti scienza per far salire di livello il consorzio. Cercane uno qui sotto, oppure fondane uno tuo!', 'A consortium is a team of space agencies like yours: you chat, share missions, take on the weekly challenge together and pool your science points to level the consortium up. Find one below, or found your own!') + '</p><button class="clzx" data-cl="zix" aria-label="' + T('Chiudi', 'Close') + '">✕</button></div>' : '';
+  const ziHTML = () => S.zi ? '<div class="clzi"><img alt="" src="' + zImg('spiega') + '"><p><b>Zorty</b>' + T('Un consorzio è una squadra di agenzie spaziali come la tua: chattate, condividete le missioni, affrontate insieme la sfida della settimana e mettete in comune i punti scienza per far salire di livello il consorzio. Cercane uno qui sotto, oppure fondane uno tuo! Dentro un consorzio puoi giocare missioni congiunte con i compagni.', 'A consortium is a team of space agencies like yours: you chat, share missions, take on the weekly challenge together and pool your science points to level the consortium up. Find one below, or found your own! Inside a consortium you can play joint missions with your teammates.') + '</p><button class="clzx" data-cl="zix" aria-label="' + T('Chiudi', 'Close') + '">✕</button></div>' : '';
   function body(tab) { return ziHTML() + body0(tab); }
   function body0(tab) {
     if (!loggedIn()) return '<div class="clempty">' + crestSVG({ shape: 'shield', color: '#f07b3f', symbol: 'rocket' }, 72) +
@@ -532,6 +533,7 @@ window.GNGCLAN = (function () {
       if (x === 'nogo') return jAct({ type: 'vote', go: false, rework: b.dataset.role });
       if (x === 'accept' || x === 'reject') return jAct({ type: 'answer', decision: x });
       if (x === 'counter') return jAct({ type: 'answer', decision: 'counter', value: b.dataset.v });
+      if (x === 'done') return jAct({ type: 'done', role: b.dataset.role });
       return jAct({ type: x });
     }
     if (a === 'copycode') {
@@ -748,6 +750,20 @@ window.GNGCLAN = (function () {
     list.unshift({ t: m.d.lv ? T('Lancio: ', 'Launch: ') + tr(E.LV[m.d.lv].n) : T('Nessun lancio per questa piattaforma e destinazione', 'No launch for this bus and destination'), ok: !!m.d.lv });
     return { list, ok: c.ok && !!m.d.lv };
   }
+  // Il lancio: il volo del gioco (L.flight, stesso seme per tutti: l'id della missione) sul satellite del progetto comune.
+  // ponytail: solo racconto, i punti restano quelli del server; farli dipendere dall'esito quando serve.
+  function jFlight(m) {
+    try {
+      if (!hasE() || typeof L === 'undefined' || !L.flight) return '';
+      let seed = 7; String(m.id).split('').forEach(ch => { seed = (seed * 31 + ch.charCodeAt(0)) % 2147483647; });
+      const M = L.newMission(m.state.name, 'joint-' + m.id); M.sat = jSat(m.state.design); M.stake = ['nasa']; M.seed = seed; M.interactive = false;
+      M.tests = {}; (L.TESTS || []).forEach(t => { M.tests[t] = true; }); // il progetto comune non ha la fase di collaudo: si assume fatto, restano i difetti veri del progetto
+      const fl = L.flight(M, 999, true), out = L.closeOut(M, fl), lv = M.sat.lv && E.LV[M.sat.lv];
+      return '<div class="jflight"><h3>🚀 ' + T('Il lancio', 'The launch') + '</h3><p class="jfres ' + (out.alive ? 'ok' : 'ko') + '">' + (out.alive ? T('Missione compiuta: ', 'Mission accomplished: ') : T('Satellite perso: ', 'Satellite lost: ') + esc(tr(out.cause || '')) + ' · ') +
+        (lv ? esc(tr(lv.n)) + ' · ' : '') + out.months + ' ' + T('mesi', 'months') + ' · ' + out.sci + ' ' + T('dati scientifici', 'science data') + '</p>' +
+        '<ol class="jlog">' + fl.log.filter(l => l.t).slice(0, 8).map(l => '<li>' + esc(tr(l.t)) + '</li>').join('') + '</ol></div>';
+    } catch (e) { return ''; }
+  }
   async function jList() { const r = await api('GET', '/mine/joint'); if (r.status === 200) J.list = r.data.joint || []; }
   async function jLoad(id, force) {
     const r = await api('GET', '/mine/joint/' + id + (J.m && J.m.id === id && !force ? '?v=' + J.m.version : ''));
@@ -787,17 +803,25 @@ window.GNGCLAN = (function () {
     if (J.id) return J.m ? jointView(J.m) : '<p class="clwait">' + T('Caricamento…', 'Loading…') + '</p>';
     const list = J.list;
     return '<div class="cljoint"><form class="clrow" data-cl-form="jnew"><input data-f="jname" data-cl-in="jname" maxlength="24" value="' + esc(J.name) + '" placeholder="' + T('Nome della missione', 'Mission name') + '" aria-label="' + T('Nome della missione', 'Mission name') + '"><button class="clbtn pri">' + T('Nuova missione congiunta', 'New joint mission') + '</button></form>' +
-      '<p class="clnote">' + T('Da 2 a 4 compagni progettano un satellite insieme, un ruolo NASA a testa: Pianificazione, Satellite, Scienza, Comunicazioni. A turni; le scelte che sforano massa, potenza o budget vanno approvate da chi ne è responsabile.', '2 to 4 teammates design one satellite together, one NASA role each: Planning, Satellite, Science, Comms. Turn by turn; choices that break mass, power or budget need the approval of whoever owns them.') + '</p>' +
+      '<p class="clnote">' + T('Da 2 a 4 compagni progettano un satellite insieme, un ruolo NASA a testa: Pianificazione, Satellite, Scienza, Comunicazioni. Tutti lavorano insieme; le scelte che sforano massa, potenza o budget vanno approvate da chi ne è responsabile.', '2 to 4 teammates design one satellite together, one NASA role each: Planning, Satellite, Science, Comms. Everyone works at the same time; choices that break mass, power or budget need the approval of whoever owns them.') + '</p>' +
       (list ? (list.length ? list.map(jCard).join('') : '<p class="clwait">' + T('Nessuna missione congiunta: aprine una!', 'No joint missions yet: start one!') + '</p>') : '<p class="clwait">' + T('Caricamento…', 'Loading…') + '</p>') + '</div>';
   }
+  // Stessa regola del server (jointWaiting): un ruolo da finire, una richiesta per me o un voto da dare.
+  function jMine(s, me) {
+    if (!s || s.phase === 'done' || s.phase === 'abandoned') return false;
+    if (s.phase === 'review') return JROLES.some(r => s.roles[r] === me) && s.votes[me] !== 'go';
+    if (s.phase !== 'design') return false;
+    return JROLES.some(r => s.roles[r] === me && !s.done[r]) || !!(s.request && s.roles[s.request.to] === me);
+  }
+  const jDoneN = s => JROLES.filter(r => s.done && s.done[r]).length;
   function jPhase(s) {
     return s.phase === 'lobby' ? T('In attesa dei compagni', 'Waiting for teammates') : s.phase === 'review' ? T('Revisione finale', 'Final review') : s.phase === 'done' ? T('Completata', 'Completed')
-      : s.phase === 'abandoned' ? T('Abbandonata', 'Abandoned') : T('Tocca a ', 'Turn: ') + jRole(s.turn) + ' (' + (s.roles[s.turn] || '?') + ')';
+      : s.phase === 'abandoned' ? T('Abbandonata', 'Abandoned') : T('Progetto: ', 'Design: ') + jDoneN(s) + '/4 ' + T('ruoli finiti', 'roles done');
   }
   function jCard(j) {
-    const me = myName(), mine = JROLES.some(r => j.roles[r] === me), myTurn = j.turn && j.roles[j.turn] === me;
+    const me = myName(), mine = JROLES.some(r => j.roles[r] === me), myTurn = !!j.waiting;
     return '<article class="clcard jcard' + (myTurn ? ' myturn' : '') + '"><div class="clci"><b>' + esc(j.name) + '</b><small>' + esc(jPhase(j)) + '</small><span class="clmeta">' +
-      JROLES.map(r => esc(jRole(r) + ': ' + (j.roles[r] || '—'))).join(' · ') + '</span></div>' + (myTurn ? '<em class="jtag">' + T('Tocca a te', 'Your turn') + '</em>' : '') +
+      JROLES.map(r => esc(jRole(r) + ': ' + (j.roles[r] || '—'))).join(' · ') + '</span></div>' + (myTurn ? '<em class="jtag">' + T('Tocca a te', 'Your part is waiting') + '</em>' : '') +
       '<button class="clbtn' + (mine || j.phase === 'lobby' ? ' pri' : '') + '" data-cl="jopen" data-id="' + esc(j.id) + '">' + T('Apri', 'Open') + '</button></article>';
   }
   function jGauge(label, val, max, unit, d, inv) {
@@ -824,7 +848,7 @@ window.GNGCLAN = (function () {
   function jointView(m) {
     const s = m.state, me = myName(), mine = r => s.roles[r] === me, players = [...new Set(JROLES.map(r => s.roles[r]).filter(Boolean))], met = jMetrics(s.design);
     let h = '<div class="jhead"><button class="clbtn sm" data-cl="jback">‹ ' + T('Missioni', 'Missions') + '</button><b>' + esc(s.name) + '</b><small>' + esc(jPhase(s)) + '</small></div>' +
-      '<div class="jroles">' + JROLES.map(r => { const u = s.roles[r]; return '<span class="jrole' + (s.turn === r ? ' turn' : s.done[r] ? ' done' : '') + (u === me ? ' me' : '') + '"><small>' + jRole(r) + '</small><b>' + (u ? esc(u) : '—') + '</b>' + (s.turn === r ? '<i>●</i>' : s.done[r] ? '<i>✓</i>' : '') + '</span>'; }).join('') + '</div>';
+      '<div class="jroles">' + JROLES.map(r => { const u = s.roles[r]; return '<span class="jrole' + (s.phase === 'design' && !s.done[r] ? ' turn' : s.done[r] ? ' done' : '') + (u === me ? ' me' : '') + '"><small>' + jRole(r) + '</small><b>' + (u ? esc(u) : '—') + '</b>' + (s.phase === 'design' && !s.done[r] ? '<i>●</i>' : s.done[r] ? '<i>✓</i>' : '') + '</span>'; }).join('') + '</div>';
     if (met && s.phase !== 'lobby') h += '<div class="jmeter">' + jGauge(T('Massa', 'Mass'), met.mass, met.lim, 'kg', 1) + jGauge(T('Consumo', 'Power use'), met.dem, met.gen, 'W', 1) + jGauge(T('Costo', 'Cost'), met.cost, met.budget, 'cr', 0) + '</div>';
     if (s.phase === 'lobby') {
       h += '<p class="clnote">' + T('Prendi un ruolo. Quando siete almeno in due, chi ha aperto la missione la fa partire: i ruoli liberi vengono divisi tra i presenti.', 'Take a role. When at least two of you are in, whoever opened the mission starts it: free roles are shared among the players.') + '</p><div class="clrow">' +
@@ -843,13 +867,16 @@ window.GNGCLAN = (function () {
         } else h += '<small>' + esc(T('In attesa di ', 'Waiting for ') + s.roles[q.to] + ' (' + jRole(q.to) + ')') + '</small>';
         h += '</div>';
       }
-      if (s.turn && mine(s.turn) && !s.request) {
-        const solBad = s.turn === 'sat' && hasE() && !E.solOK({ ride: s.design.ride }, s.design.sol), complete = JNEED[s.turn].every(k => s.design[k] != null) && !solBad;
-        h += '<h3>' + T('Tocca a te', 'Your turn') + ' · ' + jRole(s.turn) + '</h3>' + JNEED[s.turn].map(key => '<div class="jgroup"><b>' + jKey(key) + '</b><div class="jopts">' +
+      // Tutti i ruoli lavorano insieme: ognuno vede le scelte dei propri ruoli finché non preme "Fatto".
+      const open = JROLES.filter(r => mine(r) && !s.done[r] && !(s.request && s.request.from === r));
+      open.forEach(role => {
+        const solBad = role === 'sat' && hasE() && !E.solOK({ ride: s.design.ride }, s.design.sol), complete = JNEED[role].every(k => s.design[k] != null) && !solBad;
+        h += '<h3>' + T('Tocca a te', 'Your part') + ' · ' + jRole(role) + '</h3>' + JNEED[role].map(key => '<div class="jgroup"><b>' + jKey(key) + '</b><div class="jopts">' +
           jOptions(key, s.design).map(o => '<button class="jopt' + (String(s.design[key]) === String(o.v) ? ' on' : '') + '" data-cl="jset" data-key="' + key + '" data-v="' + esc(o.v) + '"' + (J.busy ? ' disabled' : '') + '><b>' + esc(o.n) + '</b>' + (o.s ? '<small>' + esc(o.s) + '</small>' : '') + '</button>').join('') + '</div></div>').join('') +
           (solBad ? '<p class="clnote">' + T('I pannelli solari scelti non sono della taglia di questa piattaforma.', 'The chosen solar panels do not fit this bus.') + '</p>' : '') +
-          '<button class="clbtn pri big" data-cl="jact" data-a="done"' + (complete ? '' : ' disabled') + '>' + T('Fatto: passa il turno', 'Done: pass the turn') + '</button>';
-      } else if (s.turn && !s.request) h += '<p class="jwait">' + esc(T('Sta decidendo ', 'Deciding now: ') + s.roles[s.turn] + ' (' + jRole(s.turn) + ')…') + '</p>';
+          '<button class="clbtn pri big" data-cl="jact" data-a="done" data-role="' + role + '"' + (complete && !(s.request && s.request.to === role) ? '' : ' disabled') + '>' + T('Fatto: ', 'Done: ') + jRole(role) + '</button>';
+      });
+      if (!open.length && !(s.request && s.roles[s.request.to] === me)) h += '<p class="jwait">' + esc(T('Aspettiamo gli altri: ', 'Waiting for the others: ') + JROLES.filter(r => !s.done[r]).map(r => (s.roles[r] || '?') + ' (' + jRole(r) + ')').join(', ')) + '…</p>';
     } else if (s.phase === 'review') {
       const c = jChecks(s.design);
       h += '<h3>' + T('Revisione finale: GO / NO-GO', 'Final review: GO / NO-GO') + '</h3><ul class="jchecks">' + c.list.map(x => '<li class="' + (x.ok ? 'ok' : 'ko') + '">' + (x.ok ? '✓ ' : '✗ ') + esc(x.t) + '</li>').join('') + '</ul>' +
@@ -857,7 +884,7 @@ window.GNGCLAN = (function () {
       if (players.indexOf(me) >= 0 && s.votes[me] !== 'go') h += '<div class="clacts jvote"><button class="clbtn pri big" data-cl="jact" data-a="go"' + (c.ok ? '' : ' disabled') + '>GO</button>' +
         JROLES.map(r => '<button class="clbtn sm bad" data-cl="jact" data-a="nogo" data-role="' + r + '">' + T('NO-GO: rifà ', 'NO-GO: redo ') + jRole(r) + '</button>').join('') + '</div>';
     } else if (s.phase === 'done') {
-      h += '<div class="jdone"><b>GO! ' + esc(s.name) + '</b><span>+' + (s.points | 0) + ' ◆ ' + T('a testa, e al consorzio', 'each, and to the consortium') + '</span></div>';
+      h += '<div class="jdone"><b>GO! ' + esc(s.name) + '</b><span>+' + (s.points | 0) + ' ◆ ' + T('a testa, e al consorzio', 'each, and to the consortium') + '</span></div>' + jFlight(m);
     }
     if (s.phase !== 'lobby') h += '<details class="jsum"' + (s.phase === 'done' ? ' open' : '') + '><summary>' + T('Il progetto', 'The design') + '</summary><ul>' + Object.keys(JKEY_N).map(k => '<li><span>' + jKey(k) + '</span><b>' + esc(jName(k, s.design[k])) + '</b></li>').join('') + '</ul></details>';
     h += '<ol class="jlog">' + s.log.slice(-4).reverse().map(e => '<li>' + esc(jLog(e)) + ' <time>' + timeOf(e.at) + '</time></li>').join('') + '</ol>';
@@ -988,12 +1015,17 @@ window.GNGCLAN = (function () {
   }
 
   /* ---------- badge dei non letti, anche a pannello chiuso ---------- */
+  // "La tua parte aspetta": quando sale il numero di missioni congiunte in cui tocca a me, un avviso (la scheda Missioni aperta si aggiorna da sola).
+  function jointAlert(n) {
+    const up = n > S.joint; S.joint = n; pushState();
+    if (up && !(S.open && S.tab === 'missions')) { try { host.toast(T('Una missione congiunta aspetta la tua parte!', 'Your part of a joint mission is waiting!')); host.sfx('ok'); } catch (e) {} }
+  }
   async function poll() {
     if (!loggedIn() || (S.open && S.tab === 'chat' && member())) return;
     if (!S.loaded) { await loadMine(); return; }
     if (!member()) return;
     const r = await api('GET', '/mine/unread');
-    if (r.status === 200) { if (!r.data.member) { await loadMine(); return; } if (r.data.unread !== S.unread) { S.unread = r.data.unread; pushState(); } }
+    if (r.status === 200) { if (!r.data.member) { await loadMine(); return; } if (r.data.unread !== S.unread) { S.unread = r.data.unread; pushState(); } jointAlert(r.data.joint | 0); }
   }
   function init(opts) {
     host = Object.assign(host, opts || {});
@@ -1065,10 +1097,10 @@ window.GNGCLAN = (function () {
       if (s.phase === 'done' || s.phase === 'abandoned') return no('closed');
       if (a.type === 'join') { if (s.phase !== 'lobby') return no('started'); if (s.roles[a.role]) return no('role_taken'); if (players.indexOf(user) >= 0) return no('has_role'); s.roles[a.role] = user; log('join', { role: a.role }); }
       else if (a.type === 'leave') { if (s.phase !== 'lobby' || user === s.by) return no('started'); JROLES.forEach(r => { if (s.roles[r] === user) s.roles[r] = null; }); log('leave'); }
-      else if (a.type === 'start') { if (s.phase !== 'lobby') return no('started'); if (user !== s.by && !admin) return no('forbidden'); if (players.length < 2) return no('need_two'); let i = 0; JROLES.forEach(r => { if (!s.roles[r]) s.roles[r] = players[i++ % players.length]; }); s.phase = 'design'; s.turn = 'plan'; log('start'); }
+      else if (a.type === 'start') { if (s.phase !== 'lobby') return no('started'); if (user !== s.by && !admin) return no('forbidden'); if (players.length < 2) return no('need_two'); let i = 0; JROLES.forEach(r => { if (!s.roles[r]) s.roles[r] = players[i++ % players.length]; }); s.phase = 'design'; s.turn = null; log('start'); }
       else if (a.type === 'set') {
-        const owner = KEYS[a.key]; if (s.phase !== 'design') return no('not_design'); if (!owner) return no('invalid'); if (!mine(owner)) return no('not_your_role'); if (s.turn !== owner) return no('not_your_turn'); if (s.request) return no('pending_request');
-        if (a.req && !mine(a.req.to)) { s.request = { id: ++s.seq, from: owner, by: user, to: a.req.to, key: a.key, value: a.value, kind: a.req.kind, delta: a.req.delta }; log('request', { key: a.key, value: a.value, to: a.req.to }); }
+        const owner = KEYS[a.key]; if (s.phase !== 'design') return no('not_design'); if (!owner) return no('invalid'); if (!mine(owner)) return no('not_your_role'); if (s.done[owner]) return no('role_done'); if (s.request && s.request.from === owner) return no('pending_request');
+        if (a.req && !mine(a.req.to)) { if (s.request) return no('pending_request'); s.request = { id: ++s.seq, from: owner, by: user, to: a.req.to, key: a.key, value: a.value, kind: a.req.kind, delta: a.req.delta }; log('request', { key: a.key, value: a.value, to: a.req.to }); }
         else { s.design[a.key] = a.value; log('set', { key: a.key, value: a.value }); }
       } else if (a.type === 'answer') {
         const q = s.request; if (!q) return no('no_request'); if (!mine(q.to)) return no('not_your_role');
@@ -1076,12 +1108,12 @@ window.GNGCLAN = (function () {
         else if (a.decision === 'counter') s.design[q.key] = a.value;
         log('answer', { decision: a.decision, key: q.key, value: a.decision === 'counter' ? a.value : q.value, to: q.by }); s.request = null;
       } else if (a.type === 'done') {
-        if (s.phase !== 'design') return no('not_design'); if (!mine(s.turn)) return no('not_your_turn'); if (s.request) return no('pending_request'); if (JNEED[s.turn].some(k => s.design[k] == null)) return no('incomplete');
-        s.done[s.turn] = true; log('done', { role: s.turn }); const next = JROLES.find(r => !s.done[r]); if (next) s.turn = next; else { s.phase = 'review'; s.turn = null; s.votes = {}; }
+        if (s.phase !== 'design') return no('not_design'); if (JROLES.indexOf(a.role) < 0) return no('invalid'); if (!mine(a.role)) return no('not_your_role'); if (s.done[a.role]) return no('role_done'); if (s.request && (s.request.from === a.role || s.request.to === a.role)) return no('pending_request'); if (JNEED[a.role].some(k => s.design[k] == null)) return no('incomplete');
+        s.done[a.role] = true; log('done', { role: a.role }); if (JROLES.every(r => s.done[r])) { s.phase = 'review'; s.votes = {}; }
       } else if (a.type === 'vote') {
         if (s.phase !== 'review') return no('not_review'); if (players.indexOf(user) < 0) return no('forbidden');
         if (a.go) { if (a.ok !== true) return no('checks_failed'); s.votes[user] = 'go'; log('go'); if (players.every(p => s.votes[p] === 'go')) { s.phase = 'done'; s.points = Math.round(({ leo: 60, moon: 120, mars: 200 }[s.design.dest] || 60) * (1 + 0.1 * (players.length - 1))); log('done_all'); } }
-        else { s.phase = 'design'; s.turn = a.rework; s.done[a.rework] = false; s.votes = {}; log('nogo', { role: a.rework }); }
+        else { s.phase = 'design'; s.done[a.rework] = false; s.votes = {}; log('nogo', { role: a.rework }); }
       } else if (a.type === 'abandon') { if (user !== s.by && !admin) return no('forbidden'); s.phase = 'abandoned'; log('abandon'); }
       else return no('invalid');
       return { s };
@@ -1105,19 +1137,19 @@ window.GNGCLAN = (function () {
         if (s.phase === 'lobby') { const free = JROLES.filter(r => !s.roles[r]), bot = bots.find(b => JROLES.every(r => s.roles[r] !== b)); if (free.length && bot) act(bot, { type: 'join', role: free[0] }); return; }
         if (s.phase === 'design') {
           if (s.request && bots.indexOf(s.roles[s.request.to]) >= 0) { act(s.roles[s.request.to], { type: 'answer', decision: 'accept' }); return; }
-          const who = s.roles[s.turn]; if (s.request || bots.indexOf(who) < 0) return;
+          const role = JROLES.find(r => !s.done[r] && bots.indexOf(s.roles[r]) >= 0 && !(s.request && s.request.from === r)), who = s.roles[role]; if (!role) return;
           const pick = { ride: { leo: 'S3', moon: 'S6', mars: 'S12' }[s.design.dest] || 'S3', avi: 'BASE-OBC', adcs: 'BASE-MAG', bat: 'BASE-BAT40', ray: 'BASE-CAM', com: 'BASE-UHF', dest: 'moon', budget: 1600 };
-          if (s.turn === 'sat') { const sols = jOptions('sol', s.design).map(o => o.v); pick.sol = sols.find(k => /D$/.test(k)) || sols[0]; }
+          if (role === 'sat') { const sols = jOptions('sol', s.design).map(o => o.v); pick.sol = sols.find(k => /D$/.test(k)) || sols[0]; }
           // se hai rifiutato una sua richiesta, la volta dopo sceglie l'opzione piu' economica
           const last = s.log[s.log.length - 1]; j.rej = j.rej || {};
           if (last && last.code === 'answer' && last.decision === 'reject' && last.to === who) j.rej[last.key] = 1;
           Object.keys(j.rej).forEach(k => { const o = jOptions(k, s.design); if (o.length) pick[k] = o.slice().sort((x, y) => (jMetrics(Object.assign({}, s.design, { [k]: x.v })) || {}).cost - (jMetrics(Object.assign({}, s.design, { [k]: y.v })) || {}).cost)[0].v; });
-          const key = JNEED[s.turn].find(k => s.design[k] !== pick[k]);
+          const key = JNEED[role].find(k => s.design[k] !== pick[k]);
           if (key && !(j.tried && j.tried[key + pick[key]] > 2)) {
             j.tried = j.tried || {}; j.tried[key + pick[key]] = (j.tried[key + pick[key]] || 0) + 1;
             const req = jNeedReq(s, key, pick[key], who); act(who, Object.assign({ type: 'set', key, value: pick[key] }, req ? { req } : {})); return;
           }
-          act(who, { type: 'done' }); return;
+          if (!(s.request && s.request.to === role)) act(who, { type: 'done', role }); return;
         }
         if (s.phase === 'review' && jChecks(s.design).ok) { const bot = bots.find(b => JROLES.some(r => s.roles[r] === b) && s.votes[b] !== 'go'); if (bot) act(bot, { type: 'vote', go: true, ok: true }); }
       }, 1600);
@@ -1160,7 +1192,7 @@ window.GNGCLAN = (function () {
       if (method === 'GET' && p === '/mine/reports') return rank(me.role) < 2 ? R(403, { error: 'forbidden' }) : R(200, { reports: c.msgs.filter(m => m.reports && !m.reviewed).map(m => ({ id: m.id, author: m.author, kind: m.kind, text: m.text, sticker: m.sticker, reports: m.reports, reasons: ['rude'], hidden: !!m.deleted })) });
       const rv = p.match(/^\/mine\/reports\/(\d+)$/);
       if (method === 'POST' && rv) { const m = c.msgs.find(x => x.id === +rv[1]); if (!m) return R(404, { error: 'message_not_found' }); m.reviewed = true; if (body.action === 'delete') { m.deleted = true; delete m.text; } return R(200, { reviewed: true, action: body.action }); }
-      if (method === 'GET' && p === '/mine/unread') return R(200, { member: true, unread: c.msgs.filter(m => m.id > (me.read || 0) && m.author !== myName()).length });
+      if (method === 'GET' && p === '/mine/unread') return R(200, { member: true, joint: (db.joint || []).filter(j => j.cid === c.id && (j.status === 'open' || j.status === 'active') && jMine(j.state, myName())).length, unread: c.msgs.filter(m => m.id > (me.read || 0) && m.author !== myName()).length });
       if (method === 'GET' && p === '/mine/messages') {
         const after = q.get('after'), list = after != null ? c.msgs.filter(m => m.id > +after).slice(0, 50) : c.msgs.slice(-50);
         const lastId = list.length ? list[list.length - 1].id : +(after || 0); me.read = Math.max(me.read || 0, lastId);
@@ -1226,7 +1258,7 @@ window.GNGCLAN = (function () {
       if (p.startsWith('/mine/joint')) {
         db.joint = db.joint || [];
         const full = j => ({ id: j.id, status: j.status, version: j.version, state: j.state });
-        if (method === 'GET' && p === '/mine/joint') return R(200, { joint: db.joint.filter(j => j.cid === c.id).map(j => ({ id: j.id, name: j.state.name, status: j.status, phase: j.state.phase, turn: j.state.turn, roles: j.state.roles, by: j.state.by, version: j.version })) });
+        if (method === 'GET' && p === '/mine/joint') return R(200, { joint: db.joint.filter(j => j.cid === c.id).map(j => ({ id: j.id, name: j.state.name, status: j.status, phase: j.state.phase, turn: j.state.turn, roles: j.state.roles, done: j.state.done, waiting: jMine(j.state, myName()), by: j.state.by, version: j.version })) });
         if (method === 'POST' && p === '/mine/joint') {
           const name = String(body.name || '').trim(); if (name.length < 3 || name.length > 24) return R(400, { error: 'invalid', field: 'name' });
           const j = { id: 'demo-j' + (++seq), cid: c.id, version: 1, status: 'open', state: { name, by: myName(), phase: 'lobby', turn: null, roles: { plan: myName(), sat: null, sci: null, com: null }, design: { dest: 'leo', budget: 1000, ride: 'S3', sol: 'BASE-SOL3D' }, done: {}, request: null, votes: {}, log: [], seq: 0, points: 0 } };
@@ -1451,6 +1483,9 @@ body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect
 .clanpill>span{overflow:hidden;text-overflow:ellipsis}
 .clanpill svg{width:18px;height:18px;flex:none}
 .clanpill.in{border-color:#F2B83A}
+.cljointv .jflight{border:1.5px solid #7FD8CC;border-radius:12px;padding:10px 12px}
+.cljointv .jfres.ok{color:#7FD8CC}.cljointv .jfres.ko{color:#F07B3F}
+.clanpill.coop{top:calc(100% + 40px);border-color:#F07B3F}
 .clanpill .clbdg{top:-7px;right:-7px}
 @media (max-height:420px){#clan .clzi img{width:36px}#clan .clzi p{font-size:12px;line-height:1.3}.clanpill{top:calc(100% + 4px);padding:4px 9px 4px 6px;font-size:10.5px}.clanpill svg{width:15px;height:15px}}
 .clbdg{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#D2443A;color:#fff;font:700 11px/17px Inter,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #131313}

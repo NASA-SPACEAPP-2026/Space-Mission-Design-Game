@@ -74,20 +74,21 @@ export function jointReduce(state, a, user, canAdmin) {
       if (players.length < 2) no('need_two');
       // free roles go round-robin to the players, in role order
       let i = 0; JOINT.roles.forEach(r => { if (!s.roles[r]) s.roles[r] = players[i++ % players.length]; });
-      s.phase = 'design'; s.turn = 'plan'; log('start'); break;
+      s.phase = 'design'; s.turn = null; log('start'); break;
     }
     case 'set': {
       if (s.phase !== 'design') no('not_design');
       const owner = JOINT.keys[a.key];
       if (!owner) throw bad('key');
       if (!mine(owner)) throw new Fail(403, 'not_your_role');
-      if (s.turn !== owner) no('not_your_turn');
-      if (s.request) no('pending_request');
+      if (s.done[owner]) no('role_done');
+      if (s.request && s.request.from === owner) no('pending_request'); // ponytail: one pending request per mission, a list if players hit it
       if (!jointValue(a.key, a.value)) throw bad('value');
       const q = a.req;
       if (q != null) {
         if (typeof q !== 'object' || JOINT.owners[q.kind] !== q.to || typeof q.delta !== 'number' || !(q.delta >= 0 && q.delta <= 1e5)) throw bad('req');
         if (!mine(q.to)) {
+          if (s.request) no('pending_request'); // one request at a time: a second would overwrite the first
           s.request = { id: ++s.seq, from: owner, by: user, to: q.to, key: a.key, value: a.value, kind: q.kind, delta: Math.round(q.delta * 100) / 100 };
           log('request', { key: a.key, value: a.value, to: q.to, kind: q.kind }); break;
         }
@@ -110,12 +111,13 @@ export function jointReduce(state, a, user, canAdmin) {
     }
     case 'done': {
       if (s.phase !== 'design') no('not_design');
-      if (!mine(s.turn)) throw new Fail(403, 'not_your_turn');
-      if (s.request) no('pending_request');
-      if (JOINT.need[s.turn].some(k => s.design[k] == null)) no('incomplete');
-      s.done[s.turn] = true; log('done', { role: s.turn });
-      const next = JOINT.roles.find(r => !s.done[r]);
-      if (next) s.turn = next; else { s.phase = 'review'; s.turn = null; s.votes = {}; }
+      if (!JOINT.roles.includes(a.role)) throw bad('role');
+      if (!mine(a.role)) throw new Fail(403, 'not_your_role');
+      if (s.done[a.role]) no('role_done');
+      if (s.request && (s.request.from === a.role || s.request.to === a.role)) no('pending_request');
+      if (JOINT.need[a.role].some(k => s.design[k] == null)) no('incomplete');
+      s.done[a.role] = true; log('done', { role: a.role });
+      if (JOINT.roles.every(r => s.done[r])) { s.phase = 'review'; s.votes = {}; }
       break;
     }
     case 'vote': {
@@ -127,7 +129,7 @@ export function jointReduce(state, a, user, canAdmin) {
         if (players.every(p => s.votes[p] === 'go')) { s.phase = 'done'; s.points = jointPoints(s); log('done_all'); }
       } else if (a.go === false) {
         if (!JOINT.roles.includes(a.rework)) throw bad('rework');
-        s.phase = 'design'; s.turn = a.rework; s.done[a.rework] = false; s.votes = {}; log('nogo', { role: a.rework });
+        s.phase = 'design'; s.done[a.rework] = false; s.votes = {}; log('nogo', { role: a.rework });
       } else throw bad('go');
       break;
     }
@@ -138,6 +140,13 @@ export function jointReduce(state, a, user, canAdmin) {
     default: throw bad('type');
   }
   return s;
+}
+// True when this player has something to do: an undone role, a request addressed to them, or an open vote.
+export function jointWaiting(s, user) {
+  if (!s || s.phase === 'done' || s.phase === 'abandoned') return false;
+  if (s.phase === 'review') return jointPlayers(s).includes(user) && s.votes[user] !== 'go';
+  if (s.phase !== 'design') return false;
+  return JOINT.roles.some(r => s.roles[r] === user && !s.done[r]) || (!!s.request && s.roles[s.request.to] === user);
 }
 const jointStatus = phase => phase === 'lobby' ? 'open' : phase === 'done' ? 'done' : phase === 'abandoned' ? 'abandoned' : 'active';
 
@@ -631,7 +640,9 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
       if (!r) return { body: { member: false, unread: 0 } };
       const [{ n }] = await rows(db, `SELECT count(*)::int AS n FROM consortium_messages WHERE consortium_id=$1
         AND id > $2 AND author_id IS DISTINCT FROM $3 AND deleted_at IS NULL`, [r.consortium_id, r.last_read_id, user.id]);
-      return { body: { member: true, unread: n } };
+      // Joint missions where this player has something to do (an undone role, a request for them, a vote).
+      const js = await rows(db, `SELECT state FROM joint_missions WHERE consortium_id=$1 AND status IN ('open','active') LIMIT 3`, [r.consortium_id]);
+      return { body: { member: true, unread: n, joint: js.filter(j => jointWaiting(j.state, user.username)).length } };
     },
 
     async post({ user, body }) {
@@ -754,7 +765,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
       const list = await rows(db, `SELECT id, state, status, version, updated_at FROM joint_missions WHERE consortium_id=$1
         AND (status IN ('open','active') OR updated_at > now() - interval '1 day') ORDER BY updated_at DESC LIMIT 10`, [me.cid]);
       return { body: { joint: list.map(j => ({ id: j.id, name: j.state.name, status: j.status, phase: j.state.phase, turn: j.state.turn,
-        roles: j.state.roles, by: j.state.by, version: j.version, updatedAt: j.updated_at })) } };
+        roles: j.state.roles, done: j.state.done, waiting: jointWaiting(j.state, user.username), by: j.state.by, version: j.version, updatedAt: j.updated_at })) } };
     },
 
     async jointCreate({ user, body }) {

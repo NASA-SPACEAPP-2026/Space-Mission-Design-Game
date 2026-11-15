@@ -37,7 +37,7 @@ There should not be one perfect answer: different configurations can meet differ
 | Evaluation | Performance, efficiency, and decision quality, with explanations |
 | Collaboration | Potential cooperation for up to four people with distinct roles |
 
-Collaboration can divide science, spacecraft, communications, and resource responsibilities while retaining shared final decisions. This is an objective in the brief, not a promise of implemented multiplayer.
+Collaboration can divide science, spacecraft, communications, and resource responsibilities while retaining shared final decisions. Joint missions implement this for the satellite design: four roles work simultaneously, cross-role budget requests, and a shared GO/NO-GO vote.
 
 ## Additional ideas in the brief
 
@@ -54,6 +54,6 @@ Multiple scenarios, unexpected events, simplified or realistic models, interacti
 | Detailed orbital analysis | Optional GMAT with local fallback |
 | Identity | Click-only introduction, required username/password registration or login, PostgreSQL |
 | Mission persistence | Browser-local saves, without cloud storage |
-| Online cooperation and rankings | No multiplayer or leaderboard backend implemented |
+| Online cooperation and rankings | Joint missions (up to four roles) and a worldwide science ranking; no live co-op on the full mission flow |
 
 [Entry and accounts](entry-flow.md). Accounts, GMAT simulation, and local saves are separate components. See [architecture](architecture.md), [database](authentication.md), and [GMAT](gmat-integration-report.md) for technical behavior.
