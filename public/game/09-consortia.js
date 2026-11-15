@@ -161,7 +161,7 @@ window.GNGCLAN = (function () {
   const myName = () => (window.gngUser && window.gngUser.username) || (DEMO ? 'Matteo' : '');
 
   /* ---------- stato ---------- */
-  const S = { open: false, tab: 'chat', noTab: 'search', mine: null, loaded: false, down: false, list: null, q: '', free: false,
+  const S = { asked: {}, ok: '', open: false, tab: 'chat', noTab: 'search', mine: null, loaded: false, down: false, list: null, q: '', free: false,
     msgs: [], lastId: 0, coolUntil: 0, draft: '', err: '', busy: false, confirm: '', share: false, codeFor: '', unread: 0, edit: null,
     form: { name: '', motto: '', kind: 'open', minScience: 0, maxMembers: 20, crest: { shape: 'shield', color: COLORS[0], symbol: 'rocket' } } };
   let root = null, chatT = 0, mineT = 0, pollT = 0, searchT = 0, confirmT = 0;
@@ -251,7 +251,7 @@ window.GNGCLAN = (function () {
     return root;
   }
   async function open(tab) {
-    ensureRoot(); S.open = true; S.err = ''; S.confirm = ''; S.share = false; root.hidden = false; document.body.classList.add('clan-open');
+    ensureRoot(); S.open = true; S.err = ''; S.ok = ''; S.confirm = ''; S.share = false; root.hidden = false; document.body.classList.add('clan-open');
     // l'animazione d'ingresso solo all'apertura: i ridisegni (schede, azioni) non devono far lampeggiare il pannello
     root.classList.add('opening'); setTimeout(() => root.classList.remove('opening'), 300);
     if (tab === 'challenge') { S.tab = S.noTab = 'challenge'; }
@@ -293,7 +293,7 @@ window.GNGCLAN = (function () {
   async function search() {
     const qs = new URLSearchParams(); if (S.q.trim()) qs.set('q', S.q.trim()); if (S.free) qs.set('free', '1');
     const r = await api('GET', qs.toString() ? '?' + qs : '');
-    if (r.status === 200) S.list = r.data.consortia || []; else if (down(r)) S.down = true;
+    if (r.status === 200) { S.list = r.data.consortia || []; if (!DEMO) S.asked = {}; } else if (down(r)) S.down = true;
   }
 
   /* ---------- disegno ---------- */
@@ -309,7 +309,7 @@ window.GNGCLAN = (function () {
       '<div class="clt"><b>' + esc(c ? c.name : T('Consorzi', 'Consortia')) + '</b><small>' + (c ? T('Livello ', 'Level ') + c.level + ' · ' + c.members + '/' + c.maxMembers + ' · ' + c.science + ' ◆' : T('Gioca in squadra con altre agenzie', 'Team up with other agencies')) + (DEMO ? ' · DEMO' : '') + '</small></div>' +
       '<nav class="cltabs" role="tablist">' + tabs.map(t => '<button role="tab" aria-selected="' + (t[0] === cur) + '" class="' + (t[0] === cur ? 'on' : '') + '" data-cl="tab" data-k="' + t[0] + '">' + t[1] + '</button>').join('') + '</nav>' +
       '<button class="clx" data-cl="close" aria-label="' + T('Chiudi', 'Close') + '">×</button></header>' +
-      (S.err ? '<p class="clerr" role="alert">' + esc(S.err) + '</p>' : '') +
+      (S.err ? '<p class="clerr" role="alert">' + esc(S.err) + '</p>' : '') + (S.ok && !S.err ? '<p class="clok" role="status">' + esc(S.ok) + '</p>' : '') +
       '<div class="clb">' + body(cur) + '</div></div>';
     const back = root.querySelector('.clsend input'); if (back) back.value = S.draft;
     if (focused) { const f = root.querySelector('[data-f="' + focused + '"]'); if (f) f.focus(); }
@@ -333,7 +333,8 @@ window.GNGCLAN = (function () {
   function card(c) {
     const full = c.members >= c.maxMembers, low = sci() < c.minScience && c.kind !== 'invite';
     let act;
-    if (full) act = '<button class="clbtn" disabled>' + T('Pieno', 'Full') + '</button>';
+    if (c.requested || S.asked[c.id]) act = '<button class="clbtn waiting" disabled>' + T('In attesa di risposta…', 'Waiting for response…') + '</button>';
+    else if (full) act = '<button class="clbtn" disabled>' + T('Pieno', 'Full') + '</button>';
     else if (c.kind === 'invite') act = S.codeFor === c.id ? '<form class="clcode" data-cl-form="code" data-id="' + esc(c.id) + '"><input data-f="code" maxlength="8" autocomplete="off" placeholder="' + T('Codice', 'Code') + '" aria-label="' + T('Codice invito', 'Invite code') + '"><button class="clbtn pri">' + T('Entra', 'Join') + '</button></form>' : '<button class="clbtn" data-cl="code" data-id="' + esc(c.id) + '">' + T('Ho un codice', 'I have a code') + '</button>';
     else if (low) act = '<button class="clbtn" disabled>' + T('Servono ', 'Needs ') + c.minScience + ' ◆</button>';
     else act = '<button class="clbtn pri" data-cl="join" data-id="' + esc(c.id) + '">' + (c.kind === 'request' ? T('Chiedi di entrare', 'Ask to join') : T('Entra', 'Join')) + '</button>';
@@ -490,13 +491,13 @@ window.GNGCLAN = (function () {
 
   /* ---------- azioni ---------- */
   async function run(fn) {
-    if (S.busy) return Promise.resolve(); S.busy = true; S.err = '';
+    if (S.busy) return Promise.resolve(); S.busy = true; S.err = ''; S.ok = '';
     try { await fn(); } finally { S.busy = false; draw(); }
   }
   const fail = r => { S.err = errText(r); try { host.sfx('bad'); } catch (e) {} };
   function arm(key) { S.confirm = key; clearTimeout(confirmT); confirmT = setTimeout(() => { S.confirm = ''; draw(); }, 4000); draw(); }
-  async function afterJoin(r) {
-    if (r.status === 202) { host.toast(T('Richiesta inviata: aspetta che il direttore ti accetti.', 'Request sent: wait for the director to accept you.')); return; }
+  async function afterJoin(r, id) {
+    if (r.status === 202) { if (id) S.asked[id] = 1; S.ok = T('Richiesta inviata: aspetta che il direttore ti accetti.', 'Request sent: wait for the director to accept you.'); try { host.sfx('ok'); } catch (e) {} return; }
     if (r.status !== 200) return fail(r);
     S.msgs = []; S.lastId = 0; S.tab = 'chat'; await loadMine(); startChat();
     try { host.sfx('ok'); } catch (e) {}
@@ -539,7 +540,7 @@ window.GNGCLAN = (function () {
     if (a === 'retry') { S.down = false; S.loaded = false; open(); return; }
     if (a === 'free') { S.free = !S.free; return run(search); }
     if (a === 'code') { S.codeFor = b.dataset.id; draw(); const i = root.querySelector('[data-f="code"]'); if (i) i.focus(); return; }
-    if (a === 'join') return run(async () => afterJoin(await api('POST', '/' + b.dataset.id + '/join', {})));
+    if (a === 'join') return run(async () => afterJoin(await api('POST', '/' + b.dataset.id + '/join', {}), b.dataset.id));
     if (a === 'crest' || a === 'kind') {
       const f = member() ? S.edit : S.form; if (!f) return;
       if (a === 'kind') f.kind = b.dataset.k; else f.crest[b.dataset.key] = b.dataset.v;
@@ -612,7 +613,7 @@ window.GNGCLAN = (function () {
     }
     if (kind === 'code') {
       const code = form.querySelector('input').value.trim();
-      return run(async () => afterJoin(await api('POST', '/' + form.dataset.id + '/join', { code })));
+      return run(async () => afterJoin(await api('POST', '/' + form.dataset.id + '/join', { code }), form.dataset.id));
     }
     if (kind === 'create') {
       const f = S.form;
@@ -1262,7 +1263,7 @@ body.clan-open #tbub,body.clan-open #zbtn,body.clan-open #zpanel{display:none!im
 #clan .cltabs button.on,#clan .clchip.on,#clan .clseg button.on{background:#F07B3F;color:#1A1210}
 #clan .clx{background:#222631;color:#F1ECE6;border:0;border-radius:50%;width:34px;height:34px;font-size:22px;line-height:1;cursor:pointer;flex:none}
 #clan .clb{flex:1;min-height:0;overflow:auto;padding:10px 12px}
-#clan .clerr{margin:0;padding:6px 12px;background:rgba(210,68,58,.22);color:#FFB4AB;font-size:13px}
+#clan .clok{margin:0;padding:6px 12px;background:rgba(127,216,204,.16);color:#9FE6DB;font-size:13px}#clan .clbtn.waiting{opacity:.75;cursor:default;font-style:italic}#clan .clerr{margin:0;padding:6px 12px;background:rgba(210,68,58,.22);color:#FFB4AB;font-size:13px}
 #clan .clbtn{background:#2A2F3B;color:#F1ECE6;border:0;border-radius:8px;padding:8px 14px;font:700 13px/1.1 inherit;cursor:pointer;min-height:34px;white-space:nowrap}
 #clan .clbtn.pri{background:#F07B3F;color:#1A1210}
 #clan .clbtn.bad{background:rgba(210,68,58,.25);color:#FFB4AB}
