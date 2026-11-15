@@ -6848,10 +6848,10 @@ const IR3=(()=>{
   /* ---------- controlli della camera: trascina per ruotare, rotella per lo zoom, tasto destro per spostare ---------- */
   const PT=new Map(); let drag=null, moved=false, pinch=null;
   const isPlacing=()=>host&&host.classList.contains('placing');
-  /* un dito sposta la vista (la stanza resta sotto il dito); due dita: allargarle o stringerle zooma, girarle come una manopola ruota la stanza (insieme, come nelle mappe); col mouse tasto destro o Maiusc ruota */
+  /* un dito sposta la vista (la stanza resta sotto il dito); due dita: allargarle o stringerle zooma, girarle come una manopola ruota la stanza (insieme, come nelle mappe); col mouse il tasto sinistro ruota e il destro sposta (Maiusc inverte) */
   const fang=a=>Math.atan2(a[1][1]-a[0][1],a[1][0]-a[0][0]);
   function onDown(e){ if(!running||SK!=='room') return; PT.set(e.pointerId,[e.clientX,e.clientY]); yawTo=null;
-    if(PT.size===1){ moved=false; drag={x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,tx:CAM.tx,tz:CAM.tz,rot:e.button===2||e.shiftKey}; }
+    if(PT.size===1){ moved=false; drag={x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,tx:CAM.tx,tz:CAM.tz,rot:e.pointerType==='mouse'?((e.button===0)!==!!e.shiftKey&&!isPlacing()):e.shiftKey}; }
     else if(PT.size===2){ const a=Array.from(PT.values()); pinch={d0:Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])),z0:CAM.zoom,a:fang(a)}; drag=null; moved=true; } }
   function onMove(e){ if(!PT.has(e.pointerId)) return; PT.set(e.pointerId,[e.clientX,e.clientY]);
     if(pinch&&PT.size>=2){ const a=Array.from(PT.values()), d=Math.max(20,Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])); CAM.zoom=Math.max(.7,Math.min(3.2,pinch.z0*d/pinch.d0));
