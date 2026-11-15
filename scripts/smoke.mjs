@@ -61,7 +61,7 @@ try {
     if (message.type() === "error") problems.push(`console: ${message.text()}`);
   });
 
-  await page.goto(baseUrl, { waitUntil: "load" });
+  await page.goto(`${baseUrl}/play`, { waitUntil: "load" });
   if (!process.env.GNG_USERNAME || !process.env.GNG_PASSWORD) {
     throw new Error('Set GNG_USERNAME and GNG_PASSWORD for an existing test account, or use node scripts/smoke-account.mjs for a temporary database.');
   }

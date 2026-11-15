@@ -76,7 +76,7 @@ After expiry, the next attempt resets the counter to 1 and starts a new 15-minut
 
 1. The browser sends JSON to a same-origin API.
 2. The backend validates method, origin, format, and limits; registration and login accept at most 4,096 body bytes.
-3. Registration validates username, password and any supplied email, derives the password hash, and inserts the user. Duplicate username/email produces `409`.
+3. Registration validates username, password and any supplied email, derives the password hash, and inserts the user. Duplicate username/email produces `409`. Usernames containing English or Italian swear words, slurs or blasphemy (including leetspeak such as `sh1t`, repeated letters and `_` separators) are rejected with `400` and `code: "username_not_allowed"`; the word lists live in [`backend/username-filter.mjs`](../backend/username-filter.mjs). Existing accounts are not affected.
 4. Login lowercases and trims the identifier, looks up the user, and compares password hashes. Missing users still cause a comparison using a dummy hash.
 5. After registration or login, the backend generates **32 random bytes**, encoded as 64 hexadecimal characters. It stores only SHA-256 of the token with a seven-day expiry and deletes the prior session when a cookie was supplied.
 6. The browser receives `gng_session`; JSON exposes only `{id, username, email}` inside `user`.

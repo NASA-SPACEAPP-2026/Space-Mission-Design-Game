@@ -76,7 +76,7 @@ Quando una finestra è scaduta, il tentativo successivo riporta il contatore a 1
 
 1. Il browser invia JSON all'API sulla stessa origine.
 2. Il backend verifica metodo, origine, formato e limiti; per registrazione e login accetta al massimo 4.096 byte di corpo.
-3. Alla registrazione valida username, password ed eventuale email, calcola scrypt e inserisce l'utente. Username/email duplicati producono `409`.
+3. Alla registrazione valida username, password ed eventuale email, calcola scrypt e inserisce l'utente. Username/email duplicati producono `409`. Gli username che contengono parolacce, insulti o bestemmie in inglese o italiano (anche in leetspeak come `sh1t`, con lettere ripetute o separate da `_`) vengono rifiutati con `400` e `code: "username_not_allowed"`; le liste di parole sono in [`backend/username-filter.mjs`](../backend/username-filter.mjs). Gli account già esistenti non vengono toccati.
 4. Al login normalizza l'identificativo con minuscole e rimozione degli spazi esterni, cerca l'utente e confronta gli hash della password. Per utenti assenti esegue comunque un calcolo con hash fittizio.
 5. Dopo registrazione o login genera **32 byte casuali**, codificati in 64 caratteri esadecimali. Salva solo SHA-256 del token, con scadenza a sette giorni, ed elimina la sessione precedente se era presente un cookie.
 6. Il browser riceve il token nel cookie `gng_session`; il JSON contiene solo `{id, username, email}` dentro `user`.

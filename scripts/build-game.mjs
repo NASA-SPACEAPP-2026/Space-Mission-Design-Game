@@ -62,6 +62,20 @@ let output = index.replace(scriptBlock, scriptTag);
 if (!output.includes(preloadTag)) output = output.replace('</head>', `${preloadTag}</head>`);
 await writeFile(indexPath, output);
 
+// The landing pages (dist/landing/) prefetch the game bundle, so the game starts quickly after "Play"
+// and the deploy smoke test still finds the bundle from the site root.
+for (const page of ["landing/index.html", "landing/en.html"]) {
+  const pagePath = resolve(root, "dist", page);
+  let html;
+  try {
+    html = await readFile(pagePath, "utf8");
+  } catch {
+    continue;
+  }
+  const prefetchTag = `<link rel="prefetch" as="script" href="/assets/${bundleName}">`;
+  if (!html.includes(prefetchTag)) await writeFile(pagePath, html.replace("</head>", `${prefetchTag}</head>`));
+}
+
 // The source scripts are only needed by the dev server.
 await rm(resolve(root, "dist/game"), { recursive: true, force: true });
 

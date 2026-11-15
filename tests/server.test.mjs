@@ -179,4 +179,64 @@ describe("static server", () => {
     const results=await Promise.all(Array.from({length:200},(_,i)=>rawGet(`${baseUrl}${i%2?'/large.js':'/fallback.js'}`,{'accept-encoding':i%3?'gzip':'br'})));
     for(const r of results){expect(r.status).toBe(200);expect((r.headers['content-encoding']==='br'?brotliDecompressSync(r.body):gunzipSync(r.body)).toString()).toBe(largeSource);}
   });
+
+  it("keeps the game on / when there is no landing page", async () => {
+    const response = await fetch(`${baseUrl}/?clan=demo`, { redirect: "manual" });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("Go No-Go");
+  });
+});
+
+describe("landing page routes", () => {
+  let landingServer;
+  let landingUrl;
+  let landingRoot;
+
+  beforeAll(async () => {
+    landingRoot = await mkdtemp(join(tmpdir(), "gng-landing-"));
+    await mkdir(join(landingRoot, "landing", "assets"), { recursive: true });
+    await writeFile(join(landingRoot, "index.html"), "<!doctype html><title>Go No-Go game</title>");
+    await writeFile(join(landingRoot, "landing", "index.html"), "<!doctype html><title>Landing IT</title>");
+    await writeFile(join(landingRoot, "landing", "en.html"), "<!doctype html><title>Landing EN</title>");
+    await writeFile(join(landingRoot, "landing", "assets", "system.css"), "body{}");
+    landingServer = createStaticServer({ root: landingRoot });
+    await new Promise((resolve) => landingServer.listen(0, "127.0.0.1", resolve));
+    landingUrl = `http://127.0.0.1:${landingServer.address().port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise((resolve) => landingServer.close(resolve));
+    await rm(landingRoot, { recursive: true, force: true });
+  });
+
+  it("serves the landing page on / and its English version on /en", async () => {
+    const italian = await fetch(`${landingUrl}/`);
+    expect(italian.status).toBe(200);
+    expect(italian.headers.get("content-type")).toContain("text/html");
+    expect(italian.headers.get("cache-control")).toBe("no-cache");
+    expect(await italian.text()).toContain("Landing IT");
+    const english = await fetch(`${landingUrl}/en`);
+    expect(english.headers.get("cache-control")).toBe("no-cache");
+    expect(await english.text()).toContain("Landing EN");
+  });
+
+  it("serves the game on /play", async () => {
+    const response = await fetch(`${landingUrl}/play`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-cache");
+    expect(await response.text()).toContain("Go No-Go game");
+    expect(await (await fetch(`${landingUrl}/play?clan=demo`)).text()).toContain("Go No-Go game");
+  });
+
+  it("sends old game links with a query from / to /play", async () => {
+    const response = await fetch(`${landingUrl}/?clan=demo&q=2`, { redirect: "manual" });
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/play?clan=demo&q=2");
+  });
+
+  it("revalidates the landing kit files", async () => {
+    const response = await fetch(`${landingUrl}/landing/assets/system.css`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-cache");
+  });
 });

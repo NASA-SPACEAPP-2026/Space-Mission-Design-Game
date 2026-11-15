@@ -222,7 +222,7 @@ npm run build
 node --env-file-if-exists=.env server.mjs
 ```
 
-Apri **http://localhost:8080**. Ripristina `APP_ORIGIN=http://localhost:5173` prima di tornare allo sviluppo con Vite. `APP_ORIGIN` deve coincidere con l'origine visitata, senza slash finale: `localhost` e `127.0.0.1` sono origini diverse.
+Apri **http://localhost:8080/play** per il gioco (la radice del sito è la landing page). Ripristina `APP_ORIGIN=http://localhost:5173` prima di tornare allo sviluppo con Vite. `APP_ORIGIN` deve coincidere con l'origine visitata, senza slash finale: `localhost` e `127.0.0.1` sono origini diverse.
 
 La CI esegue controlli e packaging per PR verso `dev` e `main`. Un push su `dev` distribuisce in **staging**, un push su `main` in **produzione**. In produzione il server richiede DB e origine HTTPS; le migrazioni vanno applicate prima del deploy. Consulta la [guida Azure](documentation/deployment.it.md).
 
