@@ -674,6 +674,7 @@ Matrice dei rischi	Risk matrix
 Matrice dei rischi di {s}	Risk matrix of {s}
 Mercato CubeSat (componente generico)	CubeSat market (generic component)
 Mese {n}	Month {n}
+sprechi il {n}% del ΔV	you waste {n}% of the ΔV
 Mese {n}: {n} scienza	Month {n}: {n} science
 Metodi per gestire i guasti già dal progetto.	Methods to handle faults from the design stage.
 Micrometeorite	Micrometeoroid
@@ -2783,6 +2784,7 @@ Mitigazione: Prova funzionale con FlatSat	Mitigation: Functional test with FlatS
 Mitigazione: Prova EMC con Camera anecoica (da installare)	Mitigation: EMC test with Anechoic chamber (to be installed)
 Mitigazione: Prova di massa con Bilancia di massa (da installare)	Mitigation: Mass test with Mass balance (to be installed)
 Prova di vibrazione con Tavola vibrante	Vibration test with Shaker table
+Prova di vibrazione con Tavola vibrante (da installare)	Vibration test with Shaker table (to be installed)
 Prova in termovuoto con Camera termovuoto	Thermal-vacuum test with Thermal-vacuum chamber
 Prova di shock con Banco shock	Shock test with Shock bench
 Prova funzionale con FlatSat	Functional test with FlatSat
@@ -3648,7 +3650,7 @@ function vSatType(v,M){ const lvN=Math.max(L.level(G.xp),M.tut?(M.lvl||1):0), de
   v.innerHTML=meetBg(M)+'<div class="head"><div><h3>Edificio amministrativo · Fase A</h3><h1>Che satellite costruisci?</h1></div></div>'+
     '<h3 style="margin:4px 0 8px">CubeSat</h3><div class="sts">'+Object.keys(E.RIDES).map(k=>{ const R=E.RIDES[k], w=why(k); return '<button class="stc'+(M.sat.ride===k&&M.rideFixed?' sel':'')+(w?' lock':'')+'" data-act="pickType" data-k="'+k+'"'+(w?' disabled':'')+'>'+structIcon(k)+'<b>'+R.n+'</b><span class="fine">'+R.s+'</span><ul class="kv"><li><span>Struttura</span><b>'+keur(R.c)+'</b></li><li><span>Massa massima</span><b>'+R.massLim+' kg</b></li><li><span>Griglia</span><b>'+R.cols+' × '+R.rows+' caselle</b></li></ul>'+(w?'<small class="lk">'+w+'</small>':'')+'</button>'; }).join('')+'</div>'+
     '<h3 style="margin:18px 0 8px">Altre classi</h3><div class="sts"><div class="stc lock"><b>Microsatellite</b><span class="fine">Classe ESPA, fino a circa 180 kg</span><small class="lk">🔒 in arrivo</small></div>'+
-    '<button class="stc'+(freeBuildOpen()?'':' lock')+'" data-act="pickFree"'+(freeBuildOpen()?'':' disabled aria-disabled="true"')+'><b>'+(freeBuildOpen()?'':'🔒 ')+'Costruzione libera</b><span class="fine">Un satellite senza i vincoli del CubeSat: niente taglia, niente griglia.</span>'+(freeBuildOpen()?'':'<small class="lk">🔒 si sblocca al livello '+FREE_LVL+' (livello massimo), non in modalità creativa</small>')+'</button></div>'; }
+    '<button class="stc'+(freeBuildOpen()?'':' lock')+'" data-act="pickFree"'+(freeBuildOpen()?'':' disabled aria-disabled="true"')+'><b>'+(freeBuildOpen()?'':'🔒 ')+'Costruzione libera</b><span class="fine">Un satellite senza i vincoli del CubeSat: niente taglia, niente griglia.</span>'+(freeBuildOpen()?'':'<small class="lk">🔒 '+TX('si sblocca al livello '+FREE_LVL+' (livello massimo), non in modalità creativa','unlocks at level '+FREE_LVL+' (max level), not in creative mode')+'</small>')+'</button></div>'; }
 /* Costruzione libera: bloccata fino al livello massimo, anche in modalità creativa (sandbox). */
 const FREE_LVL=L.LEVELS.length;
 function freeBuildOpen(){ return !!G&&!G.sandbox&&!G.tut&&L.level(G.xp)>=FREE_LVL; }
@@ -4952,14 +4954,14 @@ function finish(M,fl){ if(M.phase==='done') return; /* animazione finita (rientr
 let MCRM=null, WIO=[];
 function causeOf(M,l){ const c=l.c||''; if(!c) return '';
   if(c.indexOf('test:')===0){ const t=c.slice(5), m=L.MACH[t], tr=M.tr&&M.tr[t]; return tr&&tr.res==='waived'?'La prova '+m.tn+' l’aveva trovato: hai firmato una deroga.':G.lab.indexOf(t)<0?'Non avevi il macchinario per la prova '+m.tn+' ('+m.n+').':'Hai saltato la prova '+m.tn+'.'; }
-  if(c.indexOf('choice:')===0){ const x=(M.choiceL||{})[c.slice(7)]; return x?(x.auto?'L’autopilota, su tua delega, ha scelto «':'Hai scelto «')+esc(x.l)+'»'+(x.h?' ('+esc(x.h)+')':'')+'.':'Una tua scelta.'; }
+  if(c.indexOf('choice:')===0){ const x=(M.choiceL||{})[c.slice(7)]; return x?(x.auto?TX('L’autopilota, su tua delega, ha scelto «','The autopilot, on your behalf, chose «'):TX('Hai scelto «','You chose «'))+esc(x.l)+'»'+(x.h?' ('+esc(x.h)+')':'')+'.':'Una tua scelta.'; }
   if(c.indexOf('auto:')===0) return 'Ha deciso l’autopilota.';
   const pl=O.plan(M);
   return ({'part:avi':'Il computer di bordo: senza scorta, o non resistente alle radiazioni.','part:adcs':'Assetto senza ruota di scorta.','part:com':'La radio scelta in progetto.','part:bat':'Batteria piccola per un’eclisse di '+Math.round(E.eclOf(M.sat)*60)+' minuti.'+(M.sat.eclSrc==='gmat'?' Dato GMAT.':''),
     dur:'Il ΔV rimasto non bastava per i '+M.duration+' mesi che hai dichiarato.',strat:'La strategia «'+esc((pl.strn&&pl.strn.n)||(pl.sc&&pl.sc.n)||'')+'» scelta nel Centro di dinamica del volo.',land:'Il rischio dell’atterraggio: lo accetti scegliendo il suolo.',
     plan:'Il piano di volo non arrivava all’orbita obiettivo.',work:'La quota di lavoro scelta nella fascia.',random:'Il caso: nessuna scelta l’avrebbe evitato del tutto.'})[c]||''; }
 function whatIfOpts(M,fl){ const o=[], r=M.result, cz=fl.log.map(l=>l.c||'');
-  Object.keys(M.choiceL||{}).forEach(m=>{ const x=M.choiceL[m]; x.alt.forEach(a=>o.push({k:'choice',m:+m,v:a.k,l:'Mese '+m+' · '+x.t+': «'+a.l+'» invece di «'+x.l+'»'})); });
+  Object.keys(M.choiceL||{}).forEach(m=>{ const x=M.choiceL[m]; x.alt.forEach(a=>o.push({k:'choice',m:+m,v:a.k,l:TX('Mese ','Month ')+m+' · '+x.t+': «'+a.l+'» '+TX('invece di','instead of')+' «'+x.l+'»'})); });
   L.TESTS.forEach(t=>{ if(cz.indexOf('test:'+t)>=0) o.unshift({k:'test',t,l:'Con la prova '+L.MACH[t].tn+' fatta e il difetto riparato'}); });
   if(r.missed){ const v=[6,9,12,18,24].filter(x=>x<=r.months&&x<M.duration&&x>=L.minMonths(M)).pop(); if(v) o.push({k:'dur',v,l:'Dichiarando '+v+' mesi invece di '+M.duration}); }
   const pl=O.plan(M); if(pl.strn&&pl.strn.k!=='hoh'&&pl.st.tr.some(x=>x.k==='hoh'&&!x.off)) o.push({k:'strat',v:'hoh',l:'Con il trasferimento Hohmann invece di «'+pl.strn.n+'»'});
@@ -5052,7 +5054,7 @@ nmback(){ $('#nmZone').hidden=true; $('#nmMain').hidden=false; },
       review({eb:'Fine della pre-fase A',name:'Mission Concept Review',code:'MDR',nc:'MCR',nasa:'Mission Concept Review',stamp:'GO',short:LANG==='en'?'Mission requirements approved. <b class="num">'+keur(fund)+'</b> promised, paid in instalments.':'Requisiti di missione approvati. Promessi <b class="num">'+keur(fund)+'</b>, pagati a rate.',body:'<p>'+M.reqs.length+' requisiti di missione. Gli stakeholder promettono <b class="num">'+keur(fund)+'</b>, ma pagano a rate, alle revisioni.</p>'+payPlan(M,'MDR'),actions:'<button class="btn primary" data-act="toA">Incassa la prima rata e vai avanti</button>'}); }
     else { M.stage='done'; review({eb:'Fine fase A',name:'System Requirements Review',code:'PRR',nc:'SRR',nasa:'System Requirements Review',stamp:'GO',short:LANG==='en'?'System requirements set. Now you draw the orbit.':'Requisiti di sistema fissati. Ora si disegna l’orbita.',body:'<p>'+esc(E.RIDES[M.sat.ride].n)+' · '+M.reqs.filter(x=>x.kind==='SYS').length+' requisiti di sistema. In fase B si fa l’analisi orbitale nel Centro di dinamica del volo.</p>',actions:'<button class="btn primary" data-act="toB">Avanti</button>'}); } },
   toA(){ const M=cur(); closeOv(); const first=once(M,'MDR'), inst=first?L.installment(M,'MDR'):0; M.got=(M.got||0)+inst; if(inst) addMoney(inst); if(first) gainXP(L.XP.MDR); M.phase='A'; M.stage='type'; render(); toast((inst?'Prima rata: '+keur(inst)+'. ':'')+'Fase A: rientra nell’edificio amministrativo per scegliere il satellite e sentire lo staff tecnico.'); },
-  pickFree(){ if(!freeBuildOpen()){ toast('Costruzione libera: si sblocca al livello '+FREE_LVL+' (non in modalità creativa).'); sfx.bad(); return; } toast('Costruzione libera: in arrivo (nessun satellite creato).'); },
+  pickFree(){ if(!freeBuildOpen()){ toast(TX('Costruzione libera: si sblocca al livello '+FREE_LVL+' (non in modalità creativa).','Free build: unlocks at level '+FREE_LVL+' (not in creative mode).')); sfx.bad(); return; } toast('Costruzione libera: in arrivo (nessun satellite creato).'); },
 pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.stake=M.stake; d.acc=d.acc||{}; E.prune(d); d.sol=L.availSol(M,d.ride)[0]||d.sol; L.startMeeting(M,'A'); sfx.ok(); render(); },
   toB(){ const M=cur(); closeOv(); if(once(M,'SRR')) gainXP(L.XP.PRR); M.phase='B'; M.stage='drm'; if(!M.sat.lv){ const ks=Object.keys(E.LV).filter(k=>lvShown(k,M)&&!lvLock(k,M)&&E.LV[k].fits.indexOf(M.sat.ride)>=0); if(ks.length) M.sat.lv=ks[0]; } if(!M.lw){ M.lw={s:'done',k:'ontime'}; M.mdr='ask'; } go('hub'); lwOpen(M); toast(TX('Fase B: vai al Centro di dinamica del volo per la MDR.','Phase B: head to the Flight Dynamics Centre for the MDR.')); },
   lwacc(){ lwResolve(cur(),'ontime'); }, lwrel(){ lwResolve(cur(),'relaxed'); }, lwlater(){ zdClose(); sfx.tap(); },
@@ -5398,7 +5400,7 @@ function tutEndModal(){ const M=G.missions[0], r=M.result||{};
   $('#ov').innerHTML='<div class="rv" role="dialog" aria-modal="true"><h3>Tutorial completato</h3><h2>'+(r.ok?'Primo volo riuscito!':'Fine del primo volo')+'</h2><p>Hai fatto tutte le fasi di una missione vera: requisiti con gli stakeholder (pre-fase A), satellite e requisiti di sistema (A), orbita e lancio (B), costruzione (C), assemblaggio, prove e lancio (D), operazioni in volo (E) e chiusura (F).</p>'+
     '<p>Era una prova: non dà punti e non va in bacheca. Adesso parte la modalità che hai scelto, da zero: le richieste cambiano ogni volta e decidi tu.</p><div class="row"><button class="btn primary" data-act="tutend">Crea la tua prima missione</button></div></div>'; $('#ov').hidden=false; }
 let coachEl=null;
-function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d=M.sat, ph=M.phase, st=M.stage, ovOn=!$('#ov').hidden, S=(sel,t,n)=>({sel,t,n}), here=k=>view===k, go2=(k,t,n)=>view!=='hub'?S('[data-act="home"]',t.replace(/\.$/,'')+'. Prima torna al campus: tocca la casetta.',n):S('.b3h[data-k="'+k+'"],#camsvg .wobj[data-act="enter"][data-k="'+k+'"]',t.replace(/\.$/,'')+'. Tocca l’edificio sulla mappa.',n);
+function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d=M.sat, ph=M.phase, st=M.stage, ovOn=!$('#ov').hidden, S=(sel,t,n)=>({sel,t,n}), here=k=>view===k, tt=x=>(LANG==='en'?I18N.tr(x):x).replace(/\.$/,''), go2=(k,t,n)=>view!=='hub'?S('[data-act="home"]',tt(t)+'. '+tt('Prima torna al campus: tocca la casetta.')+'.',n):S('.b3h[data-k="'+k+'"],#camsvg .wobj[data-act="enter"][data-k="'+k+'"]',tt(t)+'. '+tt('Tocca l’edificio sulla mappa.')+'.',n);
   if(ovOn){ const has=q=>$('#ov '+q);
     if(has('#xcnt:not([hidden])')) return S(null,'Conto alla rovescia… decollo!',8);
     if(has('[data-act="tutend"]')) return S('#ov [data-act="tutend"]','Bravo! Hai chiuso il tutorial.',10);
@@ -5411,6 +5413,8 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
     if(has('[data-act="waive"]')&&ph==='D'&&!M.ready) return S('#ov [data-act="waive"]','NO-GO: questa prova al livello 1 non si può fare. Concedi una deroga: il requisito si chiude, ma il rischio vola con il satellite.',8);
     if(has('[data-act="xlaunch"]:not([disabled])')) return S('#ov [data-act="xlaunch"]','Il razzo di un ente terzo è pronto, il servizio è già pagato. Lancia!',8);
     for(const k of ['vib','func']) if(has('[data-act="install"][data-k="'+k+'"]:not([disabled])')&&G.lab.indexOf(k)<0) return S('#ov [data-act="install"][data-k="'+k+'"]',k==='vib'?'Installa la tavola vibrante: simula le vibrazioni del razzo.':'Installa il banco per la prova funzionale: accende tutto e controlla che risponda.',7);
+    if(has('[data-act="cleanpick"]')) return S('#ov [data-act="cleanpick"]','Scegli il satellite da assemblare su questa postazione.',6);
+    if(has('[data-act="mtest"]')) return S('#ov [data-act="mtest"]','Scegli il satellite da provare: la prova parte subito.',7);
     if(has('[data-act="decide"]')) return S('#ov [data-act="decide"]','Un imprevisto in orbita: scegli tu cosa fare.',9);
     if(ph==='done'&&!has('[data-act="tutend"]')) coach.mcr=true;
     return S('#ov [data-act="closeov"]',ph==='done'?'Ecco la revisione di fine missione (MCR): scienza raccolta, rate e cosa è successo. Chiudila.':'Leggi e chiudi la finestra.',ph==='done'?10:null); }
@@ -5443,7 +5447,7 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
   if(ph==='D'&&st==='assembly'){ if(!here('build')) return go2('build','Fase D: entra nell’edificio di costruzione, in camera bianca.',6);
     if(M.asmWait&&$('#ov:not([hidden]) [data-act="cleanpick"]')) return S('#ov [data-act="cleanpick"]','Scegli il satellite da assemblare su questa postazione.',6);
     if(M.asmWait) return $('.dsat')?S('#roomsvg','Tocca una postazione libera: lì i tecnici assemblano il satellite.',6):S('[data-act="broom"][data-k="clean"]','Apri la camera bianca.',6);
-    return now()>=M.buildEnd?S('[data-act="station"][data-i="0"]','Assemblaggio finito. Tocca il satellite sulla postazione per portarlo al laboratorio prove.',7):S(null,'I tecnici stanno assemblando il satellite in camera bianca, pezzo dopo pezzo. Aspetta qualche secondo.',6); }
+    return now()>=M.buildEnd?S('[data-act="station"][data-i="'+(M.station||0)+'"]','Assemblaggio finito. Tocca il satellite sulla postazione per portarlo al laboratorio prove.',7):S(null,'I tecnici stanno assemblando il satellite in camera bianca, pezzo dopo pezzo. Aspetta qualche secondo.',6); }
   if(ph==='D'&&M.ready){ if(here('launch')||here('pad')||(here('admin')&&$('#lsvg'))) return LBUSY?S(null,'Conto alla rovescia… decollo!',8):S('[data-act="xlaunch"]','Il razzo è pronto sulla rampa e il servizio è già pagato. Premi LAUNCH!',8); return go2(M.sat.lv==='HOME'?'pad':'admin','Revisione di volo superata: comincia la fase E. Vai all’edificio amministrativo per il lancio',8); }
   if(ph==='D'){ const need=['vib','func'].filter(k=>L.MACH[k].lvl<=1); if(!here('test')) return go2('test','Al laboratorio prove: i requisiti chiedono la prova di vibrazione.',7);
     if(RPLACE&&RPLACE.room==='test') return S('#roomsvg','Tocca un punto libero del laboratorio per posizionare il macchinario: lo metti dove vuoi, ma senza toccare gli altri.',7);
@@ -5455,8 +5459,8 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
   if(ph==='E'){ if(!here('mcc')) return go2('mcc','Il satellite è in orbita! Seguilo dalla sala controllo.',9);
     if(MCCV!=='wall') return S('#roomsvg [data-act="mccwall"]','Il satellite è in orbita! Tocca gli schermi della sala controllo per seguire la telemetria.',9);
     if(M.simWait) return S('[data-act="simgo"]','Tocca lo schermo per far partire la missione: in circa 15 secondi vedrai tutto il volo, dal lancio alla fase F.',9);
-    const db=$('#dec:not([hidden]) [data-act="decide"]'); if(db&&!$('#dec:not([hidden]) .dops.own')) return S('#dec:not([hidden]) [data-act="decide"]','Un imprevisto: scegli tu cosa fare. Ogni opzione ha un costo e un rischio.',9);
-    if(db) return S('#dec:not([hidden]) .dops.own','Tempesta solare! Scegli tu: cambi assetto per schermare la camera, e costa crediti, oppure la spegni e perdi i dati finché dura.',9);
+    const DD='#dec:not([hidden]) ', ZZ='#mzoomBox ', db=$(DD+'[data-act="decide"],'+ZZ+'[data-act="decide"]'); if(db&&!$(DD+'.dops.own,'+ZZ+'.dops.own')) return S(DD+'[data-act="decide"],'+ZZ+'[data-act="decide"]','Un imprevisto: scegli tu cosa fare. Ogni opzione ha un costo e un rischio.',9);
+    if(db) return S(DD+'.dops.own,'+ZZ+'.dops.own','Tempesta solare! Scegli tu: cambi assetto per schermare la camera, e costa crediti, oppure la spegni e perdi i dati finché dura.',9);
     return S(null,'Ogni mese il satellite raccoglie dati scientifici. Aspetta la fine della missione: nel tutorial il tempo scorre più veloce.',9); }
   if(ph==='F'){ if(!here('mcc')) return go2('mcc','Missione nominale compiuta: torna in sala controllo per la chiusura.',10); if(MCCV!=='wall') return S('#roomsvg [data-act="mccwall"]','Tocca gli schermi per seguire la chiusura della missione.',10); return S(null,'Fase F: la missione ha raggiunto la durata promessa. Il controllo missione chiude le operazioni e prepara il rientro.',10); }
   if(ph==='done') return S(null,'',10);
@@ -5505,6 +5509,12 @@ function tutBub(stp){ let b=$('#tbub'); const txt=stp&&stp.t?String(stp.t):'';
   b.hidden=tutBub.closed===txt; tbPlace(b); }
 /* il fumetto di Zorty sta sempre sopra i tasti in basso a sinistra (sul campus il tasto Nuova missione e' piu' alto) */
 function tbPlace(b){ b.style.bottom=''; const d=$('#dock'); if(b.hidden||!d) return; const r=d.getBoundingClientRect(); if(!r.height||getComputedStyle(d).visibility==='hidden') return; const need=innerHeight-r.top+8, cb=parseFloat(getComputedStyle(b).bottom)||0; if(need>cb) b.style.bottom=Math.round(need)+'px'; }
+/* se il pezzo evidenziato e' tagliato dal bordo di un elenco che scorre, lo porta in vista */
+function coachReveal(el){ for(let p=el.parentElement;p&&p!==document.body;p=p.parentElement){ const o=getComputedStyle(p).overflowY; if((o==='auto'||o==='scroll')&&p.scrollHeight>p.clientHeight+2){ const a=p.getBoundingClientRect(), r=el.getBoundingClientRect(); if(r.bottom>a.bottom) p.scrollTop+=r.bottom-a.bottom+8; else if(r.top<a.top) p.scrollTop-=a.top-r.top+8; return; } } }
+/* il fumetto di Zorty non deve coprire il pezzo che chiede di toccare: se lo copre, va nel primo angolo libero (basso-destra, alto-sinistra, alto-destra) */
+function tbDodge(el){ const b=$('#tbub'); if(!b) return; const C=['tb-r','tb-t','tb-tr']; C.forEach(c=>b.classList.remove(c)); if(b.hidden||!el) return; const h=el.getBoundingClientRect(); if(h.width<2||h.height<2||h.width*h.height>.45*innerWidth*innerHeight) return;
+  const hit=()=>{ const r=b.getBoundingClientRect(); return r.left<h.right+8&&r.right>h.left-8&&r.top<h.bottom+8&&r.bottom>h.top-8; }; if(!hit()) return;
+  for(const c of C){ b.classList.add(c); if(!hit()) return; b.classList.remove(c); } }
 function coach(){ if(SPECT) return; const box=$('#coach'), hand=$('#chand'); if(box&&!box.hidden) box.hidden=true; if(hand&&!hand.hidden) hand.hidden=true; const prev=document.querySelector('.coach-hl');
   if(document.body.classList.contains('ttl-on')||!G||!G.tut){ if(prev) prev.classList.remove('coach-hl'); tutBub(null); document.body.classList.toggle('tutmode',!!(G&&G.tut&&!document.body.classList.contains('ttl-on'))); return; }
   document.body.classList.add('tutmode'); G.sdSeen=G.sdSeen||{};
@@ -5513,7 +5523,8 @@ function coach(){ if(SPECT) return; const box=$('#coach'), hand=$('#chand'); if(
   if(M&&M.phase==='done'&&$('#ov').hidden&&coach.mcr&&!coach.ended){ coach.ended=true; tutEndModal(); return; }
   let el=(stp&&stp.sel)?Array.from(document.querySelectorAll(stp.sel)).find(vis):null;
   { const any=el||(stp&&stp.sel?document.querySelector(stp.sel):null), dk=any&&any.closest&&any.closest('.dockL,.dockR'), vw=$('#view'); if(dk&&vw){ const sd=dk.classList.contains('dockL')?'L':'R', rb=document.querySelector('.rb[data-k="'+sd+'"]'); if(!vw.classList.contains('open'+sd)&&rb&&vis(rb)) el=rb; } }
-  if(prev&&prev!==el) prev.classList.remove('coach-hl'); if(el&&!el.classList.contains('coach-hl')) el.classList.add('coach-hl');
+  if(prev&&prev!==el) prev.classList.remove('coach-hl'); if(el&&!el.classList.contains('coach-hl')){ el.classList.add('coach-hl'); coachReveal(el); }
+  tbDodge(el);
   /* prima volta in una schermata: battuta del personale (non mentre c'e' una finestra aperta) */
   if($('#ov').hidden){ const k=tutKey(); if(SD_LINE[k]&&!G.sdSeen[k]){ G.sdSeen[k]=1; sdSay(SD_LINE[k][0],SD_LINE[k][1],k==='hub'); } }
   /* dopo 30 s senza azioni, un promemoria gentile se c'e' un passo evidenziato */
