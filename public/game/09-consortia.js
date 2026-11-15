@@ -480,7 +480,7 @@ window.GNGCLAN = (function () {
     const sure = S.confirm === 'leave';
     return '<div class="clinfo"><div class="clcol"><div class="clhero">' + crestSVG(c.crest, 64, goldOf(c.level)) + '<div><b>' + esc(c.name) + trophyTag(c.trophies) + '</b><small>' + esc(c.motto || '') + '</small>' +
       '<span class="clmeta">' + kindName(c.kind) + ' · ' + T('Livello ', 'Level ') + c.level + ' · ' + c.science + ' ◆' + (c.minScience ? ' · min ' + c.minScience + ' ◆' : '') + '</span></div></div>' + levelCard(c) +
-      (ed && c.inviteCode ? '<div class="clinv"><span>' + T('Codice invito', 'Invite code') + '</span><b class="clcodev">' + esc(c.inviteCode) + '</b><button class="clbtn sm" data-cl="newcode">' + T('Nuovo codice', 'New code') + '</button></div><p class="clnote">' + T('Dallo a chi vuoi invitare: con il codice si entra sempre, anche se il consorzio è su invito.', 'Give it to the people you invite: the code always lets them in, even when the consortium is invite only.') + '</p>' : '') +
+      (ed && c.inviteCode ? '<div class="clinv"><span>' + T('Codice invito', 'Invite code') + '</span><button type="button" class="clcodev" data-cl="copycode" data-code="' + esc(c.inviteCode) + '" title="' + esc(T('Tocca per copiare', 'Tap to copy')) + '" aria-label="' + esc(T('Copia il codice invito ', 'Copy invite code ') + c.inviteCode) + '">' + esc(c.inviteCode) + '</button><span class="clcopied" role="status" aria-live="polite"></span><button class="clbtn sm" data-cl="newcode">' + T('Nuovo codice', 'New code') + '</button></div><p class="clnote">' + T('Dallo a chi vuoi invitare: con il codice si entra sempre, anche se il consorzio è su invito.', 'Give it to the people you invite: the code always lets them in, even when the consortium is invite only.') + '</p>' : '') +
       '<label class="cltog"><input type="checkbox" data-cl-in="spectate"' + (S.mine.me.spectate !== false ? ' checked' : '') + '> ' + T('I compagni possono guardarmi mentre gioco', 'Teammates can watch me play') + '</label>' +
       '<button class="clbtn bad' + (sure ? ' sure' : '') + '" data-cl="leave">' + (sure ? T('Confermi? Tocca di nuovo', 'Sure? Tap again') : T('Lascia il consorzio', 'Leave the consortium')) + '</button></div>' +
       (ed ? '<form class="clform" data-cl-form="settings"><div class="clcol"><h3>' + T('Impostazioni', 'Settings') + '</h3>' + settingsFields(S.edit, false) +
@@ -526,6 +526,13 @@ window.GNGCLAN = (function () {
       if (x === 'accept' || x === 'reject') return jAct({ type: 'answer', decision: x });
       if (x === 'counter') return jAct({ type: 'answer', decision: 'counter', value: b.dataset.v });
       return jAct({ type: x });
+    }
+    if (a === 'copycode') {
+      const code = b.dataset.code || '', note = b.parentNode.querySelector('.clcopied');
+      const done = ok => { if (note) { note.textContent = ok ? T('Copiato!', 'Copied!') : T('Copia non riuscita', 'Copy failed'); clearTimeout(done.t); done.t = setTimeout(() => { note.textContent = ''; }, 1800); } try { host.sfx(ok ? 'ok' : 'bad'); } catch (e) {} };
+      const fallback = () => { try { const ta = document.createElement('textarea'); ta.value = code; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0'; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); done(ok); } catch (e) { done(false); } };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(() => done(true), fallback); else fallback();
+      return;
     }
     if (a === 'login') { close(); if (window.gngRequireAccount) window.gngRequireAccount().then(u => { if (u) open(); }); return; }
     if (a === 'demo') { setDemo(true); S.loaded = false; S.down = false; S.list = null; S.msgs = []; S.lastId = 0; open(); return; }
@@ -1420,7 +1427,7 @@ body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect
 #clan .clhero>div{display:flex;flex-direction:column}
 #clan .clhero b{font-size:18px}
 #clan .clinv{display:flex;align-items:center;gap:10px;background:#1C1F27;border-radius:10px;padding:8px 10px}
-#clan .clcodev{font:700 18px/1 ui-monospace,monospace;letter-spacing:.12em;color:#F2B83A;flex:1}
+#clan .clcodev{font:700 18px/1 ui-monospace,monospace;letter-spacing:.12em;color:#F2B83A;background:none;border:0;padding:6px 8px;margin:-6px -8px;border-radius:4px;cursor:pointer;text-align:left;flex:none}#clan .clcodev:hover{background:rgba(242,184,58,.14)}#clan .clcodev:focus-visible{outline:2px solid #F2B83A;outline-offset:2px}#clan .clcopied{flex:1;font-size:12px;color:#7FD8CC;min-width:0}
 #clan .clnote{margin:0;font-size:12px;color:#ADA49C}
 #clan .cltog{flex-direction:row;align-items:center;gap:8px;color:#D9D2CA;font-size:13px}
 #clan .clinfo .clform{flex:2 1 420px}
