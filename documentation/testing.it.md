@@ -15,6 +15,10 @@ npm run check
 
 La suite limita i worker a due per contenere la contesa di CPU e memoria durante PGlite, scrypt e compressione. I timeout e le asserzioni rimangono invariati.
 
+`npm test` mostra anche una tabella completa, raggruppata per file, con numero, esito (`PASS`, `FAIL`, `SKIP`), durata e nome di ciascun test. I nomi lunghi vanno a capo senza essere tagliati; gli errori mantengono i dettagli e lo stack trace di Vitest. Su PowerShell, se `npm.ps1` è bloccato, usa `npm.cmd test`.
+
+Gli esiti positivi sono verdi, gli errori rossi e i test saltati gialli. Il resoconto finale riassume ogni file, i totali, la percentuale di successo dei test eseguiti e la durata reale della suite. I log reindirizzati restano senza colori; `FORCE_COLOR=1` forza i colori e `NO_COLOR=1` li disattiva.
+
 `check` esegue Vitest, build di produzione e `scripts/verify-build.mjs` in sequenza; un errore interrompe il comando. La CI esegue anche `npm run package:azure` su Linux: servono Bash, npm, zip e una build già presente.
 
 | File di test | Copertura |
@@ -25,6 +29,14 @@ La suite limita i worker a due per contenere la contesa di CPU e memoria durante
 | `tests/gmat-proxy.test.mjs` | Proxy HTTP GMAT, metodi, indirizzo inoltrato, assenza servizio e upstream non raggiungibile |
 | `tests/gmat.test.mjs` | Generazione script GMAT, validazione e parser |
 | `tests/gmat-bridge.test.mjs` | Bridge con eseguibile simulato, code e risultati |
+| `tests/consortia.test.mjs`, `tests/consortia-ui.test.mjs` | Membri, ruoli, chat, moderazione, spettatori, missioni congiunte, classifiche e sfide |
+| `tests/roads.test.mjs` | Geometria delle strade del campus e posizionamento |
+| `tests/audit-api.test.mjs` | JSON malformato, CSRF, sessioni false, upload grandi, letture parallele, premi duplicati e posti contesi |
+| `tests/audit-database.test.mjs` | Configurazione DB, TLS e timeout senza connessioni esterne |
+| `tests/audit-gmat.test.mjs` | Matrice di input numerici, report corrotti, recupero delle code e cache |
+| `tests/audit-rules.test.mjs` | Conservazione orbitale, trasferimenti di Hohmann, stato indipendente e soglie delle sfide |
+
+`npm run test:coverage` misura con V8 `backend/`, `server.mjs` e `scripts/gmat-bridge.mjs`. Il report HTML è `test-results/coverage/index.html`: la percentuale non misura tutta l'interfaccia browser. Il [report del 15 novembre 2026](test-audit-2026-11-15.it.md) descrive difetti e limiti verificati.
 
 PGlite usa PostgreSQL incorporato temporaneo, separato da Docker e dagli utenti reali. GMAT simulato non dimostra il funzionamento del vero container. `npm test` esegue solo la suite; `npm run build` solo la compilazione.
 
@@ -33,10 +45,10 @@ PGlite usa PostgreSQL incorporato temporaneo, separato da Docker e dagli utenti 
 ```powershell
 npm run build
 $env:CHROME_PATH = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
-node scripts/smoke-account.mjs
+npm run smoke:account
 ```
 
-Adatta il percorso al browser installato. Lo script avvia server e DB PGlite temporanei. Controlla illustrazione, permanenza dello splash oltre tre secondi, avanzamento al clic, due soli campi, visibilità password, registrazione senza email, ingresso diretto, ripristino sessione, logout, password errata, servizio indisponibile, mobile e attributi cookie. Esegue anche lo smoke del gioco contro lo stesso server temporaneo e controlla lingua inglese, tastiera e movimento ridotto. Non crea account Docker o Azure. Le immagini vengono scritte in `dist/entry-splash.png`, `dist/entry-register.png` e `dist/entry-mobile.png`; lo smoke del gioco produce `dist/game-smoke.png`.
+Adatta il percorso al browser installato. Lo script avvia server e DB PGlite temporanei. Controlla menu iniziale, richiesta account su New game, annullamento con pulsante/Escape, due campi, registrazione automatica senza email, prosecuzione alla scelta modalità, sessioni, logout, password errata, servizio indisponibile, mobile e cookie. Lo smoke del gioco verifica salvataggio e ripresa dopo il reload. Controlla anche inglese, persistenza dell'italiano, tastiera e movimento ridotto. Non crea account Docker o Azure. Le immagini sono `dist/entry-title.png`, `dist/entry-register.png`, `dist/entry-mobile.png` e `dist/game-smoke.png`.
 
 ## Smoke del gioco su server esistente
 
@@ -53,11 +65,11 @@ Lo smoke richiede `GNG_USERNAME` e `GNG_PASSWORD`, accede senza registrare utent
 
 ## Checklist manuale
 
-1. Splash fermo fino al clic o all'attivazione da tastiera, senza conto alla rovescia.
-2. Registrazione con solo username e password; rifiuto di password corte e username duplicati anche con maiuscole diverse.
+1. Menu iniziale visibile fino a un'azione; New game chiede l'account agli ospiti.
+2. Modulo unico con username e password; i nomi esistenti richiedono la password corretta. La registrazione API rifiuta duplicati senza distinzione di maiuscole e impone password di 1–128 caratteri.
 3. Accesso degli utenti precedenti; compatibilità API del login email.
 4. Password errata o servizio indisponibile: modulo utilizzabile e gioco non avviato.
-5. Sessione valida: campus dopo il clic; logout: ritorno all'ingresso.
+5. Sessione valida: scelta modalità senza modulo account; logout: ritorno al menu come ospite.
 6. Conservazione dei salvataggi locali durante accesso, uscita, reload e cambio account.
 7. Tastiera, mobile verticale/orizzontale, movimento ridotto e fallback WebGL.
 8. Migrazioni applicate due volte su uno schema di prova esistente, senza perdita account.

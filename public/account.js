@@ -26,6 +26,7 @@ async function request(path, data) {
   try {
     const response = await fetch(`/api/auth/${path}`, { signal: controller.signal, ...(data === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }) });
     const result = await response.json().catch(() => ({}));
+    if (result.code === 'username_not_allowed') throw Object.assign(new Error(t('Questo nome utente non è consentito. Scegline un altro.', 'This username is not allowed. Please choose another one.')), { status: response.status });
     if (!response.ok) throw Object.assign(new Error(result.error || t('Servizio account non disponibile. Riprova tra poco.', 'Account service unavailable. Please try again shortly.')), { status: response.status });
     return result;
   } catch (error) {

@@ -18,6 +18,9 @@ Le attribuzioni conservano le fonti dichiarate nel documento originale. Il mater
 | `uranus.jpg` | Urano | Solar System Scope, `Solarsystemscope_texture_2k_uranus.jpg` (Wikimedia Commons) | Solar System Scope (solarsystemscope.com/textures), licenza CC BY 4.0 | 1024×512 |
 | `neptune.jpg` | Nettuno | Solar System Scope, `Solarsystemscope_texture_2k_neptune.jpg` (Wikimedia Commons) | Solar System Scope (solarsystemscope.com/textures), licenza CC BY 4.0 | 1024×512 |
 | `sun.jpg` | Sole | Solar System Scope, `Solarsystemscope_texture_2k_sun.jpg` (Wikimedia Commons) | Solar System Scope (solarsystemscope.com/textures), licenza CC BY 4.0 | 1024×512 |
+| `comet67p.json` | Cometa 67P/Churyumov–Gerasimenko | NASA Planetary Data System ed ESA Planetary Science Archive, data set RO-C-MULTI-5-67P-SHAPE-V2.0, prodotto `CG_SPC_SHAP5_012K_CART` ([pdssbn.astro.umd.edu](https://pdssbn.astro.umd.edu/holdings/ro-c-multi-5-67p-shape-v2.0/dataset.html)) | R. Gaskell, L. Jorda, C. Capanna, S. Hviid e P. Gutierrez, *SPC SHAP5 Cartesian plate model for comet 67P/C-G*, 2017; immagini OSIRIS di Rosetta, PSI e LAM | 5.861 vertici, 11.716 facce |
+
+**Cometa 67P.** Una cometa non è una sfera, quindi non c’è una mappa: il file è il modello di forma ufficiale, preparato da `scripts/comet-67p.mjs` (assi del gioco, normali ammorbidite per la luce cartoon, posizioni e normali quantizzate). I tre toni di grigio sono calcolati dalla forma (terreno liscio e concavo più chiaro, pareti ruvide e convesse più scure): non sono una mappa di albedo misurata. Scaricato il 15 novembre 2026.
 
 Data di download riportata dal documento originale: 14 novembre 2026. Le mappe Solar System Scope sono state scaricate il 15 novembre 2026 e ridotte da 2048×1024 a 1024×512 prima del filtro; la licenza CC BY 4.0 richiede di mantenere questa attribuzione.
 

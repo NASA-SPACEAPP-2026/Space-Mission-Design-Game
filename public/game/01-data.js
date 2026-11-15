@@ -40,7 +40,13 @@ const E = (function () {
       deco: '<path d="M-17 -6h34M-17 6h34" stroke="#fff" stroke-width="1.8" opacity=".22"/><ellipse cx="-4" cy="2" rx="4" ry="2.4" fill="#0F2166" opacity=".6"/>', behind: '' },
     sun: { n: 'Sole', gen: ['al Sole', 'del Sole'], en: 'the Sun', col: '#FFC83D', pal: ['#FFF3B0', '#FF9A1F'], R: 695700, vg: 6.0, lvl: 20, dv: 1800, cap: 1080, c: 20000, d: 150, days: 200, sciK: 4.0, sk: 3, types: ['sci', 'obs'], ext: 'solo sorvolo ravvicinato e osservazione: niente orbita stabile e niente atterraggio',
       zones: mkZones([['fly', [4000000, 9000000], 20, 'Sorvolo del perielio', 'Un passaggio ravvicinato nella corona solare: tutto dipende dallo scudo termico.'], ['low', [9000000, 30000000], 20, 'Orbita eliocentrica interna', 'Un’orbita attorno al Sole, dentro quella di Mercurio: osservazione quasi continua.']]), ecl: { fly: 0.05, low: 0.05 }, ride: 'DEEPX',
-      deco: '<circle r="17" fill="#FFE27A" opacity=".45"/><circle cx="-5" cy="-4" r="5" fill="#fff" opacity=".35"/>', behind: '<circle r="22" fill="#FFC83D" opacity=".18"/><circle r="19.5" fill="#FFC83D" opacity=".28"/>' }
+      deco: '<circle r="17" fill="#FFE27A" opacity=".45"/><circle cx="-5" cy="-4" r="5" fill="#fff" opacity=".35"/>', behind: '<circle r="22" fill="#FFC83D" opacity=".18"/><circle r="19.5" fill="#FFC83D" opacity=".28"/>' },
+    /* la cometa di Rosetta: forma vera dal modello SPC SHAP5 (public/tex/comet67p.json, scripts/comet-67p.mjs). R = raggio della sfera che contiene il nucleo;
+       fasce come le orbite di Rosetta (sorvoli a 6-10 km, orbite a 10-30 km, avvicinamento a 100 km); d = distanza dalla Terra all'arrivo (agosto 2014), days = i 10 anni del viaggio.
+       vg basso: attorno a un nucleo di pochi km le manovre costano poco (mu di gioco, come per gli altri corpi). */
+    comet: { n: 'Cometa 67P', gen: ['alla cometa 67P', 'della cometa 67P'], en: 'Comet 67P', col: '#9A958E', pal: ['#BDB8B0', '#55514B'], R: 2.63, vg: 0.5, lvl: 20, dv: 1900, cap: 780, c: 21000, d: 405, days: 3650, sciK: 4.2, sk: 3, types: ['sci', 'obs', 'demo'], ext: 'nucleo di due lobi grande pochi km: gravità debolissima e getti di gas, niente atterraggio',
+      zones: mkZones([['fly', [5, 10], 20], ['low', [10, 30], 20], ['high', [30, 100], 20]]), ecl: { fly: 0.01, low: 0.02, high: 0.04 }, ride: 'DEEPX',
+      deco: '<ellipse cx="-4" cy="2" rx="9" ry="7" fill="#7A756E"/><ellipse cx="7" cy="-5" rx="6" ry="5" fill="#7A756E"/>', behind: '' }
   };
   const FUND = { base: { leo: 450, moon: 2600, mars: 5600, venus: 6200 }, grow: 0.03 };
   Object.keys(EXT).forEach(k => { FUND.base[k] = Math.round(EXT[k].c * 2.1 / 100) * 100; });
@@ -66,7 +72,7 @@ const E = (function () {
     MARS: { n: 'Passaggio verso Marte o Venere', k: 'Un posto su una sonda interplanetaria: ti rilascia in un’orbita allungata', who: 'Ente terzo', fits: ['S12'], c: 3000, dest: ['mars', 'venus'], dvK: 1, lvl: 10, ell: 1, h: 1.5 },
     // batch 4: passaggi verso i corpi esterni. DEEP = sonda di classe media (Mercurio, Giove); DEEPX = sonda di classe Flagship, lanciatore pesante (Saturno, Urano, Nettuno, Sole). cd = prezzo per corpo (da EXT.c)
     DEEP: { n: 'Passaggio verso Mercurio o Giove', k: 'Un posto su una sonda di classe media: ti rilascia in un’orbita circolare di lavoro dopo la frenata', who: 'Ente terzo', fits: ['S12'], c: 5200, cd: { mercury: 5200, jupiter: 9000 }, dest: ['mercury', 'jupiter'], dvK: 1, lvl: 12, ell: 1, h: 1.6 },
-    DEEPX: { n: 'Passaggio su una sonda Flagship (lanciatore pesante)', k: 'Un posto su una grande sonda lanciata con un razzo pesante: serve per i pianeti esterni e per il Sole', who: 'Ente terzo', fits: ['S12'], c: 11000, cd: { saturn: 11000, uranus: 14000, neptune: 16000, sun: 20000 }, dest: ['saturn', 'uranus', 'neptune', 'sun'], dvK: 1, lvl: 16, ell: 1, h: 2.0 }
+    DEEPX: { n: 'Passaggio su una sonda Flagship (lanciatore pesante)', k: 'Un posto su una grande sonda lanciata con un razzo pesante: serve per i pianeti esterni, il Sole e la cometa 67P', who: 'Ente terzo', fits: ['S12'], c: 11000, cd: { saturn: 11000, uranus: 14000, neptune: 16000, sun: 20000, comet: 21000 }, dest: ['saturn', 'uranus', 'neptune', 'sun', 'comet'], dvK: 1, lvl: 16, ell: 1, h: 2.0 }
   };
   const DEST = {
     leo: { n: 'Terra', lvl: 1, dv: 0, sk: 4, sciK: 0.6, orbit: 'orbita bassa attorno alla Terra', end: 'Rientro distruttivo in atmosfera.', col: '#3E7BD6', far: 0, loc: 'Orbita terrestre bassa' },

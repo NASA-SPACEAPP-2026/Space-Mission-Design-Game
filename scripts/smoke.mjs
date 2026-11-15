@@ -61,7 +61,7 @@ try {
     if (message.type() === "error") problems.push(`console: ${message.text()}`);
   });
 
-  await page.goto(baseUrl, { waitUntil: "load" });
+  await page.goto(`${baseUrl}/play`, { waitUntil: "load" });
   if (!process.env.GNG_USERNAME || !process.env.GNG_PASSWORD) {
     throw new Error('Set GNG_USERNAME and GNG_PASSWORD for an existing test account, or use node scripts/smoke-account.mjs for a temporary database.');
   }
@@ -70,7 +70,6 @@ try {
   await page.waitForSelector(newGame, { timeout: 20_000 });
   await page.click(newGame);
   await page.waitForSelector('#entry-panel', { state: 'visible', timeout: 20_000 });
-  await page.click('#account-toggle');
   await page.fill('[name="username"]', process.env.GNG_USERNAME);
   await page.fill('[name="password"]', process.env.GNG_PASSWORD);
   await page.click('#account-submit');
@@ -86,11 +85,24 @@ try {
     problems.push("HUD did not render after starting a game");
   }
 
+  const saveKey='gng32.save:'+process.env.GNG_USERNAME.trim().toLowerCase();
+  await page.waitForFunction(key=>!!localStorage.getItem(key),saveKey);
+  const save=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),saveKey);
+  if(save.v!==32 || !Array.isArray(save.missions)) problems.push('Account save has an invalid format');
+  await page.reload();
+  await page.waitForSelector('#title [data-act="tresume"]',{timeout:10000});
+  await page.click('#title [data-act="tresume"]');
+  await page.waitForSelector('#title',{state:'detached',timeout:10000});
+  await page.waitForSelector('#view:not(:empty)',{timeout:10000});
+  const restored=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),saveKey);
+  if(restored.co!==save.co || restored.avatar!==save.avatar) problems.push('Account save did not survive reload');
+
   await page.screenshot({ path: "dist/game-smoke.png", fullPage: false });
   console.log(`Smoke test at ${baseUrl}`);
   console.log(`Title: ${await page.title()}`);
   console.log(`HUD: ${hud.replace(/\s+/g, " ").slice(0, 160)}`);
   console.log("Screenshot: dist/game-smoke.png");
+  console.log('Account save persisted and gameplay resumed after reload.');
 
   if (problems.length) {
     console.error("Problems:");

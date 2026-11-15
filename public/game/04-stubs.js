@@ -173,6 +173,50 @@ const S3 = (function () {
 })();
 
 ;
+/* ===== COMET: la cometa 67P/Churyumov-Gerasimenko. Non e' una sfera: la forma vera (modello SPC SHAP5, NASA PDS / ESA PSA) sta in public/tex/comet67p.json,
+   fatto da scripts/comet-67p.mjs (posizioni in raggi della sfera che contiene il nucleo, normali ammorbidite, 3 toni di grigio per faccia ricavati dalla geometria).
+   mesh(T) e' il corpo 3D (stesso materiale cartoon dei pianeti); draw(S, az, tilt, spin) lo disegna su un canvas S×S con la luce a 3 fasce e il contorno scuro di globe(),
+   con gli stessi angoli della vista orbitale 2D (az, tilt in gradi; spin = rotazione attorno all'asse). Finche' il file non e' arrivato ready() e' false. ===== */
+const COMET = (function () {
+  let D = null, busy = false; const cbs = [];
+  const dec = (s, C) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new C(u.buffer); };
+  /** Carica il modello una volta sola; cb(D) quando e' pronto. */
+  function load(cb) { if (D) { if (cb) cb(D); return D; } if (cb) cbs.push(cb); if (busy || typeof fetch !== 'function') return null; busy = true;
+    fetch('tex/comet67p.json').then(r => r.ok ? r.json() : Promise.reject(r.status)).then(j => { const P = dec(j.p, Int16Array), N = dec(j.n, Int8Array);
+      D = { P: Float32Array.from(P, v => v / 32767), N: Float32Array.from(N, v => v / 127), F: dec(j.f, Uint16Array), T: dec(j.t, Uint8Array) };
+      cbs.splice(0).forEach(f => { try { f(D); } catch (e) {} }); }).catch(() => { busy = false; }); return null; }
+  /* toni del terreno (scuro, medio, chiaro): nel 3D moltiplicano il colore del materiale (0,5), cosi' il contorno cartoon resta scuro; nel 2D sono gia' in 0-255 */
+  const PAL = [[.68, .66, .62], [.88, .86, .82], [1.08, 1.05, 1.0]], BASE = PAL.map(c => c.map(v => v * 0.5 * 255 * 1.45));
+  /** Corpo 3D, raggio 1 = R del corpo. Le facce non condividono i vertici: ogni faccia ha il suo tono pieno. */
+  function mesh(T) { if (!D) return null; const F = D.F, n = F.length, pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3);
+    for (let k = 0; k < n; k++) { const v = F[k], c = PAL[D.T[(k / 3) | 0]]; for (let j = 0; j < 3; j++) { pos[k * 3 + j] = D.P[v * 3 + j]; nor[k * 3 + j] = D.N[v * 3 + j]; col[k * 3 + j] = c[j]; } }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('normal', new T.BufferAttribute(nor, 3)); g.setAttribute('color', new T.BufferAttribute(col, 3)); g.computeBoundingSphere();
+    return new T.Mesh(g, new T.MeshStandardMaterial({ color: 0x808080, vertexColors: true, roughness: 0.95 })); }
+  /** Disegno 2D con z-buffer. Il modello e' negli assi di three (y = asse di rotazione): si riporta negli assi del gioco (z = polo) e si proietta come obDraw. */
+  function draw(S, az, tilt, spin) { if (!D || !(S > 0)) return null; const c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d'), img = x.createImageData(S, S), o = img.data, zb = new Float32Array(S * S).fill(-9), h = S / 2, R = h * 0.97;
+    const r = Math.PI / 180, ca = Math.cos(az * r), sa = Math.sin(az * r), ct = Math.cos(tilt * r), st = Math.sin(tilt * r), cs = Math.cos((spin || 0) * r), ss = Math.sin((spin || 0) * r);
+    const P = D.P, N = D.N, nV = P.length / 3, sx = new Float32Array(nV), sy = new Float32Array(nV), sz = new Float32Array(nV), nx = new Float32Array(nV), ny = new Float32Array(nV), nz = new Float32Array(nV);
+    const tf = (A, i, ox, oy, oz, scr) => { const X0 = A[i * 3], Y0 = -A[i * 3 + 2], Z = A[i * 3 + 1], X = X0 * cs - Y0 * ss, Y = X0 * ss + Y0 * cs, px = X * ca - Y * sa, py = X * sa + Y * ca;
+      ox[i] = scr ? h + px * R : px; oy[i] = scr ? h - (py * ct - Z * st) * R : py * ct - Z * st; oz[i] = py * st + Z * ct; };
+    for (let i = 0; i < nV; i++) { tf(P, i, sx, sy, sz, 1); tf(N, i, nx, ny, nz, 0); }
+    const F = D.F, L0 = -.45, L1 = .5, L2 = .74;
+    for (let f = 0; f < F.length; f += 3) { const a = F[f], b = F[f + 1], e = F[f + 2], ar = (sx[b] - sx[a]) * (sy[e] - sy[a]) - (sx[e] - sx[a]) * (sy[b] - sy[a]); if (Math.abs(ar) < 1e-9) continue;
+      const x0 = Math.max(0, Math.floor(Math.min(sx[a], sx[b], sx[e]))), x1 = Math.min(S - 1, Math.ceil(Math.max(sx[a], sx[b], sx[e]))), y0 = Math.max(0, Math.floor(Math.min(sy[a], sy[b], sy[e]))), y1 = Math.min(S - 1, Math.ceil(Math.max(sy[a], sy[b], sy[e]))), base = BASE[D.T[f / 3]];
+      for (let py = y0; py <= y1; py++) for (let px = x0; px <= x1; px++) { const qx = px + .5, qy = py + .5;
+        const w0 = ((sx[b] - qx) * (sy[e] - qy) - (sx[e] - qx) * (sy[b] - qy)) / ar, w1 = ((sx[e] - qx) * (sy[a] - qy) - (sx[a] - qx) * (sy[e] - qy)) / ar, w2 = 1 - w0 - w1;
+        if (w0 < -1e-4 || w1 < -1e-4 || w2 < -1e-4) continue; const z = w0 * sz[a] + w1 * sz[b] + w2 * sz[e], p = py * S + px; if (z <= zb[p]) continue; zb[p] = z;
+        const mx = w0 * nx[a] + w1 * nx[b] + w2 * nx[e], my = w0 * ny[a] + w1 * ny[b] + w2 * ny[e], mz = w0 * nz[a] + w1 * nz[b] + w2 * nz[e], d = (mx * L0 + my * L1 + mz * L2) / (Math.hypot(mx, my, mz) || 1);
+        const sh = d > .55 ? 1.08 : d > .22 ? .84 : d > 0 ? .6 : .3, i = p * 4; o[i] = Math.min(255, base[0] * sh); o[i + 1] = Math.min(255, base[1] * sh); o[i + 2] = Math.min(255, base[2] * sh); o[i + 3] = 255; } }
+    /* contorno scuro come le sfere di globe(): i pixel del corpo vicini al vuoto */
+    const k = Math.max(1, Math.round(S / 90)), edge = new Uint8Array(S * S);
+    for (let py = 0; py < S; py++) for (let px = 0; px < S; px++) { const p = py * S + px; if (!o[p * 4 + 3]) continue;
+      for (let dd = 1; dd <= k && !edge[p]; dd++) if (px < dd || py < dd || px >= S - dd || py >= S - dd || !o[(p - dd) * 4 + 3] || !o[(p + dd) * 4 + 3] || !o[(p - dd * S) * 4 + 3] || !o[(p + dd * S) * 4 + 3]) edge[p] = 1; }
+    for (let p = 0; p < S * S; p++) if (edge[p]) { o[p * 4] = 18; o[p * 4 + 1] = 24; o[p * 4 + 2] = 34; }
+    x.putImageData(img, 0, 0); return c; }
+  return { load, ready: () => !!D, mesh, draw };
+})();
+
+;
 /* ===== FD3: editor 3D delle orbite per il Centro di dinamica del volo. Unità: raggi del corpo centrale. ===== */
 const FD3 = (function () {
   const ok = (function () { try { if (!window.THREE) return false; const c = document.createElement('canvas'); return !!(c.getContext('webgl') || c.getContext('experimental-webgl')); } catch (e) { return false; } })();
@@ -220,7 +264,10 @@ const FD3 = (function () {
   function ring(el, B, n) { const out = []; for (let k = 0; k < n; k++) out.push(V(O.state(el, k * 360 / n, B).r, 1 / B.R)); return out; }
   function clear() { while (world.children.length) { const c = world.children[0]; world.remove(c); c.traverse(x => { if (x.geometry) x.geometry.dispose(); }); } picks = []; }
   function show(p, s, dest) { if (!R) init(); pl = p; sel = s || 0; const B = p.B, sc = 1 / B.R; clear();
-    if (bodyKey !== dest) { bodyKey = dest; let mb = null;
+    if (bodyKey !== dest && dest === 'comet') { bodyKey = dest; const g = new T.Group(); body = g;
+      /* la cometa non e' una sfera: il modello vero arriva da public/tex/comet67p.json, e finche' non c'e' il corpo resta vuoto (le orbite si vedono gia') */
+      const put = () => { if (body === g && !g.children.length) { const m = COMET.mesh(T); if (m) g.add(m); } }; if (COMET.ready()) put(); else COMET.load(put); }
+    else if (bodyKey !== dest) { bodyKey = dest; let mb = null;
       /* mappa cartoon (public/tex), caricata una volta sola: se c'e' gia' si usa subito, altrimenti sostituisce la texture disegnata dal codice appena arriva */
       const rt = realTex(dest, t => { if (mb) { mb.material.map = t; mb.material.needsUpdate = true; } });
       /* il Sole brilla di luce propria: materiale non illuminato, niente lato in ombra */
@@ -256,11 +303,11 @@ const FD3 = (function () {
       for (let a = 0; a < 360; a += 1) { const p = V(O.state(prev, a, B).r, sc).project(cam), sx = (p.x + 1) / 2 * rect.width + rect.left, sy = (1 - p.y) / 2 * rect.height + rect.top, d = (sx - e.clientX) ** 2 + (sy - e.clientY) ** 2; if (d < best) { best = d; nu = a; } }
       if (cb.onNu) cb.onNu(drag.k, nu); }
     if (drag.kind === 'h') { setRay(e.clientX, e.clientY); const u = drag.u, w0 = ray.ray.origin.clone(), d = ray.ray.direction, b = u.dot(d), dd = u.dot(w0), ee = d.dot(w0), den = 1 - b * b;
-      const t = den > 1e-6 ? (dd - b * ee) / den : dd; const h = Math.max(30, t / sc - B.R); if (cb.onH) cb.onH(drag.k, Math.round(h / 10) * 10); } }
+      const t = den > 1e-6 ? (dd - b * ee) / den : dd; const tiny = B.R < 10, h = Math.max(tiny ? 2 : 30, t / sc - B.R); /* attorno alla cometa (pochi km) si sale a passi di 1 km, non di 10 */ if (cb.onH) cb.onH(drag.k, tiny ? Math.round(h) : Math.round(h / 10) * 10); } }
   /* texture dei pianeti in cache: un solo download e una sola decodifica per corpo, anche cambiando vista */
   const TEXC = {}, TEXF = { leo: 'earth', moon: 'moon', mars: 'mars', venus: 'venus', mercury: 'mercury', jupiter: 'jupiter', saturn: 'saturn', uranus: 'uranus', neptune: 'neptune', sun: 'sun' };
   function realTex(dest, done) { const real = TEXF[dest]; if (!real || !T.TextureLoader) return null; let e = TEXC[real];
     if (!e) { e = TEXC[real] = { ok: false, cbs: [] }; e.t = new T.TextureLoader().load('tex/' + real + '.jpg', t => { if (T.sRGBEncoding) t.encoding = T.sRGBEncoding; e.ok = true; e.cbs.splice(0).forEach(f => { try { f(t); } catch (er) {} }); }); }
     if (e.ok) return e.t; if (done) e.cbs.push(done); return null; }
-  return { ok: true, mount, show, resize, preload: dest => { realTex(dest); } };
+  return { ok: true, mount, show, resize, preload: dest => { if (dest === 'comet') COMET.load(); else realTex(dest); } };
 })();

@@ -44,7 +44,9 @@ export const planKey = p => createHash('sha1').update(JSON.stringify(p)).digest(
 /** The numbers on the last non-empty line of the GMAT report file. */
 export const parseReport = txt => {
   const lines = String(txt).split(/\r?\n/).map(s => s.trim()).filter(Boolean), last = lines[lines.length - 1] || '';
-  const v = (last.match(/-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?/g) || []).map(Number);
+  const tokens = last ? last.split(/\s+/) : [];
+  if (!tokens.every(token => /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(token))) return null;
+  const v = tokens.map(Number);
   return v.length && v.every(Number.isFinite) ? v : null;
 };
 
@@ -94,8 +96,8 @@ export function parseState(txt) {
 }
 /** Last line of a lifetime report: days elapsed and altitude when the run stopped. Not re-entered if it ran to the cap. */
 export function parseLifetime(txt, cap) {
-  const last = String(txt).split(/\r?\n/).map(s => s.trim()).filter(Boolean).pop() || '', v = (last.match(/-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?/g) || []).map(Number);
-  if (v.length < 2 || !v.every(Number.isFinite)) return null;
+  const v = parseReport(txt);
+  if (!v || v.length < 2 || v[0] < 0) return null;
   return { days: v[0] < cap - 0.5 ? v[0] : null, cap, alt: v[1] };
 }
 // scale height of the upper atmosphere (km), coarse: only used for the legacy lifetime estimate shown when the full lifetime run is not available

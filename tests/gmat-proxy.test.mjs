@@ -35,4 +35,27 @@ describe("GMAT proxy in the site server", () => {
     const dead = createStaticServer({ gmatUrl: "http://127.0.0.1:1" }), port = await listen(dead);
     const r = await post(port, "/api/gmat", "{}"); dead.close(); expect(r.status).toBe(502); expect(JSON.parse(r.body).error).toBe("gmat-unreachable");
   });
+  it.each([
+    ['2001:db8::1234', '2001:db8::1234'], ['::1', '::1'],
+    ['[2001:db8::1]:51234', '2001:db8::1'], ['203.0.113.8:51234', '203.0.113.8'],
+    ['203.0.113.8, 10.0.0.1', '203.0.113.8']
+  ])('preserves the forwarded IP address: %s', async (header, expected) => {
+    expect((await post(sitePort, '/api/gmat', '{}', {'x-forwarded-for':header})).status).toBe(200);
+    expect(seen.xff).toBe(expected);
+  });
+  it('rejects oversized requests before contacting the upstream', async () => {
+    const before=seen;
+    expect((await post(sitePort, '/api/gmat', 'x'.repeat(32769))).status).toBe(413);
+    expect(seen).toBe(before);
+  });
+  it('survives a client disconnect in the middle of an upload', async () => {
+    const before=seen;
+    await new Promise(resolve=>{
+      const r=request({host:'127.0.0.1',port:sitePort,path:'/api/gmat',method:'POST',headers:{'content-type':'application/json','content-length':'2000'}});
+      r.on('error',()=>{});r.on('close',resolve);r.write('{');setTimeout(()=>r.destroy(),30);
+    });
+    await new Promise(r=>setTimeout(r,30));
+    expect(await get(sitePort,'/api/health')).toBe(200);
+    expect(seen).toBe(before);
+  });
 });

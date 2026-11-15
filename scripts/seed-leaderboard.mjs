@@ -15,6 +15,7 @@ import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { database, migrate } from '../backend/database.mjs';
 import { passwordHash } from '../backend/auth.mjs';
+import { isProfaneUsername } from '../backend/username-filter.mjs';
 
 const DEFAULT_FILE = new URL('./seed-leaderboard.csv', import.meta.url).pathname;
 const EMAIL_DOMAIN = 'seed.invalid';
@@ -81,7 +82,7 @@ export function generate(count, rand = Math.random) {
   const used = new Set(), rows = [];
   for (let i = 0; i < count; i++) {
     let username, tries = 0;
-    do { username = makeUsername(rand); if (++tries > 200) username += String(Math.floor(rand() * 100)); } while (used.has(username.toLowerCase()) || !USERNAME_RE.test(username));
+    do { username = makeUsername(rand); if (++tries > 200) username += String(Math.floor(rand() * 100)); } while (used.has(username.toLowerCase()) || !USERNAME_RE.test(username) || isProfaneUsername(username));
     used.add(username.toLowerCase());
     const skill = Math.pow(rand(), 2.2);
     rows.push({ username, science: rand() < 0.07 ? 0 : Math.round(30 + skill * 3000 + rand() * 250), missions: null });
@@ -108,6 +109,7 @@ export function parseCsv(text) {
     const username = cell(c[col('username')]);
     if (!username) return;
     if (!USERNAME_RE.test(username)) throw new Error(`${at}: invalid username "${username}" (3-24 characters: letters, digits, _)`);
+    if (isProfaneUsername(username)) throw new Error(`${at}: username "${username}" is not allowed (profanity filter)`);
     if (used.has(username.toLowerCase())) throw new Error(`${at}: duplicate username "${username}"`);
     used.add(username.toLowerCase());
     const science = Number(cell(c[col('science')]).replace(/[\s.]/g, ''));

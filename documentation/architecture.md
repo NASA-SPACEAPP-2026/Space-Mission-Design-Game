@@ -89,6 +89,8 @@ The GMAT proxy rule comes before the general `/api` rule. `APP_ORIGIN` refers to
 
 `server.mjs` uses Node's native HTTP server. It serves `dist/`, delegates `/api/auth/*` to `createAuth()`, and responds to `/api/health` with `{ "status": "ok" }`.
 
+**Landing page.** The site root is the landing page, not the game: `/` serves `dist/landing/index.html` (Italian), `/en` serves `dist/landing/en.html`, and the game shell (`dist/index.html`) answers on `/play` through the SPA fallback. A request to `/` that carries a query string (an old game link such as `/?clan=demo`) is redirected to `/play` with the same query. Saves and sessions are per origin, so they are unaffected. The landing page is plain static HTML in `public/landing/` (its CSS and scripts in `public/landing/assets/`, its pictures in `public/landing/img/`); without that folder `/` falls back to the game. With the Vite dev server the game stays on `/` and the landing page is at `/landing/index.html`.
+
 File handling supports GET/HEAD, MIME types, precompressed or dynamic Brotli/gzip, `ETag`, `Last-Modified`, conditional requests, and `304`. It rejects invalid paths and traversal, and applies SPA fallback only to extensionless routes.
 
 | Resource | Cache policy |

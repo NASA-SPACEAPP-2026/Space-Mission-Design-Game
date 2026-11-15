@@ -49,6 +49,8 @@ describe('PostgreSQL authentication', () => {
     expect((await call('register',{...credentials,username:'pilot_1'})).status).toBe(409);
     expect((await call('register',{...credentials,username:'Other',email:'PILOT@example.com'})).status).toBe(409);
     expect((await call('register',{...credentials,password:''})).status).toBe(400);
+    const rude=await call('register',{...credentials,username:'Cazzo_99',email:null});
+    expect(rude.status).toBe(400);expect(rude.body.code).toBe('username_not_allowed');
     expect((await call('register',{...credentials,password:'x'.repeat(129)})).status).toBe(400);
     expect((await call('login',{login:'Pilot_1',password:'wrong'})).status).toBe(401);
     expect((await call('register',credentials,undefined,'https://evil.example')).status).toBe(403);

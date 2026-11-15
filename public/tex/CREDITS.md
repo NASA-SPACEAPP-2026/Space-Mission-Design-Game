@@ -19,6 +19,9 @@ NASA material is not protected by copyright unless noted (NASA media usage guide
 | `uranus.jpg` | Uranus | Solar System Scope, `Solarsystemscope_texture_2k_uranus.jpg` (Wikimedia Commons) | Solar System Scope (solarsystemscope.com/textures), CC BY 4.0 | 1024×512 |
 | `neptune.jpg` | Neptune | Solar System Scope, `Solarsystemscope_texture_2k_neptune.jpg` (Wikimedia Commons) | Solar System Scope (solarsystemscope.com/textures), CC BY 4.0 | 1024×512 |
 | `sun.jpg` | Sun | Solar System Scope, `Solarsystemscope_texture_2k_sun.jpg` (Wikimedia Commons) | Solar System Scope (solarsystemscope.com/textures), CC BY 4.0 | 1024×512 |
+| `comet67p.json` | Comet 67P/Churyumov–Gerasimenko | NASA Planetary Data System and ESA Planetary Science Archive, data set RO-C-MULTI-5-67P-SHAPE-V2.0, product `CG_SPC_SHAP5_012K_CART` ([pdssbn.astro.umd.edu](https://pdssbn.astro.umd.edu/holdings/ro-c-multi-5-67p-shape-v2.0/dataset.html)) | R. Gaskell, L. Jorda, C. Capanna, S. Hviid and P. Gutierrez, *SPC SHAP5 Cartesian plate model for comet 67P/C-G*, 2017; Rosetta OSIRIS images, PSI and LAM | 5,861 vertices, 11,716 plates |
+
+**Comet 67P.** A comet is not a sphere, so there is no map: the file is the official shape model itself, made by `scripts/comet-67p.mjs` (game axes, smoothed normals for the cartoon light, positions and normals quantised). The three grey tones are computed from the shape (smooth, concave ground lighter; rough, convex cliffs darker): they are not a measured albedo map. Downloaded on 2026-11-15.
 
 Downloaded on 2026-11-14. The Solar System Scope maps were downloaded on 2026-11-15 and scaled from 2048×1024 to 1024×512 before filtering; CC BY 4.0 requires keeping this attribution.
 
