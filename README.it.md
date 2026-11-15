@@ -50,7 +50,7 @@ Questa documentazione descrive il codice presente nel repository; non certifica 
 | Revisioni e test | Verifichi il progetto e affronti prove e minigiochi | I problemi devono emergere prima del volo |
 | Missione e rapporto | Valuti operazioni, risultati e fine vita | Il successo dipende dall'intero sistema |
 
-Sono presenti tutorial e modalità sandbox. L'interfaccia del gioco supporta italiano e inglese; le guide del repository sono disponibili in italiano e in inglese. La richiesta della challenge di cooperazione fino a quattro persone è un obiettivo progettuale: non è presente un backend multiplayer o una classifica condivisa.
+Sono presenti tutorial e modalità sandbox. L'interfaccia del gioco supporta italiano e inglese; le guide del repository sono disponibili in italiano e in inglese. La cooperazione fino a quattro persone è disponibile come **missioni congiunte**: entra in un consorzio, premi *Gioca insieme* nella schermata del campus e ognuno prende un ruolo (Pianificazione, Satellite, Scienza, Comunicazioni). I ruoli lavorano in contemporanea, le scelte che sforano il budget vanno al ruolo che lo gestisce e tutti votano GO/NO-GO prima del lancio. La classifica scientifica mondiale arriva dal server; non c'è una cooperazione dal vivo sull'intero gioco.
 
 ## Avvio rapido
 

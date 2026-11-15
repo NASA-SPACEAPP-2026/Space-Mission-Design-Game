@@ -50,7 +50,7 @@ These documents describe the repository implementation; they do not certify the 
 | Reviews and tests | Check the design and complete tests and minigames | Problems should surface before flight |
 | Mission and report | Assess operations, outcomes, and end of life | Success depends on the whole system |
 
-Tutorial and sandbox modes are available. The game supports Italian and English, as do the repository guides. Cooperation for up to four people is an objective from the challenge brief: there is currently no multiplayer backend or shared leaderboard.
+Tutorial and sandbox modes are available. The game supports Italian and English, as do the repository guides. Cooperation for up to four people is available as **joint missions**: join a consortium, press *Play together* on the campus screen, and each player takes a role (Planning, Satellite, Science, Comms). Roles work at the same time, over-budget choices go to the role that owns the budget, and everyone votes GO/NO-GO before the launch. A worldwide science ranking comes from the server; there is no live full-game co-op.
 
 ## Quick start
 

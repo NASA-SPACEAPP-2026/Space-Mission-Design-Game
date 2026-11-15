@@ -37,7 +37,7 @@ Non dovrebbe esistere una sola soluzione perfetta: configurazioni diverse posson
 | Valutazione | Prestazioni, efficienza e qualità delle decisioni, con spiegazioni |
 | Collaborazione | Possibile cooperazione fino a quattro partecipanti con ruoli distinti |
 
-La collaborazione può distribuire responsabilità di scienza, veicolo, comunicazioni e risorse mantenendo decisioni finali condivise. È un obiettivo del brief, non una garanzia di multiplayer disponibile.
+La collaborazione può distribuire responsabilità di scienza, veicolo, comunicazioni e risorse mantenendo decisioni finali condivise. Le missioni congiunte lo realizzano per il progetto del satellite: quattro ruoli in contemporanea, richieste di budget tra ruoli e voto GO/NO-GO condiviso.
 
 ## Idee aggiuntive del brief
 
@@ -54,6 +54,6 @@ Scenari multipli, eventi imprevisti, modelli semplificati o realistici, visualiz
 | Orbite approfondite | GMAT opzionale e modello locale alternativo |
 | Identità | Introduzione senza timer, registrazione/accesso obbligatori con username e password, PostgreSQL |
 | Persistenza missione | Salvataggio locale nel browser, senza cloud |
-| Cooperazione online e classifiche | Nessun backend multiplayer o leaderboard implementato |
+| Cooperazione online e classifiche | Missioni congiunte (fino a quattro ruoli) e classifica scientifica mondiale; nessuna cooperazione dal vivo sull'intero flusso di missione |
 
 [Ingresso e account](entry-flow.it.md). Account, simulazione GMAT e salvataggio locale sono componenti distinti. Per il funzionamento tecnico leggi [architettura](architecture.it.md), [database](authentication.it.md) e [GMAT](gmat-integration-report.it.md).

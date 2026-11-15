@@ -161,7 +161,7 @@ describe('Consortia API', () => {
     const card = await post('Ada', '/mine/messages', { kind: 'mission', mission: { name: 'AURASAT', type: 'obs', dest: 'Marte', sci: 120, months: 9, ok: true, script: '<x>' } });
     expect(card.body.message.data).toEqual({ name: 'AURASAT', type: 'obs', dest: 'Marte', sci: 120, months: 9, ok: true });
 
-    expect((await get('Cyd', '/mine/unread')).body).toEqual({ member: true, unread: 3 });
+    expect((await get('Cyd', '/mine/unread')).body).toEqual({ member: true, unread: 3, joint: 0 });
     const feed = (await get('Cyd', '/mine/messages')).body;
     expect(feed.messages.at(-1).id).toBe(feed.lastId);
     expect((await get('Cyd', '/mine/unread')).body.unread).toBe(0);
@@ -201,7 +201,7 @@ describe('Consortia API', () => {
     expect(last.data).toEqual({ code: 'science', user: 'Cyd', mission: 'AURASAT', points: 120 });
   });
 
-  it('plays a joint mission with roles, turns, requests between roles and versions', async () => {
+  it('plays a joint mission with simultaneous roles, requests between roles and versions', async () => {
     expect((await post('Ada', '/mine/joint', { name: 'x' })).body.field).toBe('name');
     const made = await post('Ada', '/mine/joint', { name: 'Luna Ice' });
     expect(made.status).toBe(201);
@@ -218,27 +218,31 @@ describe('Consortia API', () => {
     expect((await go('Cyd', { type: 'join', role: 'sat' })).status).toBe(200);
     expect((await post('Bob', `/mine/joint/${id}/actions`, { v: v - 1, type: 'join', role: 'sci' })).body).toEqual({ error: 'stale', version: v });
     await go('Bob', { type: 'join', role: 'sci' });
-    expect((await go('Ada', { type: 'start' })).body.state).toMatchObject({ phase: 'design', turn: 'plan', roles: { plan: 'Ada', sat: 'Cyd', sci: 'Bob', com: 'Ada' } });
+    expect((await go('Ada', { type: 'start' })).body.state).toMatchObject({ phase: 'design', turn: null, roles: { plan: 'Ada', sat: 'Cyd', sci: 'Bob', com: 'Ada' } });
+    // Everyone with an undone role has something to do, and /mine/unread says so.
+    expect((await get('Cyd', '/mine/unread')).body.joint).toBe(1);
 
-    // Only your role, only in your turn, only valid values.
-    expect((await go('Cyd', { type: 'set', key: 'ride', value: 'S6' })).body.error).toBe('not_your_turn');
+    // Only your role, only valid values; roles work at the same time, no turns.
     expect((await go('Bob', { type: 'set', key: 'dest', value: 'moon' })).body.error).toBe('not_your_role');
     expect((await go('Ada', { type: 'set', key: 'dest', value: 'pluto' })).body.field).toBe('value');
     await go('Ada', { type: 'set', key: 'dest', value: 'moon' });
     await go('Ada', { type: 'set', key: 'budget', value: 1200 });
-    await go('Ada', { type: 'done' });
+    expect((await go('Ada', { type: 'done', role: 'plan' })).status).toBe(200);
+    expect((await go('Ada', { type: 'set', key: 'dest', value: 'leo' })).body.error).toBe('role_done');
     for (const [key, value] of [['ride', 'S6'], ['avi', 'BASE-OBC'], ['adcs', 'BASE-MAG'], ['bat', 'BASE-BAT20'], ['sol', 'BASE-SOL6D']]) {
       expect((await go('Cyd', { type: 'set', key, value })).status).toBe(200);
     }
-    expect((await go('Ada', { type: 'done' })).body.error).toBe('not_your_turn');
-    await go('Cyd', { type: 'done' });
+    expect((await go('Ada', { type: 'done', role: 'sat' })).body.error).toBe('not_your_role');
+    await go('Cyd', { type: 'done', role: 'sat' });
 
     // A payload over budget becomes a request to the planner, who accepts and raises the budget.
-    expect((await go('Bob', { type: 'done' })).body.error).toBe('incomplete');
+    expect((await go('Bob', { type: 'done', role: 'sci' })).body.error).toBe('incomplete');
     let r = await go('Bob', { type: 'set', key: 'ray', value: 'BASE-CAM', req: { to: 'plan', kind: 'cost', delta: 120 } });
     expect(r.body.state.request).toMatchObject({ to: 'plan', by: 'Bob', key: 'ray', value: 'BASE-CAM', kind: 'cost' });
     expect(r.body.state.design.ray).toBeUndefined();
     expect((await go('Bob', { type: 'set', key: 'ray', value: 'BASE-DOSE' })).body.error).toBe('pending_request');
+    expect((await go('Ada', { type: 'set', key: 'com', value: 'BASE-UHF' })).status).toBe(200); // others keep working meanwhile
+    expect((await go('Ada', { type: 'set', key: 'com', value: 'BASE-UHF', req: { to: 'sat', kind: 'mass', delta: 1 } })).body.error).toBe('pending_request'); // a second request would overwrite the first
     expect((await go('Cyd', { type: 'answer', decision: 'accept' })).body.error).toBe('not_your_role');
     r = await go('Ada', { type: 'answer', decision: 'accept' });
     expect(r.body.state.design).toMatchObject({ ray: 'BASE-CAM', budget: 1350 });
@@ -247,16 +251,17 @@ describe('Consortia API', () => {
     await go('Bob', { type: 'set', key: 'ray', value: 'NASA-95028', req: { to: 'sat', kind: 'mass', delta: 0.2 } });
     r = await go('Cyd', { type: 'answer', decision: 'counter', value: 'BASE-DOSE' });
     expect(r.body.state.design.ray).toBe('BASE-DOSE');
-    await go('Bob', { type: 'done' });
+    expect((await go('Bob', { type: 'done', role: 'sci' })).status).toBe(200);
     // Whoever owns the budget applies their own change directly.
     r = await go('Ada', { type: 'set', key: 'com', value: 'BASE-UHF', req: { to: 'plan', kind: 'cost', delta: 10 } });
     expect(r.body.state.request).toBeNull();
-    expect((await go('Ada', { type: 'done' })).body.state).toMatchObject({ phase: 'review', turn: null });
+    expect((await go('Ada', { type: 'done', role: 'com' })).body.state).toMatchObject({ phase: 'review' });
+    expect((await get('Cyd', '/mine/unread')).body.joint).toBe(1); // everyone still has a vote to cast
 
     // Review: GO needs the checks to pass; a NO-GO sends one role back; GO from everyone closes it.
     expect((await go('Bob', { type: 'vote', go: true })).body.error).toBe('checks_failed');
-    expect((await go('Bob', { type: 'vote', go: false, rework: 'sat' })).body.state).toMatchObject({ phase: 'design', turn: 'sat' });
-    await go('Cyd', { type: 'done' });
+    expect((await go('Bob', { type: 'vote', go: false, rework: 'sat' })).body.state).toMatchObject({ phase: 'design', done: { sat: false, plan: true } });
+    await go('Cyd', { type: 'done', role: 'sat' });
     const before = (await get('Cyd', '/mine')).body;
     for (const who of ['Ada', 'Cyd']) expect((await go(who, { type: 'vote', go: true, ok: true })).body.status).toBe('active');
     r = await go('Bob', { type: 'vote', go: true, ok: true });
