@@ -96,7 +96,7 @@ describe("ported mission rules", () => {
     }
     expect(L.LW.joy).toBe(25);
     expect(L.LW.pay).toBe(0.15);
-    expect(L.TIME.win).toBe(30000);
+    expect(L.TIME.win).toBe(0);
   });
 
   it("applies the launch-window reduction to future instalments", async () => {
