@@ -24,6 +24,13 @@ window.GNGCLAN = (function () {
       fx: '<g fill="none" stroke-linecap="round"><path d="M33 36l13 6M67 36l-13 6" stroke="#1B2A44" stroke-width="5"/>' +
         '<path d="M75 9c0 6 2 8 8 8M91 9c0 6-2 8-8 8M75 29c0-6 2-8 8-8M91 29c0-6-2-8-8-8" stroke="#fff" stroke-width="7"/><path d="M75 9c0 6 2 8 8 8M91 9c0 6-2 8-8 8M75 29c0-6 2-8 8-8M91 29c0-6-2-8-8-8" stroke="#E5322B" stroke-width="3.6"/></g>' +
         '<g fill="#fff" opacity=".9"><circle cx="15" cy="18" r="5"/><circle cx="9" cy="12" r="3.5"/><circle cx="21" cy="10" r="3"/></g>' },
+    // sbloccati con il livello del consorzio (lvl), come STICKER_LEVEL nel server
+    zorty_cheer: { pose: 'incoraggia', lvl: 2, bg: '#1E9E5A', n: ['Zorty pollice in su', 'Thumbs-up Zorty'], emoji: '👍', x: 48, y: 5, k: 135,
+      fx: '<g fill="#FFD24A" stroke="#fff" stroke-width="1.2"><path d="M86 14l2.2 5 5 2.2-5 2.2L86 28l-2.2-4.6-5-2.2 5-2.2z"/><path d="M14 66l1.6 3.6 3.6 1.6-3.6 1.6L14 76l-1.6-3.6-3.6-1.6 3.6-1.6z"/></g>' },
+    zorty_think: { pose: 'pensoso', lvl: 3, bg: '#8A55D0', n: ['Zorty pensieroso', 'Thinking Zorty'], emoji: '🤔', x: 50, y: 4, k: 140,
+      fx: '<g font-family="Inter,system-ui,sans-serif" font-weight="900" fill="#fff" stroke="#22313B" stroke-width="1.4" paint-order="stroke"><text x="72" y="26" font-size="20">?</text><text x="84" y="16" font-size="13">?</text></g>' },
+    zorty_wow: { pose: 'spaventato', lvl: 4, bg: '#1FA2A8', n: ['Zorty sbalordito', 'Amazed Zorty'], emoji: '😲', x: 50, y: 4, k: 135,
+      fx: '<g font-family="Inter,system-ui,sans-serif" font-weight="900" fill="#FFD24A" stroke="#22313B" stroke-width="1.4" paint-order="stroke"><text x="6" y="28" font-size="20" transform="rotate(-12 12 22)">!</text><text x="82" y="26" font-size="20" transform="rotate(12 86 20)">!</text></g>' },
     zorty_laugh: { pose: 'festa', bg: '#F07B3F', n: ['Zorty che ride', 'Laughing Zorty'], emoji: '😂', x: 50, y: 4, k: 165,
       fx: '<g font-family="Inter,system-ui,sans-serif" font-weight="900" fill="#fff" stroke="#22313B" stroke-width="1.4" paint-order="stroke"><text x="4" y="30" font-size="15" transform="rotate(-14 14 26)">HA</text><text x="70" y="22" font-size="13" transform="rotate(12 80 18)">HA</text><text x="76" y="86" font-size="11" transform="rotate(-8 82 82)">HA</text></g>' }
   };
@@ -53,11 +60,12 @@ window.GNGCLAN = (function () {
     telescope: '<path d="M3 14l12-6 2.5 4.5-12 6zM15 8l1.5-3.5 4 1.5-1.5 3.5M10 16l-2.5 6M12 15l2.5 7"/>',
     orbit: '<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10.5" ry="5"/><circle cx="21" cy="10" r="1.6"/>'
   };
-  function crestSVG(c, px) {
+  // gold: bordo d'oro (vantaggio del consorzio dal livello 4)
+  function crestSVG(c, px, gold) {
     c = c || {};
     const shape = SHAPE_SVG[c.shape] || SHAPE_SVG.shield, sym = c.symbol === 'none' ? '' : SYMBOL_SVG[c.symbol] || SYMBOL_SVG.rocket, col = hex(c.color);
     return '<svg xmlns="http://www.w3.org/2000/svg" class="clcrest" viewBox="0 0 100 100" width="' + (px || 40) + '" height="' + (px || 40) + '" aria-hidden="true">' +
-      '<g fill="' + col + '" stroke="#fff" stroke-width="5" stroke-linejoin="round">' + shape + '</g>' +
+      '<g fill="' + col + '" stroke="' + (gold ? '#F2B83A' : '#fff') + '" stroke-width="' + (gold ? 7 : 5) + '" stroke-linejoin="round">' + shape + '</g>' +
       '<g fill="none" stroke="rgba(0,0,0,.18)" stroke-width="3" transform="translate(50 50) scale(.82) translate(-50 -50)">' + shape + '</g>' +
       '<g fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" transform="translate(26 25) scale(2)">' + sym + '</g></svg>';
   }
@@ -86,6 +94,7 @@ window.GNGCLAN = (function () {
       case 'failure': return T(u + ': ' + m + ' non è riuscita', u + ': ' + m + ' failed');
       case 'joint_new': return T(u + ' ha aperto la missione congiunta ' + m + ': prendi un ruolo!', u + ' opened the joint mission ' + m + ': take a role!');
       case 'challenge_points': return T(u + ': ' + (m || 'una missione') + ' vale per la sfida della settimana, +' + (d.points | 0), u + ': ' + (m || 'a mission') + ' counts for the weekly challenge, +' + (d.points | 0));
+      case 'level_up': return T('Il consorzio sale al livello ' + d.level + '! I nuovi vantaggi sono nella scheda Info', 'The consortium reaches level ' + d.level + '! The new perks are in the Info tab');
       case 'challenge_won': return T('Sfida della settimana: ' + d.place + '° posto! Trofeo e +' + (d.bonus | 0) + ' punti scienza al consorzio', 'Weekly challenge: place ' + d.place + '! A trophy and +' + (d.bonus | 0) + ' science points to the consortium');
       case 'joint_done': return T('Missione congiunta ' + m + ': GO da tutti! +' + (d.points | 0) + ' punti scienza a ' + (d.users || []).join(', '), 'Joint mission ' + m + ': GO from everyone! +' + (d.points | 0) + ' science points to ' + (d.users || []).join(', '));
       default: return '';
@@ -122,6 +131,7 @@ window.GNGCLAN = (function () {
       closed: ['La missione è chiusa.', 'The mission is closed.'],
       started: ['La missione è già partita.', 'The mission has already started.']
     };
+    if (e === 'sticker_locked') return T('Questo sticker si sblocca al livello ' + d.level + ' del consorzio.', 'This sticker unlocks at consortium level ' + d.level + '.');
     if (e === 'not_enough_science') return T('Servono ' + d.required + ' punti scienza (ne hai ' + d.science + ').', 'You need ' + d.required + ' science points (you have ' + d.science + ').');
     if (e === 'invalid') {
       const F = { name: ['Nome: 3–24 lettere o numeri.', 'Name: 3–24 letters or numbers.'], motto: ['Motto: massimo 60 caratteri, senza link.', 'Motto: up to 60 characters, no links.'], text: ['Messaggio vuoto o troppo lungo (massimo 300).', 'Empty or too long message (max 300).'] };
@@ -153,13 +163,30 @@ window.GNGCLAN = (function () {
     form: { name: '', motto: '', kind: 'open', minScience: 0, maxMembers: 20, crest: { shape: 'shield', color: COLORS[0], symbol: 'rocket' } } };
   let root = null, chatT = 0, mineT = 0, pollT = 0, searchT = 0, confirmT = 0;
   const member = () => !!(S.mine && S.mine.consortium);
+  // Livelli del consorzio: soglie come LEVELS nel server. Vantaggi: sconto sui lanci, stazione di terra condivisa (liv. 3), stemma d'oro (liv. 4), sticker.
+  const LEVELS = [0, 400, 1200, 3000, 6000];
+  const LAUNCH_K = [1, 0.95, 0.95, 0.9, 0.85];
+  const goldOf = lvl => (lvl | 0) >= 4;
+  const myLevel = () => (member() ? (S.mine.consortium.level | 0) || 1 : 0);
+  const locked = code => ((STICKERS[code] && STICKERS[code].lvl) || 1) > Math.max(1, myLevel());
+  const LOCK = '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z"/></svg>';
+  const lockTag = code => (locked(code) ? '<i class="cllock" title="' + T('Si sblocca al livello ', 'Unlocks at level ') + STICKERS[code].lvl + '">' + LOCK + STICKERS[code].lvl + '</i>' : '');
+  function perks() { const l = myLevel(); return { level: l, launch: l ? LAUNCH_K[l - 1] : 1, ground: l >= 3, gold: goldOf(l) }; }
+  function levelCard(c) {
+    const l = c.level || 1, next = LEVELS[l], prev = LEVELS[l - 1] || 0, pc = next ? Math.max(0, Math.min(100, Math.round((c.science - prev) / (next - prev) * 100))) : 100;
+    const list = [[2, T('Sconto 5% sui lanci', '5% off launches'), 'zorty_cheer'], [3, T('Stazione di terra condivisa: +20% di dati in volo', 'Shared ground station: +20% flight data'), 'zorty_think'],
+      [4, T('Sconto 10% sui lanci e stemma d’oro', '10% off launches and a golden crest'), 'zorty_wow'], [5, T('Sconto 15% sui lanci', '15% off launches'), null]];
+    return '<div class="cllvl"><div class="cllvlh"><b>' + T('Livello ', 'Level ') + l + '</b><small>' + (next ? c.science + ' / ' + next + ' ◆ ' + T('per il livello ', 'to level ') + (l + 1) : T('Livello massimo', 'Top level')) + '</small></div>' +
+      '<i class="cllvlbar"><u style="width:' + pc + '%"></u></i><ul>' + list.map(([lv, t, stk]) => '<li class="' + (l >= lv ? 'on' : '') + '"><b>' + T('Liv ', 'Lv ') + lv + '</b><span>' + t +
+      (stk ? ' · ' + T('sticker ', 'sticker ') + esc(T(...STICKERS[stk].n)) : '') + '</span><em>' + (l >= lv ? '✓' : LOCK) + '</em></li>').join('') + '</ul></div>';
+  }
   const myRole = () => (S.mine && S.mine.me ? S.mine.me.role : 'member');
   const lead = () => rank(myRole()) >= 2;
 
   function pushState() {
     const c = member() ? S.mine.consortium : null;
-    document.querySelectorAll('[data-clan-badge]').forEach(b => { b.textContent = S.unread > 9 ? '9+' : String(S.unread); b.hidden = !S.unread; });
-    try { host.onState({ auth: loggedIn(), member: !!c, name: c ? c.name : '', crest: c ? c.crest : null, unread: S.unread }); } catch (e) {}
+    if (typeof document !== 'undefined') document.querySelectorAll('[data-clan-badge]').forEach(b => { b.textContent = S.unread > 9 ? '9+' : String(S.unread); b.hidden = !S.unread; });
+    try { host.onState({ auth: loggedIn(), member: !!c, name: c ? c.name : '', crest: c ? c.crest : null, unread: S.unread, level: c ? c.level || 1 : 0 }); } catch (e) {}
   }
   async function loadMine() {
     const r = await api('GET', '/mine');
@@ -261,7 +288,7 @@ window.GNGCLAN = (function () {
     const tabs = !loggedIn() || S.down ? [] : c ? [['chat', T('Chat', 'Chat')], ['missions', T('Missioni', 'Missions')], ['challenge', T('Sfida', 'Challenge')], ['members', T('Membri', 'Members')], ['info', T('Info', 'Info')]] : [['search', T('Cerca', 'Search')], ['create', T('Crea', 'Create')], ['challenge', T('Classifica', 'Ranking')]];
     const cur = c ? S.tab : S.noTab;
     root.innerHTML = '<div class="clw" role="dialog" aria-modal="true" aria-label="' + T('Consorzio', 'Consortium') + '">' +
-      '<header class="clh">' + (c ? crestSVG(c.crest, 34) : '<span class="clico">' + crestSVG({ shape: 'shield', color: '#66777f', symbol: 'orbit' }, 34) + '</span>') +
+      '<header class="clh">' + (c ? crestSVG(c.crest, 34, goldOf(c.level)) : '<span class="clico">' + crestSVG({ shape: 'shield', color: '#66777f', symbol: 'orbit' }, 34) + '</span>') +
       '<div class="clt"><b>' + esc(c ? c.name : T('Consorzi', 'Consortia')) + '</b><small>' + (c ? T('Livello ', 'Level ') + c.level + ' · ' + c.members + '/' + c.maxMembers + ' · ' + c.science + ' ◆' : T('Gioca in squadra con altre agenzie', 'Team up with other agencies')) + (DEMO ? ' · DEMO' : '') + '</small></div>' +
       '<nav class="cltabs" role="tablist">' + tabs.map(t => '<button role="tab" aria-selected="' + (t[0] === cur) + '" class="' + (t[0] === cur ? 'on' : '') + '" data-cl="tab" data-k="' + t[0] + '">' + t[1] + '</button>').join('') + '</nav>' +
       '<button class="clx" data-cl="close" aria-label="' + T('Chiudi', 'Close') + '">×</button></header>' +
@@ -293,7 +320,7 @@ window.GNGCLAN = (function () {
     else if (c.kind === 'invite') act = S.codeFor === c.id ? '<form class="clcode" data-cl-form="code" data-id="' + esc(c.id) + '"><input data-f="code" maxlength="8" autocomplete="off" placeholder="' + T('Codice', 'Code') + '" aria-label="' + T('Codice invito', 'Invite code') + '"><button class="clbtn pri">' + T('Entra', 'Join') + '</button></form>' : '<button class="clbtn" data-cl="code" data-id="' + esc(c.id) + '">' + T('Ho un codice', 'I have a code') + '</button>';
     else if (low) act = '<button class="clbtn" disabled>' + T('Servono ', 'Needs ') + c.minScience + ' ◆</button>';
     else act = '<button class="clbtn pri" data-cl="join" data-id="' + esc(c.id) + '">' + (c.kind === 'request' ? T('Chiedi di entrare', 'Ask to join') : T('Entra', 'Join')) + '</button>';
-    return '<article class="clcard">' + crestSVG(c.crest, 42) + '<div class="clci"><b>' + esc(c.name) + trophyTag(c.trophies) + '</b><small>' + esc(c.motto || '') + '</small>' +
+    return '<article class="clcard">' + crestSVG(c.crest, 42, goldOf(c.level)) + '<div class="clci"><b>' + esc(c.name) + trophyTag(c.trophies) + '</b><small>' + esc(c.motto || '') + '</small>' +
       '<span class="clmeta">' + T('Liv ', 'Lv ') + c.level + ' · 👥 ' + c.members + '/' + c.maxMembers + ' · ' + c.science + ' ◆' + (c.minScience ? ' · min ' + c.minScience + ' ◆' : '') + ' · ' + kindName(c.kind) + '</span></div>' + act + '</article>';
   }
   function searchView() {
@@ -330,7 +357,7 @@ window.GNGCLAN = (function () {
     const done = (host.missions() || []).slice(-6).reverse();
     return '<div class="clchat"><section class="clfeed"><ol class="clmsgs" aria-live="polite"></ol>' +
       (S.share ? '<div class="clshare" role="menu"><b>' + T('Condividi una missione', 'Share a mission') + '</b>' + (done.length ? done.map((m, i) => '<button role="menuitem" data-cl="sharem" data-i="' + i + '">' + SAT + esc(m.name) + ' <small>' + (m.sci | 0) + ' ◆</small></button>').join('') : '<p>' + T('Nessuna missione conclusa.', 'No finished missions.') + '</p>') + '</div>' : '') +
-      '<div class="clbar"><div class="clstks" role="group" aria-label="Sticker">' + Object.keys(STICKERS).map(k => '<button type="button" data-cl="stk" data-k="' + k + '" aria-label="' + esc(T(...STICKERS[k].n)) + '" title="' + esc(T(...STICKERS[k].n)) + '"' + (Date.now() < S.coolUntil ? ' disabled' : '') + '>' + stickerHTML(k, 38) + '</button>').join('') + '</div>' +
+      '<div class="clbar"><div class="clstks" role="group" aria-label="Sticker">' + Object.keys(STICKERS).map(k => '<button type="button" data-cl="stk" data-k="' + k + '" aria-label="' + esc(T(...STICKERS[k].n)) + '" title="' + esc(T(...STICKERS[k].n)) + '"' + (Date.now() < S.coolUntil || locked(k) ? ' disabled' : '') + '>' + stickerHTML(k, 38) + lockTag(k) + '</button>').join('') + '</div>' +
       '<form class="clsend" data-cl-form="send"><button type="button" class="clico2" data-cl="share" aria-expanded="' + S.share + '" aria-label="' + T('Condividi una missione', 'Share a mission') + '">' + SAT + '</button>' +
       '<input data-f="msg" maxlength="300" autocomplete="off" enterkeyhint="send" placeholder="' + (S.mine.consortium.schoolMode ? T('Modalità scuola: solo sticker', 'School mode: stickers only') : T('Scrivi al consorzio…', 'Message your consortium…')) + '" aria-label="' + T('Messaggio', 'Message') + '"' + (S.mine.consortium.schoolMode ? ' disabled' : '') + '>' +
       '<button class="clbtn pri">' + T('Invia', 'Send') + '</button></form></div></section><aside class="clside" aria-label="' + T('Membri', 'Members') + '"></aside></div>';
@@ -368,7 +395,7 @@ window.GNGCLAN = (function () {
   // Il server accetta un messaggio ogni 2 secondi: i bottoni degli sticker si spengono per lo stesso tempo.
   function cooldown() {
     S.coolUntil = Date.now() + 2000;
-    const set = off => document.querySelectorAll('#clan [data-cl="stk"],#spect [data-sp="stk"]').forEach(b => { b.disabled = off; });
+    const set = off => document.querySelectorAll('#clan [data-cl="stk"],#spect [data-sp="stk"]').forEach(b => { b.disabled = off || locked(b.dataset.k); });
     set(true); setTimeout(() => set(false), 2050);
   }
   function msgHTML(m) {
@@ -420,8 +447,8 @@ window.GNGCLAN = (function () {
     const c = S.mine.consortium, ed = lead();
     if (ed && !S.edit) S.edit = { motto: c.motto || '', kind: c.kind, minScience: c.minScience, maxMembers: c.maxMembers, schoolMode: !!c.schoolMode, crest: Object.assign({}, c.crest) };
     const sure = S.confirm === 'leave';
-    return '<div class="clinfo"><div class="clcol"><div class="clhero">' + crestSVG(c.crest, 64) + '<div><b>' + esc(c.name) + trophyTag(c.trophies) + '</b><small>' + esc(c.motto || '') + '</small>' +
-      '<span class="clmeta">' + kindName(c.kind) + ' · ' + T('Livello ', 'Level ') + c.level + ' · ' + c.science + ' ◆' + (c.minScience ? ' · min ' + c.minScience + ' ◆' : '') + '</span></div></div>' +
+    return '<div class="clinfo"><div class="clcol"><div class="clhero">' + crestSVG(c.crest, 64, goldOf(c.level)) + '<div><b>' + esc(c.name) + trophyTag(c.trophies) + '</b><small>' + esc(c.motto || '') + '</small>' +
+      '<span class="clmeta">' + kindName(c.kind) + ' · ' + T('Livello ', 'Level ') + c.level + ' · ' + c.science + ' ◆' + (c.minScience ? ' · min ' + c.minScience + ' ◆' : '') + '</span></div></div>' + levelCard(c) +
       (ed && c.inviteCode ? '<div class="clinv"><span>' + T('Codice invito', 'Invite code') + '</span><b class="clcodev">' + esc(c.inviteCode) + '</b><button class="clbtn sm" data-cl="newcode">' + T('Nuovo codice', 'New code') + '</button></div><p class="clnote">' + T('Dallo a chi vuoi invitare: con il codice si entra sempre, anche se il consorzio è su invito.', 'Give it to the people you invite: the code always lets them in, even when the consortium is invite only.') + '</p>' : '') +
       '<label class="cltog"><input type="checkbox" data-cl-in="spectate"' + (S.mine.me.spectate !== false ? ' checked' : '') + '> ' + T('I compagni possono guardarmi mentre gioco', 'Teammates can watch me play') + '</label>' +
       '<button class="clbtn bad' + (sure ? ' sure' : '') + '" data-cl="leave">' + (sure ? T('Confermi? Tocca di nuovo', 'Sure? Tap again') : T('Lascia il consorzio', 'Leave the consortium')) + '</button></div>' +
@@ -482,7 +509,7 @@ window.GNGCLAN = (function () {
     if (a === 'share') { S.share = !S.share; draw(); return; }
     if (a === 'watch') return watch(b.dataset.u);
     if (a === 'stk') {
-      const code = b.dataset.k; if (!STICKERS[code] || Date.now() < S.coolUntil) return;
+      const code = b.dataset.k; if (!STICKERS[code] || locked(code) || Date.now() < S.coolUntil) return;
       popSticker(code); cooldown();
       return run(async () => { const r = await api('POST', '/mine/messages', { kind: 'sticker', sticker: code }); if (r.status !== 201) fail(r); else await pollChat(); });
     }
@@ -570,7 +597,7 @@ window.GNGCLAN = (function () {
   function challengeView() {
     const c = CH.data; if (!c) return '<p class="clwait">' + T('Caricamento…', 'Loading…') + '</p>';
     const g = c.goal, mine = c.mine, my = mine && mine.id, all = CH.board === 'all', list = all ? c.allTime : c.ranking;
-    const rows = list.length ? list.map((r, i) => '<li class="' + (r.id === my ? 'me' : '') + '"><b class="num">' + (i + 1) + '</b>' + crestSVG(r.crest, 26) + '<span>' + esc(r.name) + (all ? trophyTag(r.trophies) : '') + '</span><small>' + T('Liv ', 'Lv ') + r.level + '</small><b>' + r.points + ' ◆</b></li>').join('')
+    const rows = list.length ? list.map((r, i) => '<li class="' + (r.id === my ? 'me' : '') + '"><b class="num">' + (i + 1) + '</b>' + crestSVG(r.crest, 26, goldOf(r.level)) + '<span>' + esc(r.name) + (all ? trophyTag(r.trophies) : '') + '</span><small>' + T('Liv ', 'Lv ') + r.level + '</small><b>' + r.points + ' ◆</b></li>').join('')
       : '<li class="empty">' + (all ? T('Ancora nessun punto.', 'No points yet.') : T('Nessun punto questa settimana: sii il primo!', 'No points this week yet: be the first!')) + '</li>';
     return '<div class="clch">' +
       '<section class="chgoal"><small>' + T('Sfida della settimana', 'Weekly challenge') + ' · ' + T('finisce tra ', 'ends in ') + timeLeft(c.endsAt) + '</small><b>' + esc(T(g.it, g.en)) + '</b>' +
@@ -837,7 +864,7 @@ window.GNGCLAN = (function () {
     if (!spectEl) return;
     const where = W.got ? (W.mission ? W.mission + ' · ' : '') + T(...(VIEW_N[W.view] || VIEW_N.hub)) : T('In collegamento…', 'Connecting…');
     spectEl.innerHTML = '<span class="spl"><i class="spdot' + (W.got ? ' on' : '') + '"></i><span><b>' + esc(T('Stai guardando ', 'Watching ') + W.user) + '</b><small>' + esc(where) + '</small></span></span>' +
-      '<div class="clstks" role="group" aria-label="Sticker">' + Object.keys(STICKERS).map(k => '<button type="button" data-sp="stk" data-k="' + k + '" aria-label="' + esc(T(...STICKERS[k].n)) + '"' + (Date.now() < S.coolUntil ? ' disabled' : '') + '>' + stickerHTML(k, 34) + '</button>').join('') + '</div>' +
+      '<div class="clstks" role="group" aria-label="Sticker">' + Object.keys(STICKERS).map(k => '<button type="button" data-sp="stk" data-k="' + k + '" aria-label="' + esc(T(...STICKERS[k].n)) + '"' + (Date.now() < S.coolUntil || locked(k) ? ' disabled' : '') + '>' + stickerHTML(k, 34) + lockTag(k) + '</button>').join('') + '</div>' +
       '<button class="clbtn" data-sp="exit">' + T('Esci', 'Leave') + '</button>';
   }
   function spectUI(on) {
@@ -895,7 +922,7 @@ window.GNGCLAN = (function () {
     clearTimeout(LIVE.t); LIVE.t = setTimeout(liveBeat, 1000);
   }
   function react(code) {
-    if (!W.user || !Object.prototype.hasOwnProperty.call(STICKERS, code) || Date.now() < S.coolUntil) return;
+    if (!W.user || !Object.prototype.hasOwnProperty.call(STICKERS, code) || locked(code) || Date.now() < S.coolUntil) return;
     popSticker(code, null, true); cooldown();
     api('POST', '/mine/messages', { kind: 'sticker', sticker: code, to: W.user }).then(r => { if (r.status !== 201) host.toast(errText(r)); });
   }
@@ -928,7 +955,7 @@ window.GNGCLAN = (function () {
       // un compagno finto con lo stesso nome del giocatore lo farebbe sembrare gia' membro: lo saltiamo
       const team = (list) => list.filter(([u]) => u.toLowerCase() !== myName().toLowerCase()).map(([u, role, sci, st]) => ({ username: u, role, science: sci, status: st, spectate: true }));
       db = { me: null, consortia: [
-        { id: 'demo-milano', name: 'Orbita Milano', crest: { shape: 'shield', color: '#f07b3f', symbol: 'rocket' }, motto: L('Dal Politecnico alle stelle', 'From Politecnico to the stars'), kind: 'open', level: 2, science: 1240, minScience: 0, maxMembers: 20, schoolMode: false, inviteCode: 'MILANO26',
+        { id: 'demo-milano', name: 'Orbita Milano', crest: { shape: 'shield', color: '#f07b3f', symbol: 'rocket' }, motto: L('Dal Politecnico alle stelle', 'From Politecnico to the stars'), kind: 'open', level: 2, science: 1040, minScience: 0, maxMembers: 20, schoolMode: false, inviteCode: 'MILANO26',
           members: team([['Giulia', 'director', 420, 'playing'], ['Marco', 'vice', 310, 'online'], ['Sara', 'chief_engineer', 260, 'online'], ['Luca', 'member', 150, 'offline'], ['Aisha', 'member', 100, 'offline']]), requests: [], msgs: [] },
         { id: 'demo-kuiper', name: 'Kuiper Crew', crest: { shape: 'hexagon', color: '#8a55d0', symbol: 'comet' }, motto: L('Più lontano di Plutone', 'Further than Pluto'), kind: 'request', level: 3, science: 2810, minScience: 100, maxMembers: 15, inviteCode: 'KUIPER77',
           members: team([['Nora', 'director', 900, 'online'], ['Ivo', 'vice', 700, 'offline'], ['Kai', 'member', 610, 'offline']]), requests: [], msgs: [] },
@@ -956,6 +983,7 @@ window.GNGCLAN = (function () {
       const others = c.members.filter(m => m.username !== myName() && m.status !== 'offline'); if (!others.length) return;
       setTimeout(() => { const who = others[seq % others.length], st = seq % 3 === 0; c.msgs.push({ id: ++seq, author: who.username, role: who.role, at: new Date().toISOString(), kind: st ? 'sticker' : 'text', ...(st ? { sticker: Object.keys(STICKERS)[seq % 4] } : { text: lines()[seq % 4] }) }); }, 2500);
     }
+    function demoLevel(c) { const l = LEVELS.reduce((a, min, i) => (c.science >= min ? i + 1 : a), 1); if (l > c.level) { c.level = l; sys(c, { code: 'level_up', level: l }); } }
     // La sfida della settimana nella demo: stesso calendario del server (lunedi' UTC), obiettivi d'esempio.
     const DEMO_GOALS = [
       { id: 'moon-budget', dest: 'moon', maxCost: 1800, it: 'Una missione riuscita sulla Luna che costa meno di 1800 crediti', en: 'A successful Moon mission costing under 1,800 credits' },
@@ -1001,7 +1029,7 @@ window.GNGCLAN = (function () {
       if (s.phase === 'done' && was !== 'done') {
         const players = [...new Set(JROLES.map(r => s.roles[r]).filter(Boolean))];
         players.forEach(u => { const m = c.members.find(x => x.username === u); if (m) m.science += s.points; if (u === myName()) db.me = (db.me || 0) + s.points; });
-        c.science += s.points * players.length; sys(c, { code: 'joint_done', mission: s.name, users: players, points: s.points });
+        c.science += s.points * players.length; demoLevel(c); sys(c, { code: 'joint_done', mission: s.name, users: players, points: s.points });
       }
       jointBots(j, c);
     }
@@ -1074,7 +1102,7 @@ window.GNGCLAN = (function () {
       if (method === 'POST' && p === '/mine/messages') {
         const m = { id: ++seq, author: myName(), role: me.role, at: new Date().toISOString(), kind: body.kind };
         if (body.kind === 'text') { const t = String(body.text || '').trim(); if (!t || t.length > 300) return R(400, { error: 'invalid', field: 'text' }); if (/https?:\/\/|www\./i.test(t)) return R(400, { error: 'link' }); m.text = t; }
-        else if (body.kind === 'sticker') { if (!Object.prototype.hasOwnProperty.call(STICKERS, body.sticker)) return R(400, { error: 'invalid', field: 'sticker' }); m.sticker = body.sticker; }
+        else if (body.kind === 'sticker') { if (!Object.prototype.hasOwnProperty.call(STICKERS, body.sticker)) return R(400, { error: 'invalid', field: 'sticker' }); if ((STICKERS[body.sticker].lvl || 1) > c.level) return R(403, { error: 'sticker_locked', level: STICKERS[body.sticker].lvl }); m.sticker = body.sticker; }
         else if (body.kind === 'mission') m.data = body.mission;
         else return R(400, { error: 'invalid', field: 'kind' });
         c.msgs.push(m); bot(c); return R(201, { message: m });
@@ -1108,7 +1136,7 @@ window.GNGCLAN = (function () {
         if (counted) {
           db.me = (db.me || 0) + (body.points | 0);
           if (c && body.points > 0) {
-            me.science += body.points | 0; c.science += body.points | 0; sys(c, { code: 'science', user: myName(), mission: body.name || '', points: body.points | 0 });
+            me.science += body.points | 0; c.science += body.points | 0; sys(c, { code: 'science', user: myName(), mission: body.name || '', points: body.points | 0 }); demoLevel(c);
             const g = demoGoal().goal, f = body.facts;
             if (f && f.ok && (!g.dest || f.dest === g.dest) && (!g.type || f.type === g.type) && (g.maxCost == null || f.cost <= g.maxCost) && (g.minMonths == null || f.months >= g.minMonths)) {
               c.weekly = (c.weekly || 0) + (body.points | 0); challenge = { matched: true, points: body.points | 0, goal: g.id };
@@ -1240,6 +1268,14 @@ body.clan-open #tbub,body.clan-open #zbtn,body.clan-open #zpanel{display:none!im
 #spect .clbtn{background:#2A2F3B;color:#F1ECE6;border:0;border-radius:8px;padding:8px 14px;font:700 13px/1.1 inherit;cursor:pointer;min-height:38px}
 #spect button:focus-visible{outline:2px solid #7FD8CC;outline-offset:2px}
 body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect #coach,body.spect #chand,body.spect #clan{display:none!important}
+#clan .clstks button,#spect .clstks button{position:relative}
+.cllock{position:absolute;right:-3px;bottom:-3px;display:inline-flex;align-items:center;gap:1px;background:#15171D;color:#F2B83A;border-radius:999px;padding:1px 4px;font:700 10px/1.3 Inter,system-ui,sans-serif;font-style:normal;box-shadow:0 0 0 1px #2E3442}
+#clan .cllvl{background:#1C1F27;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+#clan .cllvlh{display:flex;align-items:baseline;gap:8px}#clan .cllvlh b{font-size:16px;color:#F2B83A}
+#clan .cllvlbar{height:6px;border-radius:3px;background:#2A2F3B;display:block;overflow:hidden}#clan .cllvlbar u{display:block;height:100%;background:#F2B83A}
+#clan .cllvl ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+#clan .cllvl li{display:grid;grid-template-columns:42px 1fr auto;gap:6px;align-items:center;font-size:12px;color:#7A736C}
+#clan .cllvl li.on{color:#D9D2CA}#clan .cllvl li em{font-style:normal;color:#7A736C}#clan .cllvl li.on em{color:#5FD38D}
 #clan .cltro{display:inline-flex;align-items:center;gap:2px;color:#F2B83A;font-size:12px;font-weight:700;vertical-align:1px}
 #clan .clcup{vertical-align:-2px}
 #clan .clch{display:flex;flex-direction:column;gap:10px}
@@ -1331,7 +1367,7 @@ body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect
 .rs.clanb{position:relative}
 .clbdg{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#D2443A;color:#fff;font:700 11px/17px Inter,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #131313}
 .clbdg[hidden]{display:none}
-@media (max-height:420px){#clan .clbar{flex-direction:row;align-items:center;gap:6px}#clan .clbar .clsend{flex:1;min-width:0;padding-top:6px}#clan .clstks{gap:4px}#clan .clstks button{min-width:40px;min-height:40px;padding:2px}#clan .clw{height:100%;border-radius:8px}#clan .clh{padding:4px 8px}#clan .clb{padding:6px 10px}#clan .clt b{font-size:14px}#clan .clempty .clcrest{width:48px;height:48px}#clan h2{font-size:17px;margin:2px 0}#clan .cleditor .clprev .clcrest{width:56px;height:56px}#clan .clpick button{width:30px;height:30px}}
+@media (max-height:420px){#clan .clbar{flex-direction:row;align-items:center;gap:6px}#clan .clbar .clsend{flex:1;min-width:0;padding-top:6px}#clan .clstks{gap:3px}#clan .clstks button{min-width:34px;min-height:38px;padding:1px}#clan .clbar .clz{--zs:30px !important}#clan .clbar .clsend input{min-width:120px}#clan .clw{height:100%;border-radius:8px}#clan .clh{padding:4px 8px}#clan .clb{padding:6px 10px}#clan .clt b{font-size:14px}#clan .clempty .clcrest{width:48px;height:48px}#clan h2{font-size:17px;margin:2px 0}#clan .cleditor .clprev .clcrest{width:56px;height:56px}#clan .clpick button{width:30px;height:30px}}
 @media (max-width:640px){#clan .clside{display:none}#clan .clt small{display:none}#clan .cltabs button{padding:7px 10px}}
 @media (prefers-reduced-motion:no-preference){#clan .clw{animation:clin .16s ease-out}@keyframes clin{from{transform:translateY(8px);opacity:0}}}
 `;
@@ -1339,6 +1375,6 @@ body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect
   }
 
   return { init, open, close, isOpen: () => S.open, unread: () => S.unread, badgeHTML, crestSVG, science, activity, setDemo,
-    stickerHTML, stickers: () => Object.keys(STICKERS), watching: () => W.user, stopWatch: () => stopWatch(),
+    stickerHTML, stickers: () => Object.keys(STICKERS), perks: () => perks(), levels: LEVELS, watching: () => W.user, stopWatch: () => stopWatch(),
     _test: { sysText, errText, demo, state: S, loadMine, pack, unpack, jNeedReq, jChecks, jOptions, jCounter } };
 })();
