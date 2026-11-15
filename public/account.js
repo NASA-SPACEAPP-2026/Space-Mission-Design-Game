@@ -9,7 +9,7 @@ const back = root.querySelector('#account-back');
 const password = form.elements.password;
 let busy = false, sessionUser = null, waiting = null;
 let sessionError = '';
-const en = (() => { try { return localStorage.getItem('gngLang') === 'en'; } catch { return false; } })();
+const en = (() => { try { return (window.gngLang || localStorage.getItem('gngLang')) === 'en'; } catch { return false; } })();
 const t = (it, eng) => en ? eng : it;
 root.querySelectorAll('[data-it]').forEach(el => { el.textContent = t(el.dataset.it, el.dataset.en); });
 function mode() {

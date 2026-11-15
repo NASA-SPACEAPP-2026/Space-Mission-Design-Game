@@ -32,7 +32,7 @@ function tone(f,t,type,g,w){ if(mute()) return; try{ AC=AC||new (window.AudioCon
 const sfx={tap:()=>tone(520,.05,'triangle',.04),put:()=>{tone(300,.06,'square',.04);tone(450,.08,'triangle',.04,.05);},ok:()=>{tone(660,.09);tone(880,.14,'triangle',.05,.08);},bad:()=>tone(130,.28,'sawtooth',.05),
   stamp:()=>{tone(85,.2,'square',.08);tone(523,.25,'triangle',.05,.14);tone(659,.25,'triangle',.05,.22);tone(784,.45,'triangle',.05,.3);},cash:()=>{tone(988,.08,'square',.03);tone(1319,.15,'square',.03,.08);},leave:()=>{tone(392,.15);tone(330,.15,'triangle',.05,.15);tone(262,.3,'triangle',.05,.3);}};
 /* ---------- lingua: italiano / inglese ---------- */
-const LANG='en';
+const LANG='en'; window.gngLang=LANG; /* account.js (entry form) follows the game's language */
 const I18N=(()=>{ const RAW=`Particelle solari in arrivo: il satellite è passato da solo in safe mode per proteggersi. Riaccendi gli strumenti per misurare la tempesta?	Solar particles incoming: the satellite switched to safe mode by itself to protect itself. Switch the instruments back on to measure the storm?
 Riaccendi e misura	Switch on and measure
 Resta in safe mode	Stay in safe mode
