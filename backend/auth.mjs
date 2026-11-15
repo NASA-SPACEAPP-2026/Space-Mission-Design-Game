@@ -33,8 +33,10 @@ async function userForToken(db, token) {
 export const sessionUser = (db, req) => userForToken(db, tokenOf(req));
 
 export function createAuth({ db, origin, secure = true }) {
-  if (!origin || new URL(origin).origin !== origin) throw new Error('APP_ORIGIN must be an exact origin');
-  if (secure && !origin.startsWith('https://')) throw new Error('Production requires HTTPS APP_ORIGIN');
+  // APP_ORIGIN may list several exact origins separated by commas (e.g. the azurewebsites.net host and a custom domain).
+  const origins = String(origin || '').split(',').map((o) => o.trim()).filter(Boolean);
+  if (!origins.length || origins.some((o) => { try { return new URL(o).origin !== o; } catch { return true; } })) throw new Error('APP_ORIGIN must be an exact origin');
+  if (secure && origins.some((o) => !o.startsWith('https://'))) throw new Error('Production requires HTTPS APP_ORIGIN');
   const dummy = passwordHash(randomBytes(32).toString('hex'));
   function send(res, status, body, cookie) {
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8',
@@ -65,7 +67,7 @@ export function createAuth({ db, origin, secure = true }) {
       if (!['/api/auth/register', '/api/auth/login', '/api/auth/logout'].includes(pathname)) return send(res, 404, { error: 'Endpoint non trovato' });
       if (req.method !== 'POST') return send(res, 405, { error: 'Metodo non consentito' });
       // Exact Origin + JSON requests prevent cross-site form and fetch CSRF.
-      if (req.headers.origin !== origin) return send(res, 403, { error: 'Origine non consentita' });
+      if (!origins.includes(req.headers.origin)) return send(res, 403, { error: 'Origine non consentita' });
       if (pathname.endsWith('/logout')) {
         await db.query('DELETE FROM sessions WHERE token_hash=$1', [hash(token)]);
         return send(res, 200, { user: null }, cookie('', 0));

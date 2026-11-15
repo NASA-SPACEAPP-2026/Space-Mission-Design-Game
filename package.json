@@ -9,6 +9,7 @@
   "scripts": {
     "predev": "node scripts/gmat-up.mjs",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
+    "db:seed-leaderboard": "node --env-file-if-exists=.env scripts/seed-leaderboard.mjs",
     "dev:api": "node --env-file-if-exists=.env --watch server.mjs",
     "dev": "vite",
     "build": "vite build && node scripts/build-game.mjs && node scripts/precompress.mjs",
