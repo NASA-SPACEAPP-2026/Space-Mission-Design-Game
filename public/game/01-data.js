@@ -120,21 +120,23 @@ const E = (function () {
   const blocked = () => false;
   // forma di un pezzo nella griglia della struttura: dipende dall'ingombro in U e da quanto vale una casella
   const SHP = { 1: [1, 1], 2: [1, 2], 3: [1, 3], 4: [2, 2], 6: [2, 3], 8: [2, 4], 10: [2, 5], 12: [2, 6], 16: [4, 4], 20: [4, 5], 24: [4, 6] };
-  function nCells(id, ride) { const R = RIDES[ride] || RIDES.S3, u = (PARTS[id] && PARTS[id].U) || 0.25; return Math.max(1, Math.ceil(u / R.cellU - 1e-6)); }
-  function baseCells(id, ride) { const n = nCells(id, ride), k = Object.keys(SHP).map(Number).find(x => x >= n) || 24, wh = SHP[k], c = []; for (let y = 0; y < wh[1]; y++) for (let x = 0; x < wh[0]; x++) c.push([x, y]); return c; }
-  function shape(id, rot, ride) {
-    let c = baseCells(id, ride);
+  // il propulsore con serbatoio Grande o Extra occupa 2 o 3 volte le caselle (tk = taglia del serbatoio, salvata sul pezzo montato)
+  const tkFor = (d, id) => PARTS[id] && PARTS[id].cat === 'prop' ? Math.max(1, Math.min(3, (d && d.tank) || 1)) : 1;
+  function nCells(id, ride, tk) { const R = RIDES[ride] || RIDES.S3, u = ((PARTS[id] && PARTS[id].U) || 0.25) * (tk > 1 && PARTS[id] && PARTS[id].cat === 'prop' ? tk : 1); return Math.max(1, Math.ceil(u / R.cellU - 1e-6)); }
+  function baseCells(id, ride, tk) { const n = nCells(id, ride, tk), k = Object.keys(SHP).map(Number).find(x => x >= n) || 24, wh = SHP[k], c = []; for (let y = 0; y < wh[1]; y++) for (let x = 0; x < wh[0]; x++) c.push([x, y]); return c; }
+  function shape(id, rot, ride, tk) {
+    let c = baseCells(id, ride, tk);
     for (let i = 0; i < ((rot || 0) & 3); i++) c = c.map(p => [-p[1], p[0]]);
     const mx = Math.min.apply(null, c.map(p => p[0])), my = Math.min.apply(null, c.map(p => p[1]));
     return c.map(p => [p[0] - mx, p[1] - my]);
   }
-  function cellsOf(pl, ride) { return shape(pl.id, pl.rot, ride).map(p => [p[0] + pl.x, p[1] + pl.y]); }
+  function cellsOf(pl, ride) { return shape(pl.id, pl.rot, ride, pl.tk).map(p => [p[0] + pl.x, p[1] + pl.y]); }
   function grid(d, skip) { const R = RIDES[d.ride], g = []; for (let y = 0; y < R.rows; y++) g.push(new Array(R.cols).fill(null));
     Object.keys(d.placed).forEach(cat => { if (cat === skip) return; cellsOf(d.placed[cat], d.ride).forEach(c => { if (g[c[1]] && c[0] >= 0 && c[0] < R.cols) g[c[1]][c[0]] = cat; }); }); return g; }
   function fits(d, id, x, y, rot) { const R = RIDES[d.ride], g = grid(d, PARTS[id].cat);
-    return shape(id, rot, d.ride).every(p => { const cx = p[0] + x, cy = p[1] + y; return cx >= 0 && cy >= 0 && cx < R.cols && cy < R.rows && !g[cy][cx]; }); }
+    return shape(id, rot, d.ride, tkFor(d, id)).every(p => { const cx = p[0] + x, cy = p[1] + y; return cx >= 0 && cy >= 0 && cx < R.cols && cy < R.rows && !g[cy][cx]; }); }
   function autoPlace(d, id, rot) { const R = RIDES[d.ride], cat = PARTS[id].cat, keep = d.placed[cat]; let any = null, good = null;
-    for (let r = 0; r < 4 && !good; r++) for (let y = 0; y < R.rows && !good; y++) for (let x = 0; x < R.cols && !good; x++) { const pl = { id, x, y, rot: (rot + r) & 3 };
+    for (let r = 0; r < 4 && !good; r++) for (let y = 0; y < R.rows && !good; y++) for (let x = 0; x < R.cols && !good; x++) { const pl = { id, x, y, rot: (rot + r) & 3 }; if (tkFor(d, id) > 1) pl.tk = tkFor(d, id);
       if (!fits(d, id, x, y, pl.rot)) continue; if (!any) any = pl; d.placed[cat] = pl; if (layout(d).parts[cat].ok) good = pl; }
     if (keep) d.placed[cat] = keep; else delete d.placed[cat];
     return good || any; }
@@ -347,7 +349,7 @@ const E = (function () {
     const rep = quests.reduce((a, x) => a + (x.ok ? stk(x.id).rep : -stk(x.id).rep), 0) + f.repX + (f.impact === 'near' ? -3 : 0);
     return { ok, sci, months: f.month, reward, rep, quests, impact: f.impact, cause: f.cause, alive: f.alive }; }
 
-  return { DBX, fundOf, FUND, tipOf, RANK, fitsRide, solOK, pointing, needPt, ACC, thermalPack, nCells, LV, DEST, EXT, dvNeed, skOf, eclOf, lvCost, blocked, M, MU, RM, PLAT, SEED, MAXSTAKE, STAKE, RIDES, SOLAR, CATS, PARTS, TESTS, FIX, STIFF, TARGET, stk, unlocked, budget0, fresh, shape, cellsOf, grid, fits, autoPlace, prune,
+  return { DBX, fundOf, FUND, tipOf, RANK, fitsRide, solOK, pointing, needPt, ACC, thermalPack, nCells, LV, DEST, EXT, dvNeed, skOf, eclOf, lvCost, blocked, M, MU, RM, PLAT, SEED, MAXSTAKE, STAKE, RIDES, SOLAR, CATS, PARTS, TESTS, FIX, STIFF, TARGET, stk, unlocked, budget0, fresh, shape, cellsOf, tkFor, grid, fits, autoPlace, prune,
     layout, budget, checks, risks, rng, newFlight, launch, commission, month, rate, quality, nextEvent, EV, orbNew, orbStep, orbEl, zone, settle, has };
 })();
 if (typeof module !== 'undefined') module.exports = E;

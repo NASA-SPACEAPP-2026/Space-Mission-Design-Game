@@ -99,6 +99,20 @@ describe("ported mission rules", () => {
     expect(L.TIME.win).toBe(0);
   });
 
+  it("makes the thruster take two or three times the cells with a bigger tank", async () => {
+    const sources = await Promise.all(["01-data.js"].map((name) => read(`public/game/${name}`)));
+    const { E } = runInNewContext(`${sources.join("\n")}\n;({ E })`);
+    const cells = (tank) => E.shape("BASE-CG", 0, "S3", tank).length;
+    expect(cells(2)).toBe(cells(1) * 2);
+    expect(cells(3)).toBe(cells(1) * 3);
+    const sat = { ride: "S3", placed: {}, heat: {}, acc: {}, stake: [], tank: 2 };
+    const placed = E.autoPlace(sat, "BASE-CG", 0);
+    expect(placed.tk).toBe(2);
+    expect(E.cellsOf(placed, "S3")).toHaveLength(cells(2));
+    const other = Object.keys(E.PARTS).find((id) => E.PARTS[id].cat !== "prop");
+    expect(E.shape(other, 0, "S3", 3)).toHaveLength(E.shape(other, 0, "S3").length);
+  });
+
   it("applies the launch-window reduction to future instalments", async () => {
     const sources = await Promise.all(["01-data.js", "02-orbit.js", "03-logic.js"].map((name) => read(`public/game/${name}`)));
     const { L } = runInNewContext(`${sources.join("\n")}\n;({ L })`);
