@@ -897,6 +897,15 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
       });
     },
 
+    // Worldwide player ranking: total science points per player (science_awards), top 50 plus the caller's own place.
+    async leaderboard({ user }) {
+      const top = await rows(db, `SELECT u.username, sum(a.points)::float8 AS science FROM science_awards a
+        JOIN users u ON u.id=a.user_id GROUP BY u.id, u.username ORDER BY science DESC, lower(u.username) LIMIT 50`);
+      const science = await playerScience(db, user.id);
+      const [r] = await rows(db, `SELECT count(*)::int + 1 AS n FROM (SELECT sum(points) AS s FROM science_awards GROUP BY user_id) t WHERE t.s > $1`, [science]);
+      return { body: { players: top, me: { username: user.username, science, rank: science > 0 ? r.n : null } } };
+    },
+
     // This week's goal, time left, the weekly ranking, the all-time ranking, my places, and the last closed week's podium.
     async challenge({ user }) {
       const week = weekOf(now()), goal = goalOf(week);
@@ -966,7 +975,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
     ['GET', '/mine/unread', 'unread'], ['POST', '/mine/activity', 'activity'],
     ['POST', '/leave', 'leave'], ['POST', '/science', 'science'],
     ['PUT', '/live', 'live'], ['GET', '/live/([A-Za-z0-9_]{3,24})', 'watch'],
-    ['GET', '/challenge', 'challenge'],
+    ['GET', '/challenge', 'challenge'], ['GET', '/leaderboard', 'leaderboard'],
     ['GET', '/mine/joint', 'jointList'], ['POST', '/mine/joint', 'jointCreate'],
     ['GET', `/mine/joint/${UUID}`, 'jointGet'], ['POST', `/mine/joint/${UUID}/actions`, 'jointAct'],
     ['GET', `/${UUID}`, 'profile'], ['POST', `/${UUID}/join`, 'join']
