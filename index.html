@@ -1619,6 +1619,11 @@ body.fs .dockR .lvc .kv li{padding:1px 0!important}
 .spc small{font:500 12px/1.2 var(--f-m);color:var(--muted)}
 #ov .rv.spick>.row{justify-content:flex-end;gap:8px;margin-top:10px}
 @media (max-height:520px){.spgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.spt{height:clamp(56px,30vh,110px)}#ov .rv.spick h2{margin:0 0 6px}}
+/* tasto Macchinario: esagono regolare (prima era allungato) e alone che segue i bordi dell'esagono */
+.rail .rb[data-act="labadd"] i{width:72px!important;height:62px!important}
+@media (max-height:520px){.rail .rb[data-act="labadd"] i{width:60px!important;height:52px!important}}
+.rb.coach-hl{animation:rbGlow 1.6s ease-in-out infinite!important;box-shadow:none!important;outline:none!important;background:none!important}
+@keyframes rbGlow{0%,100%{filter:drop-shadow(0 0 2px rgba(235,125,68,.9)) drop-shadow(0 0 6px rgba(235,125,68,.6))}50%{filter:drop-shadow(0 0 4px #EB7D44) drop-shadow(0 0 14px rgba(235,125,68,.85))}}
 </style>
 <style id="mfix2">
 /* ===== Correzioni di Andrea, giro 2 ===== */
