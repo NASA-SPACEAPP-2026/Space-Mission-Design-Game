@@ -84,6 +84,8 @@ window.GNGCLAN = (function () {
       case 'launch': return T(u + ' ha lanciato ' + m, u + ' launched ' + m);
       case 'success': return T(u + ': ' + m + ' è riuscita', u + ': ' + m + ' succeeded');
       case 'failure': return T(u + ': ' + m + ' non è riuscita', u + ': ' + m + ' failed');
+      case 'joint_new': return T(u + ' ha aperto la missione congiunta ' + m + ': prendi un ruolo!', u + ' opened the joint mission ' + m + ': take a role!');
+      case 'joint_done': return T('Missione congiunta ' + m + ': GO da tutti! +' + (d.points | 0) + ' punti scienza a ' + (d.users || []).join(', '), 'Joint mission ' + m + ': GO from everyone! +' + (d.points | 0) + ' science points to ' + (d.users || []).join(', '));
       default: return '';
     }
   }
@@ -104,7 +106,19 @@ window.GNGCLAN = (function () {
       school_mode: ['Modalità scuola: solo sticker.', 'School mode: stickers only.'],
       not_found: ['Non trovato.', 'Not found.'],
       offline: ['Nessuna connessione.', 'No connection.'],
-      unavailable: ['Servizio consorzi non disponibile.', 'Consortium service unavailable.']
+      unavailable: ['Servizio consorzi non disponibile.', 'Consortium service unavailable.'],
+      stale: ['Un compagno ha appena cambiato qualcosa: aggiorno.', 'A teammate just changed something: refreshing.'],
+      not_your_turn: ['Non è il tuo turno.', 'It is not your turn.'],
+      not_your_role: ['Questa scelta spetta a un altro ruolo.', 'This choice belongs to another role.'],
+      pending_request: ['Prima va risolta la richiesta in sospeso.', 'The pending request must be settled first.'],
+      incomplete: ['Mancano ancora delle scelte del tuo ruolo.', 'Your role still has choices to make.'],
+      need_two: ['Servono almeno due giocatori.', 'At least two players are needed.'],
+      role_taken: ['Ruolo già preso.', 'Role already taken.'],
+      has_role: ['Hai già un ruolo.', 'You already have a role.'],
+      checks_failed: ['La revisione non passa ancora.', 'The review does not pass yet.'],
+      too_many_joint: ['Ci sono già 3 missioni congiunte aperte.', 'There are already 3 open joint missions.'],
+      closed: ['La missione è chiusa.', 'The mission is closed.'],
+      started: ['La missione è già partita.', 'The mission has already started.']
     };
     if (e === 'not_enough_science') return T('Servono ' + d.required + ' punti scienza (ne hai ' + d.science + ').', 'You need ' + d.required + ' science points (you have ' + d.science + ').');
     if (e === 'invalid') {
@@ -199,7 +213,7 @@ window.GNGCLAN = (function () {
   }
   function close() {
     if (!root) return; S.open = false; root.hidden = true; document.body.classList.remove('clan-open'); stopChat(); if (popEl) popEl.hidden = true;
-    clearTimeout(mineT);
+    clearTimeout(mineT); clearTimeout(J.t);
   }
   function startChat() {
     stopChat();
@@ -236,7 +250,7 @@ window.GNGCLAN = (function () {
     const input = root.querySelector('.clsend input'); if (input) S.draft = input.value;
     const focused = document.activeElement && root.contains(document.activeElement) ? document.activeElement.dataset.f : '';
     const c = member() ? S.mine.consortium : null;
-    const tabs = !loggedIn() || S.down ? [] : c ? [['chat', T('Chat', 'Chat')], ['members', T('Membri', 'Members')], ['info', T('Info', 'Info')]] : [['search', T('Cerca', 'Search')], ['create', T('Crea', 'Create')]];
+    const tabs = !loggedIn() || S.down ? [] : c ? [['chat', T('Chat', 'Chat')], ['missions', T('Missioni', 'Missions')], ['members', T('Membri', 'Members')], ['info', T('Info', 'Info')]] : [['search', T('Cerca', 'Search')], ['create', T('Crea', 'Create')]];
     const cur = c ? S.tab : S.noTab;
     root.innerHTML = '<div class="clw" role="dialog" aria-modal="true" aria-label="' + T('Consorzio', 'Consortium') + '">' +
       '<header class="clh">' + (c ? crestSVG(c.crest, 34) : '<span class="clico">' + crestSVG({ shape: 'shield', color: '#66777f', symbol: 'orbit' }, 34) + '</span>') +
@@ -259,6 +273,7 @@ window.GNGCLAN = (function () {
     if (!member()) return tab === 'create' ? createView() : searchView();
     if (tab === 'members') return membersView();
     if (tab === 'info') return infoView();
+    if (tab === 'missions') return jointsView();
     return chatView();
   }
   const sci = () => (S.mine && S.mine.player ? S.mine.player.science | 0 : 0);
@@ -349,7 +364,8 @@ window.GNGCLAN = (function () {
   }
   function msgHTML(m) {
     const me = m.author && m.author === myName();
-    if (m.kind === 'system') return '<li class="clsys">' + esc(sysText(m.data)) + ' <time>' + timeOf(m.at) + '</time></li>';
+    if (m.kind === 'system') return '<li class="clsys">' + esc(sysText(m.data)) + ' <time>' + timeOf(m.at) + '</time>' +
+      (m.data && m.data.code === 'joint_new' && typeof m.data.id === 'string' ? ' <button class="clbtn sm" data-cl="jopen" data-id="' + esc(m.data.id) + '">' + T('Apri', 'Open') + '</button>' : '') + '</li>';
     const head = '<span class="clwho"><b class="r-' + esc(m.role || 'member') + '">' + esc(m.author || '?') + '</b>' + (m.to ? ' → ' + esc(m.to) : '') + ' <time>' + timeOf(m.at) + '</time>' +
       (!m.deleted && (me || lead()) ? ' <button class="cldel" data-cl="del" data-id="' + m.id + '" aria-label="' + T('Elimina', 'Delete') + '">×</button>' : '') + '</span>';
     let inner;
@@ -407,7 +423,7 @@ window.GNGCLAN = (function () {
 
   /* ---------- azioni ---------- */
   async function run(fn) {
-    if (S.busy) return; S.busy = true; S.err = '';
+    if (S.busy) return Promise.resolve(); S.busy = true; S.err = '';
     try { await fn(); } finally { S.busy = false; draw(); }
   }
   const fail = r => { S.err = errText(r); try { host.sfx('bad'); } catch (e) {} };
@@ -422,7 +438,25 @@ window.GNGCLAN = (function () {
     const b = e.target.closest('[data-cl]'); if (!b || !root.contains(b)) return;
     const a = b.dataset.cl;
     if (a === 'close') return close();
-    if (a === 'tab') { if (member()) S.tab = b.dataset.k; else S.noTab = b.dataset.k; S.err = ''; S.share = false; draw(); if (member()) startChat(); else if (S.noTab === 'search' && !S.list) run(search); return; }
+    if (a === 'tab') {
+      if (member()) S.tab = b.dataset.k; else S.noTab = b.dataset.k; S.err = ''; S.share = false; clearTimeout(J.t);
+      if (member() && S.tab === 'missions') { J.id = null; J.m = null; J.list = null; draw(); run(jList).then(jPoll); return; }
+      draw(); if (member()) startChat(); else if (S.noTab === 'search' && !S.list) run(search); return;
+    }
+    if (a === 'jopen') { S.tab = 'missions'; stopChat(); J.id = b.dataset.id; J.m = null; return run(() => jLoad(J.id, true)).then(jPoll); }
+    if (a === 'jback') { J.id = null; J.m = null; return run(jList).then(jPoll); }
+    if (a === 'jset') { const key = b.dataset.key, value = key === 'budget' ? +b.dataset.v : b.dataset.v, req = jNeedReq(J.m.state, key, value, myName()); return jAct(Object.assign({ type: 'set', key, value }, req ? { req } : {})); }
+    if (a === 'jact') {
+      const x = b.dataset.a;
+      if (x === 'abandon' && S.confirm !== 'jabandon') return arm('jabandon');
+      S.confirm = '';
+      if (x === 'join') return jAct({ type: 'join', role: b.dataset.role });
+      if (x === 'go') return jAct({ type: 'vote', go: true, ok: jChecks(J.m.state.design).ok });
+      if (x === 'nogo') return jAct({ type: 'vote', go: false, rework: b.dataset.role });
+      if (x === 'accept' || x === 'reject') return jAct({ type: 'answer', decision: x });
+      if (x === 'counter') return jAct({ type: 'answer', decision: 'counter', value: b.dataset.v });
+      return jAct({ type: x });
+    }
     if (a === 'login') { close(); if (window.gngRequireAccount) window.gngRequireAccount().then(u => { if (u) open(); }); return; }
     if (a === 'demo') { setDemo(true); S.loaded = false; S.down = false; S.list = null; S.msgs = []; S.lastId = 0; open(); return; }
     if (a === 'retry') { S.down = false; S.loaded = false; open(); return; }
@@ -463,6 +497,7 @@ window.GNGCLAN = (function () {
   function onInput(e) {
     const k = e.target.dataset.clIn; if (!k) return;
     if (k === 'q') { S.q = e.target.value; clearTimeout(searchT); searchT = setTimeout(() => run(search), 350); return; }
+    if (k === 'jname') { J.name = e.target.value; return; }
     if (k === 'spectate') { const v = e.target.checked; api('POST', '/mine/preferences', { spectate: v }).then(r => { if (r.status === 200) S.mine.me.spectate = v; else { fail(r); draw(); } }); return; }
     const f = member() ? S.edit : S.form; if (!f) return;
     if (k === 'schoolMode') f.schoolMode = e.target.checked;
@@ -475,6 +510,14 @@ window.GNGCLAN = (function () {
     if (kind === 'send') {
       const input = form.querySelector('input'), text = input.value.trim(); if (!text) return;
       return run(async () => { const r = await api('POST', '/mine/messages', { kind: 'text', text }); if (r.status !== 201) { fail(r); return; } input.value = ''; S.draft = ''; cooldown(); await pollChat(); });
+    }
+    if (kind === 'jnew') {
+      const name = J.name.trim();
+      return run(async () => {
+        const r = await api('POST', '/mine/joint', { name });
+        if (r.status !== 201) return fail(r);
+        J.name = ''; J.id = r.data.id; J.m = r.data; try { host.sfx('ok'); } catch (err) {}
+      }).then(jPoll);
     }
     if (kind === 'code') {
       const code = form.querySelector('input').value.trim();
@@ -496,6 +539,200 @@ window.GNGCLAN = (function () {
         S.edit = null; await loadMine(); host.toast(T('Impostazioni salvate.', 'Settings saved.'));
       });
     }
+  }
+
+  /* ---------- missione congiunta (lite) ----------
+     Le regole stanno sul server (backend/consortia.mjs, jointReduce): qui si disegna e si calcola la fisica con i dati
+     del gioco (E: pezzi, massa, potenza, costi, revisione). Ogni azione porta la versione vista: se un compagno ha
+     cambiato qualcosa nel frattempo, il server rifiuta (stale) e si ricarica. */
+  const JROLES = ['plan', 'sat', 'sci', 'com'];
+  const JROLE_N = { plan: ['Pianificazione', 'Planning'], sat: ['Satellite', 'Satellite'], sci: ['Scienza', 'Science'], com: ['Comunicazioni', 'Comms'] };
+  const JNEED = { plan: ['dest', 'budget'], sat: ['ride', 'avi', 'adcs', 'bat', 'sol'], sci: ['ray'], com: ['com'] };
+  const JOWN = { mass: 'sat', power: 'sat', cost: 'plan' };
+  const JKEY_N = { dest: ['Destinazione', 'Destination'], budget: ['Budget', 'Budget'], ride: ['Piattaforma', 'Bus'], avi: ['Computer', 'Computer'], adcs: ['Assetto', 'Attitude control'], bat: ['Batteria', 'Battery'], sol: ['Pannelli solari', 'Solar panels'], ray: ['Payload', 'Payload'], com: ['Radio', 'Radio'] };
+  const jRole = r => T(...(JROLE_N[r] || ['?', '?']));
+  const jKey = k => T(...(JKEY_N[k] || [k, k]));
+  const J = { list: null, id: null, m: null, t: 0, busy: false, name: '' };
+  const hasE = () => typeof E !== 'undefined' && !!E && !!E.PARTS;
+  const tr = s => { try { return EN() && window.GNG && GNG.tr ? GNG.tr(s) : s; } catch (e) { return s; } };
+  const num = (x, d) => (Math.round(x * Math.pow(10, d)) / Math.pow(10, d)).toLocaleString(EN() ? 'en' : 'it');
+
+  // Il satellite del progetto comune, costruito con le regole del gioco (pezzi messi in griglia da E.autoPlace).
+  function jSat(ds) {
+    const d = E.fresh(); d.ride = ds.ride || 'S3'; d.dest = ds.dest || 'leo'; d.sol = ds.sol || ''; d.tutB = ds.budget || 1000; d.stake = [];
+    const cost = k => E.lvCost(Object.assign({}, d, { lv: k }));
+    d.lv = Object.keys(E.LV).filter(k => { const L = E.LV[k]; return !L.pad && !L.surf && L.dest.indexOf(d.dest) >= 0 && L.fits.indexOf(d.ride) >= 0; }).sort((a, b) => cost(a) - cost(b))[0] || null;
+    ['avi', 'adcs', 'bat', 'ray', 'com'].forEach(cat => { const id = ds[cat]; if (id && E.PARTS[id] && E.PARTS[id].cat === cat) { const pl = E.autoPlace(d, id, 0); if (pl) d.placed[cat] = pl; } });
+    return d;
+  }
+  function jMetrics(ds) {
+    if (!hasE()) return null;
+    const d = jSat(ds), b = E.budget(d);
+    return { d, b, mass: b.wet, lim: b.massLim, gen: b.gen, dem: b.demand, cost: b.cost, budget: ds.budget || 1000 };
+  }
+  const jPart = (k, p, sol) => ({ v: k, n: tr(p.n), s: (sol ? '+' + p.gen + ' W · ' : '') + num(p.m, 2) + ' kg · ' + (p.p ? num(p.p, 1) + ' W · ' : '') + p.c + ' cr' });
+  function jOptions(key, ds) {
+    if (!hasE()) return [];
+    if (key === 'dest') return ['leo', 'moon', 'mars'].map(k => ({ v: k, n: tr(E.DEST[k].n), s: T('punti ', 'points ') + ({ leo: 60, moon: 120, mars: 200 })[k] }));
+    if (key === 'budget') return [600, 1000, 1600, 2400, 3600, 5000].map(v => ({ v, n: v + ' cr' }));
+    if (key === 'ride') return ['S3', 'S6', 'S12'].map(k => ({ v: k, n: E.RIDES[k].n, s: T('fino a ', 'up to ') + E.RIDES[k].massLim + ' kg · ' + E.RIDES[k].c + ' cr' }));
+    if (key === 'sol') return Object.keys(E.SOLAR).filter(k => E.solOK({ ride: ds.ride || 'S3' }, k)).sort((a, b) => E.SOLAR[a].lvl - E.SOLAR[b].lvl).slice(0, 4).map(k => jPart(k, E.SOLAR[k], true));
+    const U = E.RIDES[ds.ride || 'S3'].U;
+    return Object.keys(E.PARTS).filter(k => { const p = E.PARTS[k]; return p.cat === key && (E.RANK[p.cls || '3U'] || 3) <= U && !(p.pays && p.pays.indexOf('land') >= 0); })
+      .sort((a, b) => E.PARTS[a].lvl - E.PARTS[b].lvl || E.PARTS[a].c - E.PARTS[b].c).slice(0, key === 'ray' ? 6 : 5).map(k => jPart(k, E.PARTS[k]));
+  }
+  function jName(key, v) {
+    if (v == null) return '—';
+    if (!hasE()) return String(v);
+    if (key === 'dest') return E.DEST[v] ? tr(E.DEST[v].n) : v;
+    if (key === 'budget') return v + ' cr';
+    if (key === 'ride') return E.RIDES[v] ? E.RIDES[v].n : v;
+    const p = E.PARTS[v] || E.SOLAR[v]; return p ? tr(p.n) : v;
+  }
+  // Una scelta che sfora un budget di un altro ruolo diventa una richiesta a quel ruolo (massa e potenza: Satellite; costo: Pianificazione).
+  function jNeedReq(s, key, value, me) {
+    const a = jMetrics(s.design), b = jMetrics(Object.assign({}, s.design, { [key]: value })); if (!a || !b) return null;
+    const list = [
+      ['mass', b.mass > b.lim && b.mass > a.mass + 1e-9, b.mass - Math.max(b.lim, a.mass)],
+      ['power', b.dem > b.gen && b.dem - b.gen > a.dem - a.gen + 1e-9, (b.dem - b.gen) - Math.max(0, a.dem - a.gen)],
+      ['cost', b.cost > b.budget && b.cost > a.cost, b.cost - Math.max(b.budget, a.cost)]];
+    for (const [kind, over, delta] of list) if (over && s.roles[JOWN[kind]] !== me) return { to: JOWN[kind], kind, delta: Math.round(delta * 100) / 100 };
+    return null;
+  }
+  // Contro-proposte: le altre opzioni della stessa voce che restano nei limiti.
+  function jCounter(s) {
+    const q = s.request, fits = o => { const m = jMetrics(Object.assign({}, s.design, { [q.key]: o.v })); return m && (q.kind === 'mass' ? m.mass <= m.lim : q.kind === 'power' ? m.gen >= m.dem : m.cost <= m.budget); };
+    return jOptions(q.key, s.design).filter(o => o.v !== q.value && fits(o)).slice(-3).reverse();
+  }
+  function jChecks(ds) {
+    const m = jMetrics(ds); if (!m) return { list: [], ok: false };
+    const c = E.checks(m.d), b = c.b, L = {
+      parts: [T('Tutti i sottosistemi a bordo', 'All subsystems on board'), T('Manca qualche pezzo', 'Some parts are missing')],
+      place: [T('Ogni pezzo trova posto', 'Every part fits'), T('Qualche pezzo non entra nella piattaforma', 'Some parts do not fit the bus')],
+      mass: [T('Massa ', 'Mass ') + num(b.wet, 1) + ' / ' + b.massLim + ' kg', T('Massa ', 'Mass ') + num(b.wet, 1) + ' / ' + b.massLim + ' kg'],
+      pow: [T('Potenza ', 'Power ') + num(b.gen, 1) + ' W ≥ ' + num(b.demand, 1) + ' W', T('Potenza: i pannelli non bastano', 'Power: the panels are not enough')],
+      bat: [T('La batteria regge l’eclisse', 'The battery lasts the eclipse'), T('La batteria non regge l’eclisse', 'The battery does not last the eclipse')],
+      cost: [T('Costo ', 'Cost ') + b.cost + ' / ' + b.budget + ' cr', T('Costo ', 'Cost ') + b.cost + ' / ' + b.budget + ' cr'],
+      point: [T('Puntamento giusto per il payload', 'Pointing fits the payload'), T('Il payload chiede un assetto più preciso', 'The payload needs finer attitude control')] };
+    const list = c.list.map(x => ({ t: (L[x.k] || [x.t, x.t])[x.ok ? 0 : 1], ok: x.ok }));
+    list.unshift({ t: m.d.lv ? T('Lancio: ', 'Launch: ') + tr(E.LV[m.d.lv].n) : T('Nessun lancio per questa piattaforma e destinazione', 'No launch for this bus and destination'), ok: !!m.d.lv });
+    return { list, ok: c.ok && !!m.d.lv };
+  }
+  async function jList() { const r = await api('GET', '/mine/joint'); if (r.status === 200) J.list = r.data.joint || []; }
+  async function jLoad(id, force) {
+    const r = await api('GET', '/mine/joint/' + id + (J.m && J.m.id === id && !force ? '?v=' + J.m.version : ''));
+    if (r.status === 200) {
+      if (r.data.same) return false;
+      const was = J.m && J.m.id === id ? J.m.status : null;
+      if (J.id === id) J.m = r.data;
+      if (r.data.status === 'done' && was && was !== 'done') await loadMine(); // i punti appena assegnati
+      return true;
+    }
+    if (r.status === 404) { J.id = null; J.m = null; return true; }
+    return false;
+  }
+  function jPoll() {
+    clearTimeout(J.t);
+    if (!S.open || S.tab !== 'missions' || !member()) return;
+    J.t = setTimeout(async () => {
+      if (S.busy || J.busy) return jPoll();
+      if (J.id) { if (await jLoad(J.id)) draw(); } else { await jList(); if (!(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.f === 'jname')) draw(); }
+      jPoll();
+    }, 3000);
+  }
+  async function jAct(body) {
+    if (!J.m || J.busy) return; J.busy = true; S.err = '';
+    try {
+      const send = () => api('POST', '/mine/joint/' + J.m.id + '/actions', Object.assign({ v: J.m.version }, body));
+      let r = await send();
+      // un compagno ha cambiato qualcosa nel frattempo: si ricarica e si riprova una volta (il server ricontrolla le regole)
+      if (r.data && r.data.error === 'stale') { await jLoad(J.m.id, true); if (J.m) r = await send(); }
+      if (r.status === 200) { J.m = r.data; try { host.sfx(r.data.status === 'done' ? 'ok' : 'tap'); } catch (e) {} if (r.data.status === 'done') await loadMine(); }
+      else if (r.data && r.data.error === 'stale') { host.toast(errText(r)); await jLoad(J.m.id, true); }
+      else fail(r);
+    } finally { J.busy = false; draw(); }
+  }
+
+  function jointsView() {
+    if (J.id) return J.m ? jointView(J.m) : '<p class="clwait">' + T('Caricamento…', 'Loading…') + '</p>';
+    const list = J.list;
+    return '<div class="cljoint"><form class="clrow" data-cl-form="jnew"><input data-f="jname" data-cl-in="jname" maxlength="24" value="' + esc(J.name) + '" placeholder="' + T('Nome della missione', 'Mission name') + '" aria-label="' + T('Nome della missione', 'Mission name') + '"><button class="clbtn pri">' + T('Nuova missione congiunta', 'New joint mission') + '</button></form>' +
+      '<p class="clnote">' + T('Da 2 a 4 compagni progettano un satellite insieme, un ruolo NASA a testa: Pianificazione, Satellite, Scienza, Comunicazioni. A turni; le scelte che sforano massa, potenza o budget vanno approvate da chi ne è responsabile.', '2 to 4 teammates design one satellite together, one NASA role each: Planning, Satellite, Science, Comms. Turn by turn; choices that break mass, power or budget need the approval of whoever owns them.') + '</p>' +
+      (list ? (list.length ? list.map(jCard).join('') : '<p class="clwait">' + T('Nessuna missione congiunta: aprine una!', 'No joint missions yet: start one!') + '</p>') : '<p class="clwait">' + T('Caricamento…', 'Loading…') + '</p>') + '</div>';
+  }
+  function jPhase(s) {
+    return s.phase === 'lobby' ? T('In attesa dei compagni', 'Waiting for teammates') : s.phase === 'review' ? T('Revisione finale', 'Final review') : s.phase === 'done' ? T('Completata', 'Completed')
+      : s.phase === 'abandoned' ? T('Abbandonata', 'Abandoned') : T('Tocca a ', 'Turn: ') + jRole(s.turn) + ' (' + (s.roles[s.turn] || '?') + ')';
+  }
+  function jCard(j) {
+    const me = myName(), mine = JROLES.some(r => j.roles[r] === me), myTurn = j.turn && j.roles[j.turn] === me;
+    return '<article class="clcard jcard' + (myTurn ? ' myturn' : '') + '"><div class="clci"><b>' + esc(j.name) + '</b><small>' + esc(jPhase(j)) + '</small><span class="clmeta">' +
+      JROLES.map(r => esc(jRole(r) + ': ' + (j.roles[r] || '—'))).join(' · ') + '</span></div>' + (myTurn ? '<em class="jtag">' + T('Tocca a te', 'Your turn') + '</em>' : '') +
+      '<button class="clbtn' + (mine || j.phase === 'lobby' ? ' pri' : '') + '" data-cl="jopen" data-id="' + esc(j.id) + '">' + T('Apri', 'Open') + '</button></article>';
+  }
+  function jGauge(label, val, max, unit, d, inv) {
+    const over = inv ? val > max : val > max, pc = Math.max(0, Math.min(100, max > 0 ? val / max * 100 : 100));
+    return '<div class="jg' + (over ? ' bad' : '') + '"><span>' + label + '</span><b>' + num(val, d) + ' / ' + num(max, d) + ' ' + unit + '</b><i><u style="width:' + pc.toFixed(0) + '%"></u></i></div>';
+  }
+  function jLog(e) {
+    const u = e.user;
+    switch (e.code) {
+      case 'join': return T(u + ' prende ' + jRole(e.role), u + ' takes ' + jRole(e.role));
+      case 'start': return T(u + ' fa partire la missione', u + ' starts the mission');
+      case 'set': return u + ': ' + jKey(e.key) + ' → ' + jName(e.key, e.value);
+      case 'request': return T(u + ' chiede a ' + jRole(e.to) + ': ', u + ' asks ' + jRole(e.to) + ': ') + jKey(e.key) + ' → ' + jName(e.key, e.value);
+      case 'answer': return u + ': ' + ({ accept: T('accettato', 'accepted'), reject: T('rifiutato', 'rejected'), counter: T('contro-proposta', 'counter-offer') })[e.decision] + ' (' + jName(e.key, e.value) + ')';
+      case 'done': return T(u + ' ha finito: ' + jRole(e.role), u + ' is done: ' + jRole(e.role));
+      case 'go': return u + ': GO';
+      case 'nogo': return T(u + ': NO-GO, da rifare ', u + ': NO-GO, to redo: ') + jRole(e.role);
+      case 'done_all': return T('GO da tutti!', 'GO from everyone!');
+      case 'abandon': return T(u + ' ha abbandonato la missione', u + ' abandoned the mission');
+      case 'leave': return T(u + ' ha lasciato il ruolo', u + ' left their role');
+      default: return '';
+    }
+  }
+  function jointView(m) {
+    const s = m.state, me = myName(), mine = r => s.roles[r] === me, players = [...new Set(JROLES.map(r => s.roles[r]).filter(Boolean))], met = jMetrics(s.design);
+    let h = '<div class="jhead"><button class="clbtn sm" data-cl="jback">‹ ' + T('Missioni', 'Missions') + '</button><b>' + esc(s.name) + '</b><small>' + esc(jPhase(s)) + '</small></div>' +
+      '<div class="jroles">' + JROLES.map(r => { const u = s.roles[r]; return '<span class="jrole' + (s.turn === r ? ' turn' : s.done[r] ? ' done' : '') + (u === me ? ' me' : '') + '"><small>' + jRole(r) + '</small><b>' + (u ? esc(u) : '—') + '</b>' + (s.turn === r ? '<i>●</i>' : s.done[r] ? '<i>✓</i>' : '') + '</span>'; }).join('') + '</div>';
+    if (met && s.phase !== 'lobby') h += '<div class="jmeter">' + jGauge(T('Massa', 'Mass'), met.mass, met.lim, 'kg', 1) + jGauge(T('Consumo', 'Power use'), met.dem, met.gen, 'W', 1) + jGauge(T('Costo', 'Cost'), met.cost, met.budget, 'cr', 0) + '</div>';
+    if (s.phase === 'lobby') {
+      h += '<p class="clnote">' + T('Prendi un ruolo. Quando siete almeno in due, chi ha aperto la missione la fa partire: i ruoli liberi vengono divisi tra i presenti.', 'Take a role. When at least two of you are in, whoever opened the mission starts it: free roles are shared among the players.') + '</p><div class="clrow">' +
+        (players.indexOf(me) < 0 ? JROLES.filter(r => !s.roles[r]).map(r => '<button class="clbtn pri" data-cl="jact" data-a="join" data-role="' + r + '">' + T('Prendi ', 'Take ') + jRole(r) + '</button>').join('') : '') +
+        (players.indexOf(me) >= 0 && s.by !== me ? '<button class="clbtn" data-cl="jact" data-a="leave">' + T('Lascia il ruolo', 'Leave the role') + '</button>' : '') +
+        (s.by === me || lead() ? '<button class="clbtn pri big" data-cl="jact" data-a="start"' + (players.length < 2 ? ' disabled' : '') + '>' + T('Fai partire la missione', 'Start the mission') + '</button>' : '') + '</div>';
+    } else if (s.phase === 'design') {
+      if (s.request) {
+        const q = s.request, k = { mass: T('kg oltre il limite della piattaforma', 'kg over the bus limit'), power: T('W oltre quello che producono i pannelli', 'W more than the panels produce'), cost: T('cr oltre il budget', 'cr over budget') }[q.kind];
+        h += '<div class="jreq" role="alert"><b>' + esc(q.by + ' (' + jRole(q.from) + ') ' + T('chiede: ', 'asks: ') + jKey(q.key) + ' → ' + jName(q.key, q.value)) + '</b><small>+' + num(q.delta, q.kind === 'cost' ? 0 : 2) + ' ' + k + '</small>';
+        if (mine(q.to)) {
+          const alt = jCounter(s);
+          h += '<div class="clacts"><button class="clbtn sm pri" data-cl="jact" data-a="accept">' + (q.kind === 'cost' ? T('Accetta e alza il budget', 'Accept and raise the budget') : T('Accetta', 'Accept')) + '</button>' +
+            alt.map(o => '<button class="clbtn sm" data-cl="jact" data-a="counter" data-v="' + esc(o.v) + '">' + T('Proponi: ', 'Offer: ') + esc(o.n) + '</button>').join('') +
+            '<button class="clbtn sm bad" data-cl="jact" data-a="reject">' + T('Rifiuta', 'Reject') + '</button></div>';
+        } else h += '<small>' + esc(T('In attesa di ', 'Waiting for ') + s.roles[q.to] + ' (' + jRole(q.to) + ')') + '</small>';
+        h += '</div>';
+      }
+      if (s.turn && mine(s.turn) && !s.request) {
+        const solBad = s.turn === 'sat' && hasE() && !E.solOK({ ride: s.design.ride }, s.design.sol), complete = JNEED[s.turn].every(k => s.design[k] != null) && !solBad;
+        h += '<h3>' + T('Tocca a te', 'Your turn') + ' · ' + jRole(s.turn) + '</h3>' + JNEED[s.turn].map(key => '<div class="jgroup"><b>' + jKey(key) + '</b><div class="jopts">' +
+          jOptions(key, s.design).map(o => '<button class="jopt' + (String(s.design[key]) === String(o.v) ? ' on' : '') + '" data-cl="jset" data-key="' + key + '" data-v="' + esc(o.v) + '"' + (J.busy ? ' disabled' : '') + '><b>' + esc(o.n) + '</b>' + (o.s ? '<small>' + esc(o.s) + '</small>' : '') + '</button>').join('') + '</div></div>').join('') +
+          (solBad ? '<p class="clnote">' + T('I pannelli solari scelti non sono della taglia di questa piattaforma.', 'The chosen solar panels do not fit this bus.') + '</p>' : '') +
+          '<button class="clbtn pri big" data-cl="jact" data-a="done"' + (complete ? '' : ' disabled') + '>' + T('Fatto: passa il turno', 'Done: pass the turn') + '</button>';
+      } else if (s.turn && !s.request) h += '<p class="jwait">' + esc(T('Sta decidendo ', 'Deciding now: ') + s.roles[s.turn] + ' (' + jRole(s.turn) + ')…') + '</p>';
+    } else if (s.phase === 'review') {
+      const c = jChecks(s.design);
+      h += '<h3>' + T('Revisione finale: GO / NO-GO', 'Final review: GO / NO-GO') + '</h3><ul class="jchecks">' + c.list.map(x => '<li class="' + (x.ok ? 'ok' : 'ko') + '">' + (x.ok ? '✓ ' : '✗ ') + esc(x.t) + '</li>').join('') + '</ul>' +
+        '<p class="clmeta">' + players.map(p => esc(p) + ': ' + (s.votes[p] === 'go' ? 'GO' : '…')).join(' · ') + '</p>';
+      if (players.indexOf(me) >= 0 && s.votes[me] !== 'go') h += '<div class="clacts jvote"><button class="clbtn pri big" data-cl="jact" data-a="go"' + (c.ok ? '' : ' disabled') + '>GO</button>' +
+        JROLES.map(r => '<button class="clbtn sm bad" data-cl="jact" data-a="nogo" data-role="' + r + '">' + T('NO-GO: rifà ', 'NO-GO: redo ') + jRole(r) + '</button>').join('') + '</div>';
+    } else if (s.phase === 'done') {
+      h += '<div class="jdone"><b>GO! ' + esc(s.name) + '</b><span>+' + (s.points | 0) + ' ◆ ' + T('a testa, e al consorzio', 'each, and to the consortium') + '</span></div>';
+    }
+    if (s.phase !== 'lobby') h += '<details class="jsum"' + (s.phase === 'done' ? ' open' : '') + '><summary>' + T('Il progetto', 'The design') + '</summary><ul>' + Object.keys(JKEY_N).map(k => '<li><span>' + jKey(k) + '</span><b>' + esc(jName(k, s.design[k])) + '</b></li>').join('') + '</ul></details>';
+    h += '<ol class="jlog">' + s.log.slice(-4).reverse().map(e => '<li>' + esc(jLog(e)) + ' <time>' + timeOf(e.at) + '</time></li>').join('') + '</ol>';
+    if ((s.by === me || lead()) && s.phase !== 'done' && s.phase !== 'abandoned') h += '<button class="clbtn sm bad' + (S.confirm === 'jabandon' ? ' sure' : '') + '" data-cl="jact" data-a="abandon">' + (S.confirm === 'jabandon' ? T('Confermi?', 'Confirm?') : T('Abbandona la missione', 'Abandon the mission')) + '</button>';
+    return '<div class="cljointv">' + h + '</div>';
   }
 
   /* ---------- spectate: guardare un compagno mentre gioca ---------- */
@@ -674,6 +911,72 @@ window.GNGCLAN = (function () {
       const others = c.members.filter(m => m.username !== myName() && m.status !== 'offline'); if (!others.length) return;
       setTimeout(() => { const who = others[seq % others.length], st = seq % 3 === 0; c.msgs.push({ id: ++seq, author: who.username, role: who.role, at: new Date().toISOString(), kind: st ? 'sticker' : 'text', ...(st ? { sticker: Object.keys(STICKERS)[seq % 4] } : { text: lines()[seq % 4] }) }); }, 2500);
     }
+    // Le regole della missione congiunta, come jointReduce in backend/consortia.mjs (qui per la demo senza rete).
+    function demoJoint(state, a, user, admin) {
+      const s = JSON.parse(JSON.stringify(state)), mine = r => s.roles[r] === user, players = [...new Set(JROLES.map(r => s.roles[r]).filter(Boolean))];
+      const KEYS = { dest: 'plan', budget: 'plan', ride: 'sat', avi: 'sat', adcs: 'sat', bat: 'sat', sol: 'sat', ray: 'sci', com: 'com' };
+      const log = (code, extra) => { s.log.push(Object.assign({ code, user, at: new Date().toISOString() }, extra)); s.log = s.log.slice(-30); };
+      const no = error => ({ error });
+      if (s.phase === 'done' || s.phase === 'abandoned') return no('closed');
+      if (a.type === 'join') { if (s.phase !== 'lobby') return no('started'); if (s.roles[a.role]) return no('role_taken'); if (players.indexOf(user) >= 0) return no('has_role'); s.roles[a.role] = user; log('join', { role: a.role }); }
+      else if (a.type === 'leave') { if (s.phase !== 'lobby' || user === s.by) return no('started'); JROLES.forEach(r => { if (s.roles[r] === user) s.roles[r] = null; }); log('leave'); }
+      else if (a.type === 'start') { if (s.phase !== 'lobby') return no('started'); if (user !== s.by && !admin) return no('forbidden'); if (players.length < 2) return no('need_two'); let i = 0; JROLES.forEach(r => { if (!s.roles[r]) s.roles[r] = players[i++ % players.length]; }); s.phase = 'design'; s.turn = 'plan'; log('start'); }
+      else if (a.type === 'set') {
+        const owner = KEYS[a.key]; if (s.phase !== 'design') return no('not_design'); if (!owner) return no('invalid'); if (!mine(owner)) return no('not_your_role'); if (s.turn !== owner) return no('not_your_turn'); if (s.request) return no('pending_request');
+        if (a.req && !mine(a.req.to)) { s.request = { id: ++s.seq, from: owner, by: user, to: a.req.to, key: a.key, value: a.value, kind: a.req.kind, delta: a.req.delta }; log('request', { key: a.key, value: a.value, to: a.req.to }); }
+        else { s.design[a.key] = a.value; log('set', { key: a.key, value: a.value }); }
+      } else if (a.type === 'answer') {
+        const q = s.request; if (!q) return no('no_request'); if (!mine(q.to)) return no('not_your_role');
+        if (a.decision === 'accept') { s.design[q.key] = q.value; if (q.kind === 'cost') s.design.budget = Math.min(20000, s.design.budget + Math.ceil(q.delta / 50) * 50); }
+        else if (a.decision === 'counter') s.design[q.key] = a.value;
+        log('answer', { decision: a.decision, key: q.key, value: a.decision === 'counter' ? a.value : q.value, to: q.by }); s.request = null;
+      } else if (a.type === 'done') {
+        if (s.phase !== 'design') return no('not_design'); if (!mine(s.turn)) return no('not_your_turn'); if (s.request) return no('pending_request'); if (JNEED[s.turn].some(k => s.design[k] == null)) return no('incomplete');
+        s.done[s.turn] = true; log('done', { role: s.turn }); const next = JROLES.find(r => !s.done[r]); if (next) s.turn = next; else { s.phase = 'review'; s.turn = null; s.votes = {}; }
+      } else if (a.type === 'vote') {
+        if (s.phase !== 'review') return no('not_review'); if (players.indexOf(user) < 0) return no('forbidden');
+        if (a.go) { if (a.ok !== true) return no('checks_failed'); s.votes[user] = 'go'; log('go'); if (players.every(p => s.votes[p] === 'go')) { s.phase = 'done'; s.points = Math.round(({ leo: 60, moon: 120, mars: 200 }[s.design.dest] || 60) * (1 + 0.1 * (players.length - 1))); log('done_all'); } }
+        else { s.phase = 'design'; s.turn = a.rework; s.done[a.rework] = false; s.votes = {}; log('nogo', { role: a.rework }); }
+      } else if (a.type === 'abandon') { if (user !== s.by && !admin) return no('forbidden'); s.phase = 'abandoned'; log('abandon'); }
+      else return no('invalid');
+      return { s };
+    }
+    function jointCommit(j, s, c) {
+      const was = j.state.phase; j.state = s; j.version++; j.status = s.phase === 'lobby' ? 'open' : s.phase === 'done' ? 'done' : s.phase === 'abandoned' ? 'abandoned' : 'active';
+      if (s.phase === 'done' && was !== 'done') {
+        const players = [...new Set(JROLES.map(r => s.roles[r]).filter(Boolean))];
+        players.forEach(u => { const m = c.members.find(x => x.username === u); if (m) m.science += s.points; if (u === myName()) db.me = (db.me || 0) + s.points; });
+        c.science += s.points * players.length; sys(c, { code: 'joint_done', mission: s.name, users: players, points: s.points });
+      }
+      jointBots(j, c);
+    }
+    // I compagni finti: prendono i ruoli liberi, fanno le loro scelte con i dati del gioco, accettano le richieste e votano GO.
+    function jointBots(j, c) {
+      if (!hasE()) return;
+      clearTimeout(j.bt);
+      j.bt = setTimeout(() => {
+        const s = j.state, bots = c.members.filter(m => m.username !== myName() && m.status !== 'offline').map(m => m.username);
+        const act = (who, a) => { const out = demoJoint(j.state, a, who, false); if (!out.error) jointCommit(j, out.s, c); return !out.error; };
+        if (s.phase === 'lobby') { const free = JROLES.filter(r => !s.roles[r]), bot = bots.find(b => JROLES.every(r => s.roles[r] !== b)); if (free.length && bot) act(bot, { type: 'join', role: free[0] }); return; }
+        if (s.phase === 'design') {
+          if (s.request && bots.indexOf(s.roles[s.request.to]) >= 0) { act(s.roles[s.request.to], { type: 'answer', decision: 'accept' }); return; }
+          const who = s.roles[s.turn]; if (s.request || bots.indexOf(who) < 0) return;
+          const pick = { ride: { leo: 'S3', moon: 'S6', mars: 'S12' }[s.design.dest] || 'S3', avi: 'BASE-OBC', adcs: 'BASE-MAG', bat: 'BASE-BAT40', ray: 'BASE-CAM', com: 'BASE-UHF', dest: 'moon', budget: 1600 };
+          if (s.turn === 'sat') { const sols = jOptions('sol', s.design).map(o => o.v); pick.sol = sols.find(k => /D$/.test(k)) || sols[0]; }
+          // se hai rifiutato una sua richiesta, la volta dopo sceglie l'opzione piu' economica
+          const last = s.log[s.log.length - 1]; j.rej = j.rej || {};
+          if (last && last.code === 'answer' && last.decision === 'reject' && last.to === who) j.rej[last.key] = 1;
+          Object.keys(j.rej).forEach(k => { const o = jOptions(k, s.design); if (o.length) pick[k] = o.slice().sort((x, y) => (jMetrics(Object.assign({}, s.design, { [k]: x.v })) || {}).cost - (jMetrics(Object.assign({}, s.design, { [k]: y.v })) || {}).cost)[0].v; });
+          const key = JNEED[s.turn].find(k => s.design[k] !== pick[k]);
+          if (key && !(j.tried && j.tried[key + pick[key]] > 2)) {
+            j.tried = j.tried || {}; j.tried[key + pick[key]] = (j.tried[key + pick[key]] || 0) + 1;
+            const req = jNeedReq(s, key, pick[key], who); act(who, Object.assign({ type: 'set', key, value: pick[key] }, req ? { req } : {})); return;
+          }
+          act(who, { type: 'done' }); return;
+        }
+        if (s.phase === 'review' && jChecks(s.design).ok) { const bot = bots.find(b => JROLES.some(r => s.roles[r] === b) && s.votes[b] !== 'go'); if (bot) act(bot, { type: 'vote', go: true, ok: true }); }
+      }, 1600);
+    }
     function call(method, path, body) {
       if (!db) seed();
       body = body || {};
@@ -748,6 +1051,25 @@ window.GNGCLAN = (function () {
         db.awarded = db.awarded || {}; const counted = !db.awarded[body.mission]; db.awarded[body.mission] = 1;
         if (counted) { db.me = (db.me || 0) + (body.points | 0); if (c && body.points > 0) { me.science += body.points | 0; c.science += body.points | 0; sys(c, { code: 'science', user: myName(), mission: body.name || '', points: body.points | 0 }); } }
         return R(200, { counted, player: { science: db.me }, consortium: c ? { science: c.science } : null });
+      }
+      // missione congiunta: stesse regole del server (versione compatta) e compagni finti che giocano i loro ruoli
+      if (p.startsWith('/mine/joint')) {
+        db.joint = db.joint || [];
+        const full = j => ({ id: j.id, status: j.status, version: j.version, state: j.state });
+        if (method === 'GET' && p === '/mine/joint') return R(200, { joint: db.joint.filter(j => j.cid === c.id).map(j => ({ id: j.id, name: j.state.name, status: j.status, phase: j.state.phase, turn: j.state.turn, roles: j.state.roles, by: j.state.by, version: j.version })) });
+        if (method === 'POST' && p === '/mine/joint') {
+          const name = String(body.name || '').trim(); if (name.length < 3 || name.length > 24) return R(400, { error: 'invalid', field: 'name' });
+          const j = { id: 'demo-j' + (++seq), cid: c.id, version: 1, status: 'open', state: { name, by: myName(), phase: 'lobby', turn: null, roles: { plan: myName(), sat: null, sci: null, com: null }, design: { dest: 'leo', budget: 1000, ride: 'S3', sol: 'BASE-SOL3D' }, done: {}, request: null, votes: {}, log: [], seq: 0, points: 0 } };
+          db.joint.unshift(j); sys(c, { code: 'joint_new', user: myName(), mission: name, id: j.id }); jointBots(j, c);
+          return R(201, full(j));
+        }
+        const jm = p.match(/^\/mine\/joint\/([^/]+)(\/actions)?$/), j = jm && db.joint.find(x => x.id === jm[1] && x.cid === c.id);
+        if (!j) return R(404, { error: 'not_found' });
+        if (method === 'GET') return q.get('v') === String(j.version) ? R(200, { same: true, version: j.version }) : R(200, full(j));
+        if (body.v !== j.version) return R(409, { error: 'stale', version: j.version });
+        const out = demoJoint(j.state, body, myName(), rank(me.role) >= 2);
+        if (out.error) return R(out.error === 'invalid' ? 400 : 409, { error: out.error });
+        jointCommit(j, out.s, c); return R(200, full(j));
       }
       if (!c && p.startsWith('/live')) return R(404, { error: 'no_consortium' });
       const live = p.match(/^\/live\/(.+)$/);
@@ -844,6 +1166,40 @@ body.clan-open #tbub,body.clan-open #zbtn,body.clan-open #zpanel{display:none!im
 #spect .clbtn{background:#2A2F3B;color:#F1ECE6;border:0;border-radius:8px;padding:8px 14px;font:700 13px/1.1 inherit;cursor:pointer;min-height:38px}
 #spect button:focus-visible{outline:2px solid #7FD8CC;outline-offset:2px}
 body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect #coach,body.spect #chand,body.spect #clan{display:none!important}
+#clan .cljoint>form input{flex:1}
+#clan .jcard.myturn{box-shadow:inset 3px 0 0 #F2B83A}
+#clan .jtag{font-style:normal;font-size:12px;font-weight:700;color:#1A1210;background:#F2B83A;border-radius:999px;padding:3px 8px;white-space:nowrap}
+#clan .cljointv{display:flex;flex-direction:column;gap:8px}
+#clan .jhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#clan .jhead b{font-size:17px}
+#clan .jroles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#clan .jrole{position:relative;background:#1C1F27;border-radius:10px;padding:6px 8px;display:flex;flex-direction:column;min-width:0;border:2px solid transparent}
+#clan .jrole b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#clan .jrole i{position:absolute;top:4px;right:8px;font-style:normal;font-size:12px}
+#clan .jrole.turn{border-color:#F2B83A}#clan .jrole.turn i{color:#F2B83A}
+#clan .jrole.done i{color:#5FD38D}#clan .jrole.me b{color:#7FD8CC}
+#clan .jmeter{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#clan .jg{background:#1C1F27;border-radius:10px;padding:6px 10px;display:flex;flex-direction:column;gap:3px;min-width:0}
+#clan .jg span{font-size:12px;color:#ADA49C}#clan .jg b{font-size:14px;white-space:nowrap}
+#clan .jg i{height:5px;border-radius:3px;background:#2A2F3B;display:block;overflow:hidden}#clan .jg u{display:block;height:100%;background:#5FD38D}
+#clan .jg.bad b{color:#FF8A7E}#clan .jg.bad u{background:#E5322B}
+#clan .jgroup>b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#7FD8CC;margin:2px 0 4px}
+#clan .jopts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+#clan .jopt{background:#1C1F27;color:#F1ECE6;border:2px solid transparent;border-radius:10px;padding:6px 8px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:44px;font:inherit}
+#clan .jopt b{font-size:13px;line-height:1.2}#clan .jopt small{font-size:11px}
+#clan .jopt.on{border-color:#F07B3F;background:#2A1F1A}#clan .jopt:disabled{opacity:.5}
+#clan .jreq{background:rgba(242,184,58,.12);border:2px solid #F2B83A;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+#clan .jreq .clacts{justify-content:flex-start}
+#clan .jwait{color:#ADA49C;text-align:center;margin:10px 0}
+#clan .jchecks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px}
+#clan .jchecks li{background:#1C1F27;border-radius:8px;padding:6px 10px;font-size:13px}#clan .jchecks li.ok{color:#5FD38D}#clan .jchecks li.ko{color:#FF8A7E}
+#clan .jvote{justify-content:flex-start}
+#clan .jdone{background:rgba(95,211,141,.14);border:2px solid #5FD38D;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center}
+#clan .jdone b{font-size:20px;color:#5FD38D}
+#clan .jsum summary{cursor:pointer;color:#7FD8CC;font-size:13px}
+#clan .jsum ul{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px 12px}
+#clan .jsum li{display:flex;justify-content:space-between;gap:8px;font-size:13px;border-bottom:1px solid #262B36;padding:3px 0}#clan .jsum li span{color:#ADA49C}
+#clan .jlog{list-style:none;margin:0;padding:0;font-size:12px;color:#ADA49C}#clan .jlog time{color:#7A736C}
+@media (max-width:640px){#clan .jroles{grid-template-columns:repeat(2,minmax(0,1fr))}#clan .jmeter{grid-template-columns:1fr}}
 #clan .clwatch{background:rgba(229,50,43,.18);color:#FFB4AB;display:inline-flex;align-items:center;gap:4px}
 @media (max-width:520px){#spect .spl small{display:none}}
 @keyframes clzpop{0%{transform:scale(.3);opacity:0}12%{transform:scale(1.12);opacity:1}22%{transform:scale(1)}78%{opacity:1;transform:scale(1)}100%{transform:scale(.92) translateY(-18px);opacity:0}}
@@ -892,5 +1248,5 @@ body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect
 
   return { init, open, close, isOpen: () => S.open, unread: () => S.unread, badgeHTML, crestSVG, science, activity, setDemo,
     stickerHTML, stickers: () => Object.keys(STICKERS), watching: () => W.user, stopWatch: () => stopWatch(),
-    _test: { sysText, errText, demo, state: S, loadMine, pack, unpack } };
+    _test: { sysText, errText, demo, state: S, loadMine, pack, unpack, jNeedReq, jChecks, jOptions, jCounter } };
 })();
