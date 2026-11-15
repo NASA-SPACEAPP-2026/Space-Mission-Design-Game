@@ -406,7 +406,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
         where.push(`c.min_science <= $${args.length}`);
       }
       const list = await rows(db, `SELECT ${SUMMARY} FROM consortia c WHERE ${where.join(' AND ')}
-        ORDER BY ${text ? 'lower(c.name)' : 'members DESC, science DESC, c.created_at'} LIMIT 20`, args);
+        ORDER BY ${text ? 'lower(c.name)' : 'science DESC, members DESC, c.created_at'} LIMIT 20`, args);
       // Which of these the player has already asked to join, so the client can show "waiting for response".
       let asked = new Set();
       if (user && list.length) asked = new Set((await rows(db, `SELECT consortium_id FROM consortium_requests WHERE user_id=$1 AND status='pending' AND consortium_id = ANY($2::uuid[])`, [user.id, list.map(c => c.id)])).map(r => r.consortium_id));

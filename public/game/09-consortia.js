@@ -342,10 +342,11 @@ window.GNGCLAN = (function () {
       '<span class="clmeta">' + T('Liv ', 'Lv ') + c.level + ' · 👥 ' + c.members + '/' + c.maxMembers + ' · ' + c.science + ' ◆' + (c.minScience ? ' · min ' + c.minScience + ' ◆' : '') + ' · ' + kindName(c.kind) + '</span></div>' + act + '</article>';
   }
   function searchView() {
-    const list = S.list || [];
+    // senza ricerca: i migliori 5 consorzi per punti scienza
+    const all = S.list || [], list = S.q.trim() ? all : all.slice().sort((a, b) => (b.science | 0) - (a.science | 0)).slice(0, 5);
     return '<div class="clsearch"><div class="clrow"><input type="search" data-f="q" data-cl-in="q" maxlength="24" value="' + esc(S.q) + '" placeholder="' + T('Cerca per nome', 'Search by name') + '" aria-label="' + T('Cerca per nome', 'Search by name') + '">' +
       '<button class="clchip' + (S.free ? ' on' : '') + '" data-cl="free" aria-pressed="' + S.free + '">' + T('Con posti liberi', 'With free places') + '</button></div>' +
-      '<h3>' + (S.q.trim() ? T('Risultati', 'Results') : T('Consigliati', 'Recommended')) + ' <small>' + T('i tuoi punti: ', 'your points: ') + sci() + ' ◆</small></h3>' +
+      '<h3>' + (S.q.trim() ? T('Risultati', 'Results') : T('I migliori 5 per punti scienza', 'Top 5 by science points')) + ' <small>' + T('i tuoi punti: ', 'your points: ') + sci() + ' ◆</small></h3>' +
       (list.length ? list.map(card).join('') : '<p class="clwait">' + (S.list ? T('Nessun consorzio. Fondane uno tu!', 'No consortia yet. Found one!') : T('Caricamento…', 'Loading…')) + '</p>') +
       (S.list && !list.length ? '<button class="clbtn pri" data-cl="tab" data-k="create">' + T('Crea un consorzio', 'Create a consortium') + '</button>' : '') + '</div>';
   }
