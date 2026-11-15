@@ -108,6 +108,11 @@ const cacheControl = (relative) => {
   if (relative.startsWith("/audio/") || relative.startsWith("/fonts/")) {
     return "public, max-age=31536000, immutable";
   }
+  // Unhashed top-level scripts and styles (account.js, account.css): always revalidate (ETag, so a 304 when unchanged),
+  // otherwise a deploy would not reach returning players for up to an hour.
+  if (/\.(?:js|mjs|css)$/.test(relative)) {
+    return "no-cache";
+  }
   return "public, max-age=3600";
 };
 
