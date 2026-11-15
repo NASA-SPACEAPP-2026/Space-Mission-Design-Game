@@ -250,8 +250,8 @@ window.GNGCLAN = (function () {
     root.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
     return root;
   }
-  async function open(tab) {
-    ensureRoot(); S.open = true; S.err = ''; S.ok = ''; S.confirm = ''; S.share = false; root.hidden = false; document.body.classList.add('clan-open');
+  async function open(tab, o) {
+    ensureRoot(); S.zi = !!(o && o.intro); S.open = true; S.err = ''; S.ok = ''; S.confirm = ''; S.share = false; root.hidden = false; document.body.classList.add('clan-open');
     // l'animazione d'ingresso solo all'apertura: i ridisegni (schede, azioni) non devono far lampeggiare il pannello
     root.classList.add('opening'); setTimeout(() => root.classList.remove('opening'), 300);
     if (tab === 'challenge') { S.tab = S.noTab = 'challenge'; }
@@ -315,7 +315,11 @@ window.GNGCLAN = (function () {
     if (focused) { const f = root.querySelector('[data-f="' + focused + '"]'); if (f) f.focus(); }
     if (c && cur === 'chat') { drawFeed(true); drawSide(); }
   }
-  function body(tab) {
+  /* fumetto di Zorty in cima al pannello quando lo si apre dal tasto «Entra in un consorzio» del campus */
+  const zImg = p => { try { const s = window.GNG && window.GNG.ZORTY && window.GNG.ZORTY.SPR; return (s && (s[p] || s.benvenuto)) || ''; } catch (e) { return ''; } };
+  const ziHTML = () => S.zi ? '<div class="clzi"><img alt="" src="' + zImg('spiega') + '"><p><b>Zorty</b>' + T('Un consorzio è una squadra di agenzie spaziali come la tua: chattate, condividete le missioni, affrontate insieme la sfida della settimana e mettete in comune i punti scienza per far salire di livello il consorzio. Cercane uno qui sotto, oppure fondane uno tuo!', 'A consortium is a team of space agencies like yours: you chat, share missions, take on the weekly challenge together and pool your science points to level the consortium up. Find one below, or found your own!') + '</p><button class="clzx" data-cl="zix" aria-label="' + T('Chiudi', 'Close') + '">✕</button></div>' : '';
+  function body(tab) { return ziHTML() + body0(tab); }
+  function body0(tab) {
     if (!loggedIn()) return '<div class="clempty">' + crestSVG({ shape: 'shield', color: '#f07b3f', symbol: 'rocket' }, 72) +
       '<h2>' + T('Entra in un consorzio', 'Join a Consortium') + '</h2><p>' + T('Chatta con altre agenzie, condividi le missioni e porta punti scienza alla tua squadra. Serve un account.', 'Chat with other agencies, share missions and bring science points to your team. You need an account.') + '</p>' +
       '<div class="clrow"><button class="clbtn pri" data-cl="login">' + T('Accedi o registrati', 'Sign in or sign up') + '</button><button class="clbtn" data-cl="demo">' + T('Prova la demo', 'Try the demo') + '</button></div></div>';
@@ -507,6 +511,7 @@ window.GNGCLAN = (function () {
     const b = e.target.closest('[data-cl]'); if (!b || !root.contains(b)) return;
     const a = b.dataset.cl;
     if (a === 'close') return close();
+    if (a === 'zix') { S.zi = false; draw(); return; }
     if (a === 'tab') {
       if (member()) S.tab = b.dataset.k; else S.noTab = b.dataset.k; S.err = ''; S.share = false; clearTimeout(J.t);
       if (member() && S.tab === 'members' && lead()) { stopChat(); draw(); run(loadReports); return; }
@@ -1435,6 +1440,19 @@ body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect
 #clan .clinfo .clform{flex:2 1 420px}
 #clan button:focus-visible,#clan input:focus-visible{outline:2px solid #7FD8CC;outline-offset:2px}
 .rs.clanb{position:relative}
+#clan .clzi{display:flex;gap:10px;align-items:flex-end;position:relative;background:#1F232C;border:1.5px solid #EB7D44;border-radius:12px;padding:8px 34px 8px 8px;margin:0 0 10px}
+#clan .clzi img{width:52px;height:auto;max-height:80px;object-fit:contain;flex:none}
+#clan .clzi p{margin:0;font-size:13px;line-height:1.4}
+#clan .clzi b{display:block;color:#EB7D44;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
+#clan .clzi .clzx{position:absolute;top:4px;right:4px;background:none;border:0;color:#8fa3ad;width:28px;height:28px;cursor:pointer}
+/* campus: tasto del consorzio sotto il nome dell'agenzia, in alto a sinistra */
+.mwrap{position:relative;display:flex;flex:0 1 auto;min-width:0}
+.clanpill{position:absolute;left:0;top:calc(100% + 6px);display:inline-flex;align-items:center;gap:6px;max-width:230px;padding:5px 11px 5px 7px;border-radius:999px;border:1.5px solid #7FD8CC;background:rgba(19,19,19,.9);color:#F1ECE6;font:700 11.5px/1 Inter,system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.25);z-index:2}
+.clanpill>span{overflow:hidden;text-overflow:ellipsis}
+.clanpill svg{width:18px;height:18px;flex:none}
+.clanpill.in{border-color:#F2B83A}
+.clanpill .clbdg{top:-7px;right:-7px}
+@media (max-height:420px){#clan .clzi img{width:36px}#clan .clzi p{font-size:12px;line-height:1.3}.clanpill{top:calc(100% + 4px);padding:4px 9px 4px 6px;font-size:10.5px}.clanpill svg{width:15px;height:15px}}
 .clbdg{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#D2443A;color:#fff;font:700 11px/17px Inter,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #131313}
 .clbdg[hidden]{display:none}
 @media (max-height:420px){#clan .clbar{flex-direction:row;align-items:center;gap:6px}#clan .clbar .clsend{flex:1;min-width:0;padding-top:6px}#clan .clstks{gap:3px}#clan .clstks button{min-width:34px;min-height:38px;padding:1px}#clan .clbar .clz{--zs:30px !important}#clan .clbar .clsend input{min-width:120px}#clan .clw{height:100%;border-radius:8px}#clan .clh{padding:4px 8px}#clan .clb{padding:6px 10px}#clan .clt b{font-size:14px}#clan .clempty .clcrest{width:48px;height:48px}#clan h2{font-size:17px;margin:2px 0}#clan .cleditor .clprev .clcrest{width:56px;height:56px}#clan .clpick button{width:30px;height:30px}}
