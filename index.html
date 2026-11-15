@@ -1605,6 +1605,27 @@ body.fs .dockR .lvc .kv li{padding:1px 0!important}
   .sts .stc .kv{margin-top:4px!important}
 }
 </style>
+<style id="mfix4">
+/* stanze: l'alone segue la sagoma 3D (niente riquadro); niente alone blu sulle sole etichette come Gowning e Air shower */
+.r3h[data-na]:hover,.r3h[data-gk]:hover{box-shadow:none!important;background:none!important}
+.r3h[data-gk].coach-hl{animation:none!important;box-shadow:none!important;outline:none!important}
+/* scelta del satellite a tutto schermo (camera bianca e laboratorio prove) */
+#ov .rv.spick{position:fixed;inset:0;width:auto;max-width:none;height:auto;max-height:none;margin:0;border-radius:0;display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px))}
+.spgrid{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-content:start;padding:4px}
+.spc{display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(19,19,19,.9);border:2px solid var(--line);border-radius:14px;padding:10px;color:inherit;cursor:pointer}
+.spc:hover{border-color:var(--accent)}
+.spt{width:100%;height:clamp(70px,28vh,170px);display:grid;place-items:center}
+.spt img,.spt svg{max-width:100%;max-height:100%}
+.spc b{font:600 18px/1.1 var(--f-d);text-transform:uppercase}
+.spc small{font:500 12px/1.2 var(--f-m);color:var(--muted)}
+#ov .rv.spick>.row{justify-content:flex-end;gap:8px;margin-top:10px}
+@media (max-height:520px){.spgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.spt{height:clamp(56px,30vh,110px)}#ov .rv.spick h2{margin:0 0 6px}}
+/* tasto Macchinario: esagono regolare (prima era allungato) e alone che segue i bordi dell'esagono */
+.rail .rb[data-act="labadd"] i{width:72px!important;height:62px!important}
+@media (max-height:520px){.rail .rb[data-act="labadd"] i{width:60px!important;height:52px!important}}
+.rb.coach-hl{animation:rbGlow 1.6s ease-in-out infinite!important;box-shadow:none!important;outline:none!important;background:none!important}
+@keyframes rbGlow{0%,100%{filter:drop-shadow(0 0 2px rgba(235,125,68,.9)) drop-shadow(0 0 6px rgba(235,125,68,.6))}50%{filter:drop-shadow(0 0 4px #EB7D44) drop-shadow(0 0 14px rgba(235,125,68,.85))}}
+</style>
 <style id="mfix2">
 /* ===== Correzioni di Andrea, giro 2 ===== */
 /* sottotitolo sotto il nome della missione: via */
