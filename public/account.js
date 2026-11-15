@@ -12,9 +12,10 @@ let sessionError = '';
 const en = (() => { try { return (window.gngLang || localStorage.getItem('gngLang')) === 'en'; } catch { return false; } })();
 const t = (it, eng) => en ? eng : it;
 root.querySelectorAll('[data-it]').forEach(el => { el.textContent = t(el.dataset.it, el.dataset.en); });
+let signInOnly = false; // opened from the title-screen 'Sign in' chip: no game starts afterwards
 function mode() {
-  root.querySelector('#account-heading').textContent = t('Entra', 'Enter');
-  submit.textContent = t('Entra e gioca', 'Enter & play');
+  root.querySelector('#account-heading').textContent = signInOnly ? t('Accedi', 'Sign in') : t('Entra', 'Enter');
+  submit.textContent = signInOnly ? t('Accedi', 'Sign in') : t('Entra e gioca', 'Enter & play');
   password.minLength = 1;
   password.autocomplete = 'current-password';
   message.textContent = sessionError;
@@ -52,12 +53,13 @@ function cancel() {
   done?.(null);
 }
 // The game calls this before letting the player in. It resolves with the user, or null if the form is dismissed.
-window.gngRequireAccount = async () => {
+window.gngRequireAccount = async (opts) => {
   await sessionReady;
   if (sessionUser) return window.gngUser;
   waiting?.(null);
   return new Promise(resolve => {
     waiting = resolve;
+    signInOnly = !!opts?.signInOnly;
     root.hidden = false;
     mode();
     // Do not summon a phone keyboard before the visitor chooses a field.
@@ -69,7 +71,7 @@ document.addEventListener('keydown', event => { if (event.key === 'Escape' && !r
 form.addEventListener('submit', async event => {
   event.preventDefault(); if (busy) return;
   busy = true; submit.disabled = true; form.setAttribute('aria-busy', 'true');
-  submit.textContent = t('Prepariamo il lancio…', 'Preparing for launch…'); message.textContent = '';
+  submit.textContent = signInOnly ? t('Accesso…', 'Signing in…') : t('Prepariamo il lancio…', 'Preparing for launch…'); message.textContent = '';
   try {
     const username = form.elements.username.value.trim();
     // One form for both cases: try to sign in; if the name is unknown, create the account.

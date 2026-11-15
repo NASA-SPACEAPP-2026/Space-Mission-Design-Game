@@ -7140,7 +7140,7 @@ function logoSVG(){ return '<svg class="tlogo-m" viewBox="0 0 120 64" aria-hidde
 const HEXI={home:'<path d="M5 12L12 6l7 6"/><path d="M7 11v8h10v-8"/><path d="M10.5 19v-4h3v4"/>',plus:'<path d="M12 5v14M5 12h14"/>',build:'<path d="M4 20h16"/><path d="M6 20V10l6-4 6 4v10"/><path d="M10 20v-5h4v5"/>',cust:'<path d="M3 20h12"/><path d="M5 20v-9l5-3.5 5 3.5v9"/><path d="M8 20v-4h4v4"/><path d="M19 21V5"/><path d="M19 5h3.5l-1 1.7 1 1.7H19"/>',flag:'<path d="M6 21V4"/><path d="M6 5h11l-2.5 3.5L17 12H6"/>',menu:'<path d="M5 7h14M5 12h14M5 17h14"/>',folder:'<path d="M3 7h6l2 2h10v10H3z"/>',x:'<path d="M7 7l10 10M17 7L7 17"/>'};
 const hexB=(act,t,ic,on,extra)=>'<button class="hx6'+(on?' on':'')+'" data-act="'+act+'" title="'+t+'" aria-label="'+t+'"'+(extra||'')+'>'+ICO(({x:'close',build:'home'})[ic]||ic)+'</button>';
 /* ---------- schermate iniziali ---------- */
-let TTL={s:'main',mode:'career',diff:'normale',crew:'giulia',from:'title',out:false};
+let TTL={s:'main',mode:'career',diff:'normale',crew:'giulia',from:'title'};
 /* il tutorial si fa una volta per account (stile Minecraft): il segno resta anche se si cancella la partita (la chiave non comincia con "gng"); i New Game successivi partono da zero senza tutorial */
 const TUTK='goNoGo.tutorialSeen', tutSeen=()=>{ try{ return localStorage.getItem(TUTK+UK())==='1'; }catch(e){ return false; } }, tutMark=()=>{ try{ localStorage.setItem(TUTK+UK(),'1'); }catch(e){} };
 /* prima missione di un giocatore nuovo (anche dopo il login, che salta il menu): prima si fa il tutorial, poi riparte la stessa modalità da zero */
@@ -7153,18 +7153,18 @@ const MODES=[
   {k:'sand',n:'Creative',s:'Everything unlocked and unlimited credits. Build and experiment freely.',ic:'<path d="M12 3l2.5 5.5L20 10l-4.5 3.5L17 20l-5-3-5 3 1.5-6.5L4 10l5.5-1.5z"/>'}];
 const DIFFS=[['facile','Easy','More money, fewer faults'],['normale','Medium','The intended experience'],['difficile','Hard','Tight budget, hidden defects']];
 function ttlEl(){ let el=$('#title'); if(!el){ el=document.createElement('div'); el.id='title'; el.className='ttl'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); document.body.appendChild(el); } return el; }
-function openTitle(s,from){ if(s!==TTL.s||from!==TTL.from) TTL.out=false; TTL.s=s||'main'; TTL.from=from||'title'; document.body.classList.add('ttl-on'); drawTitle(); if(G.tut&&from==='game') coach(); }
+function openTitle(s,from){ TTL.s=s||'main'; TTL.from=from||'title'; document.body.classList.add('ttl-on'); drawTitle(); if(G.tut&&from==='game') coach(); }
 function closeTitle(){ const el=$('#title'); if(el) el.remove(); document.body.classList.remove('ttl-on'); if(G&&G.tut) coach(); }
 function lvlBox(){ const lv=L.level(G.xp), a=L.LEVELS[lv-1], b=L.LEVELS[lv], pc=b?Math.round((G.xp-a)/(b-a)*100):100; return '<div class="tbox tlv"><b>'+TX('LIVELLO','LEVEL')+' '+lv+'</b><i><u style="width:'+pc+'%"></u></i><small>'+TX('Sali di livello per sbloccare destinazioni, tecnologie e agenzie','Level up to unlock destinations, technologies and agencies')+'</small></div>'; }
 function acctChip(){ const u=window.gngUser;
   if(!u) return '<button class="tacct tin" data-act="tlogin"><span class="tav">?</span><span><small>'+TX('OSPITE','GUEST')+'</small><b>'+TX('Accedi','Sign in')+'</b></span></button>';
-  return '<div class="tacct"><span class="tav">'+esc(String(u.username).trim().charAt(0).toUpperCase())+'</span><span><small>ACCOUNT</small><b>'+esc(u.username)+'</b></span><button class="tout'+(TTL.out?' on':'')+'" data-act="tlogout">'+(TTL.out?TX('CONFERMA?','CONFIRM?'):TX('ESCI','SIGN OUT'))+'</button></div>'; }
+  return '<div class="tacct"><span class="tav">'+esc(String(u.username).trim().charAt(0).toUpperCase())+'</span><span><small>ACCOUNT</small><b>'+esc(u.username)+'</b></span><button class="tout" data-act="tlogout">'+TX('ESCI','SIGN OUT')+'</button></div>'; }
 function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
   const bg='<div class="ttl-bg">'+artSVG('title')+'</div><div class="ttl-grid"></div>';
   const foot=(back,go,goT,goDis)=>'<div class="tfoot">'+(back?'<button class="tkey" data-act="tback"><span class="kc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></span>'+TX('INDIETRO','BACK')+'</button>':'')+(go?'<button class="tkey'+(goDis?' dis':'')+'" data-act="'+go+'"'+(goDis?' disabled':'')+'><span class="kc">'+(go==='tstart'?'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 5.5v13l10.5-6.5z"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>')+'</span>'+goT+'</button>':'')+'</div>';
   let h='';
   if(s==='main'||s==='pause'){ const music=G.music!==false;
-    const items=(s==='pause'?[['tresume',TX('RIPRENDI','RESUME')],['ttl:settings',TX('IMPOSTAZIONI','SETTINGS')],['trank',TX('CLASSIFICA','LEADERBOARD')],['troad','ROADMAP'],['tarch',TX('ARCHIVIO MISSIONI','MISSION ARCHIVE')],['ttl:main',TX('MENU PRINCIPALE','MAIN MENU')]].concat(window.gngUser?[['tlogout',TTL.out?TX('CONFERMA USCITA?','CONFIRM SIGN OUT?'):TX('ESCI DALL’ACCOUNT','SIGN OUT')]]:[]):
+    const items=(s==='pause'?[['tresume',TX('RIPRENDI','RESUME')],['ttl:settings',TX('IMPOSTAZIONI','SETTINGS')],['trank',TX('CLASSIFICA','LEADERBOARD')],['troad','ROADMAP'],['tarch',TX('ARCHIVIO MISSIONI','MISSION ARCHIVE')],['ttl:main',TX('MENU PRINCIPALE','MAIN MENU')]].concat(window.gngUser?[['tlogout',TX('ESCI DALL’ACCOUNT','SIGN OUT')]]:[]):
       [hasSave()?['tresume',TX('CONTINUA','CONTINUE')]:null,['ttl:modes','NEW GAME'],['ttl:settings',TX('IMPOSTAZIONI','SETTINGS')],['ttl:credits',TX('CREDITI','CREDITS')],['ttl:quit',TX('ESCI','QUIT GAME')]]).filter(Boolean);
     h='<div class="tmain"><div class="tleft"><div class="tlogo">'+logoSVG()+'<b>GO<br>NO-GO</b></div><nav class="tmenu">'+items.map(x=>{ const [a,v]=x[0].split(':'); return '<button data-act="'+a+'"'+(v?' data-s="'+v+'"':'')+'>'+x[1]+(x[2]?'<i class="tdia">!</i>':'')+'</button>'; }).join('')+'</nav><small class="tver">NASA Space Apps 2026</small></div>'+
       '<div class="tright">'+acctChip()+'<button class="tnow" data-act="tmusic"><span><small>'+TX('IN RIPRODUZIONE','NOW PLAYING')+'</small>'+(music?'Go No-Go · '+TX('tema principale','main theme'):TX('Musica spenta','Music off'))+'</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l12-2v11.5a3 3 0 1 1-2-2.8V6.3L9 7.8z"/></svg></button>'+lvlBox()+'</div></div>';
@@ -7197,8 +7197,8 @@ function setupMode(m,dd){ G.tutDone=true; delete G.after;
   else { WDIFF=dd||'normale'; G.diff=WDIFF; G.money=Math.round(L.START_MONEY*dif().money); applyStartPerks(); } }
 function applyStartPerks(){ const c=crewOf(G.avatar); if(c.k==='money') G.money+=c.v; if(c.k==='staff') G.staff+=c.v; }
 Object.assign(ACT,{
-  ttl(t){ if(t.dataset.s==='modes'&&!gate(()=>ACT.ttl(t))) return; TTL.del=false; TTL.out=false; if(t.dataset.s==='modes2') TTL.s='modes'; openTitle(t.dataset.s==='modes2'?'modes':t.dataset.s, TTL.from); sfx.tap(); },
-  tback(){ sfx.tap(); TTL.del=false; TTL.out=false; if(TTL.s==='crew') return openTitle('modes',TTL.from); openTitle(TTL.from==='game'?'pause':'main',TTL.from); },
+  ttl(t){ if(t.dataset.s==='modes'&&!gate(()=>ACT.ttl(t))) return; TTL.del=false; if(t.dataset.s==='modes2') TTL.s='modes'; openTitle(t.dataset.s==='modes2'?'modes':t.dataset.s, TTL.from); sfx.tap(); },
+  tback(){ sfx.tap(); TTL.del=false; if(TTL.s==='crew') return openTitle('modes',TTL.from); openTitle(TTL.from==='game'?'pause':'main',TTL.from); },
   tresume(){ if(TTL.from!=='game'&&!gate(()=>ACT.tresume())) return; sfx.ok(); closeTitle(); render(); },
   ttut(){ TTL.mode='tut'; TTL.crew=G.avatar||TTL.crew; openTitle('crew',TTL.from); sfx.tap(); },
   tmode(t){ TTL.mode=t.dataset.k; sfx.tap(); drawTitle(); },
@@ -7206,8 +7206,8 @@ Object.assign(ACT,{
   tnext(){ if(!MODES.find(m=>m.k===TTL.mode)) TTL.mode='career'; sfx.ok(); openTitle('crew',TTL.from); },
   tcrew(t){ const co=$('#tco')?$('#tco').value:null; TTL.crew=t.dataset.k; sfx.tap(); drawTitle(); if(co!=null&&$('#tco')) $('#tco').value=co; },
   tstart(){ beginGame(); },
-  tlogin(){ sfx.tap(); if(window.gngRequireAccount) window.gngRequireAccount().then(u=>{ if(u) drawTitle(); }); },
-  tlogout(){ if(!TTL.out){ TTL.out=true; sfx.bad(); return drawTitle(); } TTL.out=false; sfx.tap(); if(window.gngLogout) window.gngLogout().catch(e=>toast(e.message)); },
+  tlogin(){ sfx.tap(); if(window.gngRequireAccount) window.gngRequireAccount({signInOnly:true}); }, /* il ridisegno lo fa l'evento gng:user */
+  tlogout(){ sfx.tap(); if(window.gngLogout) window.gngLogout().catch(e=>toast(e.message)); },
   tmusic(){ ACT.music(); drawTitle(); },
   tlang(){ ACT.lang(); },
   ttsize(){ ACT.tsize(); drawTitle(); },
