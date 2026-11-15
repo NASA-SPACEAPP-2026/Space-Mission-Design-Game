@@ -35,6 +35,8 @@ html = html.replace(/(['"(])\/fonts\/([\w.-]+\.woff2)(['")])/g, (m, a, name, b) 
 const svg = await readFile(resolve(dist, "favicon.svg"));
 html = html.replace(/<link rel="icon" href="\/favicon\.svg[^"]*"[^>]*>/, () => `<link rel="icon" href="data:image/svg+xml;base64,${svg.toString("base64")}" type="image/svg+xml">`).replace(/<link rel="(?:alternate icon|apple-touch-icon|icon)" href="\/(?:favicon\.ico|favicon-32x32\.png|apple-touch-icon\.png)[^"]*"[^>]*>\s*/g, "");
 
+html = html.replace(/<link rel="manifest" href="\/manifest\.webmanifest">/, "");
+
 await mkdir(dirname(outFile), { recursive: true });
 await writeFile(outFile, html);
 if (bundle) { await mkdir(resolve(bundle, "audio"), { recursive: true }); await copyFile(resolve(root, "public/audio/theme.mp3"), resolve(bundle, "audio/theme.mp3")); }
