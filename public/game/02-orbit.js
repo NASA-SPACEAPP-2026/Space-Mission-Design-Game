@@ -25,12 +25,12 @@ const O = (function () {
   // Zone di destinazione per ogni corpo: orbite (fasce di quota in km), superficie (rover), lune (solo atterraggio)
   const ZONES = {
     leo: [{ k: 'low', n: 'Orbita bassa', band: [300, 1200], lvl: 1, s: 'Tra 300 e 1.200 km: osservazione, costellazioni, prove.' },
-      { k: 'med', n: 'Orbita media', band: [8000, 20000], lvl: 2, s: 'La fascia della navigazione satellitare. Ci si arriva da un rilascio in orbita di trasferimento.' },
-      { k: 'high', n: 'Orbita alta (geostazionaria)', band: [35000, 36500], iFix: [0, 5], lvl: 2, s: 'A 36.000 km il satellite sembra fermo nel cielo. Lunga strada da un rilascio in GTO.' }],
+      { k: 'med', n: 'Orbita media', band: [8000, 20000], lvl: 3, s: 'La fascia della navigazione satellitare. Ci si arriva da un rilascio in orbita di trasferimento.' },
+      { k: 'high', n: 'Orbita alta (geostazionaria)', band: [35000, 36500], iFix: [0, 5], lvl: 3, s: 'A 36.000 km il satellite sembra fermo nel cielo. Lunga strada da un rilascio in GTO.' }],
     moon: [{ k: 'low', n: 'Orbita bassa', band: [30, 300], lvl: 6, s: 'Sfiorando la superficie: mappe e misure di dettaglio.' },
-      { k: 'med', n: 'Orbita media', band: [300, 3000], lvl: 5, s: 'Il compromesso di AURASAT: vicino e lontano dalla superficie.' },
-      { k: 'high', n: 'Orbita alta', band: [3000, 10000], lvl: 5, s: 'Lontano dalla Luna: ottima per ponti radio e telescopi.' },
-      { k: 'surf', n: 'Superficie · su un lander', surf: 1, lvl: 7, s: 'Compri un posto su un lander commerciale: il tuo CubeSat diventa uno strumento sul suolo lunare.' }],
+      { k: 'med', n: 'Orbita media', band: [300, 3000], lvl: 6, s: 'Il compromesso di AURASAT: vicino e lontano dalla superficie.' },
+      { k: 'high', n: 'Orbita alta', band: [3000, 10000], lvl: 6, s: 'Lontano dalla Luna: ottima per ponti radio e telescopi.' },
+      { k: 'surf', n: 'Superficie · su un lander', surf: 1, lvl: 8, s: 'Compri un posto su un lander commerciale: il tuo CubeSat diventa uno strumento sul suolo lunare.' }],
     mars: [{ k: 'low', n: 'Orbita bassa', band: [200, 800], lvl: 11, s: 'Per guardare la superficie da vicino.' },
       { k: 'med', n: 'Orbita media', band: [800, 6000], lvl: 10, s: 'Vista ampia del pianeta e della sua atmosfera.' },
       { k: 'high', n: 'Orbita alta', band: [6000, 20000], lvl: 10, s: 'Ponte radio per le missioni in superficie.' },

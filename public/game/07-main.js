@@ -4798,10 +4798,10 @@ function zoneIcon(body,z){ const col=E.DEST[body].col, id='zi'+body+(z.k||'')+Ma
    dv = delta-v dalla LEO in m/s, c = costo base in crediti, lvl = livello richiesto, types = tipi di missione consentiti (chiavi O.TYPES), play = 1 se gia' volabile nel gioco.
    Mercurio, Giove, Saturno, Urano, Nettuno e Sole NON hanno ancora zone/lanciatori/DRM: si vedono e si scelgono (anteprima), ma la missione non si crea. */
 const BODIES={
-  leo:{n:'Terra',col:'#3E7BD6',d:0,days:0,dv:0,c:90,lvl:1,types:['sci','obs','tel','com','deb','demo'],play:1},
-  moon:{n:'Luna',col:'#C9CED6',d:0.38,days:4,dv:300,c:1200,lvl:5,types:['sci','obs','tel','com','deb','demo'],play:1},
-  venus:{n:'Venere',col:'#E2C27A',d:41,days:150,dv:700,c:3000,lvl:15,types:['sci','obs','demo'],play:1},
-  mars:{n:'Marte',col:'#C8603A',d:78,days:210,dv:650,c:3000,lvl:10,types:['sci','obs','tel','com','demo'],play:1}
+  leo:{n:'Terra',col:'#3E7BD6',d:0,days:0,dv:0,c:90,lvl:E.DEST.leo.lvl,types:['sci','obs','tel','com','deb','demo'],play:1},
+  moon:{n:'Luna',col:'#C9CED6',d:0.38,days:4,dv:300,c:1200,lvl:E.DEST.moon.lvl,types:['sci','obs','tel','com','deb','demo'],play:1},
+  venus:{n:'Venere',col:'#E2C27A',d:41,days:150,dv:700,c:3000,lvl:E.DEST.venus.lvl,types:['sci','obs','demo'],play:1},
+  mars:{n:'Marte',col:'#C8603A',d:78,days:210,dv:650,c:3000,lvl:E.DEST.mars.lvl,types:['sci','obs','tel','com','demo'],play:1}
 };
 /* batch 4: i sei corpi esterni derivano da E.EXT (fonte unica) e sono volabili */
 Object.keys(E.EXT).forEach(k=>{ const x=E.EXT[k]; BODIES[k]={n:x.n,col:x.col,d:x.d,days:x.days,dv:x.dv,c:x.c,lvl:x.lvl,types:x.types,ext:x.ext,play:1}; });
