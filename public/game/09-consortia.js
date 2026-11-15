@@ -114,7 +114,10 @@ window.GNGCLAN = (function () {
       too_many_members: ['Ci sono già più membri di così.', 'There are already more members than that.'],
       slow_down: ['Piano! Aspetta un attimo.', 'Easy! Wait a moment.'],
       link: ['I link non sono ammessi in chat.', 'Links are not allowed in chat.'],
-      school_mode: ['Modalità scuola: solo sticker.', 'School mode: stickers only.'],
+      school_mode: ['Modalità scuola: solo sticker e frasi pronte.', 'School mode: stickers and preset phrases only.'],
+      language: ['Linguaggio non adatto: riformula, per favore.', 'That language is not allowed: please rephrase.'],
+      self: ['Non si può fare su sé stessi.', 'You cannot do that to yourself.'],
+      message_not_found: ['Messaggio non trovato.', 'Message not found.'],
       not_found: ['Non trovato.', 'Not found.'],
       offline: ['Nessuna connessione.', 'No connection.'],
       unavailable: ['Servizio consorzi non disponibile.', 'Consortium service unavailable.'],
@@ -163,6 +166,18 @@ window.GNGCLAN = (function () {
     form: { name: '', motto: '', kind: 'open', minScience: 0, maxMembers: 20, crest: { shape: 'shield', color: COLORS[0], symbol: 'rocket' } } };
   let root = null, chatT = 0, mineT = 0, pollT = 0, searchT = 0, confirmT = 0;
   const member = () => !!(S.mine && S.mine.consortium);
+  /* Moderazione: frasi predefinite (modalita' scuola; stessi codici di PHRASES nel server), compagni silenziati
+     (solo in questo browser), segnalazioni (direttore e vice le controllano nella scheda Membri). */
+  const PHRASES_T = { nice_launch: ['Bel lancio!', 'Nice launch!'], need_solar: ['Mi serve un pannello solare', 'I need a solar panel'], go: ['GO per il lancio!', 'GO for launch!'],
+    help: ['Mi aiutate?', 'Can you help me?'], thanks: ['Grazie!', 'Thanks!'], well_done: ['Ben fatto, squadra!', 'Well done, team!'],
+    joint: ['Entro nella missione congiunta', 'I am joining the joint mission'], watch_me: ['Guardatemi giocare!', 'Watch me play!'] };
+  const MUTE_KEY = 'gng.clan.muted';
+  const muted = () => { try { return JSON.parse(localStorage.getItem(MUTE_KEY) || '[]'); } catch (e) { return []; } };
+  const isMuted = u => !!u && muted().indexOf(u) >= 0;
+  const setMuted = (u, on) => { const l = muted().filter(x => x !== u); if (on) l.push(u); try { localStorage.setItem(MUTE_KEY, JSON.stringify(l.slice(-50))); } catch (e) {} };
+  const MOD = { reported: {}, show: {}, reports: null };
+  const FLAG = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
+  async function loadReports() { if (!lead()) { MOD.reports = null; return; } const r = await api('GET', '/mine/reports'); if (r.status === 200) MOD.reports = r.data.reports || []; }
   // Livelli del consorzio: soglie come LEVELS nel server. Vantaggi: sconto sui lanci, stazione di terra condivisa (liv. 3), stemma d'oro (liv. 4), sticker.
   const LEVELS = [0, 400, 1200, 3000, 6000];
   const LAUNCH_K = [1, 0.95, 0.95, 0.9, 0.85];
@@ -237,6 +252,8 @@ window.GNGCLAN = (function () {
   }
   async function open(tab) {
     ensureRoot(); S.open = true; S.err = ''; S.confirm = ''; S.share = false; root.hidden = false; document.body.classList.add('clan-open');
+    // l'animazione d'ingresso solo all'apertura: i ridisegni (schede, azioni) non devono far lampeggiare il pannello
+    root.classList.add('opening'); setTimeout(() => root.classList.remove('opening'), 300);
     if (tab === 'challenge') { S.tab = S.noTab = 'challenge'; }
     else if (tab) { if (['chat', 'members', 'info'].includes(tab)) S.tab = tab; else S.noTab = tab; }
     draw();
@@ -269,7 +286,7 @@ window.GNGCLAN = (function () {
     if (r.status === 404) { await loadMine(); draw(); return; }
     if (r.status !== 200 || !r.data.messages.length) return;
     let pop = null;
-    r.data.messages.forEach(m => { const i = S.msgs.findIndex(x => x.id === m.id); if (i >= 0) S.msgs[i] = m; else { S.msgs.push(m); if (m.kind === 'sticker' && !m.deleted && m.author !== myName()) pop = m.sticker; } });
+    r.data.messages.forEach(m => { const i = S.msgs.findIndex(x => x.id === m.id); if (i >= 0) S.msgs[i] = m; else { S.msgs.push(m); if (m.kind === 'sticker' && !m.deleted && m.author !== myName() && !isMuted(m.author)) pop = m.sticker; } });
     if (pop) popSticker(pop);
     S.lastId = r.data.lastId; S.msgs.splice(0, Math.max(0, S.msgs.length - 120)); S.unread = 0; pushState(); drawFeed(true);
   }
@@ -285,7 +302,7 @@ window.GNGCLAN = (function () {
     const input = root.querySelector('.clsend input'); if (input) S.draft = input.value;
     const focused = document.activeElement && root.contains(document.activeElement) ? document.activeElement.dataset.f : '';
     const c = member() ? S.mine.consortium : null;
-    const tabs = !loggedIn() || S.down ? [] : c ? [['chat', T('Chat', 'Chat')], ['missions', T('Missioni', 'Missions')], ['challenge', T('Sfida', 'Challenge')], ['members', T('Membri', 'Members')], ['info', T('Info', 'Info')]] : [['search', T('Cerca', 'Search')], ['create', T('Crea', 'Create')], ['challenge', T('Classifica', 'Ranking')]];
+    const tabs = !loggedIn() || S.down ? [] : c ? [['chat', T('Chat', 'Chat')], ['missions', T('Missioni', 'Missions')], ['challenge', T('Sfida', 'Challenge')], ['members', T('Membri', 'Members') + (S.mine && S.mine.reports ? ' · ' + S.mine.reports : '')], ['info', T('Info', 'Info')]] : [['search', T('Cerca', 'Search')], ['create', T('Crea', 'Create')], ['challenge', T('Classifica', 'Ranking')]];
     const cur = c ? S.tab : S.noTab;
     root.innerHTML = '<div class="clw" role="dialog" aria-modal="true" aria-label="' + T('Consorzio', 'Consortium') + '">' +
       '<header class="clh">' + (c ? crestSVG(c.crest, 34, goldOf(c.level)) : '<span class="clico">' + crestSVG({ shape: 'shield', color: '#66777f', symbol: 'orbit' }, 34) + '</span>') +
@@ -355,12 +372,15 @@ window.GNGCLAN = (function () {
   const status = s => '<i class="cldot ' + (s === 'playing' ? 'play' : s === 'online' ? 'on' : '') + '" title="' + (s === 'playing' ? T('In missione', 'In a mission') : s === 'online' ? 'Online' : 'Offline') + '"></i>';
   function chatView() {
     const done = (host.missions() || []).slice(-6).reverse();
-    return '<div class="clchat"><section class="clfeed"><ol class="clmsgs" aria-live="polite"></ol>' +
+    const out = '<div class="clchat"><section class="clfeed"><ol class="clmsgs" aria-live="polite"></ol>' +
       (S.share ? '<div class="clshare" role="menu"><b>' + T('Condividi una missione', 'Share a mission') + '</b>' + (done.length ? done.map((m, i) => '<button role="menuitem" data-cl="sharem" data-i="' + i + '">' + SAT + esc(m.name) + ' <small>' + (m.sci | 0) + ' ◆</small></button>').join('') : '<p>' + T('Nessuna missione conclusa.', 'No finished missions.') + '</p>') + '</div>' : '') +
       '<div class="clbar"><div class="clstks" role="group" aria-label="Sticker">' + Object.keys(STICKERS).map(k => '<button type="button" data-cl="stk" data-k="' + k + '" aria-label="' + esc(T(...STICKERS[k].n)) + '" title="' + esc(T(...STICKERS[k].n)) + '"' + (Date.now() < S.coolUntil || locked(k) ? ' disabled' : '') + '>' + stickerHTML(k, 38) + lockTag(k) + '</button>').join('') + '</div>' +
+      (S.mine.consortium.schoolMode ? '<div class="clphr" role="group" aria-label="' + T('Frasi della modalità scuola', 'School mode phrases') + '">' + Object.keys(PHRASES_T).map(k => '<button type="button" class="clchip" data-cl="phrase" data-k="' + k + '">' + esc(T(...PHRASES_T[k])) + '</button>').join('') + '</div></div></section><aside class="clside" aria-label="' + T('Membri', 'Members') + '"></aside></div>' : '') +
       '<form class="clsend" data-cl-form="send"><button type="button" class="clico2" data-cl="share" aria-expanded="' + S.share + '" aria-label="' + T('Condividi una missione', 'Share a mission') + '">' + SAT + '</button>' +
       '<input data-f="msg" maxlength="300" autocomplete="off" enterkeyhint="send" placeholder="' + (S.mine.consortium.schoolMode ? T('Modalità scuola: solo sticker', 'School mode: stickers only') : T('Scrivi al consorzio…', 'Message your consortium…')) + '" aria-label="' + T('Messaggio', 'Message') + '"' + (S.mine.consortium.schoolMode ? ' disabled' : '') + '>' +
       '<button class="clbtn pri">' + T('Invia', 'Send') + '</button></form></div></section><aside class="clside" aria-label="' + T('Membri', 'Members') + '"></aside></div>';
+    // in modalita' scuola la fila delle frasi chiude la barra: il modulo di testo non si disegna
+    return S.mine.consortium.schoolMode ? out.slice(0, out.indexOf('<form class="clsend"')) : out;
   }
   /* ---------- sticker ---------- */
   let stkCss = false;
@@ -403,12 +423,15 @@ window.GNGCLAN = (function () {
     if (m.kind === 'system') return '<li class="clsys">' + esc(sysText(m.data)) + ' <time>' + timeOf(m.at) + '</time>' +
       (m.data && m.data.code === 'joint_new' && typeof m.data.id === 'string' ? ' <button class="clbtn sm" data-cl="jopen" data-id="' + esc(m.data.id) + '">' + T('Apri', 'Open') + '</button>' : '') + '</li>';
     const head = '<span class="clwho"><b class="r-' + esc(m.role || 'member') + '">' + esc(m.author || '?') + '</b>' + (m.to ? ' → ' + esc(m.to) : '') + ' <time>' + timeOf(m.at) + '</time>' +
-      (!m.deleted && (me || lead()) ? ' <button class="cldel" data-cl="del" data-id="' + m.id + '" aria-label="' + T('Elimina', 'Delete') + '">×</button>' : '') + '</span>';
+      (!m.deleted && (me || lead()) ? ' <button class="cldel" data-cl="del" data-id="' + m.id + '" aria-label="' + T('Elimina', 'Delete') + '">×</button>' : '') +
+      (!m.deleted && !me ? (MOD.reported[m.id] ? ' <span class="clrep done">' + FLAG + T('Segnalato', 'Reported') + '</span>'
+        : ' <button class="clrep' + (S.confirm === 'rep:' + m.id ? ' sure' : '') + '" data-cl="report" data-id="' + m.id + '" aria-label="' + T('Segnala', 'Report') + '" title="' + T('Segnala', 'Report') + '">' + FLAG + (S.confirm === 'rep:' + m.id ? T('Segnalare?', 'Report?') : '') + '</button>') : '') + '</span>';
+    if (!me && !m.deleted && isMuted(m.author) && !MOD.show[m.id]) return '<li class="clm muted">' + head + '<em class="clgone">' + esc(T('Hai silenziato ' + m.author + '. ', 'You muted ' + m.author + '. ')) + '<button class="clbtn sm" data-cl="unhide" data-id="' + m.id + '">' + T('Mostra', 'Show') + '</button></em></li>';
     let inner;
     if (m.deleted) inner = '<em class="clgone">' + T('Messaggio eliminato', 'Message deleted') + '</em>';
     else if (m.kind === 'sticker') inner = stickerHTML(m.sticker, 84);
     else if (m.kind === 'mission') { const d = m.data || {}; inner = '<span class="clmis"><b>' + SAT + esc(d.name) + '</b><small>' + [d.dest, d.months != null ? d.months + T(' mesi', ' months') : '', d.sci != null ? d.sci + ' ◆' : ''].filter(Boolean).map(esc).join(' · ') + '</small>' + (d.ok != null ? '<em class="' + (d.ok ? 'ok' : 'ko') + '">' + (d.ok ? T('Riuscita', 'Success') : T('Non riuscita', 'Failed')) + '</em>' : '') + '</span>'; }
-    else inner = '<span class="cltxt">' + esc(m.text) + '</span>';
+    else inner = '<span class="cltxt">' + esc(m.phrase && PHRASES_T[m.phrase] ? T(...PHRASES_T[m.phrase]) : m.text) + '</span>';
     return '<li class="clm' + (me ? ' me' : '') + '">' + head + inner + '</li>';
   }
   function drawFeed(stick) {
@@ -429,19 +452,27 @@ window.GNGCLAN = (function () {
   function memberActions(m) {
     if (m.username === myName()) return '';
     const R = rank(myRole()), Tg = rank(m.role), out = [];
-    const btn = (act, label, danger) => { const key = act + ':' + m.username, sure = S.confirm === key; return '<button class="clbtn sm' + (danger ? ' bad' : '') + (sure ? ' sure' : '') + '" data-cl="member" data-act="' + act + '" data-u="' + esc(m.username) + '">' + (sure ? T('Confermi?', 'Confirm?') : label) + '</button>'; };
+    const btn = (act, label, danger) => { const key = act + ':' + m.username, sure = S.confirm === key; return '<button class="clbtn sm' + (danger ? ' bad' : '') + (sure ? ' sure' : '') + '" data-cl="member" data-op="' + act + '" data-u="' + esc(m.username) + '">' + (sure ? T('Confermi?', 'Confirm?') : label) + '</button>'; };
     if (Tg + 1 < 3 && R > Tg + 1) out.push(btn('promote', T('Promuovi', 'Promote')));
     if (Tg > 0 && R > Tg) out.push(btn('demote', T('Retrocedi', 'Demote')));
     if (R >= 2 && R > Tg) out.push(btn('kick', T('Espelli', 'Remove'), true));
     if (myRole() === 'director') out.push(btn('transfer', T('Passa la direzione', 'Hand over'), true));
     return out.length ? '<div class="clacts">' + out.join('') + '</div>' : '';
   }
+  function reportsView() {
+    if (!lead() || !MOD.reports || !MOD.reports.length) return '';
+    const why = { rude: T('offensivo', 'offensive'), spam: 'spam', other: T('altro', 'other') };
+    return '<h3>' + FLAG + ' ' + T('Segnalazioni da controllare', 'Reports to review') + '</h3>' + MOD.reports.map(r => '<article class="clreq clrepv"><b>' + esc(r.author || '?') + '</b>' +
+      '<small>' + (r.kind === 'text' ? '«' + esc(r.text) + '»' : r.kind === 'sticker' ? 'sticker' : T('scheda missione', 'mission card')) + ' · ' + r.reports + ' ' + T('segnalazioni', 'reports') + ' (' + (r.reasons || []).map(x => why[x] || x).join(', ') + ')' + (r.hidden ? ' · ' + T('nascosto', 'hidden') : '') + '</small>' +
+      '<div class="clacts"><button class="clbtn sm bad" data-cl="review" data-op="delete" data-id="' + r.id + '">' + T('Elimina', 'Delete') + '</button><button class="clbtn sm" data-cl="review" data-op="dismiss" data-id="' + r.id + '">' + T('Va bene così', 'It is fine') + '</button></div></article>').join('');
+  }
+  const muteBtn = m => m.username === myName() ? '' : '<button class="clbtn sm" data-cl="mute" data-u="' + esc(m.username) + '">' + (isMuted(m.username) ? T('Riattiva', 'Unmute') : T('Silenzia', 'Mute')) + '</button>';
   function membersView() {
     const reqs = lead() ? S.mine.requests || [] : [];
-    return '<div class="clmembers">' + (reqs.length ? '<h3>' + T('Richieste di ingresso', 'Join requests') + '</h3>' + reqs.map(r => '<article class="clreq"><b>' + esc(r.username) + '</b><small>' + r.science + ' ◆' + (r.message ? ' · «' + esc(r.message) + '»' : '') + '</small>' +
+    return '<div class="clmembers">' + reportsView() + (reqs.length ? '<h3>' + T('Richieste di ingresso', 'Join requests') + '</h3>' + reqs.map(r => '<article class="clreq"><b>' + esc(r.username) + '</b><small>' + r.science + ' ◆' + (r.message ? ' · «' + esc(r.message) + '»' : '') + '</small>' +
       '<div class="clacts"><button class="clbtn sm pri" data-cl="req" data-id="' + r.id + '" data-ok="1">' + T('Accetta', 'Accept') + '</button><button class="clbtn sm" data-cl="req" data-id="' + r.id + '" data-ok="0">' + T('Rifiuta', 'Reject') + '</button></div></article>').join('') : '') +
       '<h3>' + T('Membri', 'Members') + ' · ' + S.mine.members.length + '/' + S.mine.consortium.maxMembers + '</h3>' +
-      S.mine.members.map(m => '<article class="clmem">' + status(m.status) + '<div><b class="r-' + esc(m.role) + '">' + esc(m.username) + (m.username === myName() ? ' <small>(' + T('tu', 'you') + ')</small>' : '') + '</b><small>' + roleName(m.role) + ' · ' + m.science + ' ◆</small></div>' + watchBtn(m) + memberActions(m) + '</article>').join('') + '</div>';
+      S.mine.members.map(m => '<article class="clmem">' + status(m.status) + '<div><b class="r-' + esc(m.role) + '">' + esc(m.username) + (m.username === myName() ? ' <small>(' + T('tu', 'you') + ')</small>' : '') + '</b><small>' + roleName(m.role) + ' · ' + m.science + ' ◆</small></div>' + watchBtn(m) + muteBtn(m) + memberActions(m) + '</article>').join('') + '</div>';
   }
   function infoView() {
     const c = S.mine.consortium, ed = lead();
@@ -476,6 +507,7 @@ window.GNGCLAN = (function () {
     if (a === 'close') return close();
     if (a === 'tab') {
       if (member()) S.tab = b.dataset.k; else S.noTab = b.dataset.k; S.err = ''; S.share = false; clearTimeout(J.t);
+      if (member() && S.tab === 'members' && lead()) { stopChat(); draw(); run(loadReports); return; }
       if (member() && S.tab === 'missions') { J.id = null; J.m = null; J.list = null; draw(); run(jList).then(jPoll); return; }
       if ((member() ? S.tab : S.noTab) === 'challenge') { stopChat(); draw(); run(loadChallenge); return; }
       draw(); if (member()) startChat(); else if (S.noTab === 'search' && !S.list) run(search); return;
@@ -508,6 +540,20 @@ window.GNGCLAN = (function () {
     }
     if (a === 'share') { S.share = !S.share; draw(); return; }
     if (a === 'watch') return watch(b.dataset.u);
+    if (a === 'report') {
+      const id = b.dataset.id; if (S.confirm !== 'rep:' + id) { arm('rep:' + id); drawFeed(); return; }
+      S.confirm = '';
+      return run(async () => { const r = await api('POST', '/mine/messages/' + id + '/report', { reason: 'rude' }); if (r.status !== 200) return fail(r);
+        MOD.reported[id] = 1; host.toast(r.data.hidden ? T('Segnalato: il messaggio è stato nascosto. Direttore e vice lo controlleranno.', 'Reported: the message is now hidden. The director and deputy will review it.') : T('Segnalato, grazie: direttore e vice lo controlleranno.', 'Reported, thanks: the director and deputy will review it.'));
+        if (r.data.hidden) { const m = S.msgs.find(x => String(x.id) === id); if (m) m.deleted = true; } });
+    }
+    if (a === 'unhide') { MOD.show[b.dataset.id] = 1; drawFeed(); return; }
+    if (a === 'mute') { const u = b.dataset.u; setMuted(u, !isMuted(u)); host.toast(isMuted(u) ? T('Hai silenziato ' + u + ': i suoi messaggi restano nascosti per te.', 'You muted ' + u + ': their messages stay hidden for you.') : T(u + ' riattivato.', u + ' unmuted.')); draw(); return; }
+    if (a === 'phrase') {
+      const k = b.dataset.k; if (!PHRASES_T[k] || Date.now() < S.coolUntil) return;
+      cooldown(); return run(async () => { const r = await api('POST', '/mine/messages', { kind: 'phrase', phrase: k }); if (r.status !== 201) fail(r); else await pollChat(); });
+    }
+    if (a === 'review') return run(async () => { const r = await api('POST', '/mine/reports/' + b.dataset.id, { action: b.dataset.op }); if (r.status !== 200) fail(r); await loadReports(); await loadMine(); });
     if (a === 'stk') {
       const code = b.dataset.k; if (!STICKERS[code] || locked(code) || Date.now() < S.coolUntil) return;
       popSticker(code); cooldown();
@@ -520,7 +566,7 @@ window.GNGCLAN = (function () {
     if (a === 'del') return run(async () => { const r = await api('DELETE', '/mine/messages/' + b.dataset.id); if (r.status !== 200) fail(r); else { const m = S.msgs.find(x => String(x.id) === b.dataset.id); if (m) { m.deleted = true; delete m.text; } } });
     if (a === 'req') return run(async () => { const r = await api('POST', '/mine/requests/' + b.dataset.id, { accept: b.dataset.ok === '1' }); if (r.status !== 200) fail(r); await loadMine(); });
     if (a === 'member') {
-      const act = b.dataset.act, key = act + ':' + b.dataset.u;
+      const act = b.dataset.op, key = act + ':' + b.dataset.u;
       if ((act === 'kick' || act === 'transfer') && S.confirm !== key) return arm(key);
       S.confirm = '';
       return run(async () => { const r = await api('POST', '/mine/members/' + encodeURIComponent(b.dataset.u), { action: act }); if (r.status !== 200) fail(r); await loadMine(); S.edit = null; });
@@ -984,6 +1030,8 @@ window.GNGCLAN = (function () {
       setTimeout(() => { const who = others[seq % others.length], st = seq % 3 === 0; c.msgs.push({ id: ++seq, author: who.username, role: who.role, at: new Date().toISOString(), kind: st ? 'sticker' : 'text', ...(st ? { sticker: Object.keys(STICKERS)[seq % 4] } : { text: lines()[seq % 4] }) }); }, 2500);
     }
     function demoLevel(c) { const l = LEVELS.reduce((a, min, i) => (c.science >= min ? i + 1 : a), 1); if (l > c.level) { c.level = l; sys(c, { code: 'level_up', level: l }); } }
+    // filtro del linguaggio per la demo: stessa idea del server (backend/consortia.mjs, rude), in breve
+    const demoRude = t => /(^|[^a-z])(c+a+z+z+|s+t+r+o+n+z+|m+e+r+d+[ae]|f+u+c+k+|s+h+i+t+|b+i+t+c+h+|v+a+f+a+n+c+u+l+)/.test(String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[0134@]/g, ch => ({ 0: 'o', 1: 'i', 3: 'e', 4: 'a', '@': 'a' })[ch]));
     // La sfida della settimana nella demo: stesso calendario del server (lunedi' UTC), obiettivi d'esempio.
     const DEMO_GOALS = [
       { id: 'moon-budget', dest: 'moon', maxCost: 1800, it: 'Una missione riuscita sulla Luna che costa meno di 1800 crediti', en: 'A successful Moon mission costing under 1,800 credits' },
@@ -1093,6 +1141,11 @@ window.GNGCLAN = (function () {
         return R(200, { consortium: Object.assign(summary(c), { schoolMode: !!c.schoolMode }, rank(me.role) >= 2 ? { inviteCode: c.inviteCode } : {}), me: { username: me.username, role: me.role, science: me.science, spectate: me.spectate }, members: c.members.slice().sort((a, b) => rank(b.role) - rank(a.role) || b.science - a.science), requests: rank(me.role) >= 2 ? c.requests : [], unread, player: { science: db.me || 0 } });
       }
       if (!c && p.startsWith('/mine')) return R(404, { error: 'no_consortium' });
+      const rp = p.match(/^\/mine\/messages\/(\d+)\/report$/);
+      if (method === 'POST' && rp) { const m = c.msgs.find(x => x.id === +rp[1]); if (!m || m.kind === 'system') return R(404, { error: 'message_not_found' }); if (m.author === myName()) return R(400, { error: 'self' }); m.reports = (m.reports || 0) + (m.reportedByMe ? 0 : 1); m.reportedByMe = true; return R(200, { reported: true, reports: m.reports, hidden: false }); }
+      if (method === 'GET' && p === '/mine/reports') return rank(me.role) < 2 ? R(403, { error: 'forbidden' }) : R(200, { reports: c.msgs.filter(m => m.reports && !m.reviewed).map(m => ({ id: m.id, author: m.author, kind: m.kind, text: m.text, sticker: m.sticker, reports: m.reports, reasons: ['rude'], hidden: !!m.deleted })) });
+      const rv = p.match(/^\/mine\/reports\/(\d+)$/);
+      if (method === 'POST' && rv) { const m = c.msgs.find(x => x.id === +rv[1]); if (!m) return R(404, { error: 'message_not_found' }); m.reviewed = true; if (body.action === 'delete') { m.deleted = true; delete m.text; } return R(200, { reviewed: true, action: body.action }); }
       if (method === 'GET' && p === '/mine/unread') return R(200, { member: true, unread: c.msgs.filter(m => m.id > (me.read || 0) && m.author !== myName()).length });
       if (method === 'GET' && p === '/mine/messages') {
         const after = q.get('after'), list = after != null ? c.msgs.filter(m => m.id > +after).slice(0, 50) : c.msgs.slice(-50);
@@ -1101,7 +1154,8 @@ window.GNGCLAN = (function () {
       }
       if (method === 'POST' && p === '/mine/messages') {
         const m = { id: ++seq, author: myName(), role: me.role, at: new Date().toISOString(), kind: body.kind };
-        if (body.kind === 'text') { const t = String(body.text || '').trim(); if (!t || t.length > 300) return R(400, { error: 'invalid', field: 'text' }); if (/https?:\/\/|www\./i.test(t)) return R(400, { error: 'link' }); m.text = t; }
+        if (body.kind === 'text') { const t = String(body.text || '').trim(); if (!t || t.length > 300) return R(400, { error: 'invalid', field: 'text' }); if (/https?:\/\/|www\./i.test(t)) return R(400, { error: 'link' }); if (demoRude(t)) return R(400, { error: 'language' }); if (c.schoolMode) return R(403, { error: 'school_mode' }); m.text = t; }
+        else if (body.kind === 'phrase') { if (!PHRASES_T[body.phrase]) return R(400, { error: 'invalid', field: 'phrase' }); m.kind = 'text'; m.text = PHRASES_T[body.phrase][0]; m.phrase = body.phrase; }
         else if (body.kind === 'sticker') { if (!Object.prototype.hasOwnProperty.call(STICKERS, body.sticker)) return R(400, { error: 'invalid', field: 'sticker' }); if ((STICKERS[body.sticker].lvl || 1) > c.level) return R(403, { error: 'sticker_locked', level: STICKERS[body.sticker].lvl }); m.sticker = body.sticker; }
         else if (body.kind === 'mission') m.data = body.mission;
         else return R(400, { error: 'invalid', field: 'kind' });
@@ -1268,6 +1322,13 @@ body.clan-open #tbub,body.clan-open #zbtn,body.clan-open #zpanel{display:none!im
 #spect .clbtn{background:#2A2F3B;color:#F1ECE6;border:0;border-radius:8px;padding:8px 14px;font:700 13px/1.1 inherit;cursor:pointer;min-height:38px}
 #spect button:focus-visible{outline:2px solid #7FD8CC;outline-offset:2px}
 body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect #coach,body.spect #chand,body.spect #clan{display:none!important}
+#clan .clrep{background:none;border:0;color:#7A736C;cursor:pointer;padding:0 4px;display:inline-flex;align-items:center;gap:3px;font:600 11px/1 inherit;vertical-align:middle}
+#clan .clrep:hover,#clan .clrep:focus-visible{color:#FFB4AB}#clan .clrep.sure{color:#fff;background:#D2443A;border-radius:6px;padding:3px 6px}
+#clan .clrep.done{cursor:default;color:#F2B83A}
+#clan .clm.muted{opacity:.75}#clan .clm.muted .clgone{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#clan .clphr{display:flex;flex-wrap:wrap;gap:4px;padding-top:6px;flex:1;min-width:0;max-height:84px;overflow:auto}
+#clan .clphr .clchip{padding:6px 10px;font-size:12px;min-height:30px}
+#clan .clrepv{border:1px solid rgba(210,68,58,.5)}
 #clan .clstks button,#spect .clstks button{position:relative}
 .cllock{position:absolute;right:-3px;bottom:-3px;display:inline-flex;align-items:center;gap:1px;background:#15171D;color:#F2B83A;border-radius:999px;padding:1px 4px;font:700 10px/1.3 Inter,system-ui,sans-serif;font-style:normal;box-shadow:0 0 0 1px #2E3442}
 #clan .cllvl{background:#1C1F27;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
@@ -1350,7 +1411,7 @@ body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect
 #clan .cldot{width:9px;height:9px;border-radius:50%;background:#555B66;display:inline-block;align-self:center;flex:none}
 #clan .cldot.on{background:#5FD38D}#clan .cldot.play{background:#F2B83A;box-shadow:0 0 0 3px rgba(242,184,58,.25)}
 #clan .r-director{color:#F2B83A}#clan .r-vice{color:#7FD8CC}#clan .r-chief_engineer{color:#9DB8FF}
-#clan .clmem>div{flex:1;min-width:0;display:flex;flex-direction:column}
+#clan .clmem>div:not(.clacts){flex:1;min-width:0;display:flex;flex-direction:column}#clan .clmem{flex-wrap:wrap}
 #clan .clreq{flex-wrap:wrap}#clan .clreq small{flex:1}
 #clan .clacts{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
 #clan .clinfo{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
@@ -1369,7 +1430,7 @@ body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect
 .clbdg[hidden]{display:none}
 @media (max-height:420px){#clan .clbar{flex-direction:row;align-items:center;gap:6px}#clan .clbar .clsend{flex:1;min-width:0;padding-top:6px}#clan .clstks{gap:3px}#clan .clstks button{min-width:34px;min-height:38px;padding:1px}#clan .clbar .clz{--zs:30px !important}#clan .clbar .clsend input{min-width:120px}#clan .clw{height:100%;border-radius:8px}#clan .clh{padding:4px 8px}#clan .clb{padding:6px 10px}#clan .clt b{font-size:14px}#clan .clempty .clcrest{width:48px;height:48px}#clan h2{font-size:17px;margin:2px 0}#clan .cleditor .clprev .clcrest{width:56px;height:56px}#clan .clpick button{width:30px;height:30px}}
 @media (max-width:640px){#clan .clside{display:none}#clan .clt small{display:none}#clan .cltabs button{padding:7px 10px}}
-@media (prefers-reduced-motion:no-preference){#clan .clw{animation:clin .16s ease-out}@keyframes clin{from{transform:translateY(8px);opacity:0}}}
+@media (prefers-reduced-motion:no-preference){#clan.opening .clw{animation:clin .16s ease-out}@keyframes clin{from{transform:translateY(8px);opacity:0}}}
 `;
     document.head.appendChild(s);
   }

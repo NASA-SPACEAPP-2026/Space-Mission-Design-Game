@@ -105,6 +105,22 @@ describe('consortium panel module', () => {
     expect((await api('GET', '/mine/messages')).data.messages.some(m => m.data && m.data.code === 'level_up' && m.data.level === 3)).toBe(true);
   });
 
+  it('moderates the offline demo too: language, preset phrases, reports and their review', async () => {
+    const api = (await loadModule('?clan=demo'))._test.demo.call;
+    await api('POST', '', { name: 'Scuola Volta', crest: { shape: 'circle', color: '#2f6fd6', symbol: 'star' } }); // the creator is director
+    expect((await api('POST', '/mine/messages', { kind: 'text', text: 'che merda' })).data.error).toBe('language');
+    expect((await api('POST', '/mine/messages', { kind: 'text', text: 'una figata!' })).status).toBe(201);
+    expect((await api('POST', '/mine/messages', { kind: 'phrase', phrase: 'thanks' })).data.message).toMatchObject({ kind: 'text', phrase: 'thanks' });
+    await api('POST', '/demo-milano/join', {}); // already in a consortium: refused, nothing changes
+    const mine = (await api('GET', '/mine/messages')).data.messages;
+    const own = mine.find(m => m.kind === 'text');
+    expect((await api('POST', `/mine/messages/${own.id}/report`, {})).data.error).toBe('self');
+    // a message from a sample teammate
+    const c = (await api('GET', '/mine')).data;
+    expect(c.me.role).toBe('director');
+    expect((await api('GET', '/mine/reports')).data.reports).toEqual([]);
+  });
+
   it('runs the weekly challenge in the offline demo', async () => {
     const api = (await loadModule('?clan=demo'))._test.demo.call;
     const before = (await api('GET', '/challenge')).data;

@@ -368,6 +368,57 @@ describe('Consortia API', () => {
     expect((await get('Dan', '/mine')).body.consortium.level).toBe(1);
   });
 
+  it('filters bad language, offers preset phrases in school mode, and lets members report messages', async () => {
+    // Bad language is refused in chat, names, mottos and mission names, also when disguised.
+    await cool();
+    for (const text of ['che c4zz0 di missione', 'what the FUUUCK', 'porco   dio']) expect((await post('Cyd', '/mine/messages', { kind: 'text', text })).body.error).toBe('language');
+    expect((await post('Cyd', '/mine/messages', { kind: 'text', text: 'Che scazzottata tra i detriti, una figata!' })).status).toBe(201);
+    expect((await post('Eve', '', { name: 'Stronzi Spaziali', crest })).body).toEqual({ error: 'language', field: 'name' });
+    expect((await api('Bob', 'PATCH', '/mine', { motto: 'merda' })).body).toEqual({ error: 'language', field: 'motto' });
+    expect((await post('Ada', '/mine/joint', { name: 'Bitch Moon' })).body.error).toBe('language');
+
+    // School mode: no free text, but the preset phrases, stored with their code.
+    await api('Bob', 'PATCH', '/mine', { schoolMode: true });
+    await cool();
+    expect((await post('Cyd', '/mine/messages', { kind: 'text', text: 'ciao' })).body.error).toBe('school_mode');
+    expect((await post('Cyd', '/mine/messages', { kind: 'phrase', phrase: 'nice_launch' })).body.message).toMatchObject({ kind: 'text', text: 'Bel lancio!', phrase: 'nice_launch' });
+    expect((await post('Cyd', '/mine/messages', { kind: 'phrase', phrase: 'insult' })).body.field).toBe('phrase');
+    await api('Bob', 'PATCH', '/mine', { schoolMode: false });
+
+    // Reports: not your own message, not system messages, once per member; three hide the message at once.
+    const id = (await get('Bob', '/mine')).body.consortium.id;
+    expect((await post('Fay', `/${id}/join`)).body).toEqual({ joined: true });
+    await cool();
+    const msg = (await post('Ada', '/mine/messages', { kind: 'text', text: 'Sei proprio lento' })).body.message;
+    const report = (who, mid, body = {}) => post(who, `/mine/messages/${mid}/report`, body);
+    expect((await report('Ada', msg.id)).body.error).toBe('self');
+    const sys = (await get('Bob', '/mine/messages')).body.messages.find(m => m.kind === 'system');
+    expect((await report('Bob', sys.id)).status).toBe(404);
+    expect((await report('Bob', msg.id, { reason: 'rude' })).body).toEqual({ reported: true, reports: 1, hidden: false });
+    expect((await report('Bob', msg.id, { reason: 'rude' })).body.reports).toBe(1);
+    expect((await report('Cyd', msg.id, { reason: 'mean' })).body.field).toBe('reason');
+    await report('Cyd', msg.id, { reason: 'spam' });
+    expect((await report('Fay', msg.id)).body).toEqual({ reported: true, reports: 3, hidden: true });
+    const find = async mid => (await get('Bob', `/mine/messages?after=${mid - 1}`)).body.messages[0];
+    expect((await find(msg.id)).deleted).toBe(true);
+
+    // Director and deputy review: dismiss brings the message back, delete removes it for good.
+    expect((await get('Bob', '/mine')).body.reports).toBe(1);
+    expect((await get('Cyd', '/mine')).body.reports).toBeUndefined();
+    expect((await get('Cyd', '/mine/reports')).status).toBe(403);
+    expect((await get('Bob', '/mine/reports')).body.reports).toEqual([expect.objectContaining({ id: msg.id, author: 'Ada', text: 'Sei proprio lento', reports: 3, hidden: true, reasons: expect.arrayContaining(['rude', 'spam']) })]);
+    expect((await post('Bob', `/mine/reports/${msg.id}`, { action: 'dismiss' })).body).toEqual({ reviewed: true, action: 'dismiss' });
+    expect(await find(msg.id)).toMatchObject({ text: 'Sei proprio lento' });
+    expect((await get('Bob', '/mine')).body.reports).toBe(0);
+    await cool();
+    const spam = (await post('Cyd', '/mine/messages', { kind: 'text', text: 'compra compra compra' })).body.message;
+    await report('Bob', spam.id, { reason: 'spam' });
+    expect((await post('Bob', `/mine/reports/${spam.id}`, { action: 'delete' })).body.action).toBe('delete');
+    expect((await find(spam.id)).deleted).toBe(true);
+    expect((await get('Bob', '/mine/reports')).body.reports).toEqual([]);
+    expect((await post('Fay', '/leave')).body.left).toBe(true);
+  });
+
   it('hands over leadership when the director leaves or is inactive, and disbands when empty', async () => {
     expect((await post('Bob', '/leave')).body).toEqual({ left: true, disbanded: false });
     expect((await get('Ada', '/mine')).body.me.role).toBe('director');
