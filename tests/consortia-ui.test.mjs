@@ -85,6 +85,22 @@ describe('consortium panel module', () => {
     expect(counters.every(o => o.v !== 'BASE-CAM')).toBe(true);
   });
 
+  it('runs the weekly challenge in the offline demo', async () => {
+    const api = (await loadModule('?clan=demo'))._test.demo.call;
+    const before = (await api('GET', '/challenge')).data;
+    expect(before.mine).toBeNull();
+    expect(before.ranking.map(r => r.name)).toEqual(['Kuiper Crew', 'Orbita Milano']);
+    expect(Date.parse(before.endsAt) - Date.parse(before.week + 'T00:00:00Z')).toBe(7 * 86400000);
+    await api('POST', '/demo-milano/join', {});
+    const g = before.goal, facts = { ok: true, dest: g.dest || 'leo', type: g.type || 'sci', cost: g.maxCost ? g.maxCost - 1 : 100, months: g.minMonths || 12 };
+    expect((await api('POST', '/science', { mission: 'x1', points: 50, facts: { ...facts, ok: false } })).data.challenge).toBeUndefined();
+    expect((await api('POST', '/science', { mission: 'x2', points: 80, facts })).data.challenge).toMatchObject({ matched: true, points: 80 });
+    const after = (await api('GET', '/challenge')).data;
+    expect(after.ranking.map(r => [r.name, r.points])).toEqual([['Orbita Milano', 220], ['Kuiper Crew', 210]]);
+    expect(after.mine.week).toEqual({ points: 220, rank: 1 });
+    expect(after.allTime.find(r => r.name === 'Kuiper Crew').trophies).toBe(2);
+  });
+
   it('runs a joint mission in the offline demo with the same rules as the server', async () => {
     const api = (await loadModule('?clan=demo'))._test.demo.call;
     await api('POST', '/demo-milano/join', {});

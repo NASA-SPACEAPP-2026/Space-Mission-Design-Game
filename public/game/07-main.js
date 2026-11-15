@@ -4762,7 +4762,7 @@ let TVS=0; function tick(){ if(!G||SPECT) return; clock(); let dirty=false;
   winRefresh(); if(Math.random()<.1) save(); }
 function finish(M,fl){ if(M.phase==='done') return; const x=L.closeOut(M,fl,hasB('visit'));
   M.joy=x.joy; gainXP(x.ok?L.XP.win:L.XP.lose); M.result=Object.assign({},x,{joy:undefined}); M.phase='done'; M.got=(M.got||0)+x.inst;
-  addMoney(x.net); if(!M.tut){ const l0=leagueOf(G.sciTotal||0); G.sciTotal=(G.sciTotal||0)+Math.max(0,Math.round((x.sci|0)*perk('sci'))); const l1=leagueOf(G.sciTotal); pushRank(); if(!G.sandbox&&window.GNGCLAN) GNGCLAN.science(M.id,Math.round((x.sci|0)*perk('sci')),M.name); if(l1>l0) setTimeout(()=>leagueUp(l1),2600); hud(); } if(M===cur()) setTimeout(()=>mcrReview(M),300); else toast(M.name+': missione '+(x.ok?'riuscita':'chiusa')+'. Bilancio '+keur(x.net)+'.'); }
+  addMoney(x.net); if(!M.tut){ const l0=leagueOf(G.sciTotal||0); G.sciTotal=(G.sciTotal||0)+Math.max(0,Math.round((x.sci|0)*perk('sci'))); const l1=leagueOf(G.sciTotal); pushRank(); if(!G.sandbox&&window.GNGCLAN){ /* i dati della missione servono alla sfida della settimana del consorzio */ let cost=0; try{ cost=Math.max(0,Math.round(E.budget(M.sat).cost||0)); }catch(e){} GNGCLAN.science(M.id,Math.round((x.sci|0)*perk('sci')),M.name,{ok:!!x.ok,dest:String((M.sat&&M.sat.dest)||'leo'),type:String(M.type||'sci'),cost,months:Math.max(0,Math.min(600,x.months|0))}); } if(l1>l0) setTimeout(()=>leagueUp(l1),2600); hud(); } if(M===cur()) setTimeout(()=>mcrReview(M),300); else toast(M.name+': missione '+(x.ok?'riuscita':'chiusa')+'. Bilancio '+keur(x.net)+'.'); }
 // La revisione di chiusura: i conti, le cause di ogni evento, e il "e se..."
 let MCRM=null, WIO=[];
 function causeOf(M,l){ const c=l.c||''; if(!c) return '';
@@ -4796,6 +4796,8 @@ function mcrReview(M){ const r=M.result; if(!r) return; const X=mcrParts(M), fl=
 /* ---------- azioni ---------- */
 const ACT={
   enter(t){ $('#pop').hidden=true; if(t.dataset.k==='pad'&&!G.pad){ padModal(); return; } if(t.dataset.k==='fd'&&lwPending(cur())){ sfx.tap(); lwOpen(cur()); toast(TX('Prima scegli la finestra di lancio.','First choose the launch window.')); return; } sfx.tap(); go(t.dataset.k); }, home(){ go('hub'); },
+  /* dalla classifica dei giocatori: la classifica dei consorzi (sfida della settimana e di sempre) */
+  clanrank(){ ACT.closeov(); sfx.tap(); if(window.GNGCLAN) GNGCLAN.open('challenge'); },
   clan(){ $('#pop').hidden=true; sfx.tap(); if(window.GNGCLAN) GNGCLAN.open(); },
   switch(){ if(!G.missions.length){ newMission(); return; } switcher(); },
   setcur(t){ G.cur=+t.dataset.i; $('#pop').hidden=true; $('#drawer').hidden=true; sfx.tap(); render(); },
@@ -5148,7 +5150,7 @@ function rankModal(){ const me=G.sciTotal|0, li=leagueOf(me), nx=LEAGUES[li+1], 
     '<div class="rkhead">'+badge(li).replace('<svg ','<svg style="width:52px;height:52px" ')+'<div><h3>'+TX('Scopo del gioco','Goal of the game')+' · Science ranking</h3><b class="rkpts">'+me+' '+TX('punti scienza','science points')+'</b><div class="fine"><span>Lega '+LEAGUES[li][1]+'</span> · <span>'+(nx?TX('mancano '+(nx[0]-me)+' punti per la Lega '+nx[1],(nx[0]-me)+' points to the '+I18N.tr('Lega '+nx[1])):TX('lega massima','top league'))+'</span></div>'+(nx?'<div class="mbar"><i style="width:'+Math.round((me-LEAGUES[li][0])/(nx[0]-LEAGUES[li][0])*100)+'%"></i></div>':'')+'</div>'+
     '<div class="rkworld"><h3>'+TX('Classifica mondiale','World ranking')+(mine>=0?' · '+TX('sei '+(mine+1)+'°','you are #'+(mine+1)):'')+'</h3><div class="ladder">'+list+'</div></div></div>'+
     '<div class="lgrail" id="lgrail">'+cards+'</div>'+
-    '<div class="row rvfoot"><button class="btn primary" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; { const c=el.querySelector('.lgc.on'); if(c) c.scrollIntoView({inline:'center',block:'nearest'}); } rankModal.open=true; }
+    '<div class="row rvfoot">'+(window.GNGCLAN?'<button class="btn" data-act="clanrank">'+TX('Classifica dei consorzi','Consortium ranking')+'</button>':'')+'<button class="btn primary" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; { const c=el.querySelector('.lgc.on'); if(c) c.scrollIntoView({inline:'center',block:'nearest'}); } rankModal.open=true; }
 function pushRank(){ if(!db||!shared||!MYID||G.tut||G.sandbox||!(G.sciTotal>0)) return; db.collection('agencies').doc(MYID).set({co:String(G.co||'Agenzia').slice(0,28),sci:G.sciTotal|0,lg:leagueOf(G.sciTotal),ts:Date.now()}).catch(()=>{}); }
 function leagueUp(i){ sfx.stamp(); review({eb:'Nuova lega',name:'Lega '+LEAGUES[i][1],code:'—',nasa:'Promotion',body:'<div class="row" style="gap:14px;align-items:center">'+badge(i).replace('<svg ','<svg style="width:72px;height:72px" ')+'<p>La tua agenzia ha raggiunto <b>'+LEAGUES[i][0]+' punti scienza</b> ed entra nella <b>Lega '+LEAGUES[i][1]+'</b>.</p></div>',actions:'<button class="btn primary" data-act="rank">Vedi la classifica</button><button class="btn" data-act="closeov">Continua</button>'}); }
 /* ---------- tutorial: prima missione guidata, tutto fissato ---------- */

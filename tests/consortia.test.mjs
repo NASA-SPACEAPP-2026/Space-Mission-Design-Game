@@ -11,6 +11,7 @@ const crest = { shape: 'shield', color: '#3F8E8A', symbol: 'rocket' };
 
 describe('Consortia API', () => {
   let pg, db, server, base;
+  let clock = new Date('2026-11-16T10:00:00Z'); // a Monday: the weekly challenge reads this clock
   const cookies = {};
   async function api(who, method, path, body, { origin = ORIGIN, type = 'application/json' } = {}) {
     const response = await fetch(`${base}/api/consortia${path}`, { method,
@@ -33,7 +34,7 @@ describe('Consortia API', () => {
       query: (sql, args) => run(() => pg.query(sql, args)),
       tx: fn => run(() => pg.transaction(t => fn({ query: (sql, args) => t.query(sql, args) })))
     };
-    server = createStaticServer({ auth: createAuth({ db, origin: ORIGIN, secure: true }), consortia: createConsortia({ db, origin: ORIGIN }) });
+    server = createStaticServer({ auth: createAuth({ db, origin: ORIGIN, secure: true }), consortia: createConsortia({ db, origin: ORIGIN, now: () => clock }) });
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     base = `http://127.0.0.1:${server.address().port}`;
     for (const name of ['Ada', 'Bob', 'Cyd', 'Dan', 'Eve', 'Fay']) {
@@ -317,6 +318,39 @@ describe('Consortia API', () => {
     expect((await get('Bob', '/live/Ada')).body.error).toBe('not_live');
   });
 
+  it('runs the weekly challenge: goal, points for missions that meet it, rankings, and the podium when the week closes', async () => {
+    const c = (await get('Ada', '/challenge')).body;
+    expect(c).toMatchObject({ week: '2026-11-16', endsAt: '2026-11-23T00:00:00.000Z', ranking: [], prizes: [300, 200, 100] });
+    expect(c.goal.it.length).toBeGreaterThan(10);
+    const facts = { ok: true, dest: c.goal.dest || 'leo', type: c.goal.type || 'sci', cost: c.goal.maxCost ? c.goal.maxCost - 1 : 100, months: c.goal.minMonths || 12 };
+    // A failed mission still gives its science points, but not to the challenge; bad facts are refused.
+    const failed = (await post('Ada', '/science', { mission: 'w1', points: 50, facts: { ...facts, ok: false } })).body;
+    expect(failed.counted).toBe(true);
+    expect(failed.challenge).toBeUndefined();
+    expect((await post('Ada', '/science', { mission: 'w2', points: 50, facts: { ...facts, cost: -1 } })).body.field).toBe('facts');
+    expect((await post('Ada', '/science', { mission: 'w3', points: 90, facts })).body.challenge).toMatchObject({ matched: true, points: 90, goal: c.goal.id });
+    expect((await post('Ada', '/science', { mission: 'w3', points: 90, facts })).body.challenge).toBeUndefined(); // counted once
+    expect((await post('Dan', '/science', { mission: 'd1', points: 40, facts })).body.challenge).toMatchObject({ matched: true });
+    const week = (await get('Bob', '/challenge')).body;
+    expect(week.ranking.map(r => [r.name, r.points])).toEqual([['Orbiters', 90], ['Hidden Orbit', 40]]);
+    expect(week.mine.week).toEqual({ points: 90, rank: 1 });
+    expect(week.allTime[0].name).toBe('Orbiters');
+    expect((await get('Fay', '/challenge')).body.mine).toBeNull();
+
+    // Next Monday the week closes once: trophies, bonus science and a chat message for the podium.
+    const before = (await get('Bob', '/mine')).body.consortium.science;
+    clock = new Date('2026-11-23T08:00:00Z');
+    const next = (await get('Dan', '/challenge')).body;
+    expect(next).toMatchObject({ week: '2026-11-23', ranking: [] });
+    expect(next.last).toMatchObject({ week: '2026-11-16', podium: [{ place: 1, name: 'Orbiters', bonus: 300 }, { place: 2, name: 'Hidden Orbit', bonus: 200 }] });
+    const after = (await get('Bob', '/mine')).body;
+    expect(after.consortium.science - before).toBe(300);
+    expect(after.consortium.trophies).toBe(1);
+    expect((await get('Bob', '/mine/messages')).body.messages.at(-1).data).toMatchObject({ code: 'challenge_won', place: 1, bonus: 300 });
+    await get('Ada', '/challenge');
+    expect((await get('Bob', '/mine')).body.consortium.science - before).toBe(300);
+  });
+
   it('hands over leadership when the director leaves or is inactive, and disbands when empty', async () => {
     expect((await post('Bob', '/leave')).body).toEqual({ left: true, disbanded: false });
     expect((await get('Ada', '/mine')).body.me.role).toBe('director');
@@ -334,8 +368,8 @@ describe('Consortia API', () => {
     expect((await post('Cyd', '/leave')).body).toEqual({ left: true, disbanded: true });
     expect((await get('Cyd', `/${id}`)).status).toBe(404);
     expect((await db.query('SELECT count(*)::int AS n FROM consortium_messages WHERE consortium_id=$1', [id])).rows[0].n).toBe(0);
-    // two single-player missions + the joint mission for its three players
-    expect((await db.query('SELECT count(*)::int AS n FROM science_awards')).rows[0].n).toBe(5);
+    // single-player missions (2 + 3 in the challenge test) + the joint mission for its three players
+    expect((await db.query('SELECT count(*)::int AS n FROM science_awards')).rows[0].n).toBe(8);
   });
 
   it('upgrades an existing accounts database and can run twice', async () => {

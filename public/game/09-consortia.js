@@ -85,6 +85,8 @@ window.GNGCLAN = (function () {
       case 'success': return T(u + ': ' + m + ' è riuscita', u + ': ' + m + ' succeeded');
       case 'failure': return T(u + ': ' + m + ' non è riuscita', u + ': ' + m + ' failed');
       case 'joint_new': return T(u + ' ha aperto la missione congiunta ' + m + ': prendi un ruolo!', u + ' opened the joint mission ' + m + ': take a role!');
+      case 'challenge_points': return T(u + ': ' + (m || 'una missione') + ' vale per la sfida della settimana, +' + (d.points | 0), u + ': ' + (m || 'a mission') + ' counts for the weekly challenge, +' + (d.points | 0));
+      case 'challenge_won': return T('Sfida della settimana: ' + d.place + '° posto! Trofeo e +' + (d.bonus | 0) + ' punti scienza al consorzio', 'Weekly challenge: place ' + d.place + '! A trophy and +' + (d.bonus | 0) + ' science points to the consortium');
       case 'joint_done': return T('Missione congiunta ' + m + ': GO da tutti! +' + (d.points | 0) + ' punti scienza a ' + (d.users || []).join(', '), 'Joint mission ' + m + ': GO from everyone! +' + (d.points | 0) + ' science points to ' + (d.users || []).join(', '));
       default: return '';
     }
@@ -175,12 +177,16 @@ window.GNGCLAN = (function () {
     for (const p of readPending()) {
       const r = await api('POST', '/science', p);
       if (r.status === 0 || r.status >= 500 || r.status === 429) left.push(p);
+      else if (r.status === 200 && r.data.challenge && r.data.challenge.matched) host.toast(T('Vale per la sfida della settimana! +' + r.data.challenge.points + ' punti al consorzio.', 'It counts for the weekly challenge! +' + r.data.challenge.points + ' points to your consortium.'));
     }
     writePending(left);
   }
-  function science(mission, points, name) {
+  // facts: i dati della missione (esito, destinazione, tipo, costo, mesi) per la sfida della settimana
+  function science(mission, points, name, facts) {
     if (!loggedIn() || !mission) return;
     const p = { mission: String(mission).replace(/[^A-Za-z0-9_.:-]/g, '').slice(0, 64), points: Math.max(0, Math.min(1000, Math.round(points) || 0)), name: String(name || '').slice(0, 24) };
+    if (facts && typeof facts === 'object' && /^[a-z]{2,12}$/.test(facts.dest) && /^[a-z]{2,8}$/.test(facts.type))
+      p.facts = { ok: !!facts.ok, dest: facts.dest, type: facts.type, cost: Math.max(0, Math.min(1e6, Math.round(facts.cost) || 0)), months: Math.max(0, Math.min(600, Math.round(facts.months) || 0)) };
     if (!p.mission) return;
     writePending(readPending().filter(x => x.mission !== p.mission).concat([p]));
     flushPending().then(() => { if (member()) loadMine().then(() => { if (S.open) draw(); }); });
@@ -204,11 +210,13 @@ window.GNGCLAN = (function () {
   }
   async function open(tab) {
     ensureRoot(); S.open = true; S.err = ''; S.confirm = ''; S.share = false; root.hidden = false; document.body.classList.add('clan-open');
-    if (tab) { if (['chat', 'members', 'info'].includes(tab)) S.tab = tab; else S.noTab = tab; }
+    if (tab === 'challenge') { S.tab = S.noTab = 'challenge'; }
+    else if (tab) { if (['chat', 'members', 'info'].includes(tab)) S.tab = tab; else S.noTab = tab; }
     draw();
     if (!loggedIn()) return;
     await loadMine(); await flushPending();
     if (!member() && !S.down) await search();
+    if ((member() ? S.tab : S.noTab) === 'challenge' && !S.down) await loadChallenge();
     draw(); startChat();
   }
   function close() {
@@ -250,7 +258,7 @@ window.GNGCLAN = (function () {
     const input = root.querySelector('.clsend input'); if (input) S.draft = input.value;
     const focused = document.activeElement && root.contains(document.activeElement) ? document.activeElement.dataset.f : '';
     const c = member() ? S.mine.consortium : null;
-    const tabs = !loggedIn() || S.down ? [] : c ? [['chat', T('Chat', 'Chat')], ['missions', T('Missioni', 'Missions')], ['members', T('Membri', 'Members')], ['info', T('Info', 'Info')]] : [['search', T('Cerca', 'Search')], ['create', T('Crea', 'Create')]];
+    const tabs = !loggedIn() || S.down ? [] : c ? [['chat', T('Chat', 'Chat')], ['missions', T('Missioni', 'Missions')], ['challenge', T('Sfida', 'Challenge')], ['members', T('Membri', 'Members')], ['info', T('Info', 'Info')]] : [['search', T('Cerca', 'Search')], ['create', T('Crea', 'Create')], ['challenge', T('Classifica', 'Ranking')]];
     const cur = c ? S.tab : S.noTab;
     root.innerHTML = '<div class="clw" role="dialog" aria-modal="true" aria-label="' + T('Consorzio', 'Consortium') + '">' +
       '<header class="clh">' + (c ? crestSVG(c.crest, 34) : '<span class="clico">' + crestSVG({ shape: 'shield', color: '#66777f', symbol: 'orbit' }, 34) + '</span>') +
@@ -270,10 +278,11 @@ window.GNGCLAN = (function () {
     if (S.down) return '<div class="clempty"><h2>' + T('Servizio consorzi non raggiungibile', 'Consortium service unreachable') + '</h2><p>' + T('Il server non risponde. Puoi riprovare o usare la demo con dati di esempio.', 'The server is not responding. Retry, or use the demo with sample data.') + '</p>' +
       '<div class="clrow"><button class="clbtn pri" data-cl="retry">' + T('Riprova', 'Retry') + '</button><button class="clbtn" data-cl="demo">' + T('Usa la demo', 'Use the demo') + '</button></div></div>';
     if (!S.loaded) return '<p class="clwait">' + T('Caricamento…', 'Loading…') + '</p>';
-    if (!member()) return tab === 'create' ? createView() : searchView();
+    if (!member()) return tab === 'create' ? createView() : tab === 'challenge' ? challengeView() : searchView();
     if (tab === 'members') return membersView();
     if (tab === 'info') return infoView();
     if (tab === 'missions') return jointsView();
+    if (tab === 'challenge') return challengeView();
     return chatView();
   }
   const sci = () => (S.mine && S.mine.player ? S.mine.player.science | 0 : 0);
@@ -284,7 +293,7 @@ window.GNGCLAN = (function () {
     else if (c.kind === 'invite') act = S.codeFor === c.id ? '<form class="clcode" data-cl-form="code" data-id="' + esc(c.id) + '"><input data-f="code" maxlength="8" autocomplete="off" placeholder="' + T('Codice', 'Code') + '" aria-label="' + T('Codice invito', 'Invite code') + '"><button class="clbtn pri">' + T('Entra', 'Join') + '</button></form>' : '<button class="clbtn" data-cl="code" data-id="' + esc(c.id) + '">' + T('Ho un codice', 'I have a code') + '</button>';
     else if (low) act = '<button class="clbtn" disabled>' + T('Servono ', 'Needs ') + c.minScience + ' ◆</button>';
     else act = '<button class="clbtn pri" data-cl="join" data-id="' + esc(c.id) + '">' + (c.kind === 'request' ? T('Chiedi di entrare', 'Ask to join') : T('Entra', 'Join')) + '</button>';
-    return '<article class="clcard">' + crestSVG(c.crest, 42) + '<div class="clci"><b>' + esc(c.name) + '</b><small>' + esc(c.motto || '') + '</small>' +
+    return '<article class="clcard">' + crestSVG(c.crest, 42) + '<div class="clci"><b>' + esc(c.name) + trophyTag(c.trophies) + '</b><small>' + esc(c.motto || '') + '</small>' +
       '<span class="clmeta">' + T('Liv ', 'Lv ') + c.level + ' · 👥 ' + c.members + '/' + c.maxMembers + ' · ' + c.science + ' ◆' + (c.minScience ? ' · min ' + c.minScience + ' ◆' : '') + ' · ' + kindName(c.kind) + '</span></div>' + act + '</article>';
   }
   function searchView() {
@@ -411,7 +420,7 @@ window.GNGCLAN = (function () {
     const c = S.mine.consortium, ed = lead();
     if (ed && !S.edit) S.edit = { motto: c.motto || '', kind: c.kind, minScience: c.minScience, maxMembers: c.maxMembers, schoolMode: !!c.schoolMode, crest: Object.assign({}, c.crest) };
     const sure = S.confirm === 'leave';
-    return '<div class="clinfo"><div class="clcol"><div class="clhero">' + crestSVG(c.crest, 64) + '<div><b>' + esc(c.name) + '</b><small>' + esc(c.motto || '') + '</small>' +
+    return '<div class="clinfo"><div class="clcol"><div class="clhero">' + crestSVG(c.crest, 64) + '<div><b>' + esc(c.name) + trophyTag(c.trophies) + '</b><small>' + esc(c.motto || '') + '</small>' +
       '<span class="clmeta">' + kindName(c.kind) + ' · ' + T('Livello ', 'Level ') + c.level + ' · ' + c.science + ' ◆' + (c.minScience ? ' · min ' + c.minScience + ' ◆' : '') + '</span></div></div>' +
       (ed && c.inviteCode ? '<div class="clinv"><span>' + T('Codice invito', 'Invite code') + '</span><b class="clcodev">' + esc(c.inviteCode) + '</b><button class="clbtn sm" data-cl="newcode">' + T('Nuovo codice', 'New code') + '</button></div><p class="clnote">' + T('Dallo a chi vuoi invitare: con il codice si entra sempre, anche se il consorzio è su invito.', 'Give it to the people you invite: the code always lets them in, even when the consortium is invite only.') + '</p>' : '') +
       '<label class="cltog"><input type="checkbox" data-cl-in="spectate"' + (S.mine.me.spectate !== false ? ' checked' : '') + '> ' + T('I compagni possono guardarmi mentre gioco', 'Teammates can watch me play') + '</label>' +
@@ -441,8 +450,10 @@ window.GNGCLAN = (function () {
     if (a === 'tab') {
       if (member()) S.tab = b.dataset.k; else S.noTab = b.dataset.k; S.err = ''; S.share = false; clearTimeout(J.t);
       if (member() && S.tab === 'missions') { J.id = null; J.m = null; J.list = null; draw(); run(jList).then(jPoll); return; }
+      if ((member() ? S.tab : S.noTab) === 'challenge') { stopChat(); draw(); run(loadChallenge); return; }
       draw(); if (member()) startChat(); else if (S.noTab === 'search' && !S.list) run(search); return;
     }
+    if (a === 'board') { CH.board = b.dataset.k; draw(); return; }
     if (a === 'jopen') { S.tab = 'missions'; stopChat(); J.id = b.dataset.id; J.m = null; return run(() => jLoad(J.id, true)).then(jPoll); }
     if (a === 'jback') { J.id = null; J.m = null; return run(jList).then(jPoll); }
     if (a === 'jset') { const key = b.dataset.key, value = key === 'budget' ? +b.dataset.v : b.dataset.v, req = jNeedReq(J.m.state, key, value, myName()); return jAct(Object.assign({ type: 'set', key, value }, req ? { req } : {})); }
@@ -539,6 +550,38 @@ window.GNGCLAN = (function () {
         S.edit = null; await loadMine(); host.toast(T('Impostazioni salvate.', 'Settings saved.'));
       });
     }
+  }
+
+  /* ---------- sfida della settimana e classifica dei consorzi ----------
+     L'obiettivo, i punti e i premi li decide il server (backend/consortia.mjs, CHALLENGES): qui si mostrano. */
+  const CH = { data: null, board: 'week' };
+  const CUP = '<svg class="clcup" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v3M8 21h8M9 21l1-4h4l1 4"/></svg>';
+  const trophyTag = n => n ? ' <span class="cltro" title="' + T('Trofei', 'Trophies') + '">' + CUP + n + '</span>' : '';
+  async function loadChallenge() { const r = await api('GET', '/challenge'); if (r.status === 200) CH.data = r.data; else if (down(r)) S.down = true; }
+  function timeLeft(endsAt) {
+    const ms = Date.parse(endsAt) - Date.now(); if (!(ms > 0)) return T('in chiusura', 'closing');
+    const d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5), m = Math.floor(ms % 36e5 / 6e4);
+    return d ? T(d + ' g ' + h + ' h', d + 'd ' + h + 'h') : T(h + ' h ' + m + ' min', h + 'h ' + m + 'm');
+  }
+  function goalTags(g) {
+    const typeN = g.type && typeof O !== 'undefined' && O.TYPES && O.TYPES[g.type] ? tr(O.TYPES[g.type].n) : g.type;
+    return [g.dest ? jName('dest', g.dest) : null, typeN || null, g.maxCost ? '≤ ' + g.maxCost + ' cr' : null, g.minMonths ? '≥ ' + g.minMonths + T(' mesi', ' months') : null, T('riuscita', 'successful')].filter(Boolean);
+  }
+  function challengeView() {
+    const c = CH.data; if (!c) return '<p class="clwait">' + T('Caricamento…', 'Loading…') + '</p>';
+    const g = c.goal, mine = c.mine, my = mine && mine.id, all = CH.board === 'all', list = all ? c.allTime : c.ranking;
+    const rows = list.length ? list.map((r, i) => '<li class="' + (r.id === my ? 'me' : '') + '"><b class="num">' + (i + 1) + '</b>' + crestSVG(r.crest, 26) + '<span>' + esc(r.name) + (all ? trophyTag(r.trophies) : '') + '</span><small>' + T('Liv ', 'Lv ') + r.level + '</small><b>' + r.points + ' ◆</b></li>').join('')
+      : '<li class="empty">' + (all ? T('Ancora nessun punto.', 'No points yet.') : T('Nessun punto questa settimana: sii il primo!', 'No points this week yet: be the first!')) + '</li>';
+    return '<div class="clch">' +
+      '<section class="chgoal"><small>' + T('Sfida della settimana', 'Weekly challenge') + ' · ' + T('finisce tra ', 'ends in ') + timeLeft(c.endsAt) + '</small><b>' + esc(T(g.it, g.en)) + '</b>' +
+      '<span class="chcrit">' + goalTags(g).map(x => '<i>' + esc(x) + '</i>').join('') + '</span>' +
+      '<small>' + T('Le missioni riuscite che rispettano l’obiettivo portano i loro punti scienza anche alla sfida. Premi ai primi tre: ', 'Successful missions that meet the goal also bring their science points to the challenge. Prizes for the top three: ') + c.prizes.map((p, i) => (i + 1) + '° +' + p + ' ◆').join(' · ') + '</small></section>' +
+      (mine ? '<div class="chmine"><div><small>' + T('Questa settimana', 'This week') + '</small><b>' + mine.week.points + ' ◆' + (mine.week.rank ? ' · ' + mine.week.rank + '°' : '') + '</b></div><div><small>' + T('Di sempre', 'All time') + '</small><b>' + mine.allTime.points + ' ◆ · ' + mine.allTime.rank + '°</b></div><div><small>' + T('Trofei', 'Trophies') + '</small><b>' + CUP + ' ' + (mine.trophies || []).length + '</b></div></div>'
+        : '<p class="clnote">' + T('Entra in un consorzio per partecipare alla sfida.', 'Join a consortium to take part in the challenge.') + '</p>') +
+      '<div class="clseg chboard" role="group">' + [['week', T('Questa settimana', 'This week')], ['all', T('Di sempre', 'All time')]].map(x => '<button class="' + (CH.board === x[0] ? 'on' : '') + '" data-cl="board" data-k="' + x[0] + '" aria-pressed="' + (CH.board === x[0]) + '">' + x[1] + '</button>').join('') + '</div>' +
+      '<ol class="chrank">' + rows + '</ol>' +
+      (c.last && c.last.podium && c.last.podium.length ? '<h3>' + T('Settimana scorsa', 'Last week') + '</h3><ol class="chpod">' + c.last.podium.map(p => '<li class="p' + p.place + (p.id === my ? ' me' : '') + '">' + CUP + '<b>' + p.place + '°</b><span>' + esc(p.name) + '</span><small>' + p.points + ' ◆ · +' + p.bonus + '</small></li>').join('') + '</ol>' : '') +
+      '</div>';
   }
 
   /* ---------- missione congiunta (lite) ----------
@@ -901,15 +944,27 @@ window.GNGCLAN = (function () {
       add(30, 'Giulia', 'mission', { data: { name: 'LUNA-ICE', type: 'obs', dest: L('Luna', 'Moon'), sci: 180, months: 12, ok: true } });
       add(29, null, 'system', { data: { code: 'science', user: 'Giulia', mission: 'LUNA-ICE', points: 180 } });
       add(8, 'Marco', 'sticker', { sticker: 'zorty_happy' });
+      // sfida della settimana: punti di questa settimana e trofei gia' vinti
+      Object.assign(db.consortia[0], { weekly: 140, trophies: [{ place: 2 }] }); Object.assign(db.consortia[1], { weekly: 210, trophies: [{ place: 1 }, { place: 1 }] });
     }
     const R = (status, data) => Promise.resolve({ status, data });
-    const summary = c => ({ id: c.id, name: c.name, crest: c.crest, motto: c.motto, kind: c.kind, level: c.level, science: c.science, minScience: c.minScience, maxMembers: c.maxMembers, members: c.members.length });
+    const summary = c => ({ id: c.id, name: c.name, crest: c.crest, motto: c.motto, kind: c.kind, level: c.level, science: c.science, minScience: c.minScience, maxMembers: c.maxMembers, members: c.members.length, trophies: (c.trophies || []).length });
     const mineC = () => db.consortia.find(c => c.members.some(m => m.username === myName()));
     const sys = (c, data) => c.msgs.push({ id: ++seq, kind: 'system', author: null, at: new Date().toISOString(), data });
     const lines = () => EN() ? ['Nice one! 🚀', 'Welcome aboard!', 'Who is launching next?', 'GO for launch!'] : ['Grande! 🚀', 'Benvenuto a bordo!', 'Chi lancia per primo?', 'GO per il lancio!'];
     function bot(c) {
       const others = c.members.filter(m => m.username !== myName() && m.status !== 'offline'); if (!others.length) return;
       setTimeout(() => { const who = others[seq % others.length], st = seq % 3 === 0; c.msgs.push({ id: ++seq, author: who.username, role: who.role, at: new Date().toISOString(), kind: st ? 'sticker' : 'text', ...(st ? { sticker: Object.keys(STICKERS)[seq % 4] } : { text: lines()[seq % 4] }) }); }, 2500);
+    }
+    // La sfida della settimana nella demo: stesso calendario del server (lunedi' UTC), obiettivi d'esempio.
+    const DEMO_GOALS = [
+      { id: 'moon-budget', dest: 'moon', maxCost: 1800, it: 'Una missione riuscita sulla Luna che costa meno di 1800 crediti', en: 'A successful Moon mission costing under 1,800 credits' },
+      { id: 'observe', type: 'obs', it: 'Una missione di osservazione e mappatura riuscita', en: 'A successful observation and mapping mission' },
+      { id: 'leo-cheap', dest: 'leo', maxCost: 400, it: 'Una missione riuscita in orbita terrestre con meno di 400 crediti', en: 'A successful Earth-orbit mission under 400 credits' }];
+    function demoGoal() {
+      const d = new Date(), m = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); m.setUTCDate(m.getUTCDate() - (m.getUTCDay() + 6) % 7);
+      const week = m.toISOString().slice(0, 10), prev = new Date(m.getTime() - 7 * 864e5).toISOString().slice(0, 10);
+      return { week, prev, endsAt: new Date(m.getTime() + 7 * 864e5).toISOString(), goal: DEMO_GOALS[Math.floor(m.getTime() / (7 * 864e5)) % DEMO_GOALS.length] };
     }
     // Le regole della missione congiunta, come jointReduce in backend/consortia.mjs (qui per la demo senza rete).
     function demoJoint(state, a, user, admin) {
@@ -1049,8 +1104,27 @@ window.GNGCLAN = (function () {
       }
       if (method === 'POST' && p === '/science') {
         db.awarded = db.awarded || {}; const counted = !db.awarded[body.mission]; db.awarded[body.mission] = 1;
-        if (counted) { db.me = (db.me || 0) + (body.points | 0); if (c && body.points > 0) { me.science += body.points | 0; c.science += body.points | 0; sys(c, { code: 'science', user: myName(), mission: body.name || '', points: body.points | 0 }); } }
-        return R(200, { counted, player: { science: db.me }, consortium: c ? { science: c.science } : null });
+        let challenge = null;
+        if (counted) {
+          db.me = (db.me || 0) + (body.points | 0);
+          if (c && body.points > 0) {
+            me.science += body.points | 0; c.science += body.points | 0; sys(c, { code: 'science', user: myName(), mission: body.name || '', points: body.points | 0 });
+            const g = demoGoal().goal, f = body.facts;
+            if (f && f.ok && (!g.dest || f.dest === g.dest) && (!g.type || f.type === g.type) && (g.maxCost == null || f.cost <= g.maxCost) && (g.minMonths == null || f.months >= g.minMonths)) {
+              c.weekly = (c.weekly || 0) + (body.points | 0); challenge = { matched: true, points: body.points | 0, goal: g.id };
+              sys(c, { code: 'challenge_points', user: myName(), mission: body.name || '', points: body.points | 0 });
+            }
+          }
+        }
+        return R(200, Object.assign({ counted, player: { science: db.me }, consortium: c ? { science: c.science } : null }, challenge ? { challenge } : {}));
+      }
+      if (method === 'GET' && p === '/challenge') {
+        const w = demoGoal(), row = x => ({ id: x.id, name: x.name, crest: x.crest, level: x.level });
+        const ranking = db.consortia.filter(x => x.weekly > 0).sort((a, b) => b.weekly - a.weekly).map(x => Object.assign(row(x), { points: x.weekly }));
+        const allTime = db.consortia.slice().sort((a, b) => b.science - a.science).map(x => Object.assign(row(x), { points: x.science, trophies: (x.trophies || []).length }));
+        const mine = c ? { id: c.id, week: { points: c.weekly || 0, rank: c.weekly ? ranking.findIndex(x => x.id === c.id) + 1 : null }, allTime: { points: c.science, rank: allTime.findIndex(x => x.id === c.id) + 1 }, trophies: c.trophies || [] } : null;
+        return R(200, { week: w.week, endsAt: w.endsAt, goal: w.goal, prizes: [300, 200, 100], ranking, allTime, mine,
+          last: { week: w.prev, podium: [{ place: 1, id: 'demo-kuiper', name: 'Kuiper Crew', points: 420, bonus: 300 }, { place: 2, id: 'demo-milano', name: 'Orbita Milano', points: 310, bonus: 200 }] } });
       }
       // missione congiunta: stesse regole del server (versione compatta) e compagni finti che giocano i loro ruoli
       if (p.startsWith('/mine/joint')) {
@@ -1166,6 +1240,24 @@ body.clan-open #tbub,body.clan-open #zbtn,body.clan-open #zpanel{display:none!im
 #spect .clbtn{background:#2A2F3B;color:#F1ECE6;border:0;border-radius:8px;padding:8px 14px;font:700 13px/1.1 inherit;cursor:pointer;min-height:38px}
 #spect button:focus-visible{outline:2px solid #7FD8CC;outline-offset:2px}
 body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect #coach,body.spect #chand,body.spect #clan{display:none!important}
+#clan .cltro{display:inline-flex;align-items:center;gap:2px;color:#F2B83A;font-size:12px;font-weight:700;vertical-align:1px}
+#clan .clcup{vertical-align:-2px}
+#clan .clch{display:flex;flex-direction:column;gap:10px}
+#clan .chgoal{background:linear-gradient(135deg,rgba(240,123,63,.22),rgba(127,216,204,.10));border:2px solid #F07B3F;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+#clan .chgoal>b{font-size:17px;line-height:1.25}
+#clan .chcrit{display:flex;flex-wrap:wrap;gap:4px}#clan .chcrit i{font-style:normal;font-size:12px;font-weight:700;background:#15171D;color:#7FD8CC;border-radius:999px;padding:3px 9px}
+#clan .chmine{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#clan .chmine>div{background:#1C1F27;border-radius:10px;padding:6px 10px;display:flex;flex-direction:column}#clan .chmine b{font-size:15px;color:#F2B83A}
+#clan .chboard{align-self:flex-start}
+#clan .chrank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+#clan .chrank li{display:grid;grid-template-columns:26px 26px 1fr auto auto;gap:8px;align-items:center;background:#1C1F27;border-radius:10px;padding:5px 10px}
+#clan .chrank li.me{box-shadow:inset 0 0 0 2px #7FD8CC}#clan .chrank li.empty{display:block;color:#ADA49C;text-align:center}
+#clan .chrank .num{color:#ADA49C;text-align:right}#clan .chrank span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#clan .chpod{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#clan .chpod li{background:#1C1F27;border-radius:10px;padding:6px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;color:#F2B83A}
+#clan .chpod li.p2{color:#C9CED6}#clan .chpod li.p3{color:#C2875A}#clan .chpod li.me{box-shadow:inset 0 0 0 2px #7FD8CC}
+#clan .chpod span{color:#F1ECE6;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:640px){#clan .chmine,#clan .chpod{grid-template-columns:1fr}}
 #clan .cljoint>form input{flex:1}
 #clan .jcard.myturn{box-shadow:inset 3px 0 0 #F2B83A}
 #clan .jtag{font-style:normal;font-size:12px;font-weight:700;color:#1A1210;background:#F2B83A;border-radius:999px;padding:3px 8px;white-space:nowrap}
