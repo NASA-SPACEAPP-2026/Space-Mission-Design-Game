@@ -6025,6 +6025,18 @@ const C3=(()=>{
     const g=g0.toNonIndexed(); g.computeVertexNormals(); const pa=g.attributes.position, cl=[], cg=new THREE.Color(), RK=new THREE.Color('#8F8B83'), RK2=new THREE.Color('#6C7078'), SN=new THREE.Color('#EEF2F6'), GR=new THREE.Color('#5F9741');
     for(let f=0;f<pa.count;f+=3){ const yy=(pa.getY(f)+pa.getY(f+1)+pa.getY(f+2))/3/h, v=1+(hs2(f*.37,seed)-.5)*.12; if(yy<.16) cg.copy(GR); else if(yy>.7&&h>14) cg.copy(SN); else cg.copy(RK).lerp(RK2,Math.min(1,(yy-.16)/.5)); cg.convertSRGBToLinear(); for(let k=0;k<3;k++) cl.push(cg.r*v,cg.g*v,cg.b*v); }
     g.setAttribute('color',new THREE.Float32BufferAttribute(cl,3)); const m=new THREE.Mesh(g,mat('#ffffff',{vertexColors:true,roughness:1,envMapIntensity:.25})); m.position.set(x,0,z); m.rotation.y=seed*1.3; m.receiveShadow=true; built.add(m); return m; }
+  /* colline: rilievi bassi sfaccettati con profilo a campana (non piu' calotte di sfera), bordo irregolare, verde che schiarisce verso la cima, qualche sasso */
+  function hillMesh(x,z,r,hh,seed){ const RN=6, SG=22, prof=t=>hh*Math.pow(.5+.5*Math.cos(Math.PI*Math.min(1,t)),1.2), rr=a=>1+.12*Math.sin(a*3+seed)+.06*Math.sin(a*5+seed*2.3);
+    const pt=(i,j)=>{ if(i===0) return [0,hh,0]; const t=i/RN, a=j/SG*Math.PI*2, R=r*t*rr(a)*(i<RN?1+(hs2(i*7+seed,j*3)-.5)*.1:1), y=i===RN?0:prof(t)*(1+(hs2(j+seed,i*5)-.5)*.16); return [Math.cos(a)*R,y,Math.sin(a)*R*.9]; };
+    const pos=[], tri=(a,b,c)=>{ const ux=b[0]-a[0], uz=b[2]-a[2], vx=c[0]-a[0], vz=c[2]-a[2]; if(ux*vz-uz*vx>0) pos.push(...a,...c,...b); else pos.push(...a,...b,...c); };
+    for(let j=0;j<SG;j++){ const j1=(j+1)%SG; tri(pt(0,0),pt(1,j),pt(1,j1)); for(let i=1;i<RN;i++){ tri(pt(i,j),pt(i+1,j),pt(i+1,j1)); tri(pt(i,j),pt(i+1,j1),pt(i,j1)); } }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.computeVertexNormals();
+    const cl=[], cg=new THREE.Color(), LO=new THREE.Color('#4C9631'), HI=new THREE.Color('#7DBD4C');
+    for(let f=0;f<pos.length/3;f+=3){ const yy=(pos[f*3+1]+pos[f*3+4]+pos[f*3+7])/3/hh, v=1+(hs2(f*.37,seed)-.5)*.1; cg.copy(LO).lerp(HI,Math.pow(Math.max(0,yy),.8)).convertSRGBToLinear(); for(let k=0;k<3;k++) cl.push(cg.r*v,cg.g*v,cg.b*v); }
+    g.setAttribute('color',new THREE.Float32BufferAttribute(cl,3)); const m=new THREE.Mesh(g,mat('#ffffff',{vertexColors:true,roughness:1,envMapIntensity:.25})); m.position.set(x,0,z); m.rotation.y=seed*1.7; m.castShadow=false; m.receiveShadow=true; built.add(m);
+    const nr=2+Math.floor(hs2(seed,3)*3); for(let i=0;i<nr;i++){ const a=hs2(seed,i*11)*6.283, t=.2+hs2(i*5,seed)*.45, s=.16+hs2(i,seed*2)*.16, rx=Math.cos(a)*r*t, rz=Math.sin(a)*r*t*.9, c=Math.cos(m.rotation.y), sn=Math.sin(m.rotation.y);
+      const rk=add(new THREE.IcosahedronGeometry(s,0),mat(i%2?'#9A968E':'#857F76',{roughness:1}),x+rx*c+rz*sn,prof(t)-s*.35,z-rx*sn+rz*c); rk.scale.y=.7; rk.rotation.set(i,i*2,0); }
+    return m; }
   /* arco di pietra con interno buio: 'road' = imbocco della galleria, 'cave' = grotta del fiume. F = verso in cui guarda l'apertura */
   function portalArch(X,F,kind){ const cave=kind==='cave', R=cave?2.6:1.35, tb=cave?.55:.26, cy=cave?.15:.7, g=new THREE.Group(); g.position.set(X[0],0,X[1]); g.rotation.y=Math.atan2(F[0],F[1]);
     const stone=mat(cave?'#7F7B74':'#A39F96',{roughness:1}), dark=new THREE.MeshBasicMaterial({color:0x07090C,side:THREE.DoubleSide});
@@ -6087,7 +6099,7 @@ const C3=(()=>{
     const SPd=(()=>{ const s=smoothPl(CAM.stream()), o=[]; for(let i=0;i<s.length-1;i++){ const a=s[i], b=s[i+1], n=Math.max(1,Math.ceil(hyp(b[0]-a[0],b[1]-a[1])/1.2)); for(let k=0;k<n;k++) o.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n]); } o.push(s[s.length-1]); return o; })();
     let si0=0, si1=SPd.length-1; while(si0<SPd.length-1&&rad(SPd[si0])>MRP+2.6) si0++; while(si1>0&&rad(SPd[si1])>MRP+2.6) si1--;
     const SP=SPd.slice(si0,si1+1); ribbon(SP,3.1,.008,'#7DAF4A'); ribbon(SP,2.55,.012,'#D9CBA0'); uvRibbon(SP,1.95,.03,waterMat({w:3.9})); anims.push(tt=>{ const sun=SUNC?Math.min(1,SUNC.intensity/1.7):1; for(let i=0;i<WATERS.length;i++){ WATERS[i].userData.u.uTime.value=tt; WATERS[i].userData.u.uSun.value=sun; } });
-    nat.hills.forEach(h=>{ const m=add(new THREE.SphereGeometry(1,20,12,0,Math.PI*2,0,Math.PI/2),mat('#4F9A32',{roughness:1}),h.x,0,h.y); m.scale.set(h.r,h.h/11*.55,h.r*.9); });
+    nat.hills.forEach((h,i)=>hillMesh(h.x,h.y,h.r*1.05,h.h/11*.6,i*3.7+1));
     const cw=CAM.crawler(items); if(cw){ const p=smoothPl(cw,2); ribbon(p,.75,.02,'#D9D2BC'); ribbon(p,.25,.025,'#9BB46A'); }
     const cwP=cw?smoothPl(cw,2):null, pdist=(x,z,pl)=>{ let m=1e9; for(let i=0;i<pl.length-1;i++){ const a=pl[i], b=pl[i+1], dx=b[0]-a[0], dz=b[1]-a[1], L2=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/L2)); m=Math.min(m,hyp(x-a[0]-dx*t,z-a[1]-dz*t)); } return m; };
     const ext=(p,e)=>{ const q=p.slice(), f=(A,B)=>{ const dx=A[0]-B[0], dz=A[1]-B[1], L=hyp(dx,dz)||1; return [A[0]+dx/L*e,A[1]+dz/L*e]; }; q.unshift(f(p[0],p[1])); q.push(f(p[p.length-1],p[p.length-2])); return q; };
