@@ -14,3 +14,5 @@ Le attribuzioni conservano le fonti dichiarate nel documento originale. Il mater
 | `venus.jpg` | Venere | JPL Solar System Simulator, mappe texture (`ven0mss2.jpg`, maps.jpl.nasa.gov) | JPL/Caltech (D. Seal), immagine in luce visibile Mariner 10 | 1440×720 |
 
 Data di download riportata dal documento originale: 14 novembre 2026.
+
+**Stile cartone.** I file di questa cartella sono versioni in stile cartone delle mappe qui sopra, ottenute con `scripts/toon-planets.mjs` (filtro di Kuwahara, pochi colori presi da ogni mappa, contorno sottile dove il colore cambia molto). Niente è inventato: coste, crateri, calotte e bande di nubi vengono dalle mappe originali, che restano nella cronologia di git.
