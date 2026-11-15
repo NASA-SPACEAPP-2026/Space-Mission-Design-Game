@@ -18,6 +18,13 @@ const PLANETS = {
   moon: { r: 3, k: 7, sat: 1.0, lift: .85, edge: 30 },
   mars: { r: 4, k: 9, sat: 1.45, lift: .82, edge: 34 },
   venus: { r: 5, k: 7, sat: 1.35, lift: .85, edge: 26 },
+  // w = width the map is scaled down to before filtering (the 2k Solar System Scope maps become 1024×512)
+  mercury: { r: 3, k: 7, sat: 1.1, lift: .85, edge: 30, w: 1024 },
+  jupiter: { r: 4, k: 9, sat: 1.4, lift: .85, edge: 26, w: 1024 },
+  saturn: { r: 4, k: 7, sat: 1.35, lift: .85, edge: 20, w: 1024 },
+  uranus: { r: 4, k: 5, sat: 1.3, lift: .85, edge: 14, w: 1024 },
+  neptune: { r: 4, k: 6, sat: 1.4, lift: .85, edge: 18, w: 1024 },
+  sun: { r: 4, k: 7, sat: 1.25, lift: .9, edge: 34, w: 1024 },
 };
 
 function toon(src, o) {
@@ -25,8 +32,8 @@ function toon(src, o) {
     const im = new Image();
     im.onerror = reject;
     im.onload = () => {
-      const W = im.naturalWidth, H = im.naturalHeight, c = document.createElement('canvas'); c.width = W; c.height = H;
-      const x = c.getContext('2d'); x.drawImage(im, 0, 0); const img = x.getImageData(0, 0, W, H), d = img.data, N = W * H;
+      const W = Math.min(o.w || im.naturalWidth, im.naturalWidth), H = Math.round(im.naturalHeight * W / im.naturalWidth), c = document.createElement('canvas'); c.width = W; c.height = H;
+      const x = c.getContext('2d'); x.drawImage(im, 0, 0, W, H); const img = x.getImageData(0, 0, W, H), d = img.data, N = W * H;
       // 1) Kuwahara filter with summed-area tables (R, G, B, luminance, luminance²)
       const S = [0, 1, 2, 3, 4].map(() => new Float64Array((W + 1) * (H + 1)));
       for (let y = 0; y < H; y++) for (let xx = 0; xx < W; xx++) {
@@ -83,7 +90,8 @@ try {
   const page = await browser.newPage();
   await mkdir(outDir, { recursive: true });
   for (const [name, opt] of Object.entries(PLANETS)) {
-    const src = 'data:image/jpeg;base64,' + (await readFile(join(inDir, name + '.jpg'))).toString('base64');
+    let raw; try { raw = await readFile(join(inDir, name + '.jpg')); } catch { console.log(name, 'skipped: no input map'); continue; }
+    const src = 'data:image/jpeg;base64,' + raw.toString('base64');
     const url = await page.evaluate(`(${toon.toString()})(${JSON.stringify(src)}, ${JSON.stringify(opt)})`);
     const buf = Buffer.from(url.split(',')[1], 'base64');
     await writeFile(join(outDir, name + '.jpg'), buf);

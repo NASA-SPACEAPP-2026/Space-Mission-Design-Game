@@ -1485,7 +1485,6 @@ body.spect #dock,body.spect #tbub,body.spect #zbtn,body.spect #zpanel,body.spect
 .clanpill.in{border-color:#F2B83A}
 .cljointv .jflight{border:1.5px solid #7FD8CC;border-radius:12px;padding:10px 12px}
 .cljointv .jfres.ok{color:#7FD8CC}.cljointv .jfres.ko{color:#F07B3F}
-.clanpill.coop{top:calc(100% + 40px);border-color:#F07B3F}
 .clanpill .clbdg{top:-7px;right:-7px}
 @media (max-height:420px){#clan .clzi img{width:36px}#clan .clzi p{font-size:12px;line-height:1.3}.clanpill{top:calc(100% + 4px);padding:4px 9px 4px 6px;font-size:10.5px}.clanpill svg{width:15px;height:15px}}
 .clbdg{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#D2443A;color:#fff;font:700 11px/17px Inter,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #131313}

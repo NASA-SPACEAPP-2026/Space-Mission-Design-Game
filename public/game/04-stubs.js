@@ -220,10 +220,11 @@ const FD3 = (function () {
   function ring(el, B, n) { const out = []; for (let k = 0; k < n; k++) out.push(V(O.state(el, k * 360 / n, B).r, 1 / B.R)); return out; }
   function clear() { while (world.children.length) { const c = world.children[0]; world.remove(c); c.traverse(x => { if (x.geometry) x.geometry.dispose(); }); } picks = []; }
   function show(p, s, dest) { if (!R) init(); pl = p; sel = s || 0; const B = p.B, sc = 1 / B.R; clear();
-    if (bodyKey !== dest) { bodyKey = dest; body = new T.Mesh(new T.SphereGeometry(1, 48, 32), new T.MeshStandardMaterial({ map: tex(dest), roughness: 0.95 }));
-      /* mappa NASA vera (public/tex), se si carica: sostituisce la texture disegnata dal codice */
-      const real = { leo: 'earth', moon: 'moon', mars: 'mars', venus: 'venus' }[dest], mb = body;
-      if (real && T.TextureLoader) new T.TextureLoader().load('tex/' + real + '.jpg', t => { if (T.sRGBEncoding) t.encoding = T.sRGBEncoding; mb.material.map = t; mb.material.needsUpdate = true; }); }
+    if (bodyKey !== dest) { bodyKey = dest; let mb = null;
+      /* mappa cartoon (public/tex), caricata una volta sola: se c'e' gia' si usa subito, altrimenti sostituisce la texture disegnata dal codice appena arriva */
+      const rt = realTex(dest, t => { if (mb) { mb.material.map = t; mb.material.needsUpdate = true; } });
+      /* il Sole brilla di luce propria: materiale non illuminato, niente lato in ombra */
+      body = mb = new T.Mesh(new T.SphereGeometry(1, 48, 32), dest === 'sun' ? new T.MeshBasicMaterial({ map: rt || tex(dest) }) : new T.MeshStandardMaterial({ map: rt || tex(dest), roughness: 0.95 })); }
     world.add(body); if (dest === 'leo' || dest === 'venus') { const col = dest === 'leo' ? 0x6FB4FF : 0xFFE2A0; world.add(new T.Mesh(new T.SphereGeometry(1.012, 48, 32), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.10, depthWrite: false }))); world.add(new T.Mesh(new T.SphereGeometry(1.06, 48, 32), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.22, side: T.BackSide, blending: T.AdditiveBlending, depthWrite: false }))); }
     world.add(new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(0, -1.5, 0), new T.Vector3(0, 1.5, 0)]), new T.LineBasicMaterial({ color: 0x6B7785 })));
     let maxR = 2; const th = Math.max(0.012, 0.006 * (dist / 6));
@@ -256,5 +257,10 @@ const FD3 = (function () {
       if (cb.onNu) cb.onNu(drag.k, nu); }
     if (drag.kind === 'h') { setRay(e.clientX, e.clientY); const u = drag.u, w0 = ray.ray.origin.clone(), d = ray.ray.direction, b = u.dot(d), dd = u.dot(w0), ee = d.dot(w0), den = 1 - b * b;
       const t = den > 1e-6 ? (dd - b * ee) / den : dd; const h = Math.max(30, t / sc - B.R); if (cb.onH) cb.onH(drag.k, Math.round(h / 10) * 10); } }
-  return { ok: true, mount, show, resize };
+  /* texture dei pianeti in cache: un solo download e una sola decodifica per corpo, anche cambiando vista */
+  const TEXC = {}, TEXF = { leo: 'earth', moon: 'moon', mars: 'mars', venus: 'venus', mercury: 'mercury', jupiter: 'jupiter', saturn: 'saturn', uranus: 'uranus', neptune: 'neptune', sun: 'sun' };
+  function realTex(dest, done) { const real = TEXF[dest]; if (!real || !T.TextureLoader) return null; let e = TEXC[real];
+    if (!e) { e = TEXC[real] = { ok: false, cbs: [] }; e.t = new T.TextureLoader().load('tex/' + real + '.jpg', t => { if (T.sRGBEncoding) t.encoding = T.sRGBEncoding; e.ok = true; e.cbs.splice(0).forEach(f => { try { f(t); } catch (er) {} }); }); }
+    if (e.ok) return e.t; if (done) e.cbs.push(done); return null; }
+  return { ok: true, mount, show, resize, preload: dest => { realTex(dest); } };
 })();
