@@ -31,8 +31,12 @@ describe('consortium panel module', () => {
   });
 
   it('offers exactly the stickers the server accepts, and never echoes unknown codes', async () => {
-    const { STICKERS } = await import('../backend/consortia.mjs');
-    expect(C.stickers()).toEqual(STICKERS);
+    const { STICKERS, STICKER_LEVEL, LEVELS } = await import('../backend/consortia.mjs');
+    expect([...C.stickers()].sort()).toEqual([...STICKERS].sort());
+    expect([...C.levels]).toEqual(LEVELS);
+    // the unlock level of each sticker is the same on both sides
+    const html = Object.fromEntries(C.stickers().map(k => [k, C.stickerHTML(k, 40)]));
+    expect(Object.keys(STICKER_LEVEL).every(k => html[k].includes('clz-' + k))).toBe(true);
     expect(C.stickerHTML('zorty_cry', 84)).toContain('clz-zorty_cry');
     expect(C.stickerHTML('zorty_cry', 84)).toContain('aria-label="Zorty che piange"');
     const unknown = C.stickerHTML('<img onerror=x>', 84);
@@ -83,6 +87,22 @@ describe('consortium panel module', () => {
     // Counter-offers stay within the limit.
     const counters = jCounter({ ...tight, design: { ...design, budget: 1000 }, request: { key: 'ray', value: 'BASE-CAM', kind: 'cost' } });
     expect(counters.every(o => o.v !== 'BASE-CAM')).toBe(true);
+  });
+
+  it('gives level perks and locks stickers by level, also in the demo', async () => {
+    const M = await loadModule('?clan=demo');
+    const api = M._test.demo.call;
+    expect(M.perks()).toMatchObject({ level: 0, launch: 1, ground: false, gold: false });
+    await api('POST', '/demo-milano/join', {});
+    await M._test.loadMine();
+    expect(M.perks()).toMatchObject({ level: 2, launch: 0.95, ground: false, gold: false });
+    expect((await api('POST', '/mine/messages', { kind: 'sticker', sticker: 'zorty_think' })).data).toEqual({ error: 'sticker_locked', level: 3 });
+    expect((await api('POST', '/mine/messages', { kind: 'sticker', sticker: 'zorty_cheer' })).status).toBe(201);
+    // 200 more points: 1040 → 1240, level 3 with the shared ground station
+    await api('POST', '/science', { mission: 'lv', points: 200 });
+    await M._test.loadMine();
+    expect(M.perks()).toMatchObject({ level: 3, ground: true });
+    expect((await api('GET', '/mine/messages')).data.messages.some(m => m.data && m.data.code === 'level_up' && m.data.level === 3)).toBe(true);
   });
 
   it('runs the weekly challenge in the offline demo', async () => {

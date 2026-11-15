@@ -3357,7 +3357,11 @@ const BDRAW={
 // la missione il cui razzo sta sulla rampa: lanciatore scelto, non ancora partita (prima chi è pronto)
 const padPending=()=>G.pad?G.missions.filter(m=>['B','C','D'].indexOf(m.phase)>=0&&m.sat.lv==='HOME'):[];
 function padMission(){ const p=padPending(), M=cur(); if(!p.length) return null; return p.find(m=>m.phase==='D'&&m.ready)||(p.indexOf(M)>=0?M:null)||p.find(m=>m.phase==='D')||p[0]; }
-const hasB=k=>G.plots.indexOf(k)>=0, maxStake=()=>E.MAXSTAKE+(hasB('office')?1:0);
+const hasB=k=>G.plots.indexOf(k)>=0,
+  /* vantaggi del consorzio (livello): stazione di terra condivisa e sconto sul lancio; mai nel tutorial e in modalita' libera */
+  clanPerks=()=>{ try{ return window.GNGCLAN&&!G.tut&&!G.sandbox?GNGCLAN.perks():null; }catch(e){ return null; } },
+  hasGS=()=>hasB('ground')||!!(clanPerks()||{}).ground,
+  lvPay=d=>Math.round(E.lvCost(d)*((clanPerks()||{}).launch||1)), maxStake=()=>E.MAXSTAKE+(hasB('office')?1:0);
 let CBAR=false, CPLACE=null, CDRAG=null, CSWALLOW=false, CTAB='Edifici', CSEL=null;
 /* Pannello Personalizza (rombo nel dock): null | 'campus' | 'flag'. Ogni chiusura azzera anche G.cedit. */
 let CUST=null, FLDRAFT=null;
@@ -3549,7 +3553,7 @@ function clanInit(){ if(!window.GNGCLAN) return; const en=()=>TX('it','en')==='e
     spectate:{ show:spectShow, end:spectEnd, active:()=>!!SPECT },
     /* missioni concluse da condividere in chat come scheda */
     missions:()=>G.missions.filter(m=>m.phase==='done'&&!m.tut&&m.result).map(m=>{ const dn=(E.DEST[m.sat&&m.sat.dest]||{}).n||''; return {name:String(m.name||'').slice(0,24),type:String(m.type||'sci').slice(0,16),dest:String(en()?I18N.tr(dn):dn).slice(0,24),sci:Math.max(0,m.result.sci|0),months:Math.max(0,Math.min(600,m.result.months|0)),ok:!!m.result.ok}; }),
-    onState:st=>{ const was=CLANST; CLANST=st; if(view==='hub'&&(was.member!==st.member||was.unread!==st.unread||was.name!==st.name||JSON.stringify(was.crest)!==JSON.stringify(st.crest))) C3.hall(st,cCtx().labels.council); } }); }
+    onState:st=>{ const was=CLANST; CLANST=st; if(view==='hub'&&(was.level|0)!==(st.level|0)){ C3.hall(st,cCtx().labels.council,true); render(); return; } if(view==='hub'&&(was.member!==st.member||was.unread!==st.unread||was.name!==st.name||JSON.stringify(was.crest)!==JSON.stringify(st.crest))) C3.hall(st,cCtx().labels.council); } }); }
 const clanBtn=()=>window.GNGCLAN?'<button class="rs clanb" data-act="clan" title="'+TX('Consorzio','Consortium')+'" aria-label="'+TX('Consorzio','Consortium')+'"><svg viewBox="0 0 24 24" fill="none" stroke="#7FD8CC" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.4 2.7-6 6-6s6 2.6 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.6 14.1c3 .3 5.4 2.7 5.4 5.9"/></svg>'+GNGCLAN.badgeHTML()+'</button>':'';
 function hud(){ try{ staffPlan(); }catch(e){} document.documentElement.classList.toggle('big',!!G.big); const M0=cur(), M=M0&&M0.phase==='done'&&view==='hub'?null:M0;
   const al=G.missions.some(m=>m.alert||m.pauseAt), cl=crewList(), mo=Math.round(morale());
@@ -3971,7 +3975,7 @@ function gmaAsk(){ if(GMA.timer||GMA.busy||Date.now()<GMA.off||(view!=='fd'&&vie
 O.hook.gmatAn=(M,req)=>{ const k=gmxKey(req)+'|a3', hit=GMA.cache[k]||(M.gmatA&&M.gmatA[k]);
   if(GMA.capture){ GMA.req=req; GMA.key=k; return hit||null; }
   if(hit){ GMA.cache[k]=hit; return hit; } gmaAsk(); return null; };
-const stOwn=k=>k==='milan'||(k==='svalbard'&&hasB('ground'))||(k==='canberra'&&dishN()>0);
+const stOwn=k=>k==='milan'||(k==='svalbard'&&hasGS())||(k==='canberra'&&dishN()>0);
 /* Vita dell'orbita (GMAT): una richiesta per scenario (sole medio, massimo, minimo, con la vela), una alla volta, sempre per il piano corrente. Ogni risposta si salva con la missione. */
 const GML={ cache:{}, timer:0, busy:false, off:0, capture:false, req:null, miss:[], base:'' }, LF_SAIL_M2=1.0;
 const lfScenarios=req=>{ const s=['nom']; if(req.sail&&(req.dest==='leo'||req.dest==='mars')) s.push('sail'); if(req.dest==='leo') s.push('max','min'); return s; }; // l'ordine conta: prima i valori che decidono la regola dei 5 anni
@@ -4242,7 +4246,7 @@ function payData(id){ const t=P[id]&&P[id].db; if(!t) return 0; const m=String(t
 function radioRef(t){ const s=(t.n||'')+' '+(t.code||''); if(/profondo|Vulcan|DSTX/i.test(s)) return 4e8; if(/Ka\b|banda X|XBAND/i.test(s)) return 4e6; return (+t.sv||0)<=20?3000:40000; }
 function linkDist(M){ const dest=M.sat.dest||'leo'; if(dest==='moon') return 384400; if(dest==='mars') return 2.25e8; if(dest==='venus') return 1.6e8; if(E.EXT[dest]) return E.EXT[dest].d*1.5e6; const h=(M.drm&&typeof drmStarH==='function'&&drmStarH(M))||null, b=O.zoneOf(M).band; return h||(b?Math.sqrt(b[0]*b[1]):550); }
 function contactMin(M){ const dest=M.sat.dest||'leo', z=(O.zoneOf(M)||{}).k; const an=O.plan(M).an; if(an&&an.contacts) return O.STATIONS.filter(s=>stOwn(s.k)).reduce((a,s)=>a+((an.contacts[s.k]||{}).minDay||0),0); // somma delle stazioni sbloccate (sovrapposizioni ignorate)
-   const base=dest!=='leo'?480:z==='high'?1200:z==='med'?300:30; return base*(hasB('ground')?1.5:1)*(1+.1*dishN()); }
+   const base=dest!=='leo'?480:z==='high'?1200:z==='med'?300:30; return base*(hasGS()?1.5:1)*(1+.1*dishN()); }
 function dataBud(M,d){ d=d||M.sat; const pid=d.placed.ray&&d.placed.ray.id, rid=d.placed.com&&d.placed.com.id, t=rid&&P[rid]?P[rid].db:null, gen=pid?payData(pid):0, dist=linkDist(M), ref=t?radioRef(t):1, rate=t?(+t.sv||0)*Math.min(1,Math.pow(ref/Math.max(dist,1),2)):0, cmin=contactMin(M), down=rate*cmin*60/8/1000;
   return {gen,down,rate,cmin,dist,ok:down>=gen-1e-9,k:gen>0?Math.min(1,down/gen):1}; }
 const mbf=x=>x>=1000?nf(x/1000,1)+' GB':x>=10?nf(x)+' MB':nf(x,x<1?2:1)+' MB';
@@ -4980,7 +4984,7 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
   mccwall(){ MCCV='wall'; sfx.tap(); render(); }, mccroom(){ MCCV='room'; sfx.tap(); render(); }, backph(){ backModal(); }, backgo(){ backGo(); }, tutend(){ endTutorial(false); },
 };
 const dishN=()=>hasB('ground')?Math.min(6,G.world.items.filter(i=>i.k==='dish').length):0;
-function startFlight(M){ M.phase='E'; M.launchAt=now(); M.dataK=dataBud(M).k; M.boost=(hasB('ground')?1.2:1)+.03*dishN(); M.sig=.05*dishN(); gainXP(L.XP.launch); save(); if(!M.tut&&!G.sandbox&&window.GNGCLAN) GNGCLAN.activity('launch',M.name); }
+function startFlight(M){ M.phase='E'; M.launchAt=now(); M.dataK=dataBud(M).k; M.boost=(hasGS()?1.2:1)+.03*dishN(); M.sig=.05*dishN(); gainXP(L.XP.launch); save(); if(!M.tut&&!G.sandbox&&window.GNGCLAN) GNGCLAN.activity('launch',M.name); }
 const durList=M=>[6,9,12,18,24].filter(m=>m>=L.minMonths(M));
 function durOptions(M){ return [6,9,12,18,24].filter(m=>m>=L.minMonths(M)).map(m=>'<option value="'+m+'">'+m+' mesi</option>').join(''); }
 // lancio affidato a un ente terzo: niente rampa, si parte da un sito esterno
@@ -4999,10 +5003,10 @@ function pdrB(){ const M=cur(), p=O.plan(M), bad=[]; if(!M.drm||!(drmLand(M)||(M
   if(M.sat.lv){ const wet=E.budget(M.sat).wet, cap=lvCap(M); if(wet>cap+1e-9) bad.push('Il satellite pesa '+nf(wet,1)+' kg, ma '+esc(E.LV[M.sat.lv].n)+' ne porta al massimo '+cap+' in quest’orbita.'); }
   if(!M.sat.lv) bad.push('Scegli come vai nello spazio.'); else { if(p.bad) bad.push(esc(p.bad)+'.'); else if(!p.ok) bad.push(p.stratOk?'L’orbita finale non è dentro la fascia obiettivo.':'Scegli una strategia per ogni tratto del viaggio.'); else if(p.ref&&p.tot>1&&p.tot*1.05>p.dvAvail) bad.push('Il piano chiede '+Math.round(p.tot*1.05)+' m/s (con il margine), ma il miglior propulsore del tuo livello ne dà circa '+Math.round(p.dvAvail)+': scegli un’orbita più vicina a quella di rilascio.'); }
   { const an=p.an, w=p.lf&&(p.lf.max||p.lf.nom), dd=M.sat.dest||'leo'; if(an&&an.impact&&!M.sat.placed.prop&&an.impact.days<L.minMonths(M)*30.4) bad.push('Senza propulsione l’orbita cade: GMAT prevede il contatto con la superficie o l’atmosfera dopo '+nf(an.impact.days,0)+' giorni, ne servono almeno '+nf(L.minMonths(M)*30.4,0)+'.'); if(!M.sat.placed.prop&&(dd==='leo'||dd==='mars')&&w&&w.days!=null&&w.days<L.minMonths(M)*30.4) bad.push('Senza propulsione l’orbita decade: GMAT stima circa '+nf(w.days,0)+' giorni di vita (caso peggiore), ne servono almeno '+nf(L.minMonths(M)*30.4,0)+'.'); else if(!w&&an&&an.decay&&an.decay.measurable&&an.decay.lifeMonths!=null&&!M.sat.placed.prop&&an.decay.lifeMonths<L.minMonths(M)) bad.push('Senza propulsione l’orbita decade: GMAT stima circa '+nf(an.decay.lifeMonths,0)+' mesi di vita, ne servono almeno '+L.minMonths(M)+'.'); }
-  const inst=L.installment(M,'PDR'), lc=M.sat.lv?E.lvCost(M.sat):0, rush=rushExtra(M,lc);
+  const inst=L.installment(M,'PDR'), lc=M.sat.lv?lvPay(M.sat):0, rush=rushExtra(M,lc);
   if(bad.length){ review({eb:'Fine fase B',name:'Preliminary Design Review',code:'PDR',nasa:'Preliminary Design Review',stamp:'NO-GO',no:true,body:'<ul class="reqs">'+bad.map(x=>'<li><span class="c">ORB</span><span>'+x+'</span><span></span></li>').join('')+'</ul>',actions:'<button class="btn primary" data-act="closeov">Torna alla fase B</button>'}); return; }
   review({eb:'Fine fase B',name:'Preliminary Design Review',code:'PDR',nasa:'Preliminary Design Review',stamp:'GO',short:(LANG==='en'?'Orbit and launch approved. Second instalment: ':'Orbita e lancio approvati. Seconda rata: ')+'<b class="num">'+keur(inst)+'</b>.',body:'<p>Lancio: <b>'+esc(E.LV[M.sat.lv].n)+'</b>'+(lc?' · prenotazione '+keur(lc):'')+(rush?' + extra Rush '+keur(rush):'')+' · finestra '+winName(winMode(M))+'. Orbita di lavoro: '+(p.land?'sul suolo':O.fmt(p.final))+'; ΔV del piano '+Math.round(p.tot)+' m/s'+(p.tot>1?': con il propulsore che hai scelto':'')+'. Fase C: il progetto si congela e alla CDR compri i pezzi.</p>'+(()=>{ const q=dataBud(M); return q.ok?'':'<p class="bad">Attenzione: la radio scarica solo il '+pct(q.k)+' dei dati prodotti. La scienza in volo calerà nella stessa misura.</p>'; })()+(p.atm&&p.atm.p>0.005&&p.atm.worst?'<p class="bad">Attenzione: '+pct(p.atm.p)+' di probabilità che l’attrito dell’atmosfera faccia rientrare il satellite prima del tempo (pericentro a '+nf(p.atm.worst.pe,0)+' km).</p>':'')+'<p>Gli stakeholder versano la seconda rata, <b class="num">'+keur(inst)+'</b>.</p>'+(G.money+inst<lc+rush?'<p class="bad">Anche con la rata non basta per prenotare il lancio.</p>':'')+payPlan(M,'PDR'),actions:'<button class="btn primary" data-act="toC">Prenota il lancio e vai avanti</button><button class="btn" data-act="closeov">Non ancora</button>'}); }
-function toC(){ const M=cur(), first=!(M.once&&M.once.PDR), inst=first?L.installment(M,'PDR'):0, lc=E.lvCost(M.sat), rush=rushExtra(M,lc); if(G.money+inst<lc+rush){ toast('Non hai abbastanza crediti, nemmeno con la rata.'); return; } closeOv(); once(M,'PDR'); M.got=(M.got||0)+inst; M.lvPaid=lc; M.rushPaid=rush; M.lvFixed=true; addMoney(inst-lc-rush); if(first) gainXP(L.XP.PDR); M.phase='C'; M.stage='design'; render(); toast((inst?'Rata PDR '+keur(inst):'Nessuna nuova rata')+(lc?' · lancio prenotato −'+keur(lc):'')+(rush?' · extra Rush −'+keur(rush):'')+'. Fase C: revisione CDR e acquisto dei pezzi.');
+function toC(){ const M=cur(), first=!(M.once&&M.once.PDR), inst=first?L.installment(M,'PDR'):0, lc=lvPay(M.sat), rush=rushExtra(M,lc); if(G.money+inst<lc+rush){ toast('Non hai abbastanza crediti, nemmeno con la rata.'); return; } closeOv(); once(M,'PDR'); M.got=(M.got||0)+inst; M.lvPaid=lc; M.rushPaid=rush; M.lvFixed=true; addMoney(inst-lc-rush); if(first) gainXP(L.XP.PDR); M.phase='C'; M.stage='design'; render(); toast((inst?'Rata PDR '+keur(inst):'Nessuna nuova rata')+(lc?' · lancio prenotato −'+keur(lc):'')+(rush?' · extra Rush −'+keur(rush):'')+'. Fase C: revisione CDR e acquisto dei pezzi.');
   /* la CDR si apre subito, qui nel Centro di dinamica del volo: niente viaggio all'edificio di costruzione solo per comprare i pezzi */
   ACT.pdr(); }
 function gone(M,lv){ const P2=PEO[lv.who]; sfx.leave(); if(!lv.staff) M.funded=L.pledged(M);
@@ -5683,12 +5687,13 @@ const C3=(()=>{
   function hallTex(st){ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'), tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding;
     g.fillStyle='#8E969C'; g.beginPath(); g.arc(128,128,116,0,Math.PI*2); g.fill(); g.lineWidth=12; g.strokeStyle='#FFFFFF'; g.stroke();
     g.fillStyle='#FFFFFF'; g.textAlign='center'; g.font='800 30px Inter, system-ui, sans-serif'; g.fillText(TX('ENTRA IN UN','JOIN A'),128,120); g.fillText(TX('CONSORZIO','CONSORTIUM'),128,158);
-    if(st.member&&st.crest&&window.GNGCLAN){ const im=new Image(); im.onload=()=>{ g.clearRect(0,0,256,256); g.drawImage(im,6,6,244,244); tex.needsUpdate=true; }; im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(GNGCLAN.crestSVG(st.crest,244)); }
+    if(st.member&&st.crest&&window.GNGCLAN){ const im=new Image(); im.onload=()=>{ g.clearRect(0,0,256,256); g.drawImage(im,6,6,244,244); tex.needsUpdate=true; }; im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(GNGCLAN.crestSVG(st.crest,244,(st.level|0)>=4)); }
     return tex; }
   function hallApply(){ if(!HALL) return; const st=HST, c=st.member&&st.crest&&/^#[0-9a-f]{6}$/i.test(st.crest.color)?st.crest.color:'#9AA3A9';
     HALL.dome.color.set(st.member?'#BFE3EA':'#B9C0C4'); HALL.dome.emissive.set(c); HALL.lit=!!(st.member&&st.unread); HALL.dome.emissiveIntensity=st.member?(HALL.lit?.6:.14):0; HALL.flagMat.color.set(c);
-    const key=JSON.stringify([!!st.member,st.crest,TX('it','en')]); if(HALL.key!==key){ HALL.key=key; const old=HALL.tex; HALL.tex=hallTex(st); HALL.crestMats.forEach(m=>{ m.map=HALL.tex; m.needsUpdate=true; }); if(old) old.dispose(); } }
-  function hall(st,label){ HST=Object.assign({},HST,st); hallApply(); const b=hot&&hot.querySelector('.b3h[data-k="council"]');
+    const key=JSON.stringify([!!st.member,st.crest,st.level|0,TX('it','en')]); if(HALL.key!==key){ HALL.key=key; const old=HALL.tex; HALL.tex=hallTex(st); HALL.crestMats.forEach(m=>{ m.map=HALL.tex; m.needsUpdate=true; }); if(old) old.dispose(); } }
+  /* rebuild: il livello e' cambiato e la sala cresce (antenna, torre, piazza delle bandiere): la scena si ricostruisce al prossimo mount */
+  function hall(st,label,rebuild){ HST=Object.assign({},HST,st); if(rebuild) sig=''; hallApply(); const b=hot&&hot.querySelector('.b3h[data-k="council"]');
     if(b&&label!==undefined) b.innerHTML='<span class="b3t'+(label?' wt':'')+'">'+(label?'<i class="b3w">'+esc(label)+'</i>':'')+'<b>'+esc(CAM.K.council.n)+'</b></span>'; }
   function building(it,ctx){ const x=it.x, y=it.y, k=it.k, K=CAM.K[k]; let top=1.5;
     if(k==='admin'){ apron(x,y,x+4.6,y+4.4,'#D9D3C6'); lawn(x+.2,y+2.6,x+2.4,y+4.2);
@@ -5808,7 +5813,12 @@ const C3=(()=>{
       for(let i=0;i<4;i++){ const px=x+.4+i*.86, pz=y+3.22; add(new THREE.CylinderGeometry(.02,.02,1.45,6),M('#D8D7D2'),px,.72,pz); add(new THREE.PlaneGeometry(.38,.26),i%3===0?cm:fm,px+.2,1.27,pz).userData.dyn=true; }
       if(ctx){ HALL={dome:dm,crestMats:[cm],flagMat:fm,key:null,tex:null,lit:false}; anims.push(t=>{ if(HALL&&HALL.dome===dm&&HALL.lit) dm.emissiveIntensity=.45+.35*Math.sin(t*3.2); }); hallApply(); }
       else cm.map=hallTex({});
-      top=2.2; }
+      /* la sala cresce con il livello del consorzio: 2 antenna, 3 torre con luce, 4 piazza delle bandiere */
+      const lv=ctx?HST.level|0:1;
+      if(lv>=2) dish(x+.45,y+.55,0,.38,.75,-.6);
+      if(lv>=3){ rslab(x+2.95,y+.45,.5,.5,.12,0,1.9,WHITE(),.03); rslab(x+2.95,y+.45,.62,.62,.16,1.9,.12,M(TRIM),.02); beacon(x+2.95,y+.45,2.02,.35); top=Math.max(top,2.6); }
+      if(lv>=4){ for(let i=0;i<3;i++){ const pz=y+.5+i*.9; add(new THREE.CylinderGeometry(.02,.02,1.45,6),M('#D8D7D2'),x+3.32,.72,pz); add(new THREE.PlaneGeometry(.38,.26),i===1?cm:fm,x+3.32,1.27,pz+.2).rotation.y=Math.PI/2; } }
+      top=Math.max(top,2.2); }
     else if(k==='dish'){ dish(it.x+.5,it.y+.5,0,.48,.8,-.7); top=1.3; }
     else if(k==='pond'){ const cx=x+1.8, cz=y+1.4; const rim=rslab(cx,cz,3.5,2.7,1.3,0,.12,M('#D9D3C2',{roughness:.9}),.04); rim.castShadow=false;
       const w=rslab(cx,cz,3.15,2.35,1.15,.06,.08,waterMat({hx:1.575,hz:1.175,r:1.15}),0); w.castShadow=false; [[1.1,1],[2.3,1.6],[1.6,1.9],[2.6,.9],[.9,1.7]].forEach(p=>{ const l=add(new THREE.CylinderGeometry(.13,.13,.02,10),M('#5FA63A'),x+p[0],.15,y+p[1]); l.castShadow=false; });
