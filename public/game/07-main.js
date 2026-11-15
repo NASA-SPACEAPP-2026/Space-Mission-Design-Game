@@ -7442,11 +7442,13 @@ function uxObs(){ const q=id=>document.getElementById(id); const sync=()=>{ cons
   if(!q('zpanel')) setTimeout(uxObs,800); }
 // Share the game's own artwork with the entry screen, including in the IIFE build.
 window.gngEntryArtwork = () => artSVG('title');
-start();
-setTimeout(uxObs,300);
-})();
+// Must live inside the IIFE: it needs G, TTL and drawTitle. When the session cookie is validated after the title is drawn,
+// this redraws the account chip (otherwise it keeps saying 'Sign in' for a player who is already logged in).
 window.addEventListener('gng:user',()=>{ try{
   if(G&&!SPECT&&!G.tut&&document.getElementById('title')&&TTL.from!=='game'){ /* login dal menu: passa alla partita di questo account */
     const keep={mu:G.music,bg:G.big}; for(let i=E.STAKE.length-1;i>=0;i--) if(E.STAKE[i].sponsor||E.STAKE[i].ag) E.STAKE.splice(i,1);
     const sv=load(); G=sv||newG(); if(!sv){ G.music=keep.mu; G.big=keep.bg; } G.speed=1; G.recruited=G.recruited||[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m)); G.lastReal=G.lastReal||Date.now(); try{ clock(); fixPlots(); }catch(e){} }
   if(document.getElementById('title')&&TTL.s==='main') drawTitle(); }catch(e){ console.warn(e); } });
+start();
+setTimeout(uxObs,300);
+})();
