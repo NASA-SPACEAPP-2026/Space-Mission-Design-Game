@@ -24,7 +24,7 @@ const L = (function () {
   const XP = { MDR: 20, SRR: 20, PRR: 20, PDR: 30, CDR: 30, FRR: 30, launch: 20, win: 120, lose: 40 };
   const level = xp => LEVELS.reduce((a, t, i) => xp >= t ? i + 1 : a, 1);
   /* Progressione (v34): Tier logici, slot sponsor che crescono fino a esaurire il catalogo al livello massimo, missioni aperte in parallelo per fascia. Il livello massimo e' LEVELS.length: coincide con l'ultimo livello che sblocca qualcosa. */
-  const TIERS = [{"from":1,"n":"Garage Lab"},{"from":5,"n":"Lunar Pioneer"},{"from":10,"n":"Red Planet"},{"from":15,"n":"Deep Space"},{"from":20,"n":"Sovereign Agency"}];
+  const TIERS = [{"from":1,"n":"Garage Lab"},{"from":6,"n":"Lunar Pioneer"},{"from":10,"n":"Red Planet"},{"from":15,"n":"Deep Space"},{"from":20,"n":"Sovereign Agency"}];
   const tierOf = lv => { let t = 0; TIERS.forEach((x, i) => { if (lv >= x.from) t = i; }); return t; };
   const sponsorSlots = lv => Math.max(1, Math.min(SPONSORS.length, Math.ceil((lv - 2) * SPONSORS.length / (LEVELS.length - 2))));
   const maxActiveAt = lv => lv <= 3 ? 2 : lv <= 9 ? 3 : 4;

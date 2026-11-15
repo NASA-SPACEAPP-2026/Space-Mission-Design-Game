@@ -138,3 +138,36 @@ describe("level 1 battery", () => {
     expect(E.checks(d).list.find((x) => x.k === "bat").ok).toBe(true);
   });
 });
+
+describe("unlocks follow doability", () => {
+  const load = async () => {
+    const sources = await Promise.all(["01-data.js", "02-orbit.js", "03-logic.js"].map((name) => read(`public/game/${name}`)));
+    return runInNewContext(`${sources.join("\n")}\n;({ E, O, L })`);
+  };
+  const mission = (L, dest, zone, type, lvl) => {
+    const m = L.newMission("t", `p-${dest}-${zone}-${type}-${lvl}`);
+    Object.assign(m, { zone, type, lvl, lvlNow: lvl, seed: 12345, stake: ["nasa"], padOwned: lvl >= 20 });
+    m.sat.dest = dest;
+    m.sat.stake = m.stake;
+    return m;
+  };
+  const types = (E, O, dest, z) =>
+    Object.keys(O.TYPES).filter((t) => !(z.surf && ["tel", "com", "deb"].includes(t)) && (!E.EXT[dest] || E.EXT[dest].types.includes(t)));
+
+  it("every zone has a doable mission at the level it unlocks", async () => {
+    const { E, O, L } = await load();
+    for (const [dest, zones] of Object.entries(O.ZONES)) {
+      expect(E.DEST[dest].lvl, dest).toBe(Math.min(...zones.map((z) => z.lvl)));
+      for (const z of zones) {
+        const ok = types(E, O, dest, z).some((t) => L.typeOK(mission(L, dest, z.k, t, z.lvl)));
+        expect(ok, `${dest}/${z.k} at level ${z.lvl}`).toBe(true);
+      }
+    }
+  }, 300_000);
+
+  it("Mars surface and debris beyond Earth are doable by level 20", async () => {
+    const { L } = await load();
+    for (const [dest, zone, type] of [["mars", "surf", "sci"], ["moon", "low", "deb"], ["mars", "low", "deb"], ["venus", "low", "deb"]])
+      expect(L.typeOK(mission(L, dest, zone, type, 20)), `${dest}/${zone}/${type}`).toBeTruthy();
+  }, 120_000);
+});

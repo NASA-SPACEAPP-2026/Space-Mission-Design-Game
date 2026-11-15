@@ -1050,7 +1050,6 @@ select option:disabled{-webkit-text-fill-color:#9a9aa6;color:#9a9aa6}
 .tacct b{font:800 15px/1.2 var(--f-b);letter-spacing:.03em;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 .tav{width:30px;height:30px;border-radius:50%;background:#fff;color:#4a2233;display:grid;place-items:center;font:800 14px/1 var(--f-b);text-shadow:none;flex:none}
 .tacct .tout{background:none;border:1.5px solid rgba(255,255,255,.6);border-radius:3px;color:inherit;font:800 10.5px/1 var(--f-b);letter-spacing:.09em;padding:7px 9px;margin-left:4px;min-height:30px}
-.tacct .tout.on{background:#FF9C90;border-color:#FF9C90;color:#3a0f0a;text-shadow:none}
 .tacct.tin{cursor:pointer}
 .tnow{background:none;border:0;display:flex;align-items:center;gap:10px;text-align:right;font:600 12.5px/1.25 var(--f-b);min-height:40px}
 .tnow small{display:block;font:800 10.5px/1.2 var(--f-b);letter-spacing:.1em}
@@ -1129,6 +1128,15 @@ select option:disabled{-webkit-text-fill-color:#9a9aa6;color:#9a9aa6}
 .tthx{margin:2px 0 0;flex:none;text-align:center;font:800 12px/1 var(--f-b);letter-spacing:.18em;text-transform:uppercase;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 @media (max-width:520px){.tcred .tteam{grid-template-columns:1fr}}
 .tmain.tpause .tright{justify-content:center}
+/* menu principale: la colonna destra si centra in verticale sul menu (NEW GAME…QUIT), non su tutta la colonna col logo */
+@media (min-width:701px),(orientation:landscape){
+  .tmain:not(.tpause){grid-template-rows:1fr auto auto auto 1fr;row-gap:clamp(4px,2vh,16px)}
+  .tmain:not(.tpause) .tleft{display:contents}
+  .tmain:not(.tpause) .tlogo{grid-area:2/1}
+  .tmain:not(.tpause) .tmenu{grid-area:3/1}
+  .tmain:not(.tpause) .tver{grid-area:4/1;justify-self:center}
+  .tmain:not(.tpause) .tright{grid-area:3/2}
+}
 @media (max-height:520px){
   .tmain{padding:1vh 3vw}
   .tver{display:none}
