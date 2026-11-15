@@ -5282,17 +5282,19 @@ function sdNext(){ if(SD.cur||!SD.q.length) return; const m=SD.q.shift(); let el
     el.addEventListener('pointerenter',()=>clearTimeout(SD.t)); el.addEventListener('pointerleave',()=>{ if(SD.cur){ clearTimeout(SD.t); SD.t=setTimeout(sdHide,4000); } }); el.addEventListener('click',e=>{ if(e.target.closest('.sd-x')) sdHide(); }); }
   const w=SD_WHO[m[0]]||SD_WHO.giulia; SD.cur=m; el.innerHTML='<div class="sd-face">'+sdFace(w)+'</div><div class="sd-body"><div class="sd-name">'+w.n+'</div><div class="sd-txt">'+esc(m[1])+'</div>'+(m[2]?'<button class="sd-skip" data-act="tutskip">Skip tutorial</button>':'')+'</div><button class="sd-x" aria-label="Dismiss">✕</button>';
   void el.offsetWidth; el.classList.add('show'); clearTimeout(SD.t); SD.t=setTimeout(sdHide,9000); }
-function sdSay(who,txt,skip){ SD.q.push([who,txt,skip]); sdNext(); }
+function sdSay(){ /* tutorial: parla solo Zorty, niente battute dello staff */ }
 function tutKey(){ if(view==='build') return BVIEW==='yard'?'yard':(BROOM==='clean'?'clean':'build'); return view; }
 document.addEventListener('pointerdown',()=>{ SD.last=Date.now(); },true);
 /* solo nel tutorial: Zorty spiega ogni passo in un fumetto leggero in basso a sinistra (non blocca il gioco, si chiude con ✕ e riappare al passo dopo) */
 function tutBub(stp){ let b=$('#tbub'); const txt=stp&&stp.t?String(stp.t):'';
   if(!b){ if(!txt) return; b=document.createElement('div'); b.id='tbub'; b.setAttribute('role','status'); b.setAttribute('aria-live','polite'); b.hidden=true;
-    b.innerHTML='<img class="tb-z" alt="" src="'+((ZORTY.SPR&&ZORTY.SPR.suggerisce)||'')+'"><div class="tb-t"><b class="tb-n">Zorty</b><span class="tb-s"></span></div><button class="tb-x" type="button" aria-label="'+TX('Chiudi','Close')+'">✕</button>';
+    b.innerHTML='<img class="tb-z" alt="" src="'+((ZORTY.SPR&&ZORTY.SPR.suggerisce)||'')+'"><div class="tb-t"><b class="tb-n">Zorty</b><span class="tb-s"></span><button class="tb-k" type="button" data-act="tutskip">'+TX('Salta il tutorial','Skip tutorial')+'</button></div><button class="tb-x" type="button" aria-label="'+TX('Chiudi','Close')+'">✕</button>';
     document.body.appendChild(b); b.querySelector('.tb-x').addEventListener('click',()=>{ tutBub.closed=tutBub.last; b.hidden=true; }); }
   if(!txt){ b.hidden=true; return; }
   if(txt!==tutBub.last){ tutBub.last=txt; b.querySelector('.tb-s').textContent=txt; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
-  b.hidden=tutBub.closed===txt; }
+  b.hidden=tutBub.closed===txt; tbPlace(b); }
+/* il fumetto di Zorty sta sempre sopra i tasti in basso a sinistra (sul campus il tasto Nuova missione e' piu' alto) */
+function tbPlace(b){ b.style.bottom=''; const d=$('#dock'); if(b.hidden||!d) return; const r=d.getBoundingClientRect(); if(!r.height||getComputedStyle(d).visibility==='hidden') return; const need=innerHeight-r.top+8, cb=parseFloat(getComputedStyle(b).bottom)||0; if(need>cb) b.style.bottom=Math.round(need)+'px'; }
 function coach(){ if(SPECT) return; const box=$('#coach'), hand=$('#chand'); if(box&&!box.hidden) box.hidden=true; if(hand&&!hand.hidden) hand.hidden=true; const prev=document.querySelector('.coach-hl');
   if(document.body.classList.contains('ttl-on')||!G||!G.tut){ if(prev) prev.classList.remove('coach-hl'); tutBub(null); document.body.classList.toggle('tutmode',!!(G&&G.tut&&!document.body.classList.contains('ttl-on'))); return; }
   document.body.classList.add('tutmode'); G.sdSeen=G.sdSeen||{};
