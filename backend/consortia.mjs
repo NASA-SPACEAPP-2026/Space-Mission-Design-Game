@@ -233,9 +233,38 @@ function missionCard(m) {
 }
 
 const SUMMARY = `c.id, c.name, c.crest, c.motto, c.kind, c.level, c.science::float8 AS science, c.min_science,
-  c.max_members, (SELECT count(*)::int FROM consortium_members x WHERE x.consortium_id = c.id) AS members`;
+  c.max_members, (SELECT count(*)::int FROM consortium_members x WHERE x.consortium_id = c.id) AS members,
+  jsonb_array_length(c.trophies) AS trophies`;
 const summary = r => ({ id: r.id, name: r.name, crest: r.crest, motto: r.motto, kind: r.kind, level: r.level,
-  science: r.science, minScience: r.min_science, maxMembers: r.max_members, members: r.members });
+  science: r.science, minScience: r.min_science, maxMembers: r.max_members, members: r.members, trophies: r.trophies || 0 });
+
+/* ---------- Weekly challenge ----------
+   Every Monday (UTC) the same goal for every consortium, picked from this list. A finished mission whose facts meet the goal
+   brings its science points to the consortium's weekly score as well. The first visit of a new week closes the old ones:
+   the top three consortia get a trophy and bonus science, announced in their chat. */
+export const CHALLENGES = [
+  { id: 'moon-budget', dest: 'moon', maxCost: 1800, it: 'Una missione riuscita sulla Luna che costa meno di 1800 crediti', en: 'A successful Moon mission costing under 1,800 credits' },
+  { id: 'observe', type: 'obs', it: 'Una missione di osservazione e mappatura riuscita', en: 'A successful observation and mapping mission' },
+  { id: 'leo-cheap', dest: 'leo', maxCost: 400, it: 'Una missione riuscita in orbita terrestre con meno di 400 crediti', en: 'A successful Earth-orbit mission under 400 credits' },
+  { id: 'telescope', type: 'tel', it: 'Un telescopio in orbita: missione riuscita', en: 'A telescope in orbit: mission successful' },
+  { id: 'long-life', minMonths: 18, it: 'Una missione riuscita che lavora almeno 18 mesi', en: 'A successful mission that works at least 18 months' },
+  { id: 'mars', dest: 'mars', it: 'Una missione riuscita su Marte', en: 'A successful mission to Mars' },
+  { id: 'relay', type: 'com', it: 'Un ripetitore per telecomunicazioni in orbita: missione riuscita', en: 'A telecom relay in orbit: mission successful' },
+  { id: 'science', type: 'sci', it: 'Una missione di rilevamento scientifico riuscita', en: 'A successful science survey mission' }
+];
+export const PRIZES = [300, 200, 100];
+const DAY = 86_400_000;
+// Monday 00:00 UTC of the week of `date`, as YYYY-MM-DD
+export const weekOf = date => { const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())); d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7); return d.toISOString().slice(0, 10); };
+export const goalOf = week => CHALLENGES[Math.floor(Date.parse(week + 'T00:00:00Z') / (7 * DAY)) % CHALLENGES.length];
+export const meetsGoal = (g, f) => !!f && f.ok === true && (!g.dest || f.dest === g.dest) && (!g.type || f.type === g.type) &&
+  (g.maxCost == null || f.cost <= g.maxCost) && (g.minMonths == null || f.months >= g.minMonths);
+function missionFacts(f) {
+  if (f == null) return null;
+  if (typeof f !== 'object' || typeof f.ok !== 'boolean' || typeof f.dest !== 'string' || !/^[a-z]{2,12}$/.test(f.dest) ||
+    typeof f.type !== 'string' || !/^[a-z]{2,8}$/.test(f.type) || !int(f.cost, 0, 1e6) || !int(f.months, 0, 600)) throw bad('facts');
+  return { ok: f.ok, dest: f.dest, type: f.type, cost: f.cost, months: f.months };
+}
 const message = r => r.deleted
   ? { id: r.id, kind: r.kind, author: r.author, at: r.created_at, deleted: true }
   : { id: r.id, kind: r.kind, author: r.author, role: r.author_role, at: r.created_at,
@@ -244,7 +273,7 @@ const MESSAGE_COLUMNS = `m.id::float8 AS id, m.kind, m.body, m.data, m.created_a
   u.username AS author, cm.role AS author_role FROM consortium_messages m LEFT JOIN users u ON u.id = m.author_id
   LEFT JOIN consortium_members cm ON cm.user_id = m.author_id AND cm.consortium_id = m.consortium_id`;
 
-export function createConsortia({ db, origin }) {
+export function createConsortia({ db, origin, now = () => new Date() }) {
   if (!origin || new URL(origin).origin !== origin) throw new Error('APP_ORIGIN must be an exact origin');
 
   function send(res, status, body) {
@@ -750,22 +779,78 @@ export function createConsortia({ db, origin }) {
       if (typeof body.mission !== 'string' || !/^[A-Za-z0-9_.:-]{1,64}$/.test(body.mission)) throw bad('mission');
       if (!int(body.points, 0, LIMITS.missionScience)) throw bad('points');
       if (body.name !== undefined && typeof body.name !== 'string') throw bad('name');
-      const name = clean(body.name || '').slice(0, 24);
+      const name = clean(body.name || '').slice(0, 24), facts = missionFacts(body.facts);
       await limit(`science:${user.id}`, 60);
+      const week = weekOf(now()), goal = goalOf(week);
       return tx(db, async t => {
         const [me] = await rows(t, 'SELECT consortium_id AS cid FROM consortium_members WHERE user_id=$1 FOR UPDATE', [user.id]);
         const added = await rows(t, `INSERT INTO science_awards(user_id,mission_key,points,consortium_id) VALUES($1,$2,$3,$4)
           ON CONFLICT DO NOTHING RETURNING 1`, [user.id, body.mission, body.points, me?.cid ?? null]);
+        let challenge = null;
         if (added.length && me && body.points > 0) {
           await t.query('UPDATE consortium_members SET science=science+$2, last_seen_at=now() WHERE user_id=$1', [user.id, body.points]);
           await t.query('UPDATE consortia SET science=science+$2 WHERE id=$1', [me.cid, body.points]);
           await system(t, me.cid, { code: 'science', user: user.username, mission: name, points: body.points });
+          // The weekly challenge: the same points, if the mission meets this week's goal.
+          if (meetsGoal(goal, facts)) {
+            await ensureWeek(t, week);
+            await t.query(`INSERT INTO challenge_scores(week,consortium_id,points) VALUES($1,$2,$3)
+              ON CONFLICT (week,consortium_id) DO UPDATE SET points=challenge_scores.points+EXCLUDED.points`, [week, me.cid, body.points]);
+            await system(t, me.cid, { code: 'challenge_points', user: user.username, mission: name, points: body.points });
+            challenge = { matched: true, points: body.points, goal: goal.id };
+          }
         }
         const consortium = me ? (await rows(t, 'SELECT science::float8 AS science FROM consortia WHERE id=$1', [me.cid]))[0] : null;
-        return { body: { counted: added.length > 0, player: { science: await playerScience(t, user.id) }, consortium } };
+        return { body: { counted: added.length > 0, player: { science: await playerScience(t, user.id) }, consortium, ...(challenge ? { challenge } : {}) } };
       });
+    },
+
+    // This week's goal, time left, the weekly ranking, the all-time ranking, my places, and the last closed week's podium.
+    async challenge({ user }) {
+      const week = weekOf(now()), goal = goalOf(week);
+      await closeWeeks(week);
+      await ensureWeek(db, week);
+      const [me] = await rows(db, 'SELECT consortium_id AS cid FROM consortium_members WHERE user_id=$1', [user.id]);
+      const ranking = await rows(db, `SELECT c.id, c.name, c.crest, c.level, s.points::float8 AS points FROM challenge_scores s
+        JOIN consortia c ON c.id=s.consortium_id WHERE s.week=$1 AND s.points>0 ORDER BY s.points DESC, lower(c.name) LIMIT 20`, [week]);
+      const allTime = await rows(db, `SELECT c.id, c.name, c.crest, c.level, c.science::float8 AS points, jsonb_array_length(c.trophies) AS trophies
+        FROM consortia c WHERE c.science>0 ORDER BY c.science DESC, lower(c.name) LIMIT 20`);
+      let mine = null;
+      if (me) {
+        const [w] = await rows(db, `SELECT coalesce((SELECT points FROM challenge_scores WHERE week=$1 AND consortium_id=$2),0)::float8 AS points`, [week, me.cid]);
+        const [wr] = await rows(db, `SELECT count(*)::int + 1 AS n FROM challenge_scores WHERE week=$1 AND points>$2`, [week, w.points]);
+        const [a] = await rows(db, `SELECT science::float8 AS points, jsonb_array_length(trophies) AS trophies, trophies AS list FROM consortia WHERE id=$1`, [me.cid]);
+        const [ar] = await rows(db, `SELECT count(*)::int + 1 AS n FROM consortia WHERE science>$1`, [a.points]);
+        mine = { id: me.cid, week: { points: w.points, rank: w.points > 0 ? wr.n : null }, allTime: { points: a.points, rank: ar.n }, trophies: a.list };
+      }
+      const [last] = await rows(db, `SELECT week::text AS week, results FROM consortium_challenges WHERE finalized_at IS NOT NULL ORDER BY week DESC LIMIT 1`);
+      const endsAt = new Date(Date.parse(week + 'T00:00:00Z') + 7 * DAY).toISOString();
+      return { body: { week, endsAt, goal, prizes: PRIZES, ranking, allTime, mine, last: last ? { week: last.week, podium: last.results || [] } : null } };
     }
   };
+
+  async function ensureWeek(c, week) {
+    await c.query(`INSERT INTO consortium_challenges(week,goal) VALUES($1,$2::jsonb) ON CONFLICT (week) DO NOTHING`, [week, JSON.stringify(goalOf(week))]);
+  }
+  // Closes every past week still open: the podium gets trophies and bonus science, and each winner hears it in the chat.
+  async function closeWeeks(current) {
+    const open = await rows(db, `SELECT week::text AS week FROM consortium_challenges WHERE finalized_at IS NULL AND week < $1 ORDER BY week`, [current]);
+    for (const { week } of open) {
+      await tx(db, async t => {
+        const [row] = await rows(t, `SELECT finalized_at FROM consortium_challenges WHERE week=$1 FOR UPDATE`, [week]);
+        if (!row || row.finalized_at) return;
+        const top = await rows(t, `SELECT s.consortium_id AS id, c.name, s.points::float8 AS points FROM challenge_scores s JOIN consortia c ON c.id=s.consortium_id
+          WHERE s.week=$1 AND s.points>0 ORDER BY s.points DESC, lower(c.name) LIMIT ${PRIZES.length}`, [week]);
+        const podium = top.map((x, i) => ({ place: i + 1, id: x.id, name: x.name, points: x.points, bonus: PRIZES[i] }));
+        for (const p of podium) {
+          await t.query(`UPDATE consortia SET science=science+$2, trophies=trophies || jsonb_build_array(jsonb_build_object('week',$3::text,'place',$4::int)) WHERE id=$1`,
+            [p.id, p.bonus, week, p.place]);
+          await system(t, p.id, { code: 'challenge_won', place: p.place, points: p.points, bonus: p.bonus, week });
+        }
+        await t.query(`UPDATE consortium_challenges SET results=$2::jsonb, finalized_at=now() WHERE week=$1`, [week, JSON.stringify(podium)]);
+      });
+    }
+  }
 
   const UUID = '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})';
   const routes = [
@@ -779,6 +864,7 @@ export function createConsortia({ db, origin }) {
     ['GET', '/mine/unread', 'unread'], ['POST', '/mine/activity', 'activity'],
     ['POST', '/leave', 'leave'], ['POST', '/science', 'science'],
     ['PUT', '/live', 'live'], ['GET', '/live/([A-Za-z0-9_]{3,24})', 'watch'],
+    ['GET', '/challenge', 'challenge'],
     ['GET', '/mine/joint', 'jointList'], ['POST', '/mine/joint', 'jointCreate'],
     ['GET', `/mine/joint/${UUID}`, 'jointGet'], ['POST', `/mine/joint/${UUID}/actions`, 'jointAct'],
     ['GET', `/${UUID}`, 'profile'], ['POST', `/${UUID}/join`, 'join']
