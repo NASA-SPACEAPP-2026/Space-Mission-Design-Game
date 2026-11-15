@@ -6977,6 +6977,9 @@ function openTitle(s,from){ if(s!==TTL.s||from!==TTL.from) TTL.out=false; TTL.s=
 function closeTitle(){ const el=$('#title'); if(el) el.remove(); document.body.classList.remove('ttl-on'); if(G&&G.tut) coach(); }
 function lvlBox(){ const lv=L.level(G.xp), a=L.LEVELS[lv-1], b=L.LEVELS[lv], pc=b?Math.round((G.xp-a)/(b-a)*100):100; return '<div class="tbox tlv"><b>'+TX('LIVELLO','LEVEL')+' '+lv+'</b><i><u style="width:'+pc+'%"></u></i><small>'+TX('Sali di livello per sbloccare destinazioni, tecnologie e agenzie','Level up to unlock destinations, technologies and agencies')+'</small></div>'; }
 function nextDest(){ const lv=L.level(G.xp); const ks=Object.keys(E.DEST).filter(k=>E.DEST[k].lvl>lv).sort((a,b)=>E.DEST[a].lvl-E.DEST[b].lvl); return ks.length?ks[0]:null; }
+function acctChip(){ const u=window.gngUser;
+  if(!u) return '<button class="tacct tin" data-act="tlogin"><span class="tav">?</span><span><small>'+TX('OSPITE','GUEST')+'</small><b>'+TX('Accedi','Sign in')+'</b></span></button>';
+  return '<div class="tacct"><span class="tav">'+esc(String(u.username).trim().charAt(0).toUpperCase())+'</span><span><small>ACCOUNT</small><b>'+esc(u.username)+'</b></span><button class="tout'+(TTL.out?' on':'')+'" data-act="tlogout">'+(TTL.out?TX('CONFERMA?','CONFIRM?'):TX('ESCI','SIGN OUT'))+'</button></div>'; }
 function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
   const bg='<div class="ttl-bg">'+artSVG('title')+'</div><div class="ttl-grid"></div>';
   const foot=(back,go,goT,goDis)=>'<div class="tfoot">'+(back?'<button class="tkey" data-act="tback"><span class="kc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></span>'+TX('INDIETRO','BACK')+'</button>':'')+(go?'<button class="tkey'+(goDis?' dis':'')+'" data-act="'+go+'"'+(goDis?' disabled':'')+'><span class="kc">'+(go==='tstart'?'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 5.5v13l10.5-6.5z"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>')+'</span>'+goT+'</button>':'')+'</div>';
@@ -6986,7 +6989,7 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
       [hasSave()?['tresume',TX('CONTINUA','CONTINUE')]:null,['ttl:modes','NEW GAME'],['ttl:settings',TX('IMPOSTAZIONI','SETTINGS')],['ttl:credits',TX('CREDITI','CREDITS')],['ttl:quit',TX('ESCI','QUIT GAME')]]).filter(Boolean);
     const nd=nextDest(), dd=nd&&E.DEST[nd];
     h='<div class="tmain"><div class="tleft"><div class="tlogo">'+logoSVG()+'<b>GO<br>NO-GO</b></div><nav class="tmenu">'+items.map(x=>{ const [a,v]=x[0].split(':'); return '<button data-act="'+a+'"'+(v?' data-s="'+v+'"':'')+'>'+x[1]+(x[2]?'<i class="tdia">!</i>':'')+'</button>'; }).join('')+'</nav><small class="tver">NASA Space Apps 2026</small></div>'+
-      '<div class="tright"><button class="tnow" data-act="tmusic"><span><small>'+TX('IN RIPRODUZIONE','NOW PLAYING')+'</small>'+(music?'Go No-Go · '+TX('tema principale','main theme'):TX('Musica spenta','Music off'))+'</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l12-2v11.5a3 3 0 1 1-2-2.8V6.3L9 7.8z"/></svg></button>'+lvlBox()+
+      '<div class="tright">'+acctChip()+'<button class="tnow" data-act="tmusic"><span><small>'+TX('IN RIPRODUZIONE','NOW PLAYING')+'</small>'+(music?'Go No-Go · '+TX('tema principale','main theme'):TX('Musica spenta','Music off'))+'</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l12-2v11.5a3 3 0 1 1-2-2.8V6.3L9 7.8z"/></svg></button>'+lvlBox()+
       '<div class="tunl"><h4>'+TX('Equipaggio','Crew')+'</h4><div class="tfaces">'+CREW.slice(0,4).map(c=>'<span>'+faceSVG(c)+'<small>'+c.n.split(' ')[0]+'</small></span>').join('')+'</div>'+(dd?'<div class="tdest"><span class="tart">'+artSVG(nd==='moon'?'moon':nd==='mars'?'mars':'free')+'</span><span><b>'+esc(dd.n)+'</b><small>'+TX('Si sblocca al livello ','Unlocks at level ')+dd.lvl+'</small></span></div>':'')+'</div></div></div>';
     if(s==='pause') h='<div class="tmain tpause"><div class="tleft"><div class="tlogo sm">'+logoSVG()+'<b>'+TX('PAUSA','PAUSED')+'</b></div><nav class="tmenu">'+items.map(x=>{ const [a,v]=x[0].split(':'); return '<button data-act="'+a+'"'+(v?' data-s="'+v+'"':'')+'>'+x[1]+'</button>'; }).join('')+'</nav></div><div class="tright">'+lvlBox()+(window.gngUser?'<div class="tunl"><h4>Account</h4><small>'+esc(window.gngUser.username)+'</small></div>':'')+'<div class="tunl"><h4>'+esc(G.co||TX('La tua agenzia','Your agency'))+'</h4><div class="tfaces">'+crewList().map(c=>'<span>'+faceSVG(c)+'<small>'+c.n.split(' ')[0]+'</small></span>').join('')+'</div></div></div></div>'; }
   else if(s==='modes'||s==='modes2'){ const car=TTL.mode==='career';
@@ -7027,6 +7030,7 @@ Object.assign(ACT,{
   tnext(){ if(!MODES.find(m=>m.k===TTL.mode)) TTL.mode='career'; sfx.ok(); openTitle('crew',TTL.from); },
   tcrew(t){ const co=$('#tco')?$('#tco').value:null; TTL.crew=t.dataset.k; sfx.tap(); drawTitle(); if(co!=null&&$('#tco')) $('#tco').value=co; },
   tstart(){ beginGame(); },
+  tlogin(){ sfx.tap(); if(window.gngRequireAccount) window.gngRequireAccount().then(u=>{ if(u) drawTitle(); }); },
   tlogout(){ if(!TTL.out){ TTL.out=true; sfx.bad(); return drawTitle(); } TTL.out=false; sfx.tap(); if(window.gngLogout) window.gngLogout().catch(e=>toast(e.message)); },
   tmusic(){ ACT.music(); drawTitle(); },
   tlang(){ ACT.lang(); },
@@ -7269,3 +7273,4 @@ window.gngEntryArtwork = () => artSVG('title');
 start();
 setTimeout(uxObs,300);
 })();
+window.addEventListener('gng:user',()=>{ try{ if(document.getElementById('title')&&TTL.s==='main') drawTitle(); }catch(e){} });

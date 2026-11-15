@@ -42,6 +42,7 @@ function enter(user) {
   root.hidden = true;
   const done = waiting; waiting = null;
   done?.(window.gngUser);
+  window.dispatchEvent(new Event('gng:user'));
 }
 const sessionReady = request('me').then(({user}) => { if (user?.username) enter(user); }).catch(error => { sessionError = error.message; });
 function cancel() {
