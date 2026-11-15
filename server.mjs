@@ -284,7 +284,7 @@ export const createStaticServer = (options = {}) => {
     const pathname = url.pathname;
     if (pathname.startsWith('/api/auth/')) {
       if (options.auth) return options.auth(request, response, pathname);
-      sendJson(response, 503, { error: 'Account non configurati' });
+      sendJson(response, 503, { error: 'Accounts not configured' });
       return;
     }
     if (pathname === '/api/consortia' || pathname.startsWith('/api/consortia/')) {
@@ -294,7 +294,7 @@ export const createStaticServer = (options = {}) => {
     }
     if (GMAT_PATHS.has(pathname)) return proxyGmat(request, response, pathname, options.gmatUrl);
     if (pathname.startsWith('/api/') && pathname !== '/api/health') {
-      sendJson(response, 404, { error: 'Endpoint non trovato' });
+      sendJson(response, 404, { error: 'Endpoint not found' });
       return;
     }
     if (request.method !== "GET" && request.method !== "HEAD") {

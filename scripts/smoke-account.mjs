@@ -89,7 +89,7 @@ try {
   // Service failure must not grant access or hide the form.
   const other = await browser.newContext({viewport:{width:844,height:390}});
   const failed = await other.newPage();
-  await failed.route('**/api/auth/**',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Servizio account temporaneamente non disponibile'})}));
+  await failed.route('**/api/auth/**',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Account service temporarily unavailable'})}));
   await failed.goto(origin); await failed.locator(newGame).click();
   await failed.locator('#entry-panel').waitFor({state:'visible'});
   await failed.locator('[name=username]').fill('Unavailable');

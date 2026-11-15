@@ -1,13 +1,13 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="format-detection" content="telephone=no"><style>:root{color-scheme:light;box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><section id="account-entry" aria-label="Go No-Go" hidden>
+<!doctype html><html lang="en"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="format-detection" content="telephone=no"><style>:root{color-scheme:light;box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body><section id="account-entry" aria-label="Go No-Go" hidden>
   <section id="entry-panel" aria-labelledby="account-heading">
-    <h1 id="account-heading" tabindex="-1" data-it="Entra" data-en="Enter">Entra</h1>
+    <h1 id="account-heading" tabindex="-1" data-it="Entra" data-en="Enter">Enter</h1>
     <form id="account-form">
       <div class="entry-field"><label for="entry-username" data-it="Username" data-en="Username">Username</label><input id="entry-username" name="username" required minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]{3,24}" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
       <div class="entry-field"><label for="entry-password" data-it="Password" data-en="Password">Password</label><input id="entry-password" name="password" type="password" required maxlength="128" autocomplete="current-password"></div>
       <p id="account-message" role="status" aria-live="polite"></p>
-      <button type="submit" id="account-submit" data-it="Entra e gioca" data-en="Enter & play">Entra e gioca</button>
+      <button type="submit" id="account-submit" data-it="Entra e gioca" data-en="Enter & play">Enter &amp; play</button>
     </form>
-    <button type="button" id="account-back" data-it="Annulla" data-en="Cancel">Annulla</button>
+    <button type="button" id="account-back" data-it="Annulla" data-en="Cancel">Cancel</button>
   </section>
 </section></section><div id=nojs style="position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:24px;background:#2A2125;color:#fff;font:16px/1.5 system-ui,sans-serif;text-align:center"><div style="max-width:420px"><h1 style="font:800 34px/1.1 system-ui,sans-serif;margin:0 0 14px">GO NO-GO</h1><p style="margin:0 0 10px">The game is not starting. This usually means the file was opened inside a mail or file preview, which blocks scripts.</p><p style="margin:0 0 10px"><b>Save the file to your phone, then open it with Safari or Chrome</b> (Share &rarr; Open in Safari/Chrome, or Files &rarr; tap the file &rarr; Open with browser).</p><p style="margin:0;opacity:.7;font-size:14px">If it still stays here, your browser is too old: update it.</p></div></div>
 <link rel="stylesheet" href="/account.css"><title>Go No-Go</title><link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml"><link rel="icon" href="/favicon-32x32.png?v=3" type="image/png" sizes="32x32"><link rel="alternate icon" href="/favicon.ico?v=3" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
@@ -214,7 +214,11 @@ table.pay{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}table.
 .mx .al{font:500 12px/1 var(--f-d);color:var(--muted);display:flex;align-items:center;justify-content:flex-end;padding-right:4px}
 .mx .al.b{justify-content:center;padding:0}
 .mx .c{border-radius:6px;display:flex;flex-wrap:wrap;gap:2px;align-content:center;justify-content:center;padding:3px}
-.c.g,.rd.g{background:#183221}.c.y,.rd.y{background:#372E1B}.c.r,.rd.r{background:#331B18}
+.c.g,.rd.g{background:#2FBF71}.c.y,.rd.y{background:#F7B92E}.c.r,.rd.r{background:#F2554A}
+.mx .c{box-shadow:inset 0 0 0 1px rgba(255,255,255,.28),inset 0 8px 14px -8px rgba(255,255,255,.45),0 0 12px -3px currentColor}
+.mx .c.g{color:#2FBF71}.mx .c.y{color:#F7B92E}.mx .c.r{color:#F2554A}
+.mx .c .rd{background:#14202B;color:#fff}
+.rlist .rd.g{color:#06301A}.rlist .rd.y{color:#3A2600}.rlist .rd.r{color:#fff}
 .rd{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--sel);color:#fff;font:600 12px/1 var(--f-m);flex:none}
 .c .rd{background:var(--sel);color:#fff}
 .rlist{display:grid;gap:2px}
@@ -1796,7 +1800,7 @@ body:has(#mg:not([hidden])) #zbtn,body:has(#mg:not([hidden])) #dock{visibility:h
 <div class="pop" id="pop" hidden></div>
 <div class="toast" id="toast" role="status" hidden></div><div class="coach" id="coach" role="status" aria-live="polite" hidden></div><div class="chand" id="chand" hidden aria-hidden="true"><svg viewBox="0 0 34 40"><path d="M12 4.5c0-1.9 1.4-3 3-3s3 1.1 3 3v12.2l1.1-.5c1.6-.7 3.3.1 3.8 1.6l.3 1 1.2-.4c1.6-.5 3.2.4 3.6 2l.2.8.9-.2c1.7-.3 3.1.9 3.1 2.6v6.6c0 5.4-4.2 9.3-9.6 9.3h-3.2c-3.1 0-5.8-1.4-7.6-3.9L3.6 26.7c-1-1.4-.7-3.3.7-4.2 1.3-.9 3-.6 4 .6L12 27.4z" fill="#fff" stroke="#221B1F" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
 <div class="lvup" id="lvup" role="status" hidden></div>
-<div id="rotHint" aria-live="polite"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="20" y="6" width="24" height="44" rx="4"/><path d="M29 44h6"/><path d="M48 54a20 20 0 0 1-30 4"/><path d="M18 52v6h6"/></svg><b>Ruota il telefono</b><span>Go No-Go si gioca in orizzontale.<br>Rotate your phone to landscape.</span></div>
+<div id="rotHint" aria-live="polite"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="20" y="6" width="24" height="44" rx="4"/><path d="M29 44h6"/><path d="M48 54a20 20 0 0 1-30 4"/><path d="M18 52v6h6"/></svg><b>Rotate your phone</b><span>Go No-Go is played in landscape.</span></div>
 
 
 <script src="/game/00-three.js"></script><script src="/game/00-toon.js"></script><script src="/game/01-data.js"></script><script src="/game/02-orbit.js"></script><script src="/game/03-logic.js"></script><script src="/game/04-stubs.js"></script><script src="/game/05-campus.js"></script><script src="/game/06-rooms.js"></script><script src="/game/08-minigames.js"></script><script src="/game/09-consortia.js"></script><script src="/game/07-main.js"></script>

@@ -156,7 +156,7 @@ window.GNGCLAN = (function () {
       return { status: r.status, data };
     } catch (e) { return { status: 0, data: { error: 'offline' } }; } finally { if (to) clearTimeout(to); }
   }
-  const down = r => r.status === 0 || r.status >= 500 || (r.status === 404 && (!r.data || !r.data.error || r.data.error === 'Endpoint non trovato'));
+  const down = r => r.status === 0 || r.status >= 500 || (r.status === 404 && (!r.data || !r.data.error || r.data.error === 'Endpoint not found'));
   const loggedIn = () => DEMO || !!window.gngUser;
   const myName = () => (window.gngUser && window.gngUser.username) || (DEMO ? 'Matteo' : '');
 
