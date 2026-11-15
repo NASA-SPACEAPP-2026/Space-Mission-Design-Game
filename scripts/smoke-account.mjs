@@ -21,7 +21,7 @@ try {
   const page = await context.newPage(); const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   const newGame = '#title [data-act="ttl"][data-s="modes"]';
-  await page.goto(origin);
+  await page.goto(`${origin}/play`);
   // The game's own title screen is the home page: no splash, no account form until the visitor tries to enter.
   await page.locator('#title .tmenu').waitFor({state:'visible',timeout:8000});
   assert.equal(await page.locator('#entry-splash').count(),0);
@@ -90,7 +90,7 @@ try {
   const other = await browser.newContext({viewport:{width:844,height:390}});
   const failed = await other.newPage();
   await failed.route('**/api/auth/**',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Account service temporarily unavailable'})}));
-  await failed.goto(origin); await failed.locator(newGame).click();
+  await failed.goto(`${origin}/play`); await failed.locator(newGame).click();
   await failed.locator('#entry-panel').waitFor({state:'visible'});
   await failed.locator('[name=username]').fill('Unavailable');
   await failed.locator('[name=password]').fill('my unique browser password 123');
@@ -109,7 +109,7 @@ try {
   const english = await browser.newContext({reducedMotion:'reduce'});
   await english.addInitScript(()=>localStorage.setItem('gngLang','en'));
   const keyboard = await english.newPage();
-  await keyboard.goto(origin);
+  await keyboard.goto(`${origin}/play`);
   await keyboard.locator('#title .tmenu').waitFor({state:'visible'});
   await keyboard.locator(newGame).focus();
   await keyboard.keyboard.press('Enter');

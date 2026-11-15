@@ -222,7 +222,7 @@ npm run build
 node --env-file-if-exists=.env server.mjs
 ```
 
-Open **http://localhost:8080**. Restore `APP_ORIGIN=http://localhost:5173` before returning to Vite development. `APP_ORIGIN` must match the visited origin without a trailing slash: `localhost` and `127.0.0.1` are different origins.
+Open **http://localhost:8080/play** for the game (the site root is the landing page). Restore `APP_ORIGIN=http://localhost:5173` before returning to Vite development. `APP_ORIGIN` must match the visited origin without a trailing slash: `localhost` and `127.0.0.1` are different origins.
 
 CI checks and packages PRs targeting `dev` and `main`. Pushes to `dev` deploy to **staging**; pushes to `main` deploy to **production**. Production requires a DB and an HTTPS origin; apply migrations before deployment. See [Azure deployment](documentation/deployment.md).
 

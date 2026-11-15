@@ -89,6 +89,8 @@ La regola GMAT precede quella generale `/api`. `APP_ORIGIN` si riferisce all'ori
 
 `server.mjs` usa il server HTTP nativo di Node. Serve `dist/`, gestisce `/api/auth/*` tramite `createAuth()` e risponde a `/api/health` con `{ "status": "ok" }`.
 
+**Landing page.** La radice del sito è la landing page, non il gioco: `/` serve `dist/landing/index.html` (italiano), `/en` serve `dist/landing/en.html` e il gioco (`dist/index.html`) risponde su `/play` tramite il fallback SPA. Una richiesta a `/` con una query (un vecchio link al gioco come `/?clan=demo`) viene reindirizzata a `/play` con la stessa query. Salvataggi e sessioni sono legati all'origine, quindi non cambiano. La landing è HTML statico in `public/landing/` (CSS e script in `public/landing/assets/`, immagini in `public/landing/img/`); senza quella cartella `/` torna a servire il gioco. Con il server di sviluppo Vite il gioco resta su `/` e la landing è su `/landing/index.html`.
+
 Per i file supporta GET/HEAD, MIME, Brotli/gzip precalcolati o compressione dinamica, `ETag`, `Last-Modified`, richieste condizionali e risposta `304`. Blocca percorsi non validi e traversal; applica fallback SPA alle sole rotte senza estensione.
 
 | Risorsa | Cache |
