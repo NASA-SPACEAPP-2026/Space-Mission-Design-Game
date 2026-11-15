@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
+import { isProfaneUsername } from './username-filter.mjs';
 const scrypt = promisify(scryptCallback);
 const hash = value => createHash('sha256').update(value).digest('hex');
 const cookieName = 'gng_session';
@@ -94,6 +95,7 @@ export function createAuth({ db, origin, secure = true }) {
           (email != null && (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) || password.length < 1) {
           return send(res, 400, { error: 'Username: 3–24 letters, numbers or _. Password: 1–128 characters.' });
         }
+        if (isProfaneUsername(username)) return send(res, 400, { error: 'This username is not allowed. Please choose another one.', code: 'username_not_allowed' });
         if (await limited('register:global', 30)) return send(res, 429, { error: 'Registrations temporarily limited' });
         try {
           const result = await db.query('INSERT INTO users(id,username,email,password_hash) VALUES($1,$2,$3,$4) RETURNING id,username,email',
