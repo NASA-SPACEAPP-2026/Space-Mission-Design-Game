@@ -70,8 +70,10 @@ export function createAuth({ db, origin, secure = true }) {
       if (!origins.includes(req.headers.origin)) return send(res, 403, { error: 'Origine non consentita' });
       if (pathname.endsWith('/logout')) {
         await db.query('DELETE FROM sessions WHERE token_hash=$1', [hash(token)]);
-        // Wipe HTTP cache and cookies on logout. "storage" is deliberately NOT cleared: it would delete the local game saves (localStorage).
-        return send(res, 200, { user: null }, cookie('', 0), { 'Clear-Site-Data': '"cache", "cookies"' });
+        // Wipe cookies on logout. "cache" is deliberately NOT cleared: the browser blocks the response until the whole HTTP cache
+        // is purged (seconds with the game bundle cached) and static assets hold no user data. "storage" is NOT cleared either:
+        // it would delete the local game saves (localStorage).
+        return send(res, 200, { user: null }, cookie('', 0), { 'Clear-Site-Data': '"cookies"' });
       }
       if (req.headers['content-type']?.split(';')[0] !== 'application/json') return send(res, 415, { error: 'Richiesto JSON' });
       // Do not trust arbitrary X-Forwarded-For supplied by a browser.
