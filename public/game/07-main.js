@@ -3113,7 +3113,7 @@ TB scaricati al giorno	TB downloaded per day
 la telemetria di	the telemetry of
 Microfondo Spazio	Micro-Fund Space
 DataRelay Europa	DataRelay Europe
-v38 · NASA Space Apps 2026 · Torino	v38 · NASA Space Apps 2026 · Turin
+NASA Space Apps 2026	NASA Space Apps 2026
 NASA Space Apps Challenge 2026 · Torino · «Space Mission Design Game»	NASA Space Apps Challenge 2026 · Turin · «Space Mission Design Game»
 ΔV corto	ΔV short
 Mobilità	Mobility
@@ -6983,7 +6983,7 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
     const items=(s==='pause'?[['tresume',TX('RIPRENDI','RESUME')],['ttl:settings',TX('IMPOSTAZIONI','SETTINGS')],['trank',TX('CLASSIFICA','LEADERBOARD')],['troad','ROADMAP'],['tarch',TX('ARCHIVIO MISSIONI','MISSION ARCHIVE')],['ttl:main',TX('MENU PRINCIPALE','MAIN MENU')]].concat(window.gngUser?[['tlogout',TTL.out?TX('CONFERMA USCITA?','CONFIRM SIGN OUT?'):TX('ESCI DALL’ACCOUNT','SIGN OUT')]]:[]):
       [hasSave()?['tresume',TX('CONTINUA','CONTINUE')]:null,['ttl:modes','NEW GAME'],['ttl:settings',TX('IMPOSTAZIONI','SETTINGS')],['ttl:credits',TX('CREDITI','CREDITS')],['ttl:quit',TX('ESCI','QUIT GAME')]]).filter(Boolean);
     const nd=nextDest(), dd=nd&&E.DEST[nd];
-    h='<div class="tmain"><div class="tleft"><div class="tlogo">'+logoSVG()+'<b>GO<br>NO-GO</b></div><nav class="tmenu">'+items.map(x=>{ const [a,v]=x[0].split(':'); return '<button data-act="'+a+'"'+(v?' data-s="'+v+'"':'')+'>'+x[1]+(x[2]?'<i class="tdia">!</i>':'')+'</button>'; }).join('')+'</nav><small class="tver">v38 · NASA Space Apps 2026 · Torino</small></div>'+
+    h='<div class="tmain"><div class="tleft"><div class="tlogo">'+logoSVG()+'<b>GO<br>NO-GO</b></div><nav class="tmenu">'+items.map(x=>{ const [a,v]=x[0].split(':'); return '<button data-act="'+a+'"'+(v?' data-s="'+v+'"':'')+'>'+x[1]+(x[2]?'<i class="tdia">!</i>':'')+'</button>'; }).join('')+'</nav><small class="tver">NASA Space Apps 2026</small></div>'+
       '<div class="tright"><button class="tnow" data-act="tmusic"><span><small>'+TX('IN RIPRODUZIONE','NOW PLAYING')+'</small>'+(music?'Go No-Go · '+TX('tema principale','main theme'):TX('Musica spenta','Music off'))+'</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l12-2v11.5a3 3 0 1 1-2-2.8V6.3L9 7.8z"/></svg></button>'+lvlBox()+
       '<div class="tunl"><h4>'+TX('Equipaggio','Crew')+'</h4><div class="tfaces">'+CREW.slice(0,4).map(c=>'<span>'+faceSVG(c)+'<small>'+c.n.split(' ')[0]+'</small></span>').join('')+'</div>'+(dd?'<div class="tdest"><span class="tart">'+artSVG(nd==='moon'?'moon':nd==='mars'?'mars':'free')+'</span><span><b>'+esc(dd.n)+'</b><small>'+TX('Si sblocca al livello ','Unlocks at level ')+dd.lvl+'</small></span></div>':'')+'</div></div></div>';
     if(s==='pause') h='<div class="tmain tpause"><div class="tleft"><div class="tlogo sm">'+logoSVG()+'<b>'+TX('PAUSA','PAUSED')+'</b></div><nav class="tmenu">'+items.map(x=>{ const [a,v]=x[0].split(':'); return '<button data-act="'+a+'"'+(v?' data-s="'+v+'"':'')+'>'+x[1]+'</button>'; }).join('')+'</nav></div><div class="tright">'+lvlBox()+(window.gngUser?'<div class="tunl"><h4>Account</h4><small>'+esc(window.gngUser.username)+'</small></div>':'')+'<div class="tunl"><h4>'+esc(G.co||TX('La tua agenzia','Your agency'))+'</h4><div class="tfaces">'+crewList().map(c=>'<span>'+faceSVG(c)+'<small>'+c.n.split(' ')[0]+'</small></span>').join('')+'</div></div></div></div>'; }
