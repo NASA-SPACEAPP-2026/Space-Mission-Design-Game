@@ -52,7 +52,7 @@ const S3 = (function () {
   const box = (w, h, d) => new T.BoxGeometry(w, h, d), cyl = (r1, r2, h, s) => new T.CylinderGeometry(r1, r2, h, s || 20), sph = (r) => new T.SphereGeometry(r, 24, 16);
 
   // Ogni pezzo ha la forma di quello che è, dentro la scatola delle sue celle
-  function partMesh(id, cat, w, h, D, out, P) { const g = new T.Group(), dd = D * 0.82; id = (P && P.look) || id; if (cat === 'nav') { cat = 'adcs'; id = 'NAV'; }
+  function partMesh(id, cat, w, h, D, out, P, tk) { const g = new T.Group(), dd = D * 0.82; id = (P && P.look) || id; if (cat === 'nav') { cat = 'adcs'; id = 'NAV'; }
     if (cat === 'avi') { const n = 5, hh = h * 0.8, rad = id === 'O3';
       const stack = (ox, sw) => { for (let i = 0; i < n; i++) { const y = -hh / 2 + i * hh / (n - 1); add(g, box(sw, 0.04, dd), MAT.pcb, ox, y, 0); add(g, box(sw * 0.3, 0.05, dd * 0.3), MAT.chip, ox - sw * 0.15, y + 0.04, 0); add(g, box(sw * 0.15, 0.04, dd * 0.15), MAT.gold, ox + sw * 0.25, y + 0.04, dd * 0.2); }
         [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(q => add(g, cyl(0.025, 0.025, hh, 8), MAT.gold, ox + q[0] * sw * 0.42, 0, q[1] * dd * 0.42)); };
@@ -79,6 +79,10 @@ const S3 = (function () {
     else if (cat === 'bat') { const nx = Math.max(2, Math.round(w * 3)), ny = Math.max(2, Math.round(h * 3)), r = Math.min(w / nx, h / ny) * 0.42;
       for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) { const x = -w / 2 + (i + 0.5) * w / nx, y = -h / 2 + (j + 0.5) * h / ny; add(g, cyl(r, r, dd * 0.9, 14), id === 'B5' ? M(0x18A0A0, { metalness: 0.4 }) : MAT.cellbat, x, y, 0, Math.PI / 2); add(g, cyl(r * 0.5, r * 0.5, 0.02, 10), MAT.alu, x, y, dd * 0.46, Math.PI / 2); }
       add(g, box(w * 0.98, h * 0.98, 0.04), MAT.dark, 0, 0, -dd * 0.48); add(g, box(w * 0.98, 0.05, dd * 0.92), M(0xF28B50), 0, h * 0.47, 0); }
+    else if (cat === 'prop' && tk > 1) { // serbatoio Grande o Extra: 2 o 3 serbatoi in fila lungo il lato lungo, collegati da un tubo
+      const vert = h >= w, n = tk, seg = (vert ? h : w) / n, r = Math.min(vert ? w : h, seg) * 0.4;
+      for (let i = 0; i < n; i++) { const o = -(vert ? h : w) / 2 + seg * (i + 0.5); const t = add(g, sph(r), MAT.tank, vert ? 0 : o, vert ? o : 0, 0); t.scale.z = Math.min(1, dd * 0.48 / r); add(g, cyl(r * 0.9, r * 0.9, 0.03, 24), MAT.rail, vert ? 0 : o, vert ? o : 0, 0); }
+      add(g, cyl(0.03, 0.03, (vert ? h : w) * 0.8, 8), MAT.copper, vert ? r * 0.75 : 0, vert ? 0 : r * 0.75, dd * 0.2, 0, 0, vert ? 0 : Math.PI / 2); }
     else if (cat === 'prop') {
       if (id === 'P5') { add(g, box(w * 0.7, h * 0.55, dd * 0.7), MAT.dark, 0, h * 0.1, 0); add(g, sph(Math.min(w, h) * 0.18), MAT.tank, -w * 0.18, h * 0.25, 0); add(g, cyl(w * 0.3, w * 0.34, h * 0.2, 28), MAT.alu, 0, -h * 0.3, 0); const gr = add(g, cyl(w * 0.27, w * 0.27, 0.02, 28), MAT.ion, 0, -h * 0.41, 0); gr.userData.ion = 1; }
       else if (id === 'P3') { const t = add(g, sph(Math.min(w * 2 / 3, h) * 0.4), MAT.tank, -w / 6, h * 0.02, 0); t.scale.z = dd / (Math.min(w * 2 / 3, h) * 0.8); add(g, cyl(w * 0.1, w * 0.13, h * 0.42, 16), MAT.red, w / 3, -h * 0.22, 0); add(g, box(w * 0.3, 0.08, dd * 0.6), MAT.copper, w / 6, -h * 0.05, 0); }
@@ -134,7 +138,7 @@ const S3 = (function () {
       const g = new T.Group(); g.position.set((cx(x0) + cx(x1)) / 2, (cyy(y0c) + cyy(y1)) / 2, 0);
       // impronta colorata sul fondo: dice a colpo d'occhio di che sottosistema si tratta
       cs.forEach(c => { const m = add(g, box(0.94, 0.94, 0.04), M(CATCOL[cat], { roughness: 0.6, emissive: 0x000000 }), cx(c[0]) - g.position.x, cyy(c[1]) - g.position.y, -D / 2 + 0.04); m.userData.foot = 1; });
-      const pm = partMesh(pl.id, cat, w, h, D, out, P); g.add(pm);
+      const pm = partMesh(pl.id, cat, w, h, D, out, P, pl.tk); g.add(pm);
       if (o.live) { if (!f.ok) g.traverse(m => { if (m.isMesh && m.userData.foot) { m.material = M(0xD2443A, { emissive: 0xD2443A }); m.userData.pulse = 1; } });
         else if (f.cold && !f.warm) g.traverse(m => { if (m.isMesh && m.userData.foot) m.material = M(0x7FC4FF, { emissive: 0x2F6FD6, emissiveIntensity: 0.5 }); });
         else if (f.heater) add(g, new T.TorusGeometry(Math.min(w, h) * 0.4, 0.03, 6, 32), M(0xFF7A3D, { emissive: 0xFF5A1F, emissiveIntensity: 0.8 }), 0, 0, D / 2 - 0.1);
