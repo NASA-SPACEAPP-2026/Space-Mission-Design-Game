@@ -86,7 +86,7 @@ describe("ported mission rules", () => {
   it("connects each new destination to its orbit and launcher", async () => {
     const sources = await Promise.all(["01-data.js", "02-orbit.js", "03-logic.js"].map((name) => read(`public/game/${name}`)));
     const { E, O, L } = runInNewContext(`${sources.join("\n")}\n;({ E, O, L })`);
-    expect(Object.keys(E.EXT)).toHaveLength(6);
+    expect(Object.keys(E.EXT)).toHaveLength(7);
     for (const [key, body] of Object.entries(E.EXT)) {
       expect(E.DEST[key]).toBeDefined();
       expect(O.BODY[key]).toBeDefined();

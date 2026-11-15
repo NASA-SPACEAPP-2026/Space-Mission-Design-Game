@@ -418,7 +418,7 @@ Destinazioni su Nettuno	Destinations at Neptune
 Destinazioni su Sole	Destinations at the Sun
 Catalogo	Catalogue
 Tutti i corpi celesti	All celestial bodies
-Il Sole e tutti i pianeti del Sistema Solare. Distanze, tempi e costi sono stime di gioco.	The Sun and all the planets of the Solar System. Distances, times and costs are game estimates.
+Il Sole, tutti i pianeti del Sistema Solare e la cometa 67P di Rosetta. Distanze, tempi e costi sono stime di gioco.	The Sun, all the planets of the Solar System and Rosetta’s Comet 67P. Distances, times and costs are game estimates.
 volabile ora	flyable now
 anteprima	preview
 Detriti	Debris
@@ -1134,6 +1134,10 @@ Saturno	Saturn
 Urano	Uranus
 Nettuno	Neptune
 Sole	Sun
+Cometa 67P	Comet 67P
+Cometa {n}P	Comet {n}P
+orbita attorno alla cometa 67P	orbit around Comet 67P
+nucleo di due lobi grande pochi km: gravità debolissima e getti di gas, niente atterraggio	two-lobed nucleus a few km across: extremely weak gravity and gas jets, no landing
 orbita attorno a Mercurio	orbit around Mercury
 orbita attorno a Giove	orbit around Jupiter
 orbita attorno a Saturno	orbit around Saturn
@@ -1151,7 +1155,7 @@ Un’orbita attorno al Sole, dentro quella di Mercurio: osservazione quasi conti
 Passaggio verso Mercurio o Giove	Ride to Mercury or Jupiter
 Un posto su una sonda di classe media: ti rilascia in un’orbita circolare di lavoro dopo la frenata	A seat on a mid-class probe: it releases you in a circular working orbit after braking
 Passaggio su una sonda Flagship (lanciatore pesante)	Ride on a Flagship probe (heavy-lift launcher)
-Un posto su una grande sonda lanciata con un razzo pesante: serve per i pianeti esterni e per il Sole	A seat on a large probe launched on a heavy rocket: needed for the outer planets and the Sun
+Un posto su una grande sonda lanciata con un razzo pesante: serve per i pianeti esterni, il Sole e la cometa 67P	A seat on a large probe launched on a heavy rocket: needed for the outer planets, the Sun and Comet 67P
 La sonda che ti porta frena per te e ti lascia in un’orbita circolare di lavoro: la frenata di cattura costa {n} m/s ed è già nel conto.	The probe that carries you brakes for you and leaves you in a circular working orbit: the capture burn costs {n} m/s and is already counted.
 Venere	Venus
 Verifica {s}	Check {s}
@@ -3816,7 +3820,7 @@ const fdLocked=M=>!M||['0','A','D','E','F','done'].indexOf(M.phase)>=0;
 let DRMADD=false, DRMG=null, DRMH=600;
 const DRMN={leo:'Terra',moon:'Luna',mars:'Marte',venus:'Venere'}, DRMDEL={leo:'nella',moon:'sulla',mars:'su',venus:'su'};
 Object.keys(E.EXT).forEach(k=>{ DRMN[k]=E.EXT[k].n; DRMDEL[k]='su'; });
-const drmNice=h=>h<1000?Math.round(h/10)*10:h<10000?Math.round(h/100)*100:Math.round(h/500)*500;
+const drmNice=h=>h<100?Math.round(h):h<1000?Math.round(h/10)*10:h<10000?Math.round(h/100)*100:Math.round(h/500)*500;
 const drmKm=h=>nf(Math.round(h))+' km';
 function drmRel(M){ const e=O.initial(M).el, pe=e.pe, ap=isFinite(e.ap)?e.ap:e.pe; return {pe,ap,h:Math.sqrt(Math.max(1,pe)*Math.max(1,ap)),circ:ap/Math.max(1,pe)<1.3}; }
 function drmGrave(M){ const dest=M.sat.dest||'leo'; if(dest==='leo') return 36100; const Z=O.ZONES[dest].filter(z=>z.band); return drmNice(Math.max(...Z.map(z=>z.band[1]))*1.2); }
@@ -4075,13 +4079,17 @@ function ptex(dest){ const k=PTEXK[dest]; if(!k) return null; let t=PTEX[k]; if(
 /* icona del corpo celeste: sfera disegnata con la mappa cartoon (luce a 3 fasce; il Sole e' acceso, niente ombra). null finche' la mappa non e' caricata */
 const TICO={};
 const TICOL={leo:15,moon:0,mars:-60,venus:0,mercury:0,jupiter:20,saturn:0,uranus:0,neptune:0,sun:0}; /* longitudine al centro dell'icona: la Terra mostra Europa e Africa */
-function texIco(dest){ if(TICO[dest]) return TICO[dest]; const t=ptex(dest); if(!t) return null; const R=48, S=R*2, c=document.createElement('canvas'); c.width=S; c.height=S; const x=c.getContext('2d'), img=x.createImageData(S,S), o=img.data, D=Math.PI/180, ct=Math.cos(14*D), st=Math.sin(14*D), l0=(TICOL[dest]||0)*D, sun=dest==='sun', P2=2*Math.PI;
+/* la cometa 67P non ha una mappa: e' il suo modello 3D (COMET, in 04-stubs.js) disegnato con la stessa luce a 3 fasce. Quando arriva il modello le icone e la vista orbitale si ridisegnano */
+let COMETW=0; const cometOk=()=>{ if(typeof COMET==='undefined') return false; if(COMET.ready()) return true; if(!COMETW){ COMETW=1; COMET.load(()=>{ GLB.key=''; document.dispatchEvent(new CustomEvent('gng-tex',{detail:'comet'})); }); } return false; };
+function cometIco(){ if(TICO.comet) return TICO.comet; if(!cometOk()) return null; const c=COMET.draw(96,0,0,0); return c?(TICO.comet=c.toDataURL('image/png')):null; }
+function cometGlobe(Rp,az,tilt){ if(!(Rp>0)||!cometOk()) return null; const R=Math.max(8,Math.min(240,Math.round(Rp/4)*4)), key='comet|'+R+'|'+az.toFixed(0)+'|'+tilt.toFixed(0); if(GLB.key===key) return GLB.c; const c=COMET.draw(R*2,az,tilt,0); if(c){ GLB.c=c; GLB.key=key; } return c; }
+function texIco(dest){ if(dest==='comet') return cometIco(); if(TICO[dest]) return TICO[dest]; const t=ptex(dest); if(!t) return null; const R=48, S=R*2, c=document.createElement('canvas'); c.width=S; c.height=S; const x=c.getContext('2d'), img=x.createImageData(S,S), o=img.data, D=Math.PI/180, ct=Math.cos(14*D), st=Math.sin(14*D), l0=(TICOL[dest]||0)*D, sun=dest==='sun', P2=2*Math.PI;
   for(let py=0;py<S;py++){ const yy=(R-py-.5)/R; for(let px=0;px<S;px++){ const xx=(px+.5-R)/R, r2=xx*xx+yy*yy; if(r2>1) continue; const z=Math.sqrt(1-r2), ys=yy*ct+z*st, zs=-yy*st+z*ct, lat=Math.asin(ys>1?1:ys<-1?-1:ys), lon=Math.atan2(xx,zs)+l0, u=(((lon+Math.PI)/P2)%1+1)%1, v=.5-lat/Math.PI, ti=((Math.min(t.h-1,(v*t.h)|0))*t.w+Math.min(t.w-1,(u*t.w)|0))*4, d=xx*-.45+yy*.5+z*.74, sh=sun?(r2>.8?.92:1.04):d>.55?1.08:d>.22?.84:d>0?.6:.3, i=(py*S+px)*4;
     if(r2>.94&&!sun){ o[i]=18; o[i+1]=24; o[i+2]=34; } else { o[i]=Math.min(255,t.d[ti]*sh); o[i+1]=Math.min(255,t.d[ti+1]*sh); o[i+2]=Math.min(255,t.d[ti+2]*sh); } o[i+3]=r2>.975?Math.round(255*(1-(r2-.975)/.025)):255; } }
   x.putImageData(img,0,0); return TICO[dest]=c.toDataURL('image/png'); }
 /* appena arriva una mappa, le icone gia' a schermo passano dal disegno vettoriale alla sfera cartoon */
 document.addEventListener('gng-tex',e=>{ const k=e.detail; document.querySelectorAll('svg.pico[data-k="'+k+'"]').forEach(s=>{ try{ s.outerHTML=planet(k,+s.dataset.r||undefined); }catch(er){} }); });
-function globe(dest,Rp,az,tilt){ const t=ptex(dest); if(!t||!(Rp>0)) return null; /* diametro a passi di 8 px e al massimo 480 px (poi ingrandito): poco lavoro e niente ricalcoli mentre lo zoom si assesta */ const R=Math.max(8,Math.min(240,Math.round(Rp/4)*4)), key=dest+'|'+R+'|'+az.toFixed(0)+'|'+tilt.toFixed(0); if(GLB.key===key) return GLB.c;
+function globe(dest,Rp,az,tilt){ if(dest==='comet') return cometGlobe(Rp,az,tilt); const t=ptex(dest); if(!t||!(Rp>0)) return null; /* diametro a passi di 8 px e al massimo 480 px (poi ingrandito): poco lavoro e niente ricalcoli mentre lo zoom si assesta */ const R=Math.max(8,Math.min(240,Math.round(Rp/4)*4)), key=dest+'|'+R+'|'+az.toFixed(0)+'|'+tilt.toFixed(0); if(GLB.key===key) return GLB.c;
   const S=R*2, c=GLB.c&&GLB.c.width===S?GLB.c:document.createElement('canvas'); c.width=S; c.height=S; const x=c.getContext('2d'), img=x.createImageData(S,S), o=img.data, D=Math.PI/180, ca=Math.cos(az*D), sa=Math.sin(az*D), ct=Math.cos(tilt*D), st=Math.sin(tilt*D), tw=t.w, th=t.h, td=t.d, L0=-.45, L1=.5, L2=.74, P2=2*Math.PI;
   for(let py=0;py<S;py++){ const yy=(R-py-.5)/R; for(let px=0;px<S;px++){ const xx=(px+.5-R)/R, r2=xx*xx+yy*yy; if(r2>1) continue; const z=Math.sqrt(1-r2), y=yy*ct+z*st, Z=-yy*st+z*ct, X=xx*ca+y*sa, Y=-xx*sa+y*ca;
     /* nel sistema del gioco il polo +Z punta verso il basso dello schermo: si gira la mappa di 180 gradi (Z e Y opposti) per avere il nord in alto senza specchiarla */ const u=Math.atan2(-Y,X)/P2+.5, v=.5+Math.asin(Z>1?1:Z<-1?-1:Z)/Math.PI, ti=((Math.min(th-1,(v*th)|0))*tw+Math.min(tw-1,(u*tw)|0))*4, d=xx*L0+yy*L1+z*L2, sh=dest==='sun'?(r2>.8?.92:1.04):d>.55?1.08:d>.22?.84:d>0?.6:.3, i=(py*S+px)*4; /* luce a 3 fasce, come i materiali cartoon del gioco (il Sole e' acceso, niente lato in ombra) */
@@ -4097,7 +4105,7 @@ function obDraw(){ const cv=$('#obcv'), M=cur(); if(!cv||!M||!document.body.cont
   const pal={leo:['#4b8fd1','#14416f'],moon:['#c4c4ca','#5e5e66'],mars:['#d9744a','#7a2a0c'],venus:['#ecd08e','#9c7a3c']}[dest]||(E.EXT[dest]&&E.EXT[dest].pal)||['#888','#444'];
   if(A){ const ga=g.createRadialGradient(cx,cy,Rp,cx,cy,atmR); ga.addColorStop(0,'rgba(120,190,255,.35)'); ga.addColorStop(1,'rgba(120,190,255,0)'); if(dest!=='leo'){ ga.addColorStop(0,'rgba(255,170,110,.35)'); } g.fillStyle=ga; g.beginPath(); g.arc(cx,cy,atmR,0,7); g.fill(); }
   { const gl=globe(dest,Rp,OBV.az,OBV.tilt); if(gl) g.drawImage(gl,cx-Rp,cy-Rp,Rp*2,Rp*2); else { const gr=g.createRadialGradient(cx-Rp*.35,cy-Rp*.35,Rp*.1,cx,cy,Rp); gr.addColorStop(0,pal[0]); gr.addColorStop(1,pal[1]); g.fillStyle=gr; g.beginPath(); g.arc(cx,cy,Rp,0,7); g.fill(); } }
-  g.strokeStyle='rgba(255,255,255,.22)'; g.lineWidth=1; g.beginPath(); g.ellipse(cx,cy,Rp,Math.max(.5,Rp*ct),0,0,7); g.stroke();
+  if(dest!=='comet'){ g.strokeStyle='rgba(255,255,255,.22)'; g.lineWidth=1; g.beginPath(); g.ellipse(cx,cy,Rp,Math.max(.5,Rp*ct),0,0,7); g.stroke(); } /* equatore: la cometa non e' una sfera */
   const stroke=it=>{ const k=O.kep(it.el,B), [P,Q]=O.pqK(k), pp=k.a*(1-k.e*k.e), n=360; let pen=false, last=null;
     for(let j=0;j<=n;j++){ const nu=j/n*2*Math.PI, r=pp/(1+k.e*Math.cos(nu)), c=Math.cos(nu)*r, s=Math.sin(nu)*r, q=proj([P[0]*c+Q[0]*s,P[1]*c+Q[1]*s,P[2]*c+Q[2]*s]), inA=A&&r<B.R+A[1], bad=r<B.R;
       const col=bad?null:inA&&it.tag?'#FF4D3D':it.col; if(bad||hid(q)){ if(pen) g.stroke(); pen=false; continue; }
@@ -4638,7 +4646,7 @@ function decCard(M,fl){ const el=$('#dec'); if(!el){ document.body.classList.rem
     (decFix(M,p)||'<div class="dops">'+p.opts.map(o=>'<button class="btn" data-act="decide" data-k="'+o.k+'"'+(o.off?' disabled':'')+'><b>'+esc(o.l)+'</b><small>'+esc(o.h||'')+'</small></button>').join('')+'</div>')+'</div>'); }
 // pianeta disegnato una volta per destinazione
 const PLAN={};
-function planetCanvas(k){ if(PLAN[k]) return PLAN[k]; const S=256, cv=document.createElement('canvas'); cv.width=cv.height=S; const g=cv.getContext('2d'), r=E.rng(k.length*31+7), R=S/2-6;
+function planetCanvas(k){ if(k==='comet'&&cometOk()) return PLAN.cometM||(PLAN.cometM=COMET.draw(256,0,0,0)); /* finche' il modello non arriva resta la sfera grigia qui sotto */ if(PLAN[k]) return PLAN[k]; const S=256, cv=document.createElement('canvas'); cv.width=cv.height=S; const g=cv.getContext('2d'), r=E.rng(k.length*31+7), R=S/2-6;
   g.save(); g.beginPath(); g.arc(S/2,S/2,R,0,7); g.clip();
   const base={moon:['#C9CED6','#6F7682'],leo:['#4A8FE0','#16346F'],mars:['#D9774C','#6E2A16'],venus:['#F0D79A','#9C7A36']}[k]||E.EXT[k].pal, gr=g.createRadialGradient(S*.38,S*.36,10,S/2,S/2,R); gr.addColorStop(0,base[0]); gr.addColorStop(1,base[1]); g.fillStyle=gr; g.fillRect(0,0,S,S);
   if(k==='moon') for(let i=0;i<34;i++){ const x=r()*S, y=r()*S, rr=4+r()*20; g.fillStyle='rgba(60,64,72,'+(.12+r()*.2)+')'; g.beginPath(); g.arc(x,y,rr,0,7); g.fill(); g.strokeStyle='rgba(235,238,242,.25)'; g.beginPath(); g.arc(x-1,y-1,rr,3.4,5.6); g.stroke(); }
@@ -4809,7 +4817,7 @@ let PGN=0;
    bodyArt(k,R,cy,id) disegna il corpo k con raggio R centrato in (0,cy). Tutto è in uno spazio "unitario" di raggio 17 (scalato da R/17):
    gradiente radiale (luce in alto a sinistra), dettagli ritagliati sulla sfera, terminatore scuro in basso a destra, riflesso, bagliore atmosferico.
    `id` rende unici gradienti e clipPath, cosi' più icone nella stessa pagina non si sovrappongono. */
-const BODYC={leo:['#7CC0F5','#2F6FC9','#0A2050'],moon:['#F0F1F4','#A9AEB7','#474D58'],venus:['#FCEDC4','#E3BE72','#85591F'],mars:['#F0976B','#C5532C','#4A180C'],mercury:['#D6CCC2','#8F847B','#3A3430'],jupiter:['#F3E1BD','#CFA06C','#633E25'],saturn:['#FAEDC8','#DDC48A','#786234'],uranus:['#DDF9FB','#86D0DA','#2B6D7B'],neptune:['#94B4FF','#3F65D0','#10246A'],sun:['#FFF7C4','#FFC83D','#F07018']};
+const BODYC={leo:['#7CC0F5','#2F6FC9','#0A2050'],moon:['#F0F1F4','#A9AEB7','#474D58'],venus:['#FCEDC4','#E3BE72','#85591F'],mars:['#F0976B','#C5532C','#4A180C'],mercury:['#D6CCC2','#8F847B','#3A3430'],jupiter:['#F3E1BD','#CFA06C','#633E25'],saturn:['#FAEDC8','#DDC48A','#786234'],uranus:['#DDF9FB','#86D0DA','#2B6D7B'],neptune:['#94B4FF','#3F65D0','#10246A'],sun:['#FFF7C4','#FFC83D','#F07018'],comet:['#D8D4CE','#9A958E','#3E3B37']};
 const BODYX={leo:1.12,moon:1.08,venus:1.15,mars:1.1,mercury:1.07,jupiter:1.08,saturn:1.32,uranus:1.25,neptune:1.12,sun:1.32};
 const BODYGLOW={leo:'#8FCBFF',venus:'#FFE2A0',mars:'#FFB38A',neptune:'#7FA0FF',uranus:'#B9F2F6',sun:'#FFC83D'};
 const bdCr=(x,y,r,o)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="#000" opacity="'+(o||.22)+'"/><path d="M'+(x-r)+' '+y+'A'+r+' '+r+' 0 0 1 '+x+' '+(y-r)+'" fill="none" stroke="#fff" stroke-width=".45" opacity=".32"/>';
@@ -4830,7 +4838,9 @@ const BODYD=(()=>{ const sw=(y,c,o,w)=>'<path d="M-17 '+y+'q4.25-1.4 8.5 0t8.5 0
   sun:{corona:'<path d="'+corona+'Z" fill="#FFB52E" opacity=".4"/>',art:'<ellipse cx="-5" cy="-3" rx="2.4" ry="1.5" fill="#9A3A0B" opacity=".7"/><ellipse cx="-5" cy="-3" rx="3.6" ry="2.4" fill="#D9601A" opacity=".35"/><ellipse cx="6" cy="4" rx="1.6" ry="1" fill="#9A3A0B" opacity=".65"/><ellipse cx="6" cy="4" rx="2.6" ry="1.8" fill="#D9601A" opacity=".3"/><ellipse cx="2" cy="-9" rx="1.2" ry=".8" fill="#9A3A0B" opacity=".55"/><circle cx="-10" cy="6" r="1.8" fill="#FFF3A8" opacity=".35"/><circle cx="9" cy="-6" r="2" fill="#FFF3A8" opacity=".3"/><circle cx="-2" cy="10" r="1.5" fill="#FFF3A8" opacity=".3"/><circle cx="-12" cy="-7" r="1.3" fill="#FF9A1F" opacity=".35"/><circle cx="12" cy="6" r="1.4" fill="#FF9A1F" opacity=".35"/><circle cx="1" cy="1" r="1.2" fill="#FFF3A8" opacity=".3"/>'}
   }; })();
 /** Corpo celeste 3D vettoriale (raggio R, centro (0,cy), id univoco per gradienti e clipPath). */
-function bodyArt(k,R,cy,id){ const c=BODYC[k]; if(!c) return '<circle r="'+R+'" cy="'+cy+'" fill="'+((E.DEST[k]||{}).col||'#888')+'"/>';
+function bodyArt(k,R,cy,id){ if(k==='comet'){ const tx=texIco(k); /* niente alone, riflesso o bordo da sfera: il nucleo a due lobi (modello vero; prima che arrivi, due lobi grigi) */
+    return '<g transform="translate(0 '+cy+') scale('+(R/17).toFixed(4)+')">'+(tx?'<image href="'+tx+'" x="-17" y="-17" width="34" height="34"/>':'<g fill="#8F8A83" stroke="#121822" stroke-width="1.2"><ellipse cx="-4" cy="3" rx="11" ry="8.5"/><ellipse cx="8" cy="-6.5" rx="7.5" ry="6.5"/></g>')+'</g>'; }
+  const c=BODYC[k]; if(!c) return '<circle r="'+R+'" cy="'+cy+'" fill="'+((E.DEST[k]||{}).col||'#888')+'"/>';
   const A=BODYD[k]||{}, ex=BODYX[k]||1.1, sun=k==='sun', e1=(1/ex).toFixed(3), glow=BODYGLOW[k]||c[1];
   const defs='<defs><radialGradient id="'+id+'g" cx=".34" cy=".3" r=".82"><stop offset="0" stop-color="'+c[0]+'"/><stop offset=".5" stop-color="'+c[1]+'"/><stop offset="1" stop-color="'+c[2]+'"/></radialGradient>'+
     '<radialGradient id="'+id+'t" cx=".32" cy=".28" r=".8"><stop offset=".38" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="'+(sun?.25:.6)+'"/></radialGradient>'+
@@ -4870,7 +4880,7 @@ const BODIES={
 /* batch 4: i sei corpi esterni derivano da E.EXT (fonte unica) e sono volabili */
 Object.keys(E.EXT).forEach(k=>{ const x=E.EXT[k]; BODIES[k]={n:x.n,col:x.col,d:x.d,days:x.days,dv:x.dv,c:x.c,lvl:x.lvl,types:x.types,ext:x.ext,play:1}; });
 function nmAll(){ const lv=L.level(G.xp);
-  $('#nmZone').innerHTML='<h3>Catalogo</h3><h2>Tutti i corpi celesti</h2><p class="fine">Il Sole e tutti i pianeti del Sistema Solare. Distanze, tempi e costi sono stime di gioco.</p><div class="dests ball">'+Object.keys(BODIES).map(k=>{ const B=BODIES[k], lock=lv<B.lvl;
+  $('#nmZone').innerHTML='<h3>Catalogo</h3><h2>Tutti i corpi celesti</h2><p class="fine">Il Sole, tutti i pianeti del Sistema Solare e la cometa 67P di Rosetta. Distanze, tempi e costi sono stime di gioco.</p><div class="dests ball">'+Object.keys(BODIES).map(k=>{ const B=BODIES[k], lock=lv<B.lvl;
     return '<button class="dcard'+(lock?' lock':'')+'" data-act="extpick" data-k="'+k+'"'+(lock?' disabled':'')+'>'+planet(k)+'<b>'+B.n+'</b><small>'+(lock?'🔒 '+TX('livello ','level ')+B.lvl:keur(B.c))+'</small></button>'; }).join('')+'</div><div class="row"><button class="btn" data-act="nmback">← Indietro</button></div>';
   $('#nmMain').hidden=true; $('#nmZone').hidden=false; }
 const nmState={dest:'leo',zone:'low'};
