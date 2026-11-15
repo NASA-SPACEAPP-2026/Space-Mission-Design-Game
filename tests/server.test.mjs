@@ -85,6 +85,12 @@ describe("static server", () => {
     expect(font.headers["cache-control"]).toContain("immutable");
   });
 
+  it("always revalidates unhashed top-level scripts and styles", async () => {
+    const script = await rawGet(`${baseUrl}/fallback.js`);
+    expect(script.headers["cache-control"]).toBe("no-cache");
+    expect(script.headers.etag).toBeTruthy();
+  });
+
   it("serves precompressed brotli with a length and Vary", async () => {
     const response = await rawGet(`${baseUrl}/large.js`, { "accept-encoding": "br" });
     expect(response.status).toBe(200);
