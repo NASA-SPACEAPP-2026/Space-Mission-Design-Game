@@ -3889,7 +3889,8 @@ const drmFire=(x,y,s)=>'<g transform="translate('+x+' '+y+') scale('+s+')"><elli
 const drmBurst=(x,y,s)=>'<g transform="translate('+x+' '+y+') scale('+s+')"><circle r="13" fill="#FFD27A" opacity=".75"/>'+[0,40,80,120,160,200,240,280,320].map(a=>'<path d="M0 0L'+(Math.cos(a*Math.PI/180)*19).toFixed(1)+' '+(Math.sin(a*Math.PI/180)*19).toFixed(1)+'" stroke="#F0532A" stroke-width="2" stroke-linecap="round"/>').join('')+'<circle r="3.5" fill="#22313B"/></g>';
 const drmLander=(x,y,s)=>'<g transform="translate('+x+' '+y+') scale('+s+')"><path d="M-12 8L-7 0H7L12 8M-7 0V-6H7V0" stroke="#22313B" stroke-width="1.8" fill="#F2C14E"/><rect x="-5" y="-12" width="10" height="7" rx="1" fill="#fff" stroke="#22313B" stroke-width="1.4"/></g>';
 // ---- barra dei passi della fase B ----
-function bSteps(M){ const st=M.stage, D=M.drm||{}, it=[['drm','1 · Missione (DRM)'],['sat','2 · Satellite'],['orb','3 · Orbite in dettaglio']], cur0=st==='sat'?'sat':st==='orb'?'orb':'drm';
+function bSteps(){ return ''; } /* box "1 · Missione / 2 · Satellite / 3 · Orbite / PDR" tolto */
+function bStepsOld(M){ const st=M.stage, D=M.drm||{}, it=[['drm','1 · Missione (DRM)'],['sat','2 · Satellite'],['orb','3 · Orbite in dettaglio']], cur0=st==='sat'?'sat':st==='orb'?'orb':'drm';
   return '<div class="bsteps" title="'+TX('Per cambiare passo vai all’edificio giusto nel campus','To change step, go to the right building on the campus')+'">'+it.map(([k,n])=>'<span class="bst'+(k===cur0?' on':'')+(k!==cur0&&(k==='drm'?D.eol:k==='sat'?D.done:false)?' ok':'')+'">'+n+'</span>').join('<i></i>')+'<i></i><span class="bst pdr">PDR</span></div>'; }
 // ---- pannello sequenza ----
 function drmPanel(M){ const D=M.drm, dest=M.sat.dest||'leo', land=drmLand(M), rel=drmRel(M), lvO=E.LV[M.sat.lv], atm=dest!=='moon';
