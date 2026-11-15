@@ -145,6 +145,26 @@ const rank = role => ROLES.indexOf(role);
 const hash = value => createHash('sha256').update(value).digest('hex');
 const NAME = /^[\p{L}\p{N}][\p{L}\p{N} _.'-]{1,22}[\p{L}\p{N}]$/u;
 const LINK = /(https?:\/\/|www\.|\b[\p{L}\p{N}-]+\.(com|net|org|it|io|ly|gg|xyz|me|co|app|link|info|tv|ru|cn)\b)/iu;
+/* ---------- Moderation ----------
+   The game is used by school classes: chat text, names, mottos and mission names are checked for bad language
+   (Italian and English, blasphemy, slurs). Text is normalised first (accents, l33t digits) and every letter of a word may
+   be stretched ("fuuuck"). Words start at a word boundary, so innocent words that merely contain one pass ("scazzottata"). */
+const RUDE_WORDS = ['cazz', 'minchi', 'stronz', 'coglion', 'puttan', 'vaffancul', 'fancul', 'bastard', 'froci', 'ricchion', 'fottut', 'fottiti',
+  'zoccol', 'mignott', 'fuck', 'shit', 'bitch', 'asshole', 'cunt', 'motherf', 'whore', 'slut', 'nigg', 'retard', 'faggot'];
+const RUDE_EXACT = ['merd[ae]', 'fig(?:a|he)(?![a-z])', 'troi(?:a|e)(?![a-z])', 'negr(?:o|a|i|e)(?![a-z])'];
+const RUDE = new RegExp('(^|[^a-z])(' + RUDE_WORDS.map(w => w.split('').map(c => c + '+').join('')).concat(RUDE_EXACT).join('|') + ')');
+const BLASPHEMY = /(^| )(porc[oa] ?(dio|madonna|zio)|dio ?(cane|porco|maiale|bestia|boia|ladro)|madonna ?(puttana|troia))/;
+const LEET = { 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', 8: 'b', '@': 'a', $: 's', '!': 'i', '|': 'i' };
+export function rude(text) {
+  const t = String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[0134578@$!|]/g, c => LEET[c]);
+  return RUDE.test(t) || BLASPHEMY.test(t.replace(/[^a-z]+/g, ' ').replace(/([a-z])\1+/g, '$1'));
+}
+// Preset phrases: the only text allowed in school mode. Stored with their code, shown in the reader's language.
+export const PHRASES = {
+  nice_launch: 'Bel lancio!', need_solar: 'Mi serve un pannello solare', go: 'GO per il lancio!', help: 'Mi aiutate?',
+  thanks: 'Grazie!', well_done: 'Ben fatto, squadra!', joint: 'Entro nella missione congiunta', watch_me: 'Guardatemi giocare!'
+};
+export const REPORTS_TO_HIDE = 3;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROLE_ORDER = `array_position(ARRAY['director','vice','chief_engineer','member'], m.role)`;
 
@@ -185,6 +205,7 @@ function settingsFrom(body, creating) {
     if (typeof body.name !== 'string') throw bad('name');
     const name = clean(body.name);
     if (!NAME.test(name) || LINK.test(name)) throw bad('name');
+    if (rude(name)) throw new Fail(400, 'language', { field: 'name' });
     out.name = name;
   }
   if (creating || body.crest !== undefined) {
@@ -197,6 +218,7 @@ function settingsFrom(body, creating) {
     if (typeof body.motto !== 'string') throw bad('motto');
     const motto = clean(body.motto);
     if (motto.length > LIMITS.motto || LINK.test(motto)) throw bad('motto');
+    if (rude(motto)) throw new Fail(400, 'language', { field: 'motto' });
     out.motto = motto;
   }
   if (body.kind !== undefined) {
@@ -225,6 +247,7 @@ function missionCard(m) {
     if (typeof value !== 'string') throw bad(field);
     const t = clean(value);
     if (t.length > max || LINK.test(t)) throw bad(field);
+    if (rude(t)) throw new Fail(400, 'language', { field });
     return t;
   };
   const name = text(m.name, 24, 'mission.name');
@@ -272,7 +295,7 @@ function missionFacts(f) {
 const message = r => r.deleted
   ? { id: r.id, kind: r.kind, author: r.author, at: r.created_at, deleted: true }
   : { id: r.id, kind: r.kind, author: r.author, role: r.author_role, at: r.created_at,
-    ...(r.kind === 'text' ? { text: r.body } : r.kind === 'sticker' ? { sticker: r.body, ...(r.data && r.data.to ? { to: r.data.to } : {}) } : { data: r.data }) };
+    ...(r.kind === 'text' ? { text: r.body, ...(r.data && r.data.phrase ? { phrase: r.data.phrase } : {}) } : r.kind === 'sticker' ? { sticker: r.body, ...(r.data && r.data.to ? { to: r.data.to } : {}) } : { data: r.data }) };
 const MESSAGE_COLUMNS = `m.id::float8 AS id, m.kind, m.body, m.data, m.created_at, m.deleted_at IS NOT NULL AS deleted,
   u.username AS author, cm.role AS author_role FROM consortium_messages m LEFT JOIN users u ON u.id = m.author_id
   LEFT JOIN consortium_members cm ON cm.user_id = m.author_id AND cm.consortium_id = m.consortium_id`;
@@ -434,10 +457,13 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
         ORDER BY r.id`, [me.cid]) : [];
       const [{ n: unread }] = await rows(db, `SELECT count(*)::int AS n FROM consortium_messages WHERE consortium_id=$1
         AND id > $2 AND author_id IS DISTINCT FROM $3 AND deleted_at IS NULL`, [me.cid, me.last_read, user.id]);
+      // reported messages still to review (director and deputy only)
+      const reports = lead ? (await rows(db, `SELECT count(DISTINCT m.id)::int AS n FROM consortium_messages m JOIN message_reports r ON r.message_id=m.id
+        WHERE m.consortium_id=$1 AND m.reviewed_at IS NULL`, [me.cid]))[0].n : 0;
       return { body: {
         consortium: { ...summary(c), schoolMode: c.school_mode, ...(lead ? { inviteCode: c.invite_code } : {}) },
         me: { username: mine.username, role: mine.role, science: mine.science, spectate: mine.spectate },
-        members, requests, unread, player: { science }
+        members, requests, unread, player: { science }, ...(lead ? { reports } : {})
       } };
     },
 
@@ -480,6 +506,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
       const code = (body.code || '').trim().toUpperCase();
       const note = clean(body.message || '');
       if (note.length > LIMITS.request || LINK.test(note)) throw bad('message');
+      if (rude(note)) throw new Fail(400, 'language', { field: 'message' });
       await limit(`join:${user.id}`, 30);
       return tx(db, async t => {
         const [c] = await rows(t, 'SELECT id, kind, invite_code, min_science, max_members FROM consortia WHERE id=$1 FOR UPDATE', [id]);
@@ -610,6 +637,11 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
         text = clean(body.text);
         if (!text || text.length > LIMITS.text) throw bad('text');
         if (LINK.test(text)) throw new Fail(400, 'link');
+        if (rude(text)) throw new Fail(400, 'language');
+      } else if (kind === 'phrase') {
+        // a preset phrase: stored as text with its code, so every reader sees it in their own language
+        if (!Object.prototype.hasOwnProperty.call(PHRASES, body.phrase)) throw bad('phrase');
+        kind = 'text'; text = PHRASES[body.phrase]; data = { phrase: body.phrase };
       } else if (kind === 'sticker') {
         if (!STICKERS.includes(body.sticker)) throw bad('sticker');
         text = body.sticker;
@@ -623,7 +655,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
         const [me] = await rows(t, `SELECT m.consortium_id AS cid, m.role, c.school_mode, c.level FROM consortium_members m
           JOIN consortia c ON c.id=m.consortium_id WHERE m.user_id=$1 FOR UPDATE OF m`, [user.id]);
         if (!me) throw new Fail(404, 'no_consortium');
-        if (kind === 'text' && me.school_mode) throw new Fail(403, 'school_mode');
+        if (kind === 'text' && !data && me.school_mode) throw new Fail(403, 'school_mode');
         if (kind === 'sticker' && (STICKER_LEVEL[text] || 1) > me.level) throw new Fail(403, 'sticker_locked', { level: STICKER_LEVEL[text] });
         const recent = await rows(t, `SELECT 1 FROM consortium_messages WHERE author_id=$1
           AND created_at > now() - interval '2 seconds' LIMIT 1`, [user.id]);
@@ -643,6 +675,53 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
       return { status: 201, body: { message: saved } };
     },
 
+    // Report a teammate's message. Reports from three different members (REPORTS_TO_HIDE) hide it at once; it stays stored for review.
+    async report({ user, body, params: [mid] }) {
+      const reason = body.reason ?? 'rude';
+      if (!['rude', 'spam', 'other'].includes(reason)) throw bad('reason');
+      await limit(`report:${user.id}`, 30);
+      return tx(db, async t => {
+        const [me] = await rows(t, 'SELECT consortium_id AS cid FROM consortium_members WHERE user_id=$1', [user.id]);
+        if (!me) throw new Fail(404, 'no_consortium');
+        const [m] = await rows(t, 'SELECT author_id, kind, deleted_at FROM consortium_messages WHERE id=$1 AND consortium_id=$2 FOR UPDATE', [mid, me.cid]);
+        if (!m || m.kind === 'system') throw new Fail(404, 'message_not_found');
+        if (m.author_id === user.id) throw new Fail(400, 'self');
+        const added = await rows(t, 'INSERT INTO message_reports(message_id,reporter_id,reason) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING 1', [mid, user.id, reason]);
+        const [{ n }] = await rows(t, 'SELECT count(*)::int AS n FROM message_reports WHERE message_id=$1', [mid]);
+        let hidden = !!m.deleted_at;
+        if (added.length) await t.query('UPDATE consortium_messages SET reviewed_at=NULL WHERE id=$1', [mid]);
+        if (!hidden && n >= REPORTS_TO_HIDE) { await t.query('UPDATE consortium_messages SET deleted_at=now() WHERE id=$1', [mid]); hidden = true; }
+        return { body: { reported: true, reports: n, hidden } };
+      });
+    },
+
+    // Director and deputy: the reported messages still to review, with how many reports and why.
+    async reports({ user }) {
+      const me = await touch(user.id);
+      if (rank(me.role) < rank('vice')) throw new Fail(403, 'forbidden');
+      const list = await rows(db, `SELECT m.id::float8 AS id, m.kind, m.body, m.data, m.created_at AS at, m.deleted_at IS NOT NULL AS hidden,
+        u.username AS author, count(r.*)::int AS reports, array_agg(DISTINCT r.reason) AS reasons
+        FROM consortium_messages m JOIN message_reports r ON r.message_id=m.id LEFT JOIN users u ON u.id=m.author_id
+        WHERE m.consortium_id=$1 AND m.reviewed_at IS NULL GROUP BY m.id, u.username ORDER BY max(r.created_at) DESC LIMIT 30`, [me.cid]);
+      return { body: { reports: list.map(x => ({ id: x.id, author: x.author, kind: x.kind, at: x.at, hidden: x.hidden, reports: x.reports, reasons: x.reasons,
+        ...(x.kind === 'text' ? { text: x.body } : x.kind === 'sticker' ? { sticker: x.body } : { data: x.data }) })) } };
+    },
+
+    // delete: the message is removed for good; dismiss: the report is closed and a message hidden by reports comes back
+    // (never one its author deleted).
+    async review({ user, body, params: [mid] }) {
+      if (!['dismiss', 'delete'].includes(body.action)) throw bad('action');
+      return tx(db, async t => {
+        const me = await lockMine(t, user.id, rank('vice'));
+        const [m] = await rows(t, `SELECT 1 FROM consortium_messages m WHERE m.id=$1 AND m.consortium_id=$2
+          AND EXISTS (SELECT 1 FROM message_reports r WHERE r.message_id=m.id)`, [mid, me.cid]);
+        if (!m) throw new Fail(404, 'message_not_found');
+        if (body.action === 'delete') await t.query('UPDATE consortium_messages SET deleted_at=coalesce(deleted_at, now()), deleted_by=$2, reviewed_at=now() WHERE id=$1', [mid, user.id]);
+        else await t.query('UPDATE consortium_messages SET deleted_at=CASE WHEN deleted_by IS NULL THEN NULL ELSE deleted_at END, reviewed_at=now() WHERE id=$1', [mid]);
+        return { body: { reviewed: true, action: body.action } };
+      });
+    },
+
     async remove({ user, params: [mid] }) {
       const me = await touch(user.id);
       const [m] = await rows(db, `SELECT author_id FROM consortium_messages WHERE id=$1 AND consortium_id=$2
@@ -658,6 +737,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
       if (typeof body.mission !== 'string') throw bad('mission');
       const mission = clean(body.mission);
       if (!mission || mission.length > 24 || LINK.test(mission)) throw bad('mission');
+      if (rude(mission)) throw new Fail(400, 'language', { field: 'mission' });
       const me = await touch(user.id);
       await limit(`activity:${user.id}`, 30);
       await system(db, me.cid, { code: body.type, user: user.username, mission });
@@ -677,6 +757,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
       if (typeof body.name !== 'string') throw bad('name');
       const name = clean(body.name);
       if (name.length < 3 || name.length > 24 || LINK.test(name)) throw bad('name');
+      if (rude(name)) throw new Fail(400, 'language', { field: 'name' });
       await limit(`joint:${user.id}`, 10);
       const id = randomUUID(), state = jointNew(name, user.username);
       await tx(db, async t => {
@@ -785,7 +866,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
       if (typeof body.mission !== 'string' || !/^[A-Za-z0-9_.:-]{1,64}$/.test(body.mission)) throw bad('mission');
       if (!int(body.points, 0, LIMITS.missionScience)) throw bad('points');
       if (body.name !== undefined && typeof body.name !== 'string') throw bad('name');
-      const name = clean(body.name || '').slice(0, 24), facts = missionFacts(body.facts);
+      const raw = clean(body.name || '').slice(0, 24), name = rude(raw) ? '' : raw, facts = missionFacts(body.facts);
       await limit(`science:${user.id}`, 60);
       const week = weekOf(now()), goal = goalOf(week);
       return tx(db, async t => {
@@ -876,7 +957,8 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
     ['POST', '/mine/requests/(\\d{1,15})', 'decide'],
     ['POST', '/mine/members/([A-Za-z0-9_]{3,24})', 'member'],
     ['GET', '/mine/messages', 'messages'], ['POST', '/mine/messages', 'post'],
-    ['DELETE', '/mine/messages/(\\d{1,15})', 'remove'],
+    ['DELETE', '/mine/messages/(\\d{1,15})', 'remove'], ['POST', '/mine/messages/(\\d{1,15})/report', 'report'],
+    ['GET', '/mine/reports', 'reports'], ['POST', '/mine/reports/(\\d{1,15})', 'review'],
     ['GET', '/mine/unread', 'unread'], ['POST', '/mine/activity', 'activity'],
     ['POST', '/leave', 'leave'], ['POST', '/science', 'science'],
     ['PUT', '/live', 'live'], ['GET', '/live/([A-Za-z0-9_]{3,24})', 'watch'],
