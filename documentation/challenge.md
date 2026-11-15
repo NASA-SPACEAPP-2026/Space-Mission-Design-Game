@@ -1,135 +1,59 @@
-🇬🇧 English | [🇮🇹 Italiano](challenge.it.md)
+**English** | [Italiano](challenge.it.md)
 
 # Challenge: Space Mission Design Game
 
-## 🌌 Challenge description
+[Index](README.md) · [Features and setup](../README.md)
 
-Designing a space mission requires balancing competing needs: scientific objectives, vehicle design, instruments, launch vehicle, budget, power, mass, communications, and orbital constraints.
+## Educational objective
 
-This challenge consists of creating an **interactive game** that allows participants to:
-- design a complete space mission;
-- manage limited resources;
-- simulate the execution of the mission;
-- evaluate how each choice affects the final outcome.
+Space mission design balances scientific goals, spacecraft, instruments, launcher, orbit, mass, power, cost, data, communications, and lifetime. Improving one parameter can worsen others: a more capable instrument may increase science value, consumption, mass, and data to transmit.
 
-The educational goal is to make engineering trade-offs tangible, since they are often only treated theoretically.
+The challenge proposes an interactive game where individuals or groups define a mission, manage limited resources, simulate execution, and understand the outcome. Its educational value is making subsystem trade-offs concrete and allowing experimentation, failure, and redesign.
 
----
+This is an adaptation of the brief previously stored in the repository, not a verification of official event updates. Consult the official challenge page's Resources section for external materials and updates.
 
-## 📚 Background
+## Expected journey
 
-Space missions are complex systems in which scientific objectives, technical requirements, available resources, and operational constraints must coexist.
+1. Define objectives and requirements before technical choices.
+2. Design the spacecraft and scientific payload.
+3. Select launcher, destination, and orbit.
+4. Check mass, energy, budget, data, communications, and lifetime.
+5. Simulate and assess outcome, efficiency, and scientific value.
+6. Revise the design using the final report.
 
-During the design phase, decisions about:
-- the spacecraft,
-- scientific instruments,
-- launch and orbit,
-- power, mass, communications,
-- mission cost and duration,
+There should not be one perfect answer: different configurations can meet different goals. Feedback should explain the consequences of decisions.
 
-are strongly interdependent. Improving one aspect may worsen others (e.g., a more powerful instrument = more scientific value, but also more mass, power consumption, data volume, and cost).
+## Design considerations
 
-Today, many educational tools cover only individual aspects (orbits, rockets, subsystems) without showing the integration of the entire mission. This creates a gap between knowing the concepts and being able to make system-level decisions.
+| Area | Challenge expectations |
+| --- | --- |
+| Experience | Clear UI, tutorials, progressive difficulty and scenarios |
+| Requirements | Explicit goals and consistent realistic constraints |
+| Satellite | Structure, power, batteries, communications, computer, attitude control, instruments |
+| Payload | Mass, cost, power, generated data, scientific return |
+| Orbits | Coverage, windows, contacts, and lifetime depend on orbit selection |
+| Launch | Compatibility between mass, destination, and launcher capacity |
+| Resources | Understandable indicators for mass, power, money, data, and time |
+| Evaluation | Performance, efficiency, and decision quality, with explanations |
+| Collaboration | Potential cooperation for up to four people with distinct roles |
 
-An interactive game can bridge this gap, allowing participants to experiment, make mistakes, iterate, and learn.
+Collaboration can divide science, spacecraft, communications, and resource responsibilities while retaining shared final decisions. This is an objective in the brief, not a promise of implemented multiplayer.
 
----
+## Additional ideas in the brief
 
-## 🎯 Solution goals
+Multiple scenarios, unexpected events, simplified or realistic models, interactive views, dashboards, final reports, design comparisons, leaderboards, cooperation, team competition, sandbox, and post-mission analysis are possible extensions. Inclusion in the brief does not mean each feature is implemented.
 
-Build a **Space Mission Design Game** in which a single player or a team (up to 4 people) can:
+## Mapping to the current project
 
-1. Define the mission objective and requirements  
-2. Design the spacecraft and scientific payload  
-3. Select the launch vehicle and orbit  
-4. Manage constraints on budget, mass, power, communications, data, and duration  
-5. Simulate the mission and evaluate the result
+| Topic | Repository status |
+| --- | --- |
+| Design and resources | Browser data, rules, satellite configuration, budgets |
+| Visual experience | Campus, rooms, 3D editors, and 2D/SVG views |
+| Progression | Requirements, reviews, tests, launch, reports |
+| Tutorial and experimentation | Tutorial and sandbox modes |
+| Detailed orbital analysis | Optional GMAT with local fallback |
+| Identity | Click-only introduction, required username/password registration or login, PostgreSQL |
+| Mission persistence | Browser-local saves, without cloud storage |
+| Online cooperation and rankings | No multiplayer or leaderboard backend implemented |
 
-A solid solution should include:
-- a clear user interface;
-- a mission configuration system;
-- resource management mechanics;
-- single-player and/or multiplayer support (up to 4);
-- a simulation and evaluation/scoring system.
-
-The game should reward:
-- mission performance,
-- scientific value,
-- efficient use of resources,
-- quality of decisions,
-- team collaboration.
-
----
-
-## 🧩 Potential Considerations
-
-### 1) Game design and user experience
-- Accessibility for different skill levels.
-- Single-player and cooperative modes (up to 4 participants).
-- Distinct team roles (e.g., planning, spacecraft, science, communications, resources).
-- Clear objectives and understandable feedback on the reasons for success/failure.
-- Ability to modify the design and rerun multiple simulations.
-- Scoring system with different difficulty levels/scenarios.
-
-### 2) Mission design
-- Define the objective before making technical choices.
-- Every decision must have explicit consequences.
-- No single "perfect solution": different combinations can work.
-- Realistic constraints on budget, mass, power, communications, and lifetime.
-
-### 3) Spacecraft and payload
-- Possible components: structure, power system, batteries, communications, onboard computer, attitude control, scientific instruments.
-- Instruments with variable attributes: mass, power consumption, cost, data generated, scientific value.
-- Choice between simple/advanced components depending on difficulty.
-
-### 4) Orbit and launch
-- Multiple orbital options with characteristics explained in simple terms.
-- Impact of the orbit on coverage, observation windows, communications, and mission duration.
-- Launch vehicles with different capabilities, costs, and orbital capacities.
-- Compatibility check between total mass, chosen orbit, and launch vehicle.
-
-### 5) Resource management
-Main resources to display clearly:
-- **Mass**: total spacecraft + payload mass
-- **Power**: energy available for systems and instruments
-- **Budget**: financial resources for development/operations
-- **Data**: volume of data generated by the instruments
-- **Communications**: ability to transmit data to the ground
-- **Time**: planned duration of development and operations
-
-It is useful to highlight which resources are critical for each scenario.
-
-### 6) Collaboration
-- Up to 4 participants on the same mission.
-- Different responsibilities but shared final decisions.
-- Negotiation scenarios between competing priorities.
-- Final result dependent on team coordination.
-
-### 7) Educational value
-- Simple explanations of scientific/engineering concepts.
-- Gradual introduction of complex topics (orbital altitude, payload capacity, data rate, etc.).
-- Short tutorials, visual indicators, optional educational resources.
-- Focus on the "why" behind how a decision affects performance.
-
----
-
-## 💡 Suggested additional features
-
-- Multiple scenarios with different objectives  
-- Random events or unexpected constraints  
-- Realistic or simplified spacecraft models  
-- Interactive visualizations of the vehicle  
-- Real-time mission dashboard  
-- Leaderboard / mission ranking  
-- Final post-simulation report  
-- Saving, sharing, and comparing mission designs  
-- Cooperative mode (up to 4)  
-- Competitive mode between teams on the same objective  
-- Sandbox mode with no predefined constraints  
-- Post-mission analysis explaining the reasons for success/failure
-
----
-
-## 📎 Resources
-
-For datasets, materials, and official challenge updates, refer to the **Resources** tab on the hackathon page.
+[Entry and accounts](entry-flow.md). Accounts, GMAT simulation, and local saves are separate components. See [architecture](architecture.md), [database](authentication.md), and [GMAT](gmat-integration-report.md) for technical behavior.

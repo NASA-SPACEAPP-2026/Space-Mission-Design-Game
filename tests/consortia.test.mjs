@@ -1,0 +1,457 @@
+import { beforeAll, afterAll, describe, it, expect } from 'vitest';
+import { PGlite } from '@electric-sql/pglite';
+import { readFile } from 'node:fs/promises';
+import { createAuth } from '../backend/auth.mjs';
+import { createConsortia } from '../backend/consortia.mjs';
+import { createStaticServer } from '../server.mjs';
+import { migrate } from '../backend/database.mjs';
+
+const ORIGIN = 'https://game.example';
+const crest = { shape: 'shield', color: '#3F8E8A', symbol: 'rocket' };
+
+describe('Consortia API', () => {
+  let pg, db, server, base;
+  let clock = new Date('2026-11-16T10:00:00Z'); // a Monday: the weekly challenge reads this clock
+  const cookies = {};
+  async function api(who, method, path, body, { origin = ORIGIN, type = 'application/json' } = {}) {
+    const response = await fetch(`${base}/api/consortia${path}`, { method,
+      headers: { Origin: origin, ...(type ? { 'Content-Type': type } : {}), ...(who ? { Cookie: cookies[who] } : {}) },
+      body: body === undefined ? undefined : JSON.stringify(body) });
+    return { status: response.status, body: await response.json() };
+  }
+  const get = (who, path) => api(who, 'GET', path);
+  const post = (who, path, body = {}) => api(who, 'POST', path, body);
+  // The chat allows one message every 2 seconds: move earlier messages back in time instead of waiting.
+  const cool = () => db.query(`UPDATE consortium_messages SET created_at = created_at - interval '5 seconds'`);
+  const systemCodes = async who => (await get(who, '/mine/messages')).body.messages.filter(m => m.kind === 'system').map(m => m.data.code);
+
+  beforeAll(async () => {
+    pg = new PGlite(); await pg.waitReady;
+    await migrate({ query: sql => pg.exec(sql) });
+    let queue = Promise.resolve();
+    const run = job => { const next = queue.then(job); queue = next.catch(() => {}); return next; };
+    db = {
+      query: (sql, args) => run(() => pg.query(sql, args)),
+      tx: fn => run(() => pg.transaction(t => fn({ query: (sql, args) => t.query(sql, args) })))
+    };
+    server = createStaticServer({ auth: createAuth({ db, origin: ORIGIN, secure: true }), consortia: createConsortia({ db, origin: ORIGIN, now: () => clock }) });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    base = `http://127.0.0.1:${server.address().port}`;
+    for (const name of ['Ada', 'Bob', 'Cyd', 'Dan', 'Eve', 'Fay']) {
+      const response = await fetch(`${base}/api/auth/register`, { method: 'POST',
+        headers: { Origin: ORIGIN, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: name, password: 'secret' }) });
+      expect(response.status).toBe(201);
+      cookies[name] = response.headers.get('set-cookie').split(';')[0];
+    }
+  }, 60000);
+  afterAll(async () => { await new Promise(resolve => server.close(resolve)); await pg.close(); });
+
+  it('requires login, same origin and JSON', async () => {
+    expect((await get(null, '')).status).toBe(401);
+    expect((await api('Ada', 'POST', '', { name: 'Nope' }, { origin: 'https://evil.example' })).status).toBe(403);
+    expect((await api('Ada', 'POST', '', { name: 'Nope' }, { type: 'text/plain' })).status).toBe(415);
+    expect((await get('Ada', '/nothing/here')).status).toBe(404);
+    expect((await api('Ada', 'DELETE', '/mine')).status).toBe(405);
+    expect((await get('Ada', '/mine')).body).toEqual({ consortium: null, player: { science: 0 } });
+    expect((await get('Ada', '/mine/messages')).body.error).toBe('no_consortium');
+  });
+
+  it('creates a consortium with validated settings, one per player, unique names', async () => {
+    expect((await post('Ada', '', { name: 'x', crest })).body).toEqual({ error: 'invalid', field: 'name' });
+    expect((await post('Ada', '', { name: 'Orbiters', crest: { ...crest, shape: 'skull' } })).body.field).toBe('crest');
+    expect((await post('Ada', '', { name: 'Orbiters', crest, motto: 'see www.evil.com' })).body.field).toBe('motto');
+    const created = await post('Ada', '', { name: '  Orbiters  ', crest, motto: 'Ad astra' });
+    expect(created.status).toBe(201);
+    expect(created.body.consortium).toMatchObject({ name: 'Orbiters', kind: 'open', members: 1, maxMembers: 20, minScience: 0, level: 1 });
+    expect(created.body.consortium.crest.color).toBe('#3f8e8a');
+    expect((await post('Ada', '', { name: 'Second', crest })).body.error).toBe('already_member');
+    expect((await post('Eve', '', { name: 'ORBITERS', crest })).body.error).toBe('name_taken');
+    const mine = (await get('Ada', '/mine')).body;
+    expect(mine.me.role).toBe('director');
+    expect(mine.consortium.inviteCode).toMatch(/^[A-Z2-9]{8}$/);
+    expect(mine.members).toEqual([expect.objectContaining({ username: 'Ada', role: 'director', status: 'online' })]);
+    expect(JSON.stringify(mine)).not.toMatch(/user_?id|password|email/i);
+    expect(await systemCodes('Ada')).toEqual(['founded']);
+  });
+
+  it('searches by name and recommends open consortia with free places', async () => {
+    expect((await post('Eve', '', { name: 'Hidden Orbit', crest, kind: 'invite' })).status).toBe(201);
+    const recommended = (await get('Dan', '')).body.consortia.map(c => c.name);
+    expect(recommended).toContain('Orbiters');
+    expect(recommended).not.toContain('Hidden Orbit');
+    expect((await get('Dan', '?q=hidden')).body.consortia.map(c => c.name)).toEqual(['Hidden Orbit']);
+    expect((await get('Dan', '?q=%25')).body.consortia).toEqual([]);
+    expect((await get('Dan', '?q=orbit&maxMin=0&free=1')).body.consortia).toHaveLength(2);
+    expect((await get('Dan', '?maxMin=abc')).status).toBe(400);
+    const id = (await get('Dan', '?q=orbiters')).body.consortia[0].id;
+    const profile = (await get('Dan', `/${id}`)).body;
+    expect(profile.members).toEqual([{ username: 'Ada', role: 'director', science: 0 }]);
+    expect((await get('Dan', '/00000000-0000-4000-8000-000000000000')).status).toBe(404);
+  });
+
+  it('joins open, by request, by invite code, and enforces minimum science and size', async () => {
+    const id = (await get('Bob', '?q=orbiters')).body.consortia[0].id;
+    const hidden = (await get('Dan', '?q=hidden')).body.consortia[0].id;
+    expect((await post('Bob', `/${id}/join`)).body).toEqual({ joined: true });
+    expect((await post('Bob', `/${id}/join`)).body.error).toBe('already_member');
+    expect((await post('Ada', '/mine/members/Bob', { action: 'promote' })).body.member.role).toBe('chief_engineer');
+    expect((await post('Ada', '/mine/members/bob', { action: 'promote' })).body.member.role).toBe('vice');
+
+    expect((await api('Bob', 'PATCH', '/mine', { kind: 'request' })).body.consortium.kind).toBe('request');
+    const asked = await post('Cyd', `/${id}/join`, { message: 'Ciao!' });
+    expect(asked.status).toBe(202);
+    const requests = (await get('Ada', '/mine')).body.requests;
+    expect(requests).toEqual([expect.objectContaining({ username: 'Cyd', message: 'Ciao!', science: 0 })]);
+    expect((await get('Cyd', '/mine')).body.consortium).toBeNull();
+    expect((await post('Bob', `/mine/requests/${requests[0].id}`, { accept: true })).body).toEqual({ accepted: true });
+    expect((await get('Cyd', '/mine')).body.me.role).toBe('member');
+    expect((await get('Cyd', '/mine')).body.consortium.inviteCode).toBeUndefined();
+
+    expect((await post('Dan', `/${hidden}/join`)).body.error).toBe('invite_only');
+    expect((await post('Dan', `/${hidden}/join`, { code: 'WRONG123' })).body.error).toBe('wrong_code');
+    const code = (await get('Eve', '/mine')).body.consortium.inviteCode;
+    expect((await post('Dan', `/${hidden}/join`, { code: code.toLowerCase() })).body).toEqual({ joined: true });
+    const fresh = (await post('Eve', '/mine/invite-code')).body.inviteCode;
+    expect(fresh).not.toBe(code);
+
+    expect((await api('Ada', 'PATCH', '/mine', { kind: 'open', minScience: 50 })).status).toBe(200);
+    expect((await post('Fay', `/${id}/join`)).body).toEqual({ error: 'not_enough_science', required: 50, science: 0 });
+    expect((await post('Fay', '/science', { mission: 'fay-1', points: 60 })).body).toEqual({ counted: true, player: { science: 60 }, consortium: null });
+    expect((await post('Fay', `/${id}/join`)).body).toEqual({ joined: true });
+
+    expect((await api('Ada', 'PATCH', '/mine', { maxMembers: 2 })).body.error).toBe('too_many_members');
+    expect((await api('Ada', 'PATCH', '/mine', { maxMembers: 4, minScience: 0 })).body.consortium.maxMembers).toBe(4);
+    expect((await post('Eve', '/leave')).body).toEqual({ left: true, disbanded: false });
+    expect((await post('Eve', `/${id}/join`)).body.error).toBe('full');
+    expect((await api('Cyd', 'PATCH', '/mine', { motto: 'Hi' })).status).toBe(403);
+    expect(await systemCodes('Ada')).toEqual(['founded', 'joined', 'promoted', 'promoted', 'settings', 'joined', 'settings', 'joined', 'settings']);
+  });
+
+  it('lets each role do only what it may', async () => {
+    expect((await post('Cyd', '/mine/members/Fay', { action: 'kick' })).status).toBe(403);
+    expect((await post('Cyd', '/mine/members/Fay', { action: 'promote' })).status).toBe(403);
+    expect((await post('Bob', '/mine/members/Ada', { action: 'kick' })).status).toBe(403);
+    expect((await post('Bob', '/mine/members/Ada', { action: 'demote' })).status).toBe(403);
+    expect((await post('Bob', '/mine/members/Ada', { action: 'transfer' })).status).toBe(403);
+    expect((await post('Bob', '/mine/members/Cyd', { action: 'promote' })).body.member.role).toBe('chief_engineer');
+    expect((await post('Bob', '/mine/members/Cyd', { action: 'promote' })).status).toBe(403);
+    expect((await post('Ada', '/mine/members/Ada', { action: 'demote' })).body.error).toBe('self');
+    expect((await post('Ada', '/mine/members/Dan', { action: 'kick' })).body.error).toBe('member_not_found');
+    expect((await post('Ada', '/mine/members/Bob', { action: 'explode' })).body.field).toBe('action');
+    expect((await post('Bob', '/mine/members/Fay', { action: 'kick' })).body).toEqual({ kicked: true });
+    expect((await get('Fay', '/mine')).body.consortium).toBeNull();
+    expect((await post('Ada', '/mine/members/Bob', { action: 'transfer' })).body.member.role).toBe('director');
+    const roles = Object.fromEntries((await get('Ada', '/mine')).body.members.map(m => [m.username, m.role]));
+    expect(roles).toEqual({ Bob: 'director', Ada: 'vice', Cyd: 'chief_engineer' });
+  });
+
+  it('runs the chat: plain text, stickers, mission cards, limits, unread and deletion', async () => {
+    await get('Cyd', '/mine/messages');
+    await cool();
+    const hello = await post('Ada', '/mine/messages', { kind: 'text', text: '  Ciao <b>team</b>\n' });
+    expect(hello.status).toBe(201);
+    expect(hello.body.message).toMatchObject({ kind: 'text', text: 'Ciao <b>team</b>', author: 'Ada', role: 'vice' });
+    expect((await post('Ada', '/mine/messages', { kind: 'sticker', sticker: 'zorty_happy' })).body.error).toBe('slow_down');
+    await cool();
+    expect((await post('Ada', '/mine/messages', { kind: 'text', text: 'x'.repeat(301) })).body.field).toBe('text');
+    expect((await post('Ada', '/mine/messages', { kind: 'text', text: 'go to https://evil.example' })).body.error).toBe('link');
+    expect((await post('Ada', '/mine/messages', { kind: 'sticker', sticker: 'zorty_evil' })).body.field).toBe('sticker');
+    expect((await post('Ada', '/mine/messages', { kind: 'sticker', sticker: 'zorty_happy' })).body.message.sticker).toBe('zorty_happy');
+    await cool();
+    const card = await post('Ada', '/mine/messages', { kind: 'mission', mission: { name: 'AURASAT', type: 'obs', dest: 'Marte', sci: 120, months: 9, ok: true, script: '<x>' } });
+    expect(card.body.message.data).toEqual({ name: 'AURASAT', type: 'obs', dest: 'Marte', sci: 120, months: 9, ok: true });
+
+    expect((await get('Cyd', '/mine/unread')).body).toEqual({ member: true, unread: 3 });
+    const feed = (await get('Cyd', '/mine/messages')).body;
+    expect(feed.messages.at(-1).id).toBe(feed.lastId);
+    expect((await get('Cyd', '/mine/unread')).body.unread).toBe(0);
+    expect((await get('Cyd', `/mine/messages?after=${feed.lastId}`)).body.messages).toEqual([]);
+    expect((await get('Cyd', '/mine/messages?after=-1')).status).toBe(400);
+    expect((await get('Fay', '/mine/unread')).body).toEqual({ member: false, unread: 0 });
+
+    const id = hello.body.message.id;
+    expect((await api('Cyd', 'DELETE', `/mine/messages/${id}`)).status).toBe(403);
+    expect((await api('Dan', 'DELETE', `/mine/messages/${id}`)).status).toBe(404);
+    expect((await api('Ada', 'DELETE', `/mine/messages/${id}`)).body).toEqual({ deleted: true });
+    const deleted = (await get('Cyd', `/mine/messages?after=${id - 1}`)).body.messages[0];
+    expect(deleted).toEqual({ id, kind: 'text', author: 'Ada', at: expect.any(String), deleted: true });
+    expect((await get('Dan', `/mine/messages`)).body.messages.some(m => m.author === 'Ada')).toBe(false);
+
+    expect((await api('Bob', 'PATCH', '/mine', { schoolMode: true })).body.consortium.schoolMode).toBe(true);
+    await cool();
+    expect((await post('Cyd', '/mine/messages', { kind: 'text', text: 'ciao' })).body.error).toBe('school_mode');
+    expect((await post('Cyd', '/mine/messages', { kind: 'sticker', sticker: 'zorty_laugh' })).status).toBe(201);
+    await api('Bob', 'PATCH', '/mine', { schoolMode: false });
+    expect((await post('Cyd', '/mine/activity', { type: 'launch', mission: 'AURASAT' })).status).toBe(201);
+    expect((await post('Cyd', '/mine/preferences', { spectate: false })).body).toEqual({ spectate: false });
+    expect((await get('Cyd', '/mine')).body.me.spectate).toBe(false);
+  });
+
+  it('counts mission science once, for the player and the consortium', async () => {
+    const first = await post('Cyd', '/science', { mission: 'm-1', points: 120, name: 'AURASAT' });
+    expect(first.body).toEqual({ counted: true, player: { science: 120 }, consortium: { science: 120 } });
+    expect((await post('Cyd', '/science', { mission: 'm-1', points: 999 })).body).toEqual({ counted: false, player: { science: 120 }, consortium: { science: 120 } });
+    expect((await post('Cyd', '/science', { mission: 'm-2', points: 1001 })).body.field).toBe('points');
+    expect((await post('Cyd', '/science', { mission: 'bad key!', points: 1 })).body.field).toBe('mission');
+    expect((await post('Cyd', '/science', { mission: 'm-3', points: 1.5 })).body.field).toBe('points');
+    const mine = (await get('Cyd', '/mine')).body;
+    expect(mine.me.science).toBe(120);
+    expect(mine.consortium.science).toBe(120);
+    const last = (await get('Cyd', '/mine/messages')).body.messages.at(-1);
+    expect(last.data).toEqual({ code: 'science', user: 'Cyd', mission: 'AURASAT', points: 120 });
+  });
+
+  it('plays a joint mission with roles, turns, requests between roles and versions', async () => {
+    expect((await post('Ada', '/mine/joint', { name: 'x' })).body.field).toBe('name');
+    const made = await post('Ada', '/mine/joint', { name: 'Luna Ice' });
+    expect(made.status).toBe(201);
+    const id = made.body.id; let v = 1;
+    const go = async (who, body) => { const r = await post(who, `/mine/joint/${id}/actions`, { v, ...body }); if (r.status === 200) v = r.body.version; return r; };
+    expect((await get('Cyd', '/mine/joint')).body.joint[0]).toMatchObject({ id, name: 'Luna Ice', status: 'open', roles: { plan: 'Ada' } });
+    expect((await get('Cyd', `/mine/joint/${id}?v=1`)).body).toEqual({ same: true, version: 1 });
+    expect((await get('Dan', `/mine/joint/${id}`)).status).toBe(404);
+
+    // Lobby: roles are taken one each, only the creator (or director/deputy) starts, with at least two players.
+    expect((await go('Cyd', { type: 'start' })).body.error).toBe('forbidden');
+    expect((await go('Ada', { type: 'start' })).body.error).toBe('need_two');
+    expect((await go('Cyd', { type: 'join', role: 'plan' })).body.error).toBe('role_taken');
+    expect((await go('Cyd', { type: 'join', role: 'sat' })).status).toBe(200);
+    expect((await post('Bob', `/mine/joint/${id}/actions`, { v: v - 1, type: 'join', role: 'sci' })).body).toEqual({ error: 'stale', version: v });
+    await go('Bob', { type: 'join', role: 'sci' });
+    expect((await go('Ada', { type: 'start' })).body.state).toMatchObject({ phase: 'design', turn: 'plan', roles: { plan: 'Ada', sat: 'Cyd', sci: 'Bob', com: 'Ada' } });
+
+    // Only your role, only in your turn, only valid values.
+    expect((await go('Cyd', { type: 'set', key: 'ride', value: 'S6' })).body.error).toBe('not_your_turn');
+    expect((await go('Bob', { type: 'set', key: 'dest', value: 'moon' })).body.error).toBe('not_your_role');
+    expect((await go('Ada', { type: 'set', key: 'dest', value: 'pluto' })).body.field).toBe('value');
+    await go('Ada', { type: 'set', key: 'dest', value: 'moon' });
+    await go('Ada', { type: 'set', key: 'budget', value: 1200 });
+    await go('Ada', { type: 'done' });
+    for (const [key, value] of [['ride', 'S6'], ['avi', 'BASE-OBC'], ['adcs', 'BASE-MAG'], ['bat', 'BASE-BAT20'], ['sol', 'BASE-SOL6D']]) {
+      expect((await go('Cyd', { type: 'set', key, value })).status).toBe(200);
+    }
+    expect((await go('Ada', { type: 'done' })).body.error).toBe('not_your_turn');
+    await go('Cyd', { type: 'done' });
+
+    // A payload over budget becomes a request to the planner, who accepts and raises the budget.
+    expect((await go('Bob', { type: 'done' })).body.error).toBe('incomplete');
+    let r = await go('Bob', { type: 'set', key: 'ray', value: 'BASE-CAM', req: { to: 'plan', kind: 'cost', delta: 120 } });
+    expect(r.body.state.request).toMatchObject({ to: 'plan', by: 'Bob', key: 'ray', value: 'BASE-CAM', kind: 'cost' });
+    expect(r.body.state.design.ray).toBeUndefined();
+    expect((await go('Bob', { type: 'set', key: 'ray', value: 'BASE-DOSE' })).body.error).toBe('pending_request');
+    expect((await go('Cyd', { type: 'answer', decision: 'accept' })).body.error).toBe('not_your_role');
+    r = await go('Ada', { type: 'answer', decision: 'accept' });
+    expect(r.body.state.design).toMatchObject({ ray: 'BASE-CAM', budget: 1350 });
+    expect(r.body.state.request).toBeNull();
+    // A mass request to the satellite engineer, countered with a lighter part.
+    await go('Bob', { type: 'set', key: 'ray', value: 'NASA-95028', req: { to: 'sat', kind: 'mass', delta: 0.2 } });
+    r = await go('Cyd', { type: 'answer', decision: 'counter', value: 'BASE-DOSE' });
+    expect(r.body.state.design.ray).toBe('BASE-DOSE');
+    await go('Bob', { type: 'done' });
+    // Whoever owns the budget applies their own change directly.
+    r = await go('Ada', { type: 'set', key: 'com', value: 'BASE-UHF', req: { to: 'plan', kind: 'cost', delta: 10 } });
+    expect(r.body.state.request).toBeNull();
+    expect((await go('Ada', { type: 'done' })).body.state).toMatchObject({ phase: 'review', turn: null });
+
+    // Review: GO needs the checks to pass; a NO-GO sends one role back; GO from everyone closes it.
+    expect((await go('Bob', { type: 'vote', go: true })).body.error).toBe('checks_failed');
+    expect((await go('Bob', { type: 'vote', go: false, rework: 'sat' })).body.state).toMatchObject({ phase: 'design', turn: 'sat' });
+    await go('Cyd', { type: 'done' });
+    const before = (await get('Cyd', '/mine')).body;
+    for (const who of ['Ada', 'Cyd']) expect((await go(who, { type: 'vote', go: true, ok: true })).body.status).toBe('active');
+    r = await go('Bob', { type: 'vote', go: true, ok: true });
+    expect(r.body.status).toBe('done');
+    expect(r.body.state.points).toBe(144); // Moon 120 × 1.2 for three players
+    expect((await go('Ada', { type: 'abandon' })).body.error).toBe('closed');
+    const after = (await get('Cyd', '/mine')).body;
+    expect(after.me.science - before.me.science).toBe(144);
+    expect(after.consortium.science - before.consortium.science).toBe(432);
+    expect((await get('Cyd', '/mine/messages')).body.messages.at(-1).data).toMatchObject({ code: 'joint_done', mission: 'Luna Ice', points: 144, users: expect.arrayContaining(['Ada', 'Bob', 'Cyd']) });
+    for (let i = 0; i < 3; i++) await post('Ada', '/mine/joint', { name: 'Extra ' + i });
+    expect((await post('Ada', '/mine/joint', { name: 'One too many' })).body.error).toBe('too_many_joint');
+  });
+
+  it('streams a live game only to teammates who watch, and delivers stickers sent while watching', async () => {
+    const put = (who, body, opts) => api(who, 'PUT', '/live', body, opts);
+    const state = { enc: 'gz', data: 'H4sIAAAAAAAAA6tWKkktLlGyUlAqzy/KSVGqBQBkYzzWEQAAAA==' };
+    expect((await put('Fay', { view: 'hub' })).body.error).toBe('no_consortium');
+    expect((await put('Ada', { view: 'hub' }, { origin: 'https://evil.example' })).status).toBe(403);
+    expect((await put('Ada', { view: 'HUB!' })).body.field).toBe('view');
+    expect((await put('Ada', { view: 'hub', state: { enc: 'gz', data: 'not base64!' } })).body.field).toBe('state');
+    expect((await put('Ada', { view: 'hub', state: { enc: 'gz', data: 'A'.repeat(160_004) } })).body.field).toBe('state');
+    expect((await put('Ada', { view: 'hub', state: { enc: 'gz', data: 'A'.repeat(210_000) } })).status).toBe(413);
+
+    // Nobody watches yet: a heartbeat only, which also shows the player as "playing".
+    expect((await put('Ada', { view: 'mcc', mission: 'AURASAT' })).body).toEqual({ watched: false, reactions: [], lastId: 0 });
+    expect((await get('Bob', '/mine')).body.members.find(m => m.username === 'Ada').status).toBe('playing');
+    // A viewer turns the stream on; the state arrives with the player's next heartbeat and is kept between them.
+    expect((await get('Bob', '/live/ada')).body).toMatchObject({ username: 'Ada', view: 'mcc', mission: 'AURASAT', state: null });
+    expect((await put('Ada', { view: 'mcc', mission: 'AURASAT', state })).body.watched).toBe(true);
+    expect((await get('Bob', '/live/Ada')).body.state).toEqual(state);
+    await put('Ada', { view: 'build', mission: 'AURASAT' });
+    expect((await get('Bob', '/live/Ada')).body).toMatchObject({ view: 'build', state });
+
+    // Only teammates, never yourself, never someone who opted out or is not playing.
+    expect((await get('Dan', '/live/Ada')).body.error).toBe('member_not_found');
+    expect((await get('Ada', '/live/Ada')).body.error).toBe('self');
+    expect((await get('Bob', '/live/Cyd')).body.error).toBe('spectate_off');
+    await post('Cyd', '/mine/preferences', { spectate: true });
+    expect((await get('Bob', '/live/Cyd')).body.error).toBe('not_live');
+
+    // Stickers sent while watching are addressed to the player and come back in their heartbeat.
+    await cool();
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_laugh', to: 'ada' })).body.message).toMatchObject({ sticker: 'zorty_laugh', to: 'Ada' });
+    await cool();
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_cry', to: 'Dan' })).body.error).toBe('member_not_found');
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_cry', to: '<b>' })).body.field).toBe('to');
+    const beat = (await put('Ada', { view: 'build' })).body;
+    expect(beat.reactions).toEqual([expect.objectContaining({ sticker: 'zorty_laugh', author: 'Bob' })]);
+    expect((await put('Ada', { view: 'build', since: beat.lastId })).body.reactions).toEqual([]);
+
+    // Opting out drops the stored state at once and stops the stream.
+    await post('Ada', '/mine/preferences', { spectate: false });
+    expect((await put('Ada', { view: 'build', state })).body.watched).toBe(false);
+    expect((await get('Bob', '/live/Ada')).body.error).toBe('spectate_off');
+    await post('Ada', '/mine/preferences', { spectate: true });
+    expect((await get('Bob', '/live/Ada')).body.state).toBeNull();
+    await db.query(`UPDATE live_sessions SET updated_at = now() - interval '2 minutes'`);
+    expect((await get('Bob', '/live/Ada')).body.error).toBe('not_live');
+  });
+
+  it('runs the weekly challenge: goal, points for missions that meet it, rankings, and the podium when the week closes', async () => {
+    const c = (await get('Ada', '/challenge')).body;
+    expect(c).toMatchObject({ week: '2026-11-16', endsAt: '2026-11-23T00:00:00.000Z', ranking: [], prizes: [300, 200, 100] });
+    expect(c.goal.it.length).toBeGreaterThan(10);
+    const facts = { ok: true, dest: c.goal.dest || 'leo', type: c.goal.type || 'sci', cost: c.goal.maxCost ? c.goal.maxCost - 1 : 100, months: c.goal.minMonths || 12 };
+    // A failed mission still gives its science points, but not to the challenge; bad facts are refused.
+    const failed = (await post('Ada', '/science', { mission: 'w1', points: 50, facts: { ...facts, ok: false } })).body;
+    expect(failed.counted).toBe(true);
+    expect(failed.challenge).toBeUndefined();
+    expect((await post('Ada', '/science', { mission: 'w2', points: 50, facts: { ...facts, cost: -1 } })).body.field).toBe('facts');
+    expect((await post('Ada', '/science', { mission: 'w3', points: 90, facts })).body.challenge).toMatchObject({ matched: true, points: 90, goal: c.goal.id });
+    expect((await post('Ada', '/science', { mission: 'w3', points: 90, facts })).body.challenge).toBeUndefined(); // counted once
+    expect((await post('Dan', '/science', { mission: 'd1', points: 40, facts })).body.challenge).toMatchObject({ matched: true });
+    const week = (await get('Bob', '/challenge')).body;
+    expect(week.ranking.map(r => [r.name, r.points])).toEqual([['Orbiters', 90], ['Hidden Orbit', 40]]);
+    expect(week.mine.week).toEqual({ points: 90, rank: 1 });
+    expect(week.allTime[0].name).toBe('Orbiters');
+    expect((await get('Fay', '/challenge')).body.mine).toBeNull();
+
+    // Next Monday the week closes once: trophies, bonus science and a chat message for the podium.
+    const before = (await get('Bob', '/mine')).body.consortium.science;
+    clock = new Date('2026-11-23T08:00:00Z');
+    const next = (await get('Dan', '/challenge')).body;
+    expect(next).toMatchObject({ week: '2026-11-23', ranking: [] });
+    expect(next.last).toMatchObject({ week: '2026-11-16', podium: [{ place: 1, name: 'Orbiters', bonus: 300 }, { place: 2, name: 'Hidden Orbit', bonus: 200 }] });
+    const after = (await get('Bob', '/mine')).body;
+    expect(after.consortium.science - before).toBe(300);
+    expect(after.consortium.trophies).toBe(1);
+    expect((await get('Bob', '/mine/messages')).body.messages.at(-1).data).toMatchObject({ code: 'challenge_won', place: 1, bonus: 300 });
+    await get('Ada', '/challenge');
+    expect((await get('Bob', '/mine')).body.consortium.science - before).toBe(300);
+  });
+
+  it('levels up with the science points and unlocks stickers', async () => {
+    // 552 points after the joint mission, 992 with the challenge: level 2 (from 400), announced in the chat.
+    expect((await get('Bob', '/mine')).body.consortium).toMatchObject({ level: 2, science: 992 });
+    expect((await get('Bob', '/mine/messages')).body.messages.some(m => m.kind === 'system' && m.data.code === 'level_up' && m.data.level === 2)).toBe(true);
+    await cool();
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_cheer' })).status).toBe(201);
+    await cool();
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_think' })).body).toEqual({ error: 'sticker_locked', level: 3 });
+    // 300 more points cross 1200: level 3, and the next sticker unlocks.
+    await post('Bob', '/science', { mission: 'lv-1', points: 300, name: 'LEVEL' });
+    expect((await get('Bob', '/mine')).body.consortium.level).toBe(3);
+    expect((await get('Bob', '/mine/messages')).body.messages.at(-1).data).toEqual({ code: 'level_up', level: 3 });
+    await cool();
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_think' })).status).toBe(201);
+    expect((await get('Dan', '/mine')).body.consortium.level).toBe(1);
+  });
+
+  it('filters bad language, offers preset phrases in school mode, and lets members report messages', async () => {
+    // Bad language is refused in chat, names, mottos and mission names, also when disguised.
+    await cool();
+    for (const text of ['che c4zz0 di missione', 'what the FUUUCK', 'porco   dio']) expect((await post('Cyd', '/mine/messages', { kind: 'text', text })).body.error).toBe('language');
+    expect((await post('Cyd', '/mine/messages', { kind: 'text', text: 'Che scazzottata tra i detriti, una figata!' })).status).toBe(201);
+    expect((await post('Eve', '', { name: 'Stronzi Spaziali', crest })).body).toEqual({ error: 'language', field: 'name' });
+    expect((await api('Bob', 'PATCH', '/mine', { motto: 'merda' })).body).toEqual({ error: 'language', field: 'motto' });
+    expect((await post('Ada', '/mine/joint', { name: 'Bitch Moon' })).body.error).toBe('language');
+
+    // School mode: no free text, but the preset phrases, stored with their code.
+    await api('Bob', 'PATCH', '/mine', { schoolMode: true });
+    await cool();
+    expect((await post('Cyd', '/mine/messages', { kind: 'text', text: 'ciao' })).body.error).toBe('school_mode');
+    expect((await post('Cyd', '/mine/messages', { kind: 'phrase', phrase: 'nice_launch' })).body.message).toMatchObject({ kind: 'text', text: 'Bel lancio!', phrase: 'nice_launch' });
+    expect((await post('Cyd', '/mine/messages', { kind: 'phrase', phrase: 'insult' })).body.field).toBe('phrase');
+    await api('Bob', 'PATCH', '/mine', { schoolMode: false });
+
+    // Reports: not your own message, not system messages, once per member; three hide the message at once.
+    const id = (await get('Bob', '/mine')).body.consortium.id;
+    expect((await post('Fay', `/${id}/join`)).body).toEqual({ joined: true });
+    await cool();
+    const msg = (await post('Ada', '/mine/messages', { kind: 'text', text: 'Sei proprio lento' })).body.message;
+    const report = (who, mid, body = {}) => post(who, `/mine/messages/${mid}/report`, body);
+    expect((await report('Ada', msg.id)).body.error).toBe('self');
+    const sys = (await get('Bob', '/mine/messages')).body.messages.find(m => m.kind === 'system');
+    expect((await report('Bob', sys.id)).status).toBe(404);
+    expect((await report('Bob', msg.id, { reason: 'rude' })).body).toEqual({ reported: true, reports: 1, hidden: false });
+    expect((await report('Bob', msg.id, { reason: 'rude' })).body.reports).toBe(1);
+    expect((await report('Cyd', msg.id, { reason: 'mean' })).body.field).toBe('reason');
+    await report('Cyd', msg.id, { reason: 'spam' });
+    expect((await report('Fay', msg.id)).body).toEqual({ reported: true, reports: 3, hidden: true });
+    const find = async mid => (await get('Bob', `/mine/messages?after=${mid - 1}`)).body.messages[0];
+    expect((await find(msg.id)).deleted).toBe(true);
+
+    // Director and deputy review: dismiss brings the message back, delete removes it for good.
+    expect((await get('Bob', '/mine')).body.reports).toBe(1);
+    expect((await get('Cyd', '/mine')).body.reports).toBeUndefined();
+    expect((await get('Cyd', '/mine/reports')).status).toBe(403);
+    expect((await get('Bob', '/mine/reports')).body.reports).toEqual([expect.objectContaining({ id: msg.id, author: 'Ada', text: 'Sei proprio lento', reports: 3, hidden: true, reasons: expect.arrayContaining(['rude', 'spam']) })]);
+    expect((await post('Bob', `/mine/reports/${msg.id}`, { action: 'dismiss' })).body).toEqual({ reviewed: true, action: 'dismiss' });
+    expect(await find(msg.id)).toMatchObject({ text: 'Sei proprio lento' });
+    expect((await get('Bob', '/mine')).body.reports).toBe(0);
+    await cool();
+    const spam = (await post('Cyd', '/mine/messages', { kind: 'text', text: 'compra compra compra' })).body.message;
+    await report('Bob', spam.id, { reason: 'spam' });
+    expect((await post('Bob', `/mine/reports/${spam.id}`, { action: 'delete' })).body.action).toBe('delete');
+    expect((await find(spam.id)).deleted).toBe(true);
+    expect((await get('Bob', '/mine/reports')).body.reports).toEqual([]);
+    expect((await post('Fay', '/leave')).body.left).toBe(true);
+  });
+
+  it('hands over leadership when the director leaves or is inactive, and disbands when empty', async () => {
+    expect((await post('Bob', '/leave')).body).toEqual({ left: true, disbanded: false });
+    expect((await get('Ada', '/mine')).body.me.role).toBe('director');
+    expect((await post('Bob', '/leave')).body.error).toBe('no_consortium');
+
+    await db.query(`UPDATE consortium_members SET last_seen_at = now() - interval '15 days'
+      WHERE user_id = (SELECT id FROM users WHERE username = 'Ada')`);
+    const roles = Object.fromEntries((await get('Cyd', '/mine')).body.members.map(m => [m.username, m.role]));
+    expect(roles).toEqual({ Cyd: 'director', Ada: 'vice' });
+    const last = (await get('Cyd', '/mine/messages')).body.messages.at(-1);
+    expect(last.data).toEqual({ code: 'new_director', user: 'Cyd', reason: 'inactive' });
+
+    const id = (await get('Cyd', '/mine')).body.consortium.id;
+    expect((await post('Ada', '/leave')).body.disbanded).toBe(false);
+    expect((await post('Cyd', '/leave')).body).toEqual({ left: true, disbanded: true });
+    expect((await get('Cyd', `/${id}`)).status).toBe(404);
+    expect((await db.query('SELECT count(*)::int AS n FROM consortium_messages WHERE consortium_id=$1', [id])).rows[0].n).toBe(0);
+    // single-player missions (2 + 3 in the challenge test + 1 in the levels test) + the joint mission for its three players
+    expect((await db.query('SELECT count(*)::int AS n FROM science_awards')).rows[0].n).toBe(9);
+  });
+
+  it('upgrades an existing accounts database and can run twice', async () => {
+    const old = new PGlite(); await old.waitReady;
+    try {
+      await old.exec(await readFile(new URL('../db/001-auth.sql', import.meta.url), 'utf8'));
+      await old.exec(await readFile(new URL('../db/002-username-accounts.sql', import.meta.url), 'utf8'));
+      await old.query('INSERT INTO users(id,username,password_hash) VALUES($1,$2,$3)', ['00000000-0000-4000-8000-000000000001', 'Existing', 'kept']);
+      const adapter = { query: sql => old.exec(sql) };
+      await migrate(adapter); await migrate(adapter);
+      expect((await old.query('SELECT username,password_hash FROM users')).rows).toEqual([{ username: 'Existing', password_hash: 'kept' }]);
+      const tables = (await old.query(`SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1`)).rows.map(r => r.table_name);
+      expect(tables).toEqual(expect.arrayContaining(['consortia', 'consortium_members', 'consortium_requests', 'consortium_messages',
+        'message_reports', 'science_awards', 'live_sessions', 'joint_missions', 'consortium_challenges', 'challenge_scores']));
+    } finally { await old.close(); }
+  }, 15000);
+});

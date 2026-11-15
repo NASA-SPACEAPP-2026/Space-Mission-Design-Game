@@ -3,18 +3,21 @@
  * Minimal static server for Azure App Service.
  *
  * The game is a static 2D single-page app: this process only serves `dist/`.
- * There is no API, no database and no game state on the server. `/api/health`
+ * Authentication API and PostgreSQL sessions are optional locally. `/api/health`
  * is kept as a tiny liveness probe for the existing deployment smoke test.
  *
  * Text assets are served from build-time `.br`/`.gz` files when available,
  * with ETag/Last-Modified revalidation and Content-Length.
  */
-import { createReadStream } from "node:fs";
+import { createReadStream, readFileSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createBrotliCompress, createGzip } from "node:zlib";
+import { database, migrate } from './backend/database.mjs';
+import { createAuth } from './backend/auth.mjs';
+import { createConsortia } from './backend/consortia.mjs';
 
 export const DEFAULT_ROOT = resolve(fileURLToPath(new URL("./dist", import.meta.url)));
 
@@ -242,13 +245,48 @@ const sendFile = async (request, response, file, relative) => {
     .pipe(response);
 };
 
+/* NASA GMAT runs in its own container (see documentation/deployment.md). The browser keeps calling /api/gmat* on this site; we forward the call, so no CORS and no public URL in the page.
+   Without GMAT_URL the game simply keeps using its own numbers (503 'no-gmat'). */
+const GMAT_PATHS = new Set(["/api/gmat", "/api/gmat/analysis", "/api/gmat/lifetime"]);
+const proxyGmat = async (request, response, pathname, gmatUrl) => {
+  if (!gmatUrl) return sendJson(response, 503, { error: "no-gmat" });
+  if (request.method !== "POST") return sendJson(response, 405, { error: "method-not-allowed" });
+  const chunks = []; let size = 0;
+  for await (const chunk of request) { size += chunk.length; if (size > 32 * 1024) return sendJson(response, 413, { error: "too-large" }); chunks.push(chunk); }
+  const client = String(request.headers["x-forwarded-for"] ?? "").split(",")[0].trim().replace(/:\d+$/, "") || request.socket.remoteAddress || "";
+  try {
+    const upstream = await fetch(new URL(pathname, gmatUrl), { method: "POST", headers: { "content-type": "application/json", "x-forwarded-for": client }, body: Buffer.concat(chunks), signal: AbortSignal.timeout(pathname === "/api/gmat" ? 90_000 : 240_000) });
+    const body = await upstream.text();
+    response.writeHead(upstream.status, { ...SECURITY_HEADERS, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+    response.end(body);
+  } catch {
+    sendJson(response, 502, { error: "gmat-unreachable" });
+  }
+};
+
 /**
- * @param {{ root?: string, health?: boolean }} [options]
+ * @param {{ root?: string, health?: boolean, auth?: Function, consortia?: Function, gmatUrl?: string }} [options]
  */
 export const createStaticServer = (options = {}) => {
   const root = resolve(options.root ?? DEFAULT_ROOT);
 
   return createServer(async (request, response) => {
+    const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
+    if (pathname.startsWith('/api/auth/')) {
+      if (options.auth) return options.auth(request, response, pathname);
+      sendJson(response, 503, { error: 'Account non configurati' });
+      return;
+    }
+    if (pathname === '/api/consortia' || pathname.startsWith('/api/consortia/')) {
+      if (options.consortia) return options.consortia(request, response, pathname);
+      sendJson(response, 503, { error: 'unavailable' });
+      return;
+    }
+    if (GMAT_PATHS.has(pathname)) return proxyGmat(request, response, pathname, options.gmatUrl);
+    if (pathname.startsWith('/api/') && pathname !== '/api/health') {
+      sendJson(response, 404, { error: 'Endpoint non trovato' });
+      return;
+    }
     if (request.method !== "GET" && request.method !== "HEAD") {
       response.writeHead(405, { ...SECURITY_HEADERS, Allow: "GET, HEAD" });
       response.end("Method Not Allowed");
@@ -294,11 +332,20 @@ export const createStaticServer = (options = {}) => {
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   const port = Number(process.env.PORT ?? 8080);
-  const server = createStaticServer();
+  const db = process.env.DATABASE_URL ? database() : null;
+  if (process.env.NODE_ENV === 'production' && !db) throw new Error('DATABASE_URL is required in production');
+  // Apply the (repeatable) schema migrations before accepting requests, so a fresh database never causes 42P01 errors.
+  if (db) await migrate(db);
+  const auth = db ? createAuth({ db, origin: process.env.APP_ORIGIN, secure: process.env.NODE_ENV === 'production' }) : null;
+  const consortia = db ? createConsortia({ db, origin: process.env.APP_ORIGIN }) : null;
+  // GMAT service: GMAT_URL if set (GMAT_URL=off disables it), else the shared default in gmat-service.json, so a fresh deployment works without any setting.
+  let defaultGmat = ""; try { defaultGmat = JSON.parse(readFileSync(new URL("./gmat-service.json", import.meta.url), "utf8")).url || ""; } catch {}
+  const gmatUrl = process.env.GMAT_URL === "off" ? "" : process.env.GMAT_URL || defaultGmat;
+  const server = createStaticServer({ auth, consortia, gmatUrl });
   server.listen(port, "0.0.0.0", () => {
     console.log(`Go No-Go static server on http://0.0.0.0:${port} (root: ${DEFAULT_ROOT})`);
   });
-  const shutdown = () => server.close(() => process.exit(0));
+  const shutdown = () => server.close(async () => { if (db) await db.end(); process.exit(0); });
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
 }

@@ -98,6 +98,9 @@ jobs:
               frontend="$(curl -fsS --max-time 20 "$url/")"
               grep -q "Go No-Go" <<<"$frontend"
               echo "Frontend reachable"
+              # Liveness alone does not prove PostgreSQL/schema are ready.
+              curl -fsS --max-time 20 "$url/api/auth/me" | grep -q '"user":null'
+              echo "Account database reachable"
               # Fail if the old Express shell is still being served.
               grep -q '/assets/game-' <<<"$frontend"
               bundle="$(grep -o '/assets/game-[a-f0-9]*\.js' <<<"$frontend" | head -1)"

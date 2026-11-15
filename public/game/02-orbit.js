@@ -44,6 +44,9 @@ const O = (function () {
   const LAND = { moon: { n: 'Atterraggio con un lander lunare commerciale', perKg: 1200, cost: 0, risk: 0.1, dv: 0, sciK: 1.6 }, mars: { n: 'Atterraggio con un lander marziano', perKg: 3000, cost: 0, risk: 0.15, dv: 0, sciK: 1.7 } };
   // ore d'ombra per orbita (o notte sul suolo): niente più 267 minuti ovunque
   const ECL = { moon: { low: 0.8, med: 4.45, high: 3, surf: 6 }, leo: { low: 0.6, med: 1, high: 1.2 }, mars: { low: 0.7, med: 1, high: 1.5, surf: 12, phobos: 0.9, deimos: 1.1 }, venus: { low: 0.6, med: 0.9, high: 1.5 } };
+  // batch 4: corpi esterni derivati da E.EXT (fonte unica). mu di gioco = vg² · r, r = distanza media geometrica delle fasce: il delta-v resta giocabile.
+  Object.keys(typeof E === 'undefined' ? {} : E.EXT).forEach(k => { const x = E.EXT[k], zs = x.zones, lo = Math.min(...zs.map(z => z.band[0])), hi = Math.max(...zs.map(z => z.band[1]));
+    ZONES[k] = zs; ECL[k] = x.ecl; capture[k] = x.cap; ART[k] = x.gen; BODY[k] = { R: x.R, mu: Math.round(x.vg * x.vg * (x.R + Math.sqrt(lo * hi))) }; });
   const zoneOf = M => { const d = M.sat, Z = ZONES[d.dest || 'leo'] || []; return Z.find(z => z.k === (M.zone || (d.dest === 'leo' ? 'low' : 'med'))) || Z[0]; };
   // quota di lavoro dentro la fascia: 0 = bordo basso, 1 = bordo alto. Cambia scienza e mantenimento d'orbita.
   const frac = M => M.traj && M.traj.frac != null ? M.traj.frac : 0.5;
@@ -92,7 +95,8 @@ const O = (function () {
     const t2 = add(mul(th, Math.cos(d)), mul(crs(rh, th), Math.sin(d))), v2 = mul(t2, vm), dv = nrm(sub(v2, s.v)) * 1000;
     const out = elements(s.r, v2, B); return { el: { pe: out.pe, ap: out.ap, i: out.i, raan: out.raan, argp: out.argp }, dv, at: s.r, alt: rm - B.R }; }
 
-  function target(M) { const d = M.sat, B = BODY[d.dest || 'moon'], T = TYPES[M.type || 'sci'], z = zoneOf(M);
+  function target(M) { if (M.tutOrb) { const o = M.tutOrb; return { pe: [o.pe - 15, o.pe + 15], ap: [o.ap - 100, o.ap + 100], i: [o.i - 3, o.i + 3] }; }
+    const d = M.sat, B = BODY[d.dest || 'moon'], T = TYPES[M.type || 'sci'], z = zoneOf(M);
     if (z && z.moon && z.alt) return { pe: [Math.round(z.alt * 0.97), Math.round(z.alt * 1.03)], ap: [Math.round(z.alt * 0.97), Math.round(z.alt * 1.03)], i: [0, z.i + 3] };
     const band = z && z.band ? z.band : (z && z.surf ? ZONES[d.dest || 'moon'][0].band : [Math.round(B.R * 0.05), Math.round(B.R * 1.5)]), iR = z && z.iFix ? z.iFix.slice() : T.tgt ? T.tgt.i.slice() : [0, 180];
     if (T.tgt || z.surf) return { pe: band.slice(), ap: band.slice(), i: z.surf ? [0, 180] : iR };
@@ -101,12 +105,15 @@ const O = (function () {
   const mid = r => (r[0] + r[1]) / 2;
   function nominal(t) { const pe = mid(t.pe), ap = Math.max(pe, Math.min(t.ap[1], Math.max(t.ap[0], pe * 1.0001 + (t.ap[0] > pe ? (t.ap[0] - pe) * 1.15 : 0)))); return { pe, ap: Math.max(pe, ap), i: t.i[1] >= 180 ? 30 : mid(t.i), raan: 0, argp: 0 }; }
   // Orbita in cui ti lascia il lanciatore
-  function initial(M) { const d = M.sat, dest = d.dest || 'moon', t = target(M), L = E.LV[d.lv];
+  function initial(M) { if (M.tutOrb) { const o = M.tutOrb; return { el: { pe: o.pe, ap: o.ap, i: o.i, raan: 0, argp: 0 }, cap: 0, why: 'Il razzo per Marte frena per te e ti lascia già nell’orbita di lavoro: ' + o.pe + ' × ' + o.ap.toLocaleString('it-IT') + ' km, inclinata di ' + o.i + '°.' }; }
+    const d = M.sat, dest = d.dest || 'moon', t = target(M), L = E.LV[d.lv];
     if (L && L.surf) return { el: { pe: 100, ap: 100, i: 90, raan: 0, argp: 0 }, cap: 0, why: 'Il lander commerciale ti porta fino al suolo.' };
     const k = !L ? 1 : typeof L.dvK === 'number' ? L.dvK : (L.dvK[dest] != null ? L.dvK[dest] : 1);
     if (k === 0) { const n = t.debris ? { pe: t.debris.pe, ap: t.debris.ap, i: t.debris.i, raan: 0, argp: 0 } : nominal(t); if (!t.debris && work(M).slider) Object.assign(n, workEl(M, t)); return { el: n, cap: 0, why: 'Il lanciatore dedicato ti porta già nell’orbita di lavoro.' }; }
     const iA = t.debris ? t.debris.i - 6 : (t.i[1] - t.i[0] < 60 ? (t.i[0] + t.i[1]) / 2 : 30);
     if (dest === 'moon') return { el: { pe: 800, ap: 8000, i: iA, raan: 0, argp: 0 }, cap: 0, why: 'Rilascio dopo il viaggio dalla Terra: orbita lunare alta e allungata.' };
+    if (E.EXT[dest]) { const zz = zoneOf(M), h = Math.round(Math.sqrt(zz.band[0] * zz.band[1])), cp = Math.round(capture[dest] * k * (zz.capK || 1));
+      return { el: { pe: h, ap: h, i: iA, raan: 0, argp: 0 }, cap: cp, why: 'La sonda che ti porta frena per te e ti lascia in un’orbita circolare di lavoro: la frenata di cattura costa ' + cp + ' m/s ed è già nel conto.' }; }
     if (L && L.ell) return { el: { pe: 400, ap: 8000, i: iA, raan: 0, argp: 0 }, cap: 0, why: 'La sonda che ti porta frena per te: rilascio in un’orbita allungata.' };
     if (dest === 'leo') { const iT = t.debris ? t.debris.i - 6 : (t.i[1] - t.i[0] < 60 ? mid(t.i) : 97.6), z = zoneOf(M);
       if (z.k === 'med') return { el: { pe: 400, ap: 20000, i: iT, raan: 0, argp: 0 }, cap: 0, why: 'Il rideshare ti rilascia in un’orbita di trasferimento allungata fino a 20.000 km.' };
@@ -174,9 +181,12 @@ const O = (function () {
     while (ob.legs.length < n) { const p = ob.legs[ob.legs.length - 1]; ob.legs.push(p ? { e: 0, i: p.i, raan: p.raan, argp: 0, ma: 0 } : { e: 0, i: Math.round(ini.i * 10) / 10, raan: m360(ini.raan || 0), argp: 0, ma: 0 }); }
     if (ob.legs.length > n) ob.legs.length = n; return ob.legs; }
   // fine vita dall'ultima orbita
-  function eolPlan(M, last, B) { const D = M.drm, d = M.sat, dest = d.dest || 'leo', k = D.eol ? D.eol.k : null; if (!k || k === 'surf') return { dv: 0, el: null, t: '', k };
+  function eolPlan(M, last, B, lf) { const D = M.drm, d = M.sat, dest = d.dest || 'leo', k = D.eol ? D.eol.k : null; if (!k || k === 'surf') return { dv: 0, el: null, t: '', k };
+    // batch 5: corpi esterni (E.EXT). Il corpo è già parcheggiato in alto: il cimitero costa il 10% e il rientro il 30% della frenata di cattura; nessun costo nei sorvoli.
+    if (E.EXT[dest]) { const z = zoneOf(M), fly = !!z && z.k === 'fly', gr = k === 'grave', dv = fly ? 0 : Math.round(capture[dest] * (gr ? 0.10 : 0.30)), hG2 = gr ? Math.round(Math.max(...ZONES[dest].map(q => q.band[1])) * 1.2) : 0;
+      return { dv, el: gr ? { pe: hG2, ap: hG2, i: last.i, raan: last.raan, argp: 0 } : last, t: gr ? 'Verso l’orbita cimitero' : 'Rientro in atmosfera', k }; }
     const mu = B.mu, kl = kep(last, B), rp = kl.a * (1 - kl.e), ra = kl.a * (1 + kl.e);
-    if (k === 'reentry' || k === 'impact') { const nat = k === 'reentry' && ATM[dest] && (d.placed.eol || last.pe <= (dest === 'leo' ? 600 : 250)), rpT = B.R + (k === 'impact' ? -50 : 60);
+    if (k === 'reentry' || k === 'impact') { const lfr = lf && (dest === 'leo' || dest === 'mars') ? (d.placed.eol ? lf.sail : lf.nom) : null, byGmat = lfr ? lfr.days != null && lfr.days <= 1825 : null, nat = k === 'reentry' && ATM[dest] && (byGmat != null ? byGmat : (d.placed.eol || last.pe <= (dest === 'leo' ? 600 : 250))), rpT = B.R + (k === 'impact' ? -50 : 60);
       if (nat) return { dv: 0, el: null, t: d.placed.eol ? 'Rientro con la vela: nessuna manovra' : 'Rientro naturale: l’atmosfera frena il satellite', k, nat: true };
       if (rp <= rpT) return { dv: 0, el: last, t: k === 'impact' ? 'Impatto: l’orbita tocca già la superficie' : 'Rientro: l’orbita entra già nell’atmosfera', k };
       const dv = (vv(mu, ra, kl.a) - vv(mu, ra, (ra + rpT) / 2)) * 1000; return { dv, el: { pe: rpT - B.R, ap: ra - B.R, i: last.i, raan: last.raan, argp: m360((last.argp || 0) + 180) }, t: k === 'impact' ? 'Impatto controllato' : 'Rientro in atmosfera', k }; }
@@ -190,11 +200,16 @@ const O = (function () {
     const landNow = landOf(M); if (landNow) ini.cap = 0;
     const obm = !landNow && !!(M.drm && M.drm.v === 1 && M.drm.orbits);
     const burns = landNow || obm ? [] : expert ? ((M.fd && M.fd.burns) || []) : autoBurns(ini.el, goalM(M, ini.el, t), B);
-    const orbits = [{ el: ini.el, dv: 0, name: 'Rilascio' }], land = landOf(M); let tot = ini.cap, bad = '', si = 0, after = 0, eol = null, atm = null;
+    const orbits = [{ el: ini.el, dv: 0, name: 'Rilascio' }], land = landOf(M); let lf = null, gmatOn = false, tot = ini.cap, bad = '', si = 0, after = 0, eol = null, atm = null;
     if (obm) { const D = M.drm, legs = obLegs(M, ini.el), dest = d.dest || 'leo'; si = D.star < 0 ? 0 : D.star + 1;
       D.orbits.forEach((o, k) => { const prev = orbits[orbits.length - 1].el, el = legEl(legs[k], o.h, B), tr = transfer(prev, el, B); orbits.push({ el, dv: tr.dv, mid: tr.mid, leg: k, h: o.h, name: 'Orbita ' + (k + 2) });
         if (k + 1 <= si) tot += tr.dv; else after += tr.dv; });
-      eol = eolPlan(M, orbits[orbits.length - 1].el, B); after += eol.dv;
+      // vita dell'orbita di lavoro calcolata da GMAT (propagazione fino al rientro): decide se il rientro naturale rispetta la regola dei 5 anni
+      if (HOOK.gmatLf && !landNow) { const w = orbits[Math.min(si, orbits.length - 1)].el, bb = E.budget(d); lf = HOOK.gmatLf(M, { dest, el: { pe: w.pe, ap: isFinite(w.ap) ? w.ap : w.pe, i: w.i, raan: w.raan || 0, argp: w.argp || 0 }, mass: Math.round(bb.wet * 2) / 2, area: satArea(d), sail: !!d.placed.eol }); }
+      eol = eolPlan(M, orbits[orbits.length - 1].el, B, lf); after += eol.dv;
+      // ΔV calcolato da GMAT (NASA), se il servizio ha già risposto per questo piano: sostituisce i numeri del modello a due corpi
+      const gx = HOOK.gmat ? HOOK.gmat(M, { dest, orbits: orbits.map(o => ({ el: o.el, mid: o.mid || null, dv: o.dv })), eol: eol && eol.el ? { el: eol.el, mid: eol.mid || null, dv: eol.dv } : null }) : null;
+      if (gx && gx.legs && gx.legs.length === orbits.length - 1) { tot = ini.cap; after = 0; orbits.forEach((o, k) => { if (!k) return; o.dv = gx.legs[k - 1].dv; if (k <= si) tot += o.dv; else after += o.dv; }); if (gx.eol && eol.el) eol.dv = gx.eol.dv; after += eol.dv; gmatOn = true; }
       // atmosfera e superficie: ogni orbita percorsa (anche quelle di trasferimento) conta
       const rows = []; orbits.forEach((o, k) => { [[o.el, o.name, k === si ? 1.5 : 1], [o.mid, 'trasferimento verso ' + (o.name || ''), 0.5]].forEach(([el, n, w]) => { if (!el) return; const r = atmRisk(dest, el.pe); if (r > 0) rows.push({ n, pe: el.pe, r: Math.min(0.95, r * w), crash: el.pe <= 0 }); }); });
       if (eol.mid) { const r = atmRisk(dest, eol.mid.pe); if (r > 0) rows.push({ n: 'trasferimento verso il cimitero', pe: eol.mid.pe, r: r * 0.5, crash: eol.mid.pe <= 0 }); }
@@ -209,6 +224,7 @@ const O = (function () {
     const stratOk = (!st.cap.length || !!sc) && (!st.tr.length || !!strn);
     const f = orbits[obm ? si : orbits.length - 1].el, inR = (x, r) => x >= r[0] - 0.5 && x <= r[1] + 0.5;
     const noProp = !d.placed.prop, early = ['0', 'A', 'B'].indexOf(M.phase) >= 0, rp = noProp ? (HOOK.refProp ? HOOK.refProp(M) : { isp: 231, propM: 0.5 }) : null, none = !!(rp && rp.none);
+    if (noProp && eol && eol.dv > 0) { after = Math.max(0, after - eol.dv); eol.dv = 0; eol.nat = true; }
     if (!bad && noProp && tot + after > 1 && none) bad = 'Il piano chiede ' + Math.round(tot + after) + ' m/s di manovre, ma al tuo livello non hai ancora un propulsore (il primo si sblocca al livello ' + rp.lvl + '): scegli un’orbita di lavoro dove il razzo ti lascia già, senza manovre';
     else if (!bad && noProp && tot + after > 1 && !early) bad = 'Servono ' + Math.round(tot + after) + ' m/s di manovre: monta un sistema di propulsione';
     const chk = land ? { pe: true, ap: true, i: true } : { pe: inR(f.pe, t.pe), ap: inR(f.ap, t.ap), i: inR(f.i, t.i) }; const ok = !bad && chk.pe && chk.ap && chk.i && (stratOk || tot <= 1);
@@ -218,9 +234,106 @@ const O = (function () {
     let m = wet; const used = orbits.map((o, k) => { const dv = k === 0 ? capDv : o.dv * (strn ? strn.f : 1), m2 = m / Math.exp(dv / (isp * G0)), kg = m - m2; m = m2; return kg; });
     const usedKg = wet - m, dvAvail = ref ? (none ? 0 : isp * G0 * Math.log(wet / dry)) : b0.fuel;
     const z = zoneOf(M), wk = work(M, f); d.planDv = Math.round(tot + after); d.planOk = ok; d.landC = 0; d.landKg = land ? land.perKg : 0; d.noProp = noProp; d.alt = (f.pe + (isFinite(f.ap) ? f.ap : f.pe)) / 2; d.skK = wk.sk; d.eclH = ((ECL[d.dest || 'moon'] || {})[z ? z.k : 'med']) || E.M.eclH;
-    return { ob: obm, si, after, eol, atm, work: wk, land, zone: zoneOf(M), st, sc, strn, raw, capDv, trEff, stratOk, expert, B, ini, t, orbits, tot, ok, chk, bad, final: f, propKg, usedKg, used, wet, isp, ref, dvAvail, refN: rp && !none ? rp.n : '', none }; }
+    // analisi GMAT dell'orbita di lavoro: eclisse, contatti, decadimento. Sostituisce i valori fissi quando il servizio ha risposto.
+    const dd = d.dest || 'moon', an = !land && HOOK.gmatAn ? HOOK.gmatAn(M, { dest: dd, el: { pe: f.pe, ap: isFinite(f.ap) ? f.ap : f.pe, i: f.i, raan: f.raan || 0, argp: f.argp || 0 }, mass: Math.round(wet * 2) / 2, area: satArea(d) }) : null;
+    d.skMs = null; if (an && an.eclipse && an.eclipse.events >= 0) { d.eclH = an.eclipse.maxMin / 60; d.eclSrc = 'gmat'; } else d.eclSrc = 'model'; if (an && an.evolution) d.skMs = an.evolution.skDvMonth;
+    return { lf, an, gmat: gmatOn, ob: obm, si, after, eol, atm, work: wk, land, zone: zoneOf(M), st, sc, strn, raw, capDv, trEff, stratOk, expert, B, ini, t, orbits, tot, ok, chk, bad, final: f, propKg, usedKg, used, wet, isp, ref, dvAvail, refN: rp && !none ? rp.n : '', none }; }
+  // anomalia vera da anomalia media (Newton su Keplero)
+  function nuFromM(Mn, e) { let E2 = Mn; for (let k = 0; k < 12; k++) E2 = E2 - (E2 - e * Math.sin(E2) - Mn) / (1 - e * Math.cos(E2)); return 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E2 / 2), Math.sqrt(1 - e) * Math.cos(E2 / 2)); }
+  // Script per GMAT (NASA General Mission Analysis Tool): stesse orbite e stessi trasferimenti del piano, calcolati da GMAT con un Target/Vary/Achieve.
+  // Sintassi ricalcata sugli esempi ufficiali nasa/GMAT (Tut_SimpleOrbitTransfer, Ex_LunarTransfer, Ex_MarsOrbit).
+  // Due impulsi agli apsidi, con il cambio di piano ripartito come nel piano del gioco (inclinazione intermedia = mid.i). Si impone l'inclinazione, non Ω.
+  function gmat(M, p, opts) { opts = opts || {};
+    const dest = (M.sat && M.sat.dest) || 'leo', B = BODY[dest], body = { leo: 'Earth', moon: 'Luna', mars: 'Mars', venus: 'Venus' }[dest], cs = dest === 'leo' ? 'EarthMJ2000Eq' : body + 'MJ2000Eq';
+    const f = (x, d) => Number(x).toFixed(d == null ? 6 : d), L = [];
+    const name = String(M.name || 'Mission').replace(/[\r\n]/g, ' ');
+    L.push('%  Space Mission Design Game: ' + name, '%  Destination: ' + body + ' · generated for GMAT (R2025a-style script, syntax from the nasa/GMAT sample scripts)', '%  The game uses a two-body model with impulsive burns: GMAT\'s delta-V per leg should be close to the game\'s, not identical.', '');
+    if (dest !== 'leo') L.push('Create CoordinateSystem ' + cs + ';', cs + '.Origin = ' + body + ';', cs + '.Axes   = MJ2000Eq;', '');
+    // un'orbita perfettamente circolare non ha apsidi: una piccola eccentricità tiene valido il Propagate-to-apsis
+    const e0 = p.orbits[0].el, k0 = kep(e0, B), ecc0 = Math.max(k0.e, 1e-4), ma = (e0.ma || 0) * D2R, ta = nuFromM(ma, ecc0) / D2R;
+    L.push('Create Spacecraft Sat;', 'Sat.CoordinateSystem = ' + cs + ';', 'Sat.DisplayStateType = Keplerian;', 'Sat.SMA = ' + f(k0.a) + ';', 'Sat.ECC = ' + f(ecc0) + ';', 'Sat.INC = ' + f(e0.i) + ';', 'Sat.RAAN = ' + f(m360(e0.raan || 0)) + ';', 'Sat.AOP = ' + f(m360(e0.argp || 0)) + ';', 'Sat.TA = ' + f(m360(ta)) + ';', 'Sat.DryMass = ' + f(Math.max(1, p.wet || 10), 3) + ';', '');
+    L.push('Create ForceModel PointMass;', 'PointMass.CentralBody = ' + body + ';', 'PointMass.PointMasses = {' + body + '};', 'PointMass.Drag = None;', 'PointMass.SRP = Off;', '', 'Create Propagator Prop;', 'Prop.FM = PointMass;', 'Prop.Type = PrinceDormand78;', '');
+    const legs = [];
+    p.orbits.forEach((o, k) => { if (k) legs.push({ from: p.orbits[k - 1].el, to: o.el, mid: o.mid, dv: o.dv, n: o.name || ('Orbita ' + (k + 1)) }); });
+    const last = p.orbits[p.orbits.length - 1].el; if (p.eol && p.eol.el && p.eol.el !== last) legs.push({ from: last, to: p.eol.el, mid: p.eol.mid, dv: p.eol.dv, n: 'End of life' });
+    legs.forEach((g, i) => { const n = i + 1; L.push('Create ImpulsiveBurn B' + n + 'a, B' + n + 'b;', 'Create Variable dv' + n + ';');
+      ['a', 'b'].forEach(s => L.push('B' + n + s + '.CoordinateSystem = Local;', 'B' + n + s + '.Origin = ' + body + ';', 'B' + n + s + '.Axes = VNB;', 'B' + n + s + '.DecrementMass = false;')); });
+    L.push('Create Variable dvTotal;', 'Create DifferentialCorrector DC;', 'DC.ShowProgress = false;', 'DC.MaximumIterations = 30;', 'DC.DerivativeMethod = ForwardDifference;', '');
+    if (opts.report) L.push('Create ReportFile DVR;', "DVR.Filename = '" + String(opts.report).replace(/'/g, '') + "';", 'DVR.WriteHeaders = false;', 'DVR.Precision = 12;', '');
+    else L.push('Create OrbitView View;', 'View.Add = {Sat, ' + body + '};', 'View.CoordinateSystem = ' + cs + ';', '');
+    L.push('BeginMissionSequence;', '');
+    const vary = (b, el, guess, step) => 'Vary DC(' + b + '.Element' + el + ' = ' + f(guess) + ', {Perturbation = 0.0001, Lower = -9.999999e300, Upper = 9.999999e300, MaxStep = ' + step + '});';
+    legs.forEach((g, i) => { const n = i + 1, a1 = kep(g.from, B), a2 = kep(g.to, B), rp1 = a1.a * (1 - a1.e), ra1 = a1.a * (1 + a1.e), rp2 = a2.a * (1 - a2.e), ra2 = a2.a * (1 + a2.e), di = Math.abs(g.to.i - g.from.i) > 0.05, sci = 'Sat.' + (dest === 'leo' ? 'Earth' : body);
+      L.push('% --- ' + g.n + ': game plan ' + f(g.dv || 0, 0) + ' m/s ---');
+      const near = (ra, rb) => { let b = { d: Infinity }; [[0, ra[0]], [1, ra[1]]].forEach(([ia, x]) => rb.forEach((y, ib) => { if (Math.abs(x - y) < b.d) b = { d: Math.abs(x - y), ia, ib }; })); return b; };
+      const dvg = Math.max(0.01, (g.dv || 0) / 1000), nGuess = (r, dI) => Math.sqrt(B.mu / r) * Math.abs(dI) * D2R * (dI >= 0 ? 1 : -1);
+      if (g.mid) { const km = kep(g.mid, B), rpm = km.a * (1 - km.e), ram = km.a * (1 + km.e), pr = near([rp1, ra1], [rpm, ram]), atMidPe = pr.ib === 0, sg = atMidPe ? 1 : -1, other = atMidPe ? ram : rpm;
+        L.push('Propagate Prop(Sat) {' + sci + '.' + (pr.ia === 0 ? 'Periapsis' : 'Apoapsis') + '};', 'Target DC {SolveMode = Solve, ExitMode = SaveAndContinue};',
+          '   ' + vary('B' + n + 'a', 1, sg * dvg / 2, 0.5)); const d1 = g.mid.i - g.from.i, d2 = g.to.i - g.mid.i; if (di) L.push('   ' + vary('B' + n + 'a', 2, nGuess(pr.ia === 0 ? rp1 : ra1, d1), 0.5));
+        L.push('   Maneuver B' + n + 'a(Sat);', '   Propagate Prop(Sat) {' + sci + '.' + (atMidPe ? 'Apoapsis' : 'Periapsis') + '};', '   Achieve DC(' + sci + '.RMAG = ' + f(other, 3) + ', {Tolerance = 0.1});'); if (di) L.push('   Achieve DC(Sat.' + cs + '.INC = ' + f(g.mid.i, 4) + ', {Tolerance = 0.001});');
+        L.push('   ' + vary('B' + n + 'b', 1, sg * dvg / 2, 0.5)); if (di) L.push('   ' + vary('B' + n + 'b', 2, nGuess(other, d2), 0.5));
+        L.push('   Maneuver B' + n + 'b(Sat);', '   Achieve DC(' + sci + '.SMA = ' + f((rp2 + ra2) / 2, 3) + ', {Tolerance = 0.1});'); if (di) L.push('   Achieve DC(Sat.' + cs + '.INC = ' + f(g.to.i, 4) + ', {Tolerance = 0.001});'); L.push('EndTarget;'); }
+      else { const pr = near([rp1, ra1], [rp2, ra2]), sg = (rp2 + ra2) / 2 >= (rp1 + ra1) / 2 ? 1 : -1;
+        L.push('Propagate Prop(Sat) {' + sci + '.' + (pr.ia === 0 ? 'Periapsis' : 'Apoapsis') + '};', 'Target DC {SolveMode = Solve, ExitMode = SaveAndContinue};', '   ' + vary('B' + n + 'a', 1, Math.abs(a2.a - a1.a) < 1 ? 0.001 * sg : sg * dvg, 0.5)); if (di) L.push('   ' + vary('B' + n + 'a', 2, nGuess(pr.ia === 0 ? rp1 : ra1, g.to.i - g.from.i), 0.5));
+        L.push('   Maneuver B' + n + 'a(Sat);', '   Achieve DC(' + sci + '.SMA = ' + f((rp2 + ra2) / 2, 3) + ', {Tolerance = 0.1});'); if (di) L.push('   Achieve DC(Sat.' + cs + '.INC = ' + f(g.to.i, 4) + ', {Tolerance = 0.001});'); L.push('EndTarget;'); }
+      L.push('GMAT dv' + n + ' = (sqrt(B' + n + 'a.Element1^2 + B' + n + 'a.Element2^2 + B' + n + 'a.Element3^2) + sqrt(B' + n + 'b.Element1^2 + B' + n + 'b.Element2^2 + B' + n + 'b.Element3^2)) * 1000;  % m/s, game: ' + f(g.dv || 0, 0), ''); });
+    L.push('GMAT dvTotal = ' + (legs.length ? legs.map((g, i) => 'dv' + (i + 1)).join(' + ') : '0') + ';  % m/s'); if (opts.report) L.push('Report DVR ' + (legs.length ? legs.map((g, i) => 'dv' + (i + 1)).join(' ') : 'dvTotal')); else L.push('Propagate Prop(Sat) {Sat.ElapsedSecs = 86400};'); L.push('');
+    return L.join('\n').replace(/ΔV/g, 'delta-V').replace(/[^\x00-\x7f]/g, '-'); } // GMAT rifiuta i caratteri non ASCII negli script
+  // Modello fisico per corpo: campo di gravità, corpi perturbanti e atmosfera (GMAT non ha un'atmosfera di Venere: nessuna resistenza)
+  const GMCFG = { leo: { b: 'Earth', field: 'JGM2.cof', deg: 4, pm: [], drag: 'JacchiaRoberts' }, moon: { b: 'Luna', field: 'LP165P.cof', deg: 20, pm: ['Earth', 'Sun'] },
+    mars: { b: 'Mars', field: 'Mars50c.cof', deg: 20, pm: ['Sun'], drag: 'Exponential' }, venus: { b: 'Venus', field: 'MGNP180U.cof', deg: 20, pm: ['Sun'] } };
+  const FIXED_EPOCH = '01 Jan 2027 12:00:00.000'; // il gioco non ha un calendario: data fissa
+  function gmForce(dest, o) { o = o || {}; const c = GMCFG[dest], deg = o.deg != null ? o.deg : c.deg, L = ['Create ForceModel FM;', 'FM.CentralBody = ' + c.b + ';', 'FM.PrimaryBodies = {' + c.b + '};', 'FM.GravityField.' + c.b + '.Degree = ' + deg + ';', 'FM.GravityField.' + c.b + '.Order = ' + (o.order != null ? o.order : deg) + ';', 'FM.GravityField.' + c.b + ".PotentialFile = '" + c.field + "';"];
+    if (c.pm.length) L.push('FM.PointMasses = {' + c.pm.join(', ') + '};');
+    if (c.drag === 'JacchiaRoberts') { const f = o.f107 || 150; L.push('FM.Drag.AtmosphereModel = JacchiaRoberts;', "FM.Drag.HistoricWeatherSource = 'ConstantFluxAndGeoMag';", "FM.Drag.PredictedWeatherSource = 'ConstantFluxAndGeoMag';", 'FM.Drag.F107 = ' + f + ';', 'FM.Drag.F107A = ' + f + ';', 'FM.Drag.MagneticIndex = 3;'); }
+    else if (c.drag) L.push('FM.Drag.AtmosphereModel = ' + c.drag + ';'); else L.push('FM.Drag = None;');
+    L.push('FM.SRP = Off;', '', 'Create Propagator Prop;', 'Prop.FM = FM;', 'Prop.Type = PrinceDormand78;'); if (o.accuracy) L.push('Prop.Accuracy = ' + o.accuracy + ';'); L.push(''); return L; }
+  function gmSat(dest, req, area) { const B = BODY[dest], c = GMCFG[dest], cs = dest === 'leo' ? 'EarthMJ2000Eq' : c.b + 'MJ2000Eq', k0 = kep(req.el, B), f = (x, d) => Number(x).toFixed(d == null ? 6 : d), L = [];
+    if (dest !== 'leo') L.push('Create CoordinateSystem ' + cs + ';', cs + '.Origin = ' + c.b + ';', cs + '.Axes = MJ2000Eq;', '');
+    L.push('Create Spacecraft Sat;', 'Sat.DateFormat = UTCGregorian;', "Sat.Epoch = '" + FIXED_EPOCH + "';", 'Sat.CoordinateSystem = ' + cs + ';', 'Sat.DisplayStateType = Keplerian;', 'Sat.SMA = ' + f(k0.a) + ';', 'Sat.ECC = ' + f(Math.max(k0.e, 1e-4)) + ';', 'Sat.INC = ' + f(req.el.i) + ';', 'Sat.RAAN = ' + f(m360(req.el.raan || 0)) + ';', 'Sat.AOP = ' + f(m360(req.el.argp || 0)) + ';', 'Sat.TA = 0;',
+      'Sat.DryMass = ' + f(Math.max(1, req.mass || 4), 3) + ';', 'Sat.Cd = 2.2;', 'Sat.DragArea = ' + f(Math.max(0.001, area != null ? area : (req.area || 0.03)), 4) + ';', 'Sat.SRPArea = ' + f(Math.max(0.001, req.area || 0.03), 4) + ';', ''); return { L, cs, k0, B, c }; }
+
+  // sezione d'urto media del satellite (m2) per la resistenza: 0,015 m2 per unità, un po' di più con le ali solari dispiegabili (approssimazione)
+  const satArea = d => { const U = (E.RIDES[d.ride] || { U: 3 }).U, s = typeof d.sol === 'string' ? E.PARTS[d.sol] : null, wing = s && /dispieg|ali solari/i.test(s.n || '') ? 0.02 * U : 0; return Math.round((0.015 * U + wing) * 1000) / 1000; };
+  // Stazioni di terra del gioco (GMAT calcola la visibilità): Milano sempre, Svalbard con l'edificio di terra, Canberra con la prima parabola
+  const STATIONS = [{ k: 'milan', n: 'Milano', lat: 45.4642, lon: 9.19 }, { k: 'svalbard', n: 'Svalbard', lat: 78.2298, lon: 15.3878 }, { k: 'canberra', n: 'Canberra', lat: -35.4017, lon: 148.9817 }];
+  // Analisi GMAT di un'orbita di lavoro, per ogni corpo: eclisse (EclipseLocator), contatti con le stazioni (ContactLocator) ed evoluzione dell'orbita
+  // (resistenza e gravità per la Terra e Marte, perturbazioni di Terra e Sole per la Luna e Venere). req = { dest, el:{pe,ap,i,raan,argp}, mass, area }; opts.files = { ecl, con, st }.
+  const ANALYSIS_DAYS = 30, ANTHR = { leo: 140, moon: 3, mars: 100, venus: 150 };
+  function gmatAnalysis(req, opts) { opts = opts || {}; const F = opts.files || {}, dest = req.dest || 'leo', q = s => "'" + String(s).replace(/'/g, '') + "'", S = gmSat(dest, req), c = S.c, cs = S.cs, B = S.B, k0 = S.k0, leo = dest === 'leo', L = [];
+    L.push('% Space Mission Design Game: GMAT analysis of the working orbit (' + c.b + ')', '', ...S.L, ...gmForce(dest));
+    STATIONS.forEach(s => L.push('Create GroundStation ' + s.k + ';', s.k + '.StateType = Spherical;', s.k + '.Location1 = ' + s.lat.toFixed(4) + ';', s.k + '.Location2 = ' + s.lon.toFixed(4) + ';', s.k + '.Location3 = 0;', s.k + '.MinimumElevationAngle = 5;', ''));
+    L.push('Create ContactLocator CL;', 'CL.Target = Sat;', 'CL.Filename = ' + q(F.con || 'contacts.txt') + ';', 'CL.Observers = {' + STATIONS.map(s => s.k).join(', ') + '};'); if (!leo) L.push('CL.OccultingBodies = {' + c.b + '};');
+    L.push('CL.WriteReport = true;', 'CL.RunMode = Automatic;', 'CL.UseEntireInterval = true;', 'CL.StepSize = 60;', 'CL.LightTimeDirection = Transmit;', 'CL.UseLightTimeDelay = ' + (leo ? 'false' : 'true') + ';', 'CL.UseStellarAberration = false;', '');
+    L.push('Create EclipseLocator EL;', 'EL.Spacecraft = Sat;', 'EL.Filename = ' + q(F.ecl || 'eclipse.txt') + ';', 'EL.OccultingBodies = {' + c.b + '};', 'EL.WriteReport = true;', 'EL.RunMode = Automatic;', 'EL.UseEntireInterval = true;', 'EL.StepSize = 60;', 'EL.UseLightTimeDelay = false;', 'EL.UseStellarAberration = false;', '');
+    // Il SMA osculatore oscilla di diversi km in un'orbita (J2): le misure sono medie su un'orbita intera all'inizio e alla fine.
+    // colonne: giorni, SMA, ECC, raggio del pericentro, RAAN, inclinazione, distanza dalla Terra
+    const vars = ['Sat.ElapsedDays', 'Sat.' + c.b + '.SMA', 'Sat.' + c.b + '.ECC', 'Sat.' + c.b + '.RadPer', 'Sat.' + cs + '.RAAN', 'Sat.' + cs + '.INC', 'Sat.Earth.RMAG'].join(' '), steps = Math.ceil(2 * Math.PI * Math.sqrt(k0.a ** 3 / B.mu) / 60) + 2;
+    L.push('Create Variable I;', 'Create ReportFile ST;', 'ST.Filename = ' + q(F.st || 'state.txt') + ';', 'ST.WriteHeaders = false;', 'ST.Precision = 12;', '', 'BeginMissionSequence;', '');
+    // la propagazione si ferma poco sopra la superficie (o al limite dell'atmosfera): un'orbita che cade prima dei 30 giorni non deve far fallire i localizzatori
+    const thr = ANTHR[dest], alive = 'Sat.' + c.b + '.Altitude > ' + (thr + 1), win = () => L.push("For 'Window' I = 1:1:" + steps + ';', "   If 'Alive' " + alive, '      Propagate Prop(Sat) {Sat.ElapsedSecs = 60};', '      Report ST ' + vars, '   EndIf;', 'EndFor;');
+    win(); L.push('Propagate Prop(Sat) {Sat.ElapsedDays = ' + ANALYSIS_DAYS + ', Sat.' + c.b + '.Altitude = ' + thr + '};', 'Report ST ' + vars); win(); L.push('');
+    return L.join('\n').replace(/[^\x00-\x7f]/g, '-'); }
+
+  // Vita dell'orbita: propagazione fino al rientro (Terra, Marte: resistenza) o all'impatto / all'atmosfera (Luna, Venere: perturbazioni).
+  // req = { dest, el, mass, area, scenario: nom | max | min | sail, sailArea }. Terra: 3 livelli di attività solare (F10.7 150 / 230 / 70). Tetto: 5 anni (regola FCC/ESA) o 1 anno.
+  const LIFE = { leo: { thr: 140, cap: 1825, deg: 2, order: 0 }, mars: { thr: 100, cap: 1825, deg: 2, order: 0 }, moon: { thr: 3, cap: 365, deg: 20 }, venus: { thr: 150, cap: 365, deg: 20 } }; // stesso campo di gravità e stessa soglia dell'analisi: i due risultati devono concordare
+  const F107 = { nom: 150, max: 230, min: 70, sail: 150 };
+  function gmatLifetime(req, opts) { opts = opts || {}; const dest = req.dest || 'leo', sc = req.scenario || 'nom', lf = LIFE[dest], c = GMCFG[dest], file = String((opts.files || {}).st || 'life.txt').replace(/'/g, ''), area = sc === 'sail' ? Math.max(req.area || 0.03, req.sailArea || 1.0) : req.area;
+    const S = gmSat(dest, req, area), L = ['% Space Mission Design Game: GMAT lifetime (' + c.b + ', ' + sc + ')', '', ...S.L, ...gmForce(dest, { f107: F107[sc], deg: lf.deg, order: lf.order, accuracy: '1e-8' }),
+      'Create ReportFile ST;', "ST.Filename = '" + file + "';", 'ST.WriteHeaders = false;', 'ST.Precision = 10;', '', 'BeginMissionSequence;', '',
+      'Propagate Prop(Sat) {Sat.ElapsedDays = ' + lf.cap + ', Sat.' + c.b + '.Altitude = ' + lf.thr + '};', 'Report ST Sat.ElapsedDays Sat.' + c.b + '.Altitude', ''];
+    return L.join('\n').replace(/[^\x00-\x7f]/g, '-'); }
   const fmt = el => Math.round(el.pe) + ' × ' + (isFinite(el.ap) ? Math.round(el.ap) : '∞') + ' km · i ' + Math.round(el.i) + '°';
-  const HOOK = { refProp: null };
-  return { hook: HOOK, ECL, ATMH, atmRisk, transfer, legEl, eMax, tle, kep, pqK, work, workEl, frac, ZONES, LAND, zoneOf, landOf, goal, autoBurns, strategies, stmt, BODY, TYPES, state, elements, burn, plan, target, initial, fmt, D2R };
+  /* Stima del tempo di rientro naturale in orbita terrestre bassa, quando GMAT non risponde.
+     Atmosfera esponenziale a tratti (densita' per attivita' solare media, tabella di Vallado/CIRA-72) e
+     decadimento quasi circolare da/dt = -rho*(Cd*A/m)*sqrt(mu*a), integrato a passi di 1 km fino a 150 km. Restituisce i giorni (null se > 100 anni). */
+  const RHO = [[150, 2.070e-9, 22.523], [180, 5.464e-10, 29.740], [200, 2.789e-10, 37.105], [250, 7.248e-11, 45.546], [300, 2.418e-11, 53.628], [350, 9.518e-12, 53.298], [400, 3.725e-12, 58.515], [450, 1.585e-12, 60.828], [500, 6.967e-13, 63.822], [600, 1.454e-13, 71.835], [700, 3.614e-14, 88.667], [800, 1.170e-14, 124.64], [900, 5.245e-15, 181.05], [1000, 3.019e-15, 268.00]];
+  const rhoAt = h => { let r = RHO[0]; for (const x of RHO) if (h >= x[0]) r = x; return r[1] * Math.exp(-(h - r[0]) / r[2]); };
+  function decayDays(alt, mass, area) { if (!(alt > 0) || !(mass > 0) || !(area > 0)) return null; const mu = BODY.leo.mu * 1e9, Re = BODY.leo.R, k = 2.2 * area / mass; let t = 0;
+    for (let h = Math.min(alt, 2000); h > 150; h -= 1) { const a = (Re + h) * 1000, rate = rhoAt(h) * k * Math.sqrt(mu * a); t += 1000 / rate; if (t > 36525 * 86400) return null; }
+    return t / 86400; }
+  const HOOK = { refProp: null, gmat: null, gmatAn: null, gmatLf: null };
+  return { decayDays, satArea, gmat, gmatAnalysis, gmatLifetime, LIFE, STATIONS, nuFromM, hook: HOOK, ECL, ATMH, atmRisk, transfer, legEl, eMax, tle, kep, pqK, work, workEl, frac, ZONES, LAND, zoneOf, landOf, goal, autoBurns, strategies, stmt, BODY, TYPES, state, elements, burn, plan, target, initial, fmt, D2R };
 })();
 if (typeof module !== 'undefined') module.exports = O;

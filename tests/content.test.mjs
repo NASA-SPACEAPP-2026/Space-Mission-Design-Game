@@ -1,5 +1,6 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { runInNewContext } from "node:vm";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -25,6 +26,7 @@ describe("game shell", () => {
       "05-campus.js",
       "06-rooms.js",
       "08-minigames.js",
+      "09-consortia.js",
       "07-main.js"
     ]);
   });
@@ -76,5 +78,49 @@ describe("game shell", () => {
       expect(text).not.toContain("playcanvas");
       expect(text).not.toContain("Astronaut.glb");
     }
+  });
+});
+
+
+describe("ported mission rules", () => {
+  it("connects each new destination to its orbit and launcher", async () => {
+    const sources = await Promise.all(["01-data.js", "02-orbit.js", "03-logic.js"].map((name) => read(`public/game/${name}`)));
+    const { E, O, L } = runInNewContext(`${sources.join("\n")}\n;({ E, O, L })`);
+    expect(Object.keys(E.EXT)).toHaveLength(6);
+    for (const [key, body] of Object.entries(E.EXT)) {
+      expect(E.DEST[key]).toBeDefined();
+      expect(O.BODY[key]).toBeDefined();
+      expect(O.ZONES[key]).toHaveLength(body.zones.length);
+      expect(E.LV[body.ride].dest).toContain(key);
+      expect(E.lvCost({ lv: body.ride, dest: key })).toBe(body.c);
+    }
+    expect(L.LW.joy).toBe(25);
+    expect(L.LW.pay).toBe(0.15);
+    expect(L.TIME.win).toBe(0);
+  });
+
+  it("makes the thruster take two or three times the cells with a bigger tank", async () => {
+    const sources = await Promise.all(["01-data.js"].map((name) => read(`public/game/${name}`)));
+    const { E } = runInNewContext(`${sources.join("\n")}\n;({ E })`);
+    const cells = (tank) => E.shape("BASE-CG", 0, "S3", tank).length;
+    expect(cells(2)).toBe(cells(1) * 2);
+    expect(cells(3)).toBe(cells(1) * 3);
+    const sat = { ride: "S3", placed: {}, heat: {}, acc: {}, stake: [], tank: 2 };
+    const placed = E.autoPlace(sat, "BASE-CG", 0);
+    expect(placed.tk).toBe(2);
+    expect(E.cellsOf(placed, "S3")).toHaveLength(cells(2));
+    const other = Object.keys(E.PARTS).find((id) => E.PARTS[id].cat !== "prop");
+    expect(E.shape(other, 0, "S3", 3)).toHaveLength(E.shape(other, 0, "S3").length);
+  });
+
+  it("applies the launch-window reduction to future instalments", async () => {
+    const sources = await Promise.all(["01-data.js", "02-orbit.js", "03-logic.js"].map((name) => read(`public/game/${name}`)));
+    const { L } = runInNewContext(`${sources.join("\n")}\n;({ L })`);
+    const mission = L.newMission("test", "Mission");
+    mission.stake = ["nasa"];
+    const original = L.installment(mission, "FRR");
+    mission.payK = 0.85;
+    expect(original).toBeGreaterThan(0);
+    expect(Math.abs(L.installment(mission, "FRR") - original * 0.85)).toBeLessThanOrEqual(1);
   });
 });

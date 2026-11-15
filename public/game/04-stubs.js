@@ -52,7 +52,7 @@ const S3 = (function () {
   const box = (w, h, d) => new T.BoxGeometry(w, h, d), cyl = (r1, r2, h, s) => new T.CylinderGeometry(r1, r2, h, s || 20), sph = (r) => new T.SphereGeometry(r, 24, 16);
 
   // Ogni pezzo ha la forma di quello che è, dentro la scatola delle sue celle
-  function partMesh(id, cat, w, h, D, out, P) { const g = new T.Group(), dd = D * 0.82; id = (P && P.look) || id; if (cat === 'nav') { cat = 'adcs'; id = 'NAV'; }
+  function partMesh(id, cat, w, h, D, out, P, tk) { const g = new T.Group(), dd = D * 0.82; id = (P && P.look) || id; if (cat === 'nav') { cat = 'adcs'; id = 'NAV'; }
     if (cat === 'avi') { const n = 5, hh = h * 0.8, rad = id === 'O3';
       const stack = (ox, sw) => { for (let i = 0; i < n; i++) { const y = -hh / 2 + i * hh / (n - 1); add(g, box(sw, 0.04, dd), MAT.pcb, ox, y, 0); add(g, box(sw * 0.3, 0.05, dd * 0.3), MAT.chip, ox - sw * 0.15, y + 0.04, 0); add(g, box(sw * 0.15, 0.04, dd * 0.15), MAT.gold, ox + sw * 0.25, y + 0.04, dd * 0.2); }
         [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(q => add(g, cyl(0.025, 0.025, hh, 8), MAT.gold, ox + q[0] * sw * 0.42, 0, q[1] * dd * 0.42)); };
@@ -79,6 +79,10 @@ const S3 = (function () {
     else if (cat === 'bat') { const nx = Math.max(2, Math.round(w * 3)), ny = Math.max(2, Math.round(h * 3)), r = Math.min(w / nx, h / ny) * 0.42;
       for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) { const x = -w / 2 + (i + 0.5) * w / nx, y = -h / 2 + (j + 0.5) * h / ny; add(g, cyl(r, r, dd * 0.9, 14), id === 'B5' ? M(0x18A0A0, { metalness: 0.4 }) : MAT.cellbat, x, y, 0, Math.PI / 2); add(g, cyl(r * 0.5, r * 0.5, 0.02, 10), MAT.alu, x, y, dd * 0.46, Math.PI / 2); }
       add(g, box(w * 0.98, h * 0.98, 0.04), MAT.dark, 0, 0, -dd * 0.48); add(g, box(w * 0.98, 0.05, dd * 0.92), M(0xF28B50), 0, h * 0.47, 0); }
+    else if (cat === 'prop' && tk > 1) { // serbatoio Grande o Extra: 2 o 3 serbatoi in fila lungo il lato lungo, collegati da un tubo
+      const vert = h >= w, n = tk, seg = (vert ? h : w) / n, r = Math.min(vert ? w : h, seg) * 0.4;
+      for (let i = 0; i < n; i++) { const o = -(vert ? h : w) / 2 + seg * (i + 0.5); const t = add(g, sph(r), MAT.tank, vert ? 0 : o, vert ? o : 0, 0); t.scale.z = Math.min(1, dd * 0.48 / r); add(g, cyl(r * 0.9, r * 0.9, 0.03, 24), MAT.rail, vert ? 0 : o, vert ? o : 0, 0); }
+      add(g, cyl(0.03, 0.03, (vert ? h : w) * 0.8, 8), MAT.copper, vert ? r * 0.75 : 0, vert ? 0 : r * 0.75, dd * 0.2, 0, 0, vert ? 0 : Math.PI / 2); }
     else if (cat === 'prop') {
       if (id === 'P5') { add(g, box(w * 0.7, h * 0.55, dd * 0.7), MAT.dark, 0, h * 0.1, 0); add(g, sph(Math.min(w, h) * 0.18), MAT.tank, -w * 0.18, h * 0.25, 0); add(g, cyl(w * 0.3, w * 0.34, h * 0.2, 28), MAT.alu, 0, -h * 0.3, 0); const gr = add(g, cyl(w * 0.27, w * 0.27, 0.02, 28), MAT.ion, 0, -h * 0.41, 0); gr.userData.ion = 1; }
       else if (id === 'P3') { const t = add(g, sph(Math.min(w * 2 / 3, h) * 0.4), MAT.tank, -w / 6, h * 0.02, 0); t.scale.z = dd / (Math.min(w * 2 / 3, h) * 0.8); add(g, cyl(w * 0.1, w * 0.13, h * 0.42, 16), MAT.red, w / 3, -h * 0.22, 0); add(g, box(w * 0.3, 0.08, dd * 0.6), MAT.copper, w / 6, -h * 0.05, 0); }
@@ -134,7 +138,7 @@ const S3 = (function () {
       const g = new T.Group(); g.position.set((cx(x0) + cx(x1)) / 2, (cyy(y0c) + cyy(y1)) / 2, 0);
       // impronta colorata sul fondo: dice a colpo d'occhio di che sottosistema si tratta
       cs.forEach(c => { const m = add(g, box(0.94, 0.94, 0.04), M(CATCOL[cat], { roughness: 0.6, emissive: 0x000000 }), cx(c[0]) - g.position.x, cyy(c[1]) - g.position.y, -D / 2 + 0.04); m.userData.foot = 1; });
-      const pm = partMesh(pl.id, cat, w, h, D, out, P); g.add(pm);
+      const pm = partMesh(pl.id, cat, w, h, D, out, P, pl.tk); g.add(pm);
       if (o.live) { if (!f.ok) g.traverse(m => { if (m.isMesh && m.userData.foot) { m.material = M(0xD2443A, { emissive: 0xD2443A }); m.userData.pulse = 1; } });
         else if (f.cold && !f.warm) g.traverse(m => { if (m.isMesh && m.userData.foot) m.material = M(0x7FC4FF, { emissive: 0x2F6FD6, emissiveIntensity: 0.5 }); });
         else if (f.heater) add(g, new T.TorusGeometry(Math.min(w, h) * 0.4, 0.03, 6, 32), M(0xFF7A3D, { emissive: 0xFF5A1F, emissiveIntensity: 0.8 }), 0, 0, D / 2 - 0.1);
@@ -177,7 +181,8 @@ const FD3 = (function () {
   let yaw = 0.7, pitch = 0.5, dist = 14, autoDist = 14;
   const COL = { first: 0x9AA6B4, mid: 0x5B8DEF, last: 0xF07B3F, tgt: 0x1E9E5A, burn: 0xF07B3F, apo: 0x2F6FD6 };
   function tex(k) { const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d'), r = E.rng(k.length * 97 + 3);
-    const base = { moon: '#A9AEB6', leo: '#2F6FC9', mars: '#B9583A', venus: '#D9B871' }[k]; g.fillStyle = base; g.fillRect(0, 0, 512, 256);
+    const base = { moon: '#A9AEB6', leo: '#2F6FC9', mars: '#B9583A', venus: '#D9B871' }[k] || E.EXT[k].pal[0]; g.fillStyle = base;
+    if (E.EXT[k]) { for (let y = 0; y < 256; y += 14) { g.fillStyle = 'rgba(' + (k === 'sun' ? '255,240,160' : '60,40,20') + ',' + (0.12 + r() * 0.22) + ')'; g.fillRect(0, y, 512, 5 + r() * 7); } } g.fillRect(0, 0, 512, 256);
     if (k === 'moon') { for (let i = 0; i < 26; i++) { g.fillStyle = 'rgba(70,74,84,' + (0.15 + r() * 0.25) + ')'; g.beginPath(); g.ellipse(r() * 512, r() * 256, 10 + r() * 46, 8 + r() * 30, 0, 0, 7); g.fill(); } for (let i = 0; i < 120; i++) { g.strokeStyle = 'rgba(40,44,50,.35)'; g.beginPath(); g.arc(r() * 512, r() * 256, 1 + r() * 6, 0, 7); g.stroke(); } }
     if (k === 'leo') { c.width = 1024; c.height = 512; const W = 1024, H = 512, X = lo => (lo + 180) / 360 * W, Y = la => (90 - la) / 180 * H;
       const og = g.createLinearGradient(0, 0, 0, H); og.addColorStop(0, '#16407A'); og.addColorStop(.25, '#1F5FA8'); og.addColorStop(.5, '#2B7CC4'); og.addColorStop(.75, '#1F5FA8'); og.addColorStop(1, '#16407A'); g.fillStyle = og; g.fillRect(0, 0, W, H);
@@ -209,13 +214,16 @@ const FD3 = (function () {
   function mount(el, o) { init(); cb = o || {}; wrap = el; el.innerHTML = ''; el.appendChild(R.domElement); resize(); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
   function resize() { if (!wrap) return; const w = Math.max(240, wrap.clientWidth), h0 = Math.round(Math.min(620, w * 0.78)); const fh = wrap.classList.contains('fill') ? wrap.clientHeight : 0, h = fh > 80 ? fh : h0; R.setSize(w, h, false); R.domElement.style.height = h + 'px'; cam.aspect = w / h; cam.updateProjectionMatrix(); }
   window.addEventListener('resize', () => { if (wrap && document.body.contains(R.domElement)) resize(); });
-  function loop() { if (!wrap || !document.body.contains(R.domElement)) { wrap = null; return; } raf = requestAnimationFrame(loop);
-    cam.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist); cam.lookAt(0, 0, 0); if (body) body.rotation.y += 0.0008; R.render(scene, cam); }
+  let lastF = 0; function loop(ts) { if (!wrap || !document.body.contains(R.domElement)) { wrap = null; return; } raf = requestAnimationFrame(loop); const dF = Math.min(0.05, (ts - lastF) / 1000 || 0.016); lastF = ts;
+    cam.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist); cam.lookAt(0, 0, 0); if (body) body.rotation.y += 0.048 * dF; /* 0,0008 rad a fotogramma a 60 Hz = 0,048 rad/s */ R.render(scene, cam); }
   function tube(pts, col, rad, op) { const c = new T.CatmullRomCurve3(pts, true); return new T.Mesh(new T.TubeGeometry(c, Math.max(64, pts.length), rad, 6, true), new T.MeshBasicMaterial({ color: col, transparent: op != null, opacity: op == null ? 1 : op, depthWrite: op == null })); }
   function ring(el, B, n) { const out = []; for (let k = 0; k < n; k++) out.push(V(O.state(el, k * 360 / n, B).r, 1 / B.R)); return out; }
   function clear() { while (world.children.length) { const c = world.children[0]; world.remove(c); c.traverse(x => { if (x.geometry) x.geometry.dispose(); }); } picks = []; }
   function show(p, s, dest) { if (!R) init(); pl = p; sel = s || 0; const B = p.B, sc = 1 / B.R; clear();
-    if (bodyKey !== dest) { bodyKey = dest; body = new T.Mesh(new T.SphereGeometry(1, 48, 32), new T.MeshStandardMaterial({ map: tex(dest), roughness: 0.95 })); }
+    if (bodyKey !== dest) { bodyKey = dest; body = new T.Mesh(new T.SphereGeometry(1, 48, 32), new T.MeshStandardMaterial({ map: tex(dest), roughness: 0.95 }));
+      /* mappa NASA vera (public/tex), se si carica: sostituisce la texture disegnata dal codice */
+      const real = { leo: 'earth', moon: 'moon', mars: 'mars', venus: 'venus' }[dest], mb = body;
+      if (real && T.TextureLoader) new T.TextureLoader().load('tex/' + real + '.jpg', t => { if (T.sRGBEncoding) t.encoding = T.sRGBEncoding; mb.material.map = t; mb.material.needsUpdate = true; }); }
     world.add(body); if (dest === 'leo' || dest === 'venus') { const col = dest === 'leo' ? 0x6FB4FF : 0xFFE2A0; world.add(new T.Mesh(new T.SphereGeometry(1.012, 48, 32), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.10, depthWrite: false }))); world.add(new T.Mesh(new T.SphereGeometry(1.06, 48, 32), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.22, side: T.BackSide, blending: T.AdditiveBlending, depthWrite: false }))); }
     world.add(new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(0, -1.5, 0), new T.Vector3(0, 1.5, 0)]), new T.LineBasicMaterial({ color: 0x6B7785 })));
     let maxR = 2; const th = Math.max(0.012, 0.006 * (dist / 6));

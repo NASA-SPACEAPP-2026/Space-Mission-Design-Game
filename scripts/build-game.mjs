@@ -24,6 +24,7 @@ const files = [
   "05-campus.js",
   "06-rooms.js",
   "08-minigames.js",
+  "09-consortia.js",
   "07-main.js"
 ];
 

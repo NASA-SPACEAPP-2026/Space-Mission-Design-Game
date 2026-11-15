@@ -1,6 +1,7 @@
 /* ===== LOGICA v11 (CubeSat e crediti): campus, riunioni con gli stakeholder, missioni parallele in tempo reale. Usa E (engine2). Nessun DOM. ===== */
 const L = (function () {
-  const TIME = { month: 10000, build: 40000, test: 25000, fix: 15000, countdown: 6000, win: 30000 };
+  /* assemblaggio, prove e riparazioni quasi istantanei: niente attese durante la demo */
+  const TIME = { month: 10000, build: 1500, test: 1000, fix: 1000, countdown: 6000, win: 0 };
   const START_MONEY = 400, RUN = 3, FIXC = 10, STIFFC = 15;
   // Macchinari del laboratorio: si installano in una baia vuota. Alcuni si sbloccano con il livello.
   const MACH = {
@@ -119,6 +120,10 @@ const L = (function () {
     pa2: { sf: 1, int: 'pa', mk: (M, s) => tReq(M, s ? ['vib'] : ['vib', 'tvac', 'func'], s ? 'Prima del lancio almeno la vibrazione, senza eccezioni.' : 'Prima del lancio: prove di {T}, senza eccezioni.') },
     pa1: { int: 'pa', when: M => lv_(M) >= 3, mk: () => ({ say: 'Niente prototipi nei sottosistemi vitali: computer, radio e propulsione almeno a TRL 8.', t: 'Computer, radio e propulsione con TRL ≥ 8', kind: 'design', chk: d => ['avi', 'com', 'prop'].every(c => !d.placed[c] || E.PARTS[d.placed[c].id].trl >= 8) }) },
     // ente regolatore: regole, non preferenze. Non si rifiutano e non si derogano.
+    /* solo per il tutorial su Marte */
+    tobs: { int: 'scienza', mk: () => ({ say: 'Vogliamo osservare Marte: a bordo serve una camera di osservazione.', t: 'Payload di osservazione a bordo', kind: 'design', chk: d => !!d.placed.ray && ((E.PARTS[d.placed.ray.id] || {}).pays || []).indexOf('obs') >= 0 }) },
+    ttrl: { int: 'pa', mk: () => ({ say: 'Su Marte non si ripara niente: ogni pezzo a bordo deve avere TRL almeno 8, cioè già qualificato o provato in volo.', t: 'Tutti i pezzi con TRL ≥ 8', kind: 'design', chk: d => Object.keys(d.placed).every(c => { const p = d.placed[c] && E.PARTS[d.placed[c].id]; return !p || p.trl >= 8; }) }) },
+    tdeo: { int: 'regole', mk: () => ({ say: 'Regola dei 5 anni, anche su Marte: entro 5 anni dalla fine della missione il satellite deve rientrare nell’atmosfera. A 300 km l’aria di Marte è troppo sottile: serve un piccolo motore per abbassare l’orbita.', t: 'Rientro entro 5 anni dalla fine', kind: 'design', rule: 1, chk: d => !!d.placed.prop }) },
     deorb: { int: 'regole', when: M => (M.sat.dest || 'leo') === 'leo', mk: () => ({ say: 'Regola dei 5 anni: a fine missione il satellite deve rientrare. Sotto i 600 km basta l’atmosfera, sopra servono propulsione o una vela di rientro.', t: 'Rientro entro 5 anni dalla fine', kind: 'design', rule: 1, chk: d => !!d.placed.prop || !!d.placed.eol || (d.alt || 0) <= E.M.eolAlt }) },
     freq: { int: 'regole', mk: () => ({ say: 'Le frequenze vanno coordinate: niente radio sperimentali sotto TRL 8.', t: 'Radio con TRL ≥ 8 (frequenze coordinate)', kind: 'design', rule: 1, chk: d => !!d.placed.com && E.PARTS[d.placed.com.id].trl >= 8 }) },
     vibreg: { int: 'regole', mk: () => ({ say: 'Chi vola insieme ad altri satelliti deve dimostrare di non rompersi: prova di vibrazione superata.', t: 'Prova di vibrazione per il lancio condiviso', kind: 'tests', rule: 1, tests: ['vib'] }) },
@@ -135,7 +140,7 @@ const L = (function () {
   function register(M) { ['0', 'A'].forEach(ph => ((M.gen && M.gen[ph]) || []).forEach(g => { const i = REQ.findIndex(r => r.id === g.id), r = build(g, M); if (i >= 0) REQ[i] = r; else REQ.push(r); })); }
   const interests = who => INT[who] || ['visibilita'];
   // missione tutorial: richieste fisse, niente a caso
-  const TUTG = { '0': [['nasa', 'cost'], ['sci', 'tvt'], ['reg', 'deorb']], 'A': [['sys', 'sys1']] };
+  const TUTG = { '0': [['nasa', 'cost'], ['sci', 'tobs'], ['sci', 'tvt'], ['nasa', 'm9'], ['reg', 'tdeo']], 'A': [['sys', 'ttrl']] };
   // ogni richiesta generata deve stare insieme a quelle già accettate e a quelle che la precedono; altrimenti si cambia con una fattibile
   function satOK(M, d, ids) { if (!d || (M.rideFixed && d.ride !== M.sat.ride) || (M.lvFixed && d.lv !== M.sat.lv)) return false; const Mx = Object.assign({}, M, { reqs: ids.map(id => ({ id })), waived: [] }), b = E.budget(d), mm = minMonths(Mx);
     if (d.placed.prop && b.fuel < (d.planDv || 0) * 1.05 + 27 + E.skOf(d) * mm) return false; return ids.map(R).filter(q => q && q.kind === 'design').every(q => q.chk(d, b, Mx)); }
@@ -172,6 +177,7 @@ const L = (function () {
   const LOCN = M => { const dest = (M.sat && M.sat.dest) || 'leo'; if (landing(M)) return dest === 'mars' ? 'Superficie di Marte' : 'Superficie lunare'; return E.DEST[dest].loc; };
   const effLvl = (M, o) => { const tip = o.db ? o.db.tip : ''; const early = (M.stake || []).some(s => { const S = E.stk(s); return S && S.spec && S.spec === tip; }); return o.lvl - (early ? 1 : 0); };
   function techOK(M, id, ride) { const o = E.PARTS[id] || E.SOLAR[id] || E.ACC[id]; if (!o) return false; const lv = M.lvlNow || M.lvl || 1;
+    if (M.tutP) return M.tutP.indexOf(id) >= 0 && (!ride || E.fitsRide(o, ride)); /* tutorial: solo i pezzi guidati */
     if (effLvl(M, o) > lv) return false; if (o.luo && o.luo !== 'Tutti' && o.luo.split(';').map(s => s.trim()).indexOf(LOCN(M)) < 0) return false;
     if (ride && !E.fitsRide(o, ride)) return false; if (E.PARTS[id] && E.PARTS[id].cat === 'ray' && !payOK(M, id)) return false; return true; }
   const availCat = (M, c, ride) => Object.keys(E.PARTS).filter(id => E.PARTS[id].cat === c && techOK(M, id, ride));
@@ -181,7 +187,7 @@ const L = (function () {
   const MUST = ['avi', 'bat', 'com', 'adcs', 'ray'], OPT = ['nav', 'prop', 'pwr', 'rob', 'eol'];
   // un satellite a caso, con le regole di posizione rispettate: lo usano la verifica di fattibilità, il prezzo delle richieste e l'assistente
   function sampleSat(M, o, r, keep) { const R0 = E.RIDES[o.ride], occ = new Uint8Array(R0.cols * R0.rows), sols = availSol(M, o.ride); if (!sols.length) return null;
-    const d = { ride: o.ride, lv: o.lv, dest: M.sat.dest || 'leo', sol: keep && keep.sol || sols[Math.floor(r() * sols.length)], placed: {}, heat: {}, acc: {}, stake: M.stake, planDv: Math.round(o.dv), landKg: o.landKg, skK: o.skK, eclH: o.eclH, alt: o.alt };
+    const d = { ride: o.ride, lv: o.lv, dest: M.sat.dest || 'leo', sol: keep && keep.sol || sols[Math.floor(r() * sols.length)], placed: {}, heat: {}, acc: {}, stake: M.stake, planDv: Math.round(o.dv), landKg: o.landKg, skK: o.skK, eclH: o.eclH, skMs: o.skMs, alt: o.alt };
     const cats = MUST.slice(); OPT.forEach(c => { if ((c === 'prop' && o.dv > 1) || (keep && keep.placed[c]) || (!keep && r() < 0.35)) cats.push(c); });
     const pick = {}; for (const c of cats) { const ids = keep && keep.placed[c] ? [keep.placed[c].id] : availCat(M, c, o.ride); if (!ids.length) { if (MUST.indexOf(c) >= 0 || c === 'prop' && o.dv > 1) return null; continue; } const sid = ids.length > 1 ? ids.slice().sort((x, y) => (E.PARTS[x].m + (E.PARTS[x].propM || 0)) * 10 + E.PARTS[x].p - (E.PARTS[y].m + (E.PARTS[y].propM || 0)) * 10 - E.PARTS[y].p) : ids; pick[c] = sid[Math.floor(Math.pow(r(), 1.8) * sid.length)]; }
     for (const c of Object.keys(pick).sort((a, b) => E.nCells(pick[b], o.ride) - E.nCells(pick[a], o.ride) + (r() - 0.5) * 2)) { const id = pick[c], P = E.PARTS[id], opts = [];
@@ -192,8 +198,8 @@ const L = (function () {
     d.noProp = !d.placed.prop; E.layout(d).coldBad.forEach(c => { d.heat[c] = true; }); return d; }
   const baseOK = (d, b, o) => b.wet <= b.massLim && b.gen >= b.demand && b.wh > 0 && b.dod <= 1 && b.pt <= E.needPt(d) && !Object.keys(b.L.parts).some(c => !b.L.parts[c].ok) && (!(o.dv > 1) || b.fuel >= o.dv * 1.05 + 27 + E.skOf(d) * E.M.minMonths);
   // ---------- quanto costa dire di sì: il satellite più economico con e senza la richiesta ----------
-  function estDv(M, ride, lv) { const d = M.sat, keep = { ride: d.ride, lv: d.lv, planDv: d.planDv, planOk: d.planOk, landC: d.landC, landKg: d.landKg, skK: d.skK, eclH: d.eclH, alt: d.alt, noProp: d.noProp }; d.ride = ride; d.lv = lv;
-    let out = null; try { const p = O.plan(M); out = { dv: p.tot, landKg: d.landKg, skK: d.skK, eclH: d.eclH, alt: d.alt }; } catch (e) { out = { dv: E.dvNeed(d), landKg: 0, skK: 1, eclH: E.M.eclH, alt: 550 }; }
+  function estDv(M, ride, lv) { const d = M.sat, keep = { ride: d.ride, lv: d.lv, planDv: d.planDv, planOk: d.planOk, landC: d.landC, landKg: d.landKg, skK: d.skK, eclH: d.eclH, skMs: d.skMs, eclSrc: d.eclSrc, alt: d.alt, noProp: d.noProp }; d.ride = ride; d.lv = lv;
+    let out = null; try { const p = O.plan(M); out = { dv: p.tot, landKg: d.landKg, skK: d.skK, eclH: d.eclH, skMs: d.skMs, alt: d.alt }; } catch (e) { out = { dv: E.dvNeed(d), landKg: 0, skK: 1, eclH: E.M.eclH, alt: 550 }; }
     Object.assign(d, keep); return out; }
   function rideOpts(M) { const out = []; Object.keys(E.LV).filter(k => lvOK(M, k) && (!M.lvFixed || k === M.sat.lv)).forEach(lv => E.LV[lv].fits.filter(k => rideOK(M, k) && (!M.rideFixed || k === M.sat.ride)).forEach(ride => out.push(Object.assign({ ride, lv }, estDv(M, ride, lv))))); return out; }
   // come cheapest, ma si ferma al primo satellite valido: serve solo a sapere se esiste
@@ -310,6 +316,9 @@ const L = (function () {
   // Accetta o rifiuta. Ritorna chi lascia la missione, se qualcuno se ne va
   // una promessa rotta (deroga) pesa più di un no detto subito
   const JOY = { yes: 10, soft: 8, no: 25, noCore: 40, waive: 50 };
+  // Finestra di lancio rilassata (rifiuto di quella chiesta dagli stakeholder): UNICO posto dei due valori.
+  // joy = punti di soddisfazione persi da ogni stakeholder (stessa scala di JOY.no); pay = quota delle rate future che non viene più versata.
+  const LW = { joy: JOY.no, pay: 0.15 };
   function answer(M, id, yes, soft) { const r = R(id); M.queue = M.queue.filter(q => q !== id);
     if (yes && soft) { M.softs = M.softs || []; M.softs.push(id); register(M); M.joy[r.who] = Math.max(0, M.joy[r.who] - JOY.soft); }
     if (yes) { const n = M.reqs.filter(x => x.kind === (r.ph === '0' ? 'MIS' : 'SYS')).length + 1;
@@ -351,7 +360,7 @@ const L = (function () {
   // ---------- assistente di integrazione (solo nella prima missione): dispone i pezzi, o li sceglie ----------
   function autoDesign(M, mode, cash, ms) { const d0 = M.sat, r = E.rng((((M.seed || 1) ^ Math.imul((M.adN = (M.adN || 0) + 1), 2654435761)) >>> 0) || 1), t0 = Date.now();
     const reqs = M.reqs.filter(x => M.waived.indexOf(x.id) < 0).map(x => R(x.id)).filter(q => q && q.kind === 'design');
-    const o = { ride: d0.ride, lv: d0.lv, dv: d0.planDv || 0, landKg: d0.landKg, skK: d0.skK, eclH: d0.eclH, alt: d0.alt };
+    const o = { ride: d0.ride, lv: d0.lv, dv: d0.planDv || 0, landKg: d0.landKg, skK: d0.skK, eclH: d0.eclH, skMs: d0.skMs, alt: d0.alt };
     const score = d => { const b = E.budget(d), base = E.checks(d).list.filter(x => ['parts', 'place', 'mass', 'pow', 'bat', 'point'].indexOf(x.k) >= 0 && !x.ok).length, rq = reqs.filter(q => !q.chk(d, b, M)).length;
       return { bad: base + rq + (cash != null && b.cost > cash ? 1 : 0) + (o.dv > 1 && !d.placed.prop ? 1 : 0), cost: b.cost }; };
     let best = null;
@@ -431,7 +440,7 @@ const L = (function () {
       if (!f.noProp && f.fuel - f.sk < 27) { f.early = true; f.endMonth = f.month + 1; at(f.month, 'Riserva di ΔV al limite: il controllo missione chiude al mese ' + f.month + ' per garantire il disposal.', 'bad', 'dur'); break; }
       let g = E.month(f); if (f.ionDelay && f.month <= f.ionDelay) { f.sci -= g; g = 0; } at(f.month, 'Mese ' + f.month + ': +' + Math.round(g) + ' scienza');
       if (f.nofuel) { at(f.month, 'Propellente finito: niente più mantenimento d’orbita.', 'bad', 'dur'); f.ended = true; break; }
-      if (f.month % 2 === 0 && f.month < M.duration) { let id = E.nextEvent(f); if (f.surface && id === 'mascon') id = E.nextEvent(f);
+      if (f.month % 2 === 0 && f.month < M.duration && !(M.tut && f.tutSt)) { let id = M.tut && !f.tutSt ? (f.tutSt = 1, 'tspe') : E.nextEvent(f); if (f.surface && id === 'mascon') id = E.nextEvent(f);
         const ev = E.EV[id], live = ev.opts(f).filter(o => !o.off), rem = M.duration - f.month, lab = evLabel(id, f, d); let k, cz = EVC[id];
         if (live.length <= 1) k = live.length ? live[0].k : choose(id, f, M, rem);
         else if (ch[f.month] != null) { k = ch[f.month]; cz = 'choice:' + f.month; }
@@ -443,13 +452,16 @@ const L = (function () {
       if (d.placed.eol || alt <= E.M.eolAlt) { f.impact = 'far'; at(f.endMonth, d.placed.eol ? 'La vela di rientro si apre: il satellite rientrerà in pochi mesi.' : 'A ' + Math.round(alt) + ' km l’atmosfera lo frena: rientrerà entro 5 anni.', 'good'); }
       else { f.impact = null; at(f.endMonth, 'A ' + Math.round(alt) + ' km resterà in orbita per decenni: l’ente regolatore apre una contestazione.', 'bad', 'dur'); } }
     if (f.alive && !f.ended && upto >= f.endMonth) { f.ended = true;
-      if (f.fuel >= 27 && r() >= (E.PARTS[d.placed.prop.id].stutter ? 0.02 : 0.005)) { f.fuel -= 27; f.impact = 'far'; at(f.endMonth, D.end, 'good'); }
+      if (f.fuel >= 27 && r() >= (E.PARTS[d.placed.prop.id].stutter ? 0.02 : 0.005)) { f.fuel -= 27; f.impact = 'far'; at(f.endMonth, d.dest === 'mars' && M.drm && M.drm.eol && M.drm.eol.k === 'reentry' ? 'Rientro distruttivo nell’atmosfera di Marte.' : D.end, 'good'); }
       else { f.impact = null; at(f.endMonth, 'Disposal non riuscito: il satellite resta in orbita come detrito.', 'bad', f.fuel < 27 ? 'dur' : 'random'); } }
     if (f.nofuel) f.impact = null;
     return { f, log };
   }
   // A che mese siamo: il tempo della missione si ferma mentre aspetta una tua decisione
-  function monthsNow(M, now, speed) { if (!M.launchAt) return 0; const t = (M.pauseAt || now) - M.launchAt - (M.pausedMs || 0); return Math.max(0, t * (speed || 1) / (TIME.month * (M.tut ? 0.35 : 1))); }
+  function monthsNow(M, now, speed) { if (!M.launchAt) return 0; const t = (M.pauseAt || now) - M.launchAt - (M.pausedMs || 0);
+    /* simulazione compressa (circa 15 s): introduzione (lancio, detumbling, pannelli), poi i mesi della missione, poi la fase F un po' piu' lenta per vederla */
+    if (M.sim) { const S = M.sim, D = Math.max(1, M.duration), e = t - S.intro; if (e <= 0) return 0; return e < D * S.mspm ? e / S.mspm : D + (e - D * S.mspm) / S.fms; }
+    return Math.max(0, t * (speed || 1) / (TIME.month * (M.tut ? 0.35 : 1))); }
   function decide(M, k, now) { const fl = flight(M, 999), p = fl.pending; if (!p) return null; M.choices = M.choices || {}; M.choices[p.m] = k;
     M.choiceL = M.choiceL || {}; const o = p.opts.find(x => x.k === k); M.choiceL[p.m] = { t: p.t, l: o ? o.l : k, h: o ? o.h : '', alt: p.opts.filter(x => x.k !== k && !x.off).map(x => ({ k: x.k, l: x.l })) };
     if (M.pauseAt) { M.pausedMs = (M.pausedMs || 0) + (now - M.pauseAt); M.pauseAt = 0; } return p; }
@@ -461,12 +473,12 @@ const L = (function () {
   // Moltiplicatore delle rate (difficoltà e crew): lo imposta l'interfaccia. Vive qui, alla fonte, così vale per tutte e quattro le rate,
   // compresa l'ultima (MCR) che closeOut calcola direttamente.
   const SCALE = { inst: () => 1 };
-  function installment(M, gate, joy) { joy = joy || M.joy; return Math.round(M.stake.reduce((a, id) => a + fund(id, M) * PAY[gate] * joyK(joy[id] == null ? 60 : joy[id]), 0) * SCALE.inst()); }
+  function installment(M, gate, joy) { joy = joy || M.joy; return Math.round(M.stake.reduce((a, id) => a + fund(id, M) * PAY[gate] * joyK(joy[id] == null ? 60 : joy[id]), 0) * SCALE.inst() * (M.payK == null ? 1 : M.payK)); }
   const pledged = M => M.stake.reduce((a, id) => a + fund(id, M), 0);
   // Chiusura della missione: tutti i conti in un posto solo (li usa anche il "e se...")
   function closeOut(M, fl, visit) { const f = fl.f, months = f.month, mm = minMonths(M), ok = f.alive && f.impact === 'far' && months >= E.M.minMonths, joy = Object.assign({}, M.joy), quests = [];
     const missed = Math.max(0, M.duration - months), penalty = Math.min(MISSCAP, Math.round(pledged(M) * 0.25), missed * MISSED) + (ok ? 0 : Math.round(pledged(M) * 0.10));
-    M.stake.forEach(id => { const happy = ok && months >= mm; joy[id] = Math.max(0, Math.min(100, (joy[id] == null ? 60 : joy[id]) + (happy ? 15 : -30) - (missed ? 20 : 0) - (M.drm && M.drm.win === 'relaxed' ? 12 : 0))); const b = happy && joy[id] >= 50 ? Math.round(id === 'nasa' ? fund(id, M) * 0.35 : E.stk(id).bonus * 1.5) : 0; quests.push({ id, ok: happy, bonus: b }); });
+    M.stake.forEach(id => { const happy = ok && months >= mm; joy[id] = Math.max(0, Math.min(100, (joy[id] == null ? 60 : joy[id]) + (happy ? 15 : -30) - (missed ? 20 : 0) + (M.drm && M.drm.win === 'rush' ? 10 : 0))); const b = happy && joy[id] >= 50 ? Math.round(id === 'nasa' ? fund(id, M) * 0.35 : E.stk(id).bonus * 1.5) : 0; quests.push({ id, ok: happy, bonus: b }); });
     const bonus = quests.reduce((a, q) => a + q.bonus, 0), sciPay = Math.round(f.sci * 2.2), reward = Math.round((sciPay + bonus + (f.extra || 0)) * (visit ? 1.15 : 1)), inst = ok ? installment(M, 'MCR', joy) : 0, ops = OPS * months;
     return { ok, sci: Math.round(f.sci), months, missed, penalty, ops, inst, reward, sciPay, bonus, quests, joy, net: reward + inst - penalty - ops, impact: f.impact, cause: f.cause, alive: f.alive }; }
   // E se...? Rigioca il volo cambiando una sola cosa
@@ -491,6 +503,6 @@ const L = (function () {
     if (k === 5) { out.push('sci.total     = ' + Math.round(f.sci) + cm('+' + Math.round(10 * f.mult * f.bonus * (f.sciK || 1)) + ' al mese circa')); out.push(left < 2 ? 'if (prop.dv_left < 27) disposal.arm();   // si prepara la chiusura' : 'sched.downlink(next=' + Math.floor(1 + r() * 5) + 'h, dur=35min);'); }
     return out; }
 
-  return { TIERS, tierOf, sponsorSlots, maxActiveAt, SCALE, prewarm, memoClear, satOK, anySat, typeOK, ensureFeasible, TUTG, needsProp, fund, techOK, availCat, availSol, rideOK, lvOK, LOCN, effLvl, SPEC, sampleSat, JOY, softOf, cheapest, priceOf, decide, PAY, joyK, installment, pledged, closeOut, whatIf, OPS, MISSED, MISSCAP, mad, OWN, evLabel, kitPay, landing, autoDesign, INT, INTN, ONLY, fits4, interests, generate, register, feasible, TPL, SPONSORS, addSponsor, TESTS, LEVELS, XP, level, BUILD, defects, defectP, risks, TIME, START_MONEY, MACH, RUN, FIXC, STIFFC, PEOPLE, REQ, R, cast, newMission, minMonths, startMeeting, answer, leave, waive, status, flight, monthsNow, tele, transferNeed };
+  return { TIERS, tierOf, sponsorSlots, maxActiveAt, SCALE, prewarm, memoClear, satOK, anySat, typeOK, ensureFeasible, TUTG, needsProp, fund, techOK, availCat, availSol, rideOK, lvOK, LOCN, effLvl, SPEC, sampleSat, JOY, LW, softOf, cheapest, priceOf, decide, PAY, joyK, installment, pledged, closeOut, whatIf, OPS, MISSED, MISSCAP, mad, OWN, evLabel, kitPay, landing, autoDesign, INT, INTN, ONLY, fits4, interests, generate, register, feasible, TPL, SPONSORS, addSponsor, TESTS, LEVELS, XP, level, BUILD, defects, defectP, risks, TIME, START_MONEY, MACH, RUN, FIXC, STIFFC, PEOPLE, REQ, R, cast, newMission, minMonths, startMeeting, answer, leave, waive, status, flight, monthsNow, tele, transferNeed };
 })();
 if (typeof module !== 'undefined') module.exports = L;

@@ -30,7 +30,8 @@ const brotli = await check(`assets/${bundle}.br`, "brotli game bundle");
 await check("index.html.gz", "gzip index");
 await check("index.html.br", "brotli index");
 
-if (raw > 2_600_000) throw new Error(`Game bundle is too large: ${raw} bytes.`);
+// 2.8 MB raw: room for the consortium features (chat, stickers, spectate, joint mission). The gzip/brotli limits below are unchanged.
+if (raw > 2_800_000) throw new Error(`Game bundle is too large: ${raw} bytes.`);
 if (gzip > 1_100_000) throw new Error(`Gzip game bundle is too large: ${gzip} bytes.`);
 if (brotli > 1_100_000) throw new Error(`Brotli game bundle is too large: ${brotli} bytes.`);
 
