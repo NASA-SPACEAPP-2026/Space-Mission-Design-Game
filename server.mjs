@@ -12,6 +12,7 @@
 import { createReadStream, readFileSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
+import { isIP } from "node:net";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createBrotliCompress, createGzip } from "node:zlib";
@@ -116,13 +117,17 @@ const cacheControl = (relative) => {
   return "public, max-age=3600";
 };
 
-const acceptsEncoding = (request, encoding) => {
+const preferredEncodings = (request) => {
   const header = request.headers["accept-encoding"];
-  if (!header) return false;
-  return header
-    .split(",")
-    .map((part) => part.trim().toLowerCase().split(";")[0])
-    .some((coding) => coding === encoding || coding === "*");
+  if (!header) return [];
+  const quality = new Map(header.split(',').map(part => {
+    const [coding, ...params] = part.trim().toLowerCase().split(';');
+    const q = params.map(p => p.trim()).find(p => p.startsWith('q='));
+    const value = q === undefined ? 1 : Number(q.slice(2));
+    return [coding, Number.isFinite(value) && value >= 0 && value <= 1 ? value : 0];
+  }));
+  const q = coding => quality.get(coding) ?? quality.get('*') ?? 0;
+  return ['br', 'gzip'].filter(coding => q(coding) > 0).sort((a, b) => q(b) - q(a));
 };
 
 const etagFor = (info, encoding) =>
@@ -182,25 +187,14 @@ const sendFile = async (request, response, file, relative) => {
   let bodyPath = file;
   let bodyInfo = info;
   if (compressible) {
-    if (acceptsEncoding(request, "br")) {
-      const br = await statFile(`${file}.br`);
-      if (br) {
-        encoding = "br";
-        bodyPath = `${file}.br`;
-        bodyInfo = br;
+    encoding = preferredEncodings(request)[0] ?? null;
+    if (encoding) {
+      const compressed = await statFile(`${file}.${encoding === 'gzip' ? 'gz' : 'br'}`);
+      if (compressed) {
+        bodyPath = `${file}.${encoding === 'gzip' ? 'gz' : 'br'}`;
+        bodyInfo = compressed;
       }
     }
-    if (!encoding && acceptsEncoding(request, "gzip")) {
-      const gz = await statFile(`${file}.gz`);
-      if (gz) {
-        encoding = "gzip";
-        bodyPath = `${file}.gz`;
-        bodyInfo = gz;
-      }
-    }
-    // Fallback for a build without precompressed files (e.g. manual dist).
-    if (!encoding && acceptsEncoding(request, "br")) encoding = "br";
-    else if (!encoding && acceptsEncoding(request, "gzip")) encoding = "gzip";
   }
 
   const etag = etagFor(info, encoding);
@@ -256,9 +250,13 @@ const GMAT_PATHS = new Set(["/api/gmat", "/api/gmat/analysis", "/api/gmat/lifeti
 const proxyGmat = async (request, response, pathname, gmatUrl) => {
   if (!gmatUrl) return sendJson(response, 503, { error: "no-gmat" });
   if (request.method !== "POST") return sendJson(response, 405, { error: "method-not-allowed" });
-  const chunks = []; let size = 0;
-  for await (const chunk of request) { size += chunk.length; if (size > 32 * 1024) return sendJson(response, 413, { error: "too-large" }); chunks.push(chunk); }
-  const client = String(request.headers["x-forwarded-for"] ?? "").split(",")[0].trim().replace(/:\d+$/, "") || request.socket.remoteAddress || "";
+  const chunks = []; let size = 0, tooLarge = false;
+  for await (const chunk of request.iterator({ destroyOnReturn: false })) { size += chunk.length; if (size > 32 * 1024) { tooLarge = true; break; } chunks.push(chunk); }
+  if (tooLarge) { request.resume(); return sendJson(response, 413, { error: "too-large" }); }
+  const forwarded = String(request.headers["x-forwarded-for"] ?? "").split(",")[0].trim();
+  // A bare IPv6 address can end in digits: strip ports only from bracketed IPv6 or IPv4.
+  const candidate = isIP(forwarded) ? forwarded : forwarded.match(/^\[([^\]]+)\](?::\d+)?$/)?.[1] ?? forwarded.replace(/:\d+$/, '');
+  const client = isIP(candidate) ? candidate : request.socket.remoteAddress || '';
   try {
     const upstream = await fetch(new URL(pathname, gmatUrl), { method: "POST", headers: { "content-type": "application/json", "x-forwarded-for": client }, body: Buffer.concat(chunks), signal: AbortSignal.timeout(pathname === "/api/gmat" ? 90_000 : 240_000) });
     const body = await upstream.text();
@@ -275,8 +273,15 @@ const proxyGmat = async (request, response, pathname, gmatUrl) => {
 export const createStaticServer = (options = {}) => {
   const root = resolve(options.root ?? DEFAULT_ROOT);
 
-  return createServer(async (request, response) => {
-    const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
+  const handle = async (request, response) => {
+    let url;
+    try { url = new URL(request.url ?? '/', 'http://localhost'); }
+    catch {
+      response.writeHead(400, SECURITY_HEADERS);
+      response.end('Bad Request');
+      return;
+    }
+    const pathname = url.pathname;
     if (pathname.startsWith('/api/auth/')) {
       if (options.auth) return options.auth(request, response, pathname);
       sendJson(response, 503, { error: 'Account non configurati' });
@@ -298,7 +303,6 @@ export const createStaticServer = (options = {}) => {
       return;
     }
 
-    const url = new URL(request.url ?? "/", "http://localhost");
     if ((options.health ?? true) && url.pathname === "/api/health") {
       sendJson(response, 200, { status: "ok" });
       return;
@@ -331,6 +335,9 @@ export const createStaticServer = (options = {}) => {
     } catch {
       pipeError(response)();
     }
+  };
+  return createServer((request, response) => {
+    handle(request, response).catch(pipeError(response));
   });
 };
 

@@ -125,7 +125,7 @@ export function jointReduce(state, a, user, canAdmin) {
       if (!players.includes(user)) throw new Fail(403, 'not_player');
       if (a.go === true) {
         if (a.ok !== true) no('checks_failed');
-        s.votes[user] = 'go'; log('go');
+        s.votes = { ...s.votes, [user]: 'go' }; log('go');
         if (players.every(p => s.votes[p] === 'go')) { s.phase = 'done'; s.points = jointPoints(s); log('done_all'); }
       } else if (a.go === false) {
         if (!JOINT.roles.includes(a.rework)) throw bad('rework');
@@ -294,7 +294,7 @@ const DAY = 86_400_000;
 export const weekOf = date => { const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())); d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7); return d.toISOString().slice(0, 10); };
 export const goalOf = week => CHALLENGES[Math.floor(Date.parse(week + 'T00:00:00Z') / (7 * DAY)) % CHALLENGES.length];
 export const meetsGoal = (g, f) => !!f && f.ok === true && (!g.dest || f.dest === g.dest) && (!g.type || f.type === g.type) &&
-  (g.maxCost == null || f.cost <= g.maxCost) && (g.minMonths == null || f.months >= g.minMonths);
+  (g.maxCost == null || f.cost < g.maxCost) && (g.minMonths == null || f.months >= g.minMonths);
 function missionFacts(f) {
   if (f == null) return null;
   if (typeof f !== 'object' || typeof f.ok !== 'boolean' || typeof f.dest !== 'string' || !/^[a-z]{2,12}$/.test(f.dest) ||
@@ -319,12 +319,13 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
     res.end(JSON.stringify(body));
   }
   async function readJson(req, max = 4096) {
-    const chunks = []; let bytes = 0;
-    for await (const chunk of req) {
+    const chunks = []; let bytes = 0, tooLarge = false;
+    for await (const chunk of req.iterator({ destroyOnReturn: false })) {
       bytes += chunk.length;
-      if (bytes > max) throw new Fail(413, 'too_large');
+      if (bytes > max) { tooLarge = true; break; }
       chunks.push(chunk);
     }
+    if (tooLarge) { req.resume(); throw new Fail(413, 'too_large'); }
     if (!bytes) return {};
     let body;
     try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new Fail(400, 'bad_json'); }

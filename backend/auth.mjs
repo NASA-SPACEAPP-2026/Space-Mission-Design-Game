@@ -78,12 +78,13 @@ export function createAuth({ db, origin, secure = true }) {
       if (req.headers['content-type']?.split(';')[0] !== 'application/json') return send(res, 415, { error: 'Richiesto JSON' });
       // Do not trust arbitrary X-Forwarded-For supplied by a browser.
       if (await limited(`ip:${req.socket.remoteAddress}`, 100)) return send(res, 429, { error: 'Troppi tentativi. Riprova tra 15 minuti.' });
-      const chunks = []; let bytes = 0;
-      for await (const chunk of req) {
+      const chunks = []; let bytes = 0, tooLarge = false;
+      for await (const chunk of req.iterator({ destroyOnReturn: false })) {
         bytes += chunk.length;
-        if (bytes > 4096) return send(res, 413, { error: 'Richiesta troppo grande' });
+        if (bytes > 4096) { tooLarge = true; break; }
         chunks.push(chunk);
       }
+      if (tooLarge) { req.resume(); return send(res, 413, { error: 'Richiesta troppo grande' }); }
       let body;
       try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return send(res, 400, { error: 'JSON non valido' }); }
       if (!body || typeof body !== 'object' || typeof body.password !== 'string' || body.password.length > 128) return send(res, 400, { error: 'Dati non validi' });

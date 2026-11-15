@@ -654,7 +654,7 @@ window.GNGCLAN = (function () {
   }
   function goalTags(g) {
     const typeN = g.type && typeof O !== 'undefined' && O.TYPES && O.TYPES[g.type] ? tr(O.TYPES[g.type].n) : g.type;
-    return [g.dest ? jName('dest', g.dest) : null, typeN || null, g.maxCost ? '≤ ' + g.maxCost + ' cr' : null, g.minMonths ? '≥ ' + g.minMonths + T(' mesi', ' months') : null, T('riuscita', 'successful')].filter(Boolean);
+    return [g.dest ? jName('dest', g.dest) : null, typeN || null, g.maxCost ? '< ' + g.maxCost + ' cr' : null, g.minMonths ? '≥ ' + g.minMonths + T(' mesi', ' months') : null, T('riuscita', 'successful')].filter(Boolean);
   }
   function challengeView() {
     const c = CH.data; if (!c) return '<p class="clwait">' + T('Caricamento…', 'Loading…') + '</p>';
@@ -1112,7 +1112,7 @@ window.GNGCLAN = (function () {
         s.done[a.role] = true; log('done', { role: a.role }); if (JROLES.every(r => s.done[r])) { s.phase = 'review'; s.votes = {}; }
       } else if (a.type === 'vote') {
         if (s.phase !== 'review') return no('not_review'); if (players.indexOf(user) < 0) return no('forbidden');
-        if (a.go) { if (a.ok !== true) return no('checks_failed'); s.votes[user] = 'go'; log('go'); if (players.every(p => s.votes[p] === 'go')) { s.phase = 'done'; s.points = Math.round(({ leo: 60, moon: 120, mars: 200 }[s.design.dest] || 60) * (1 + 0.1 * (players.length - 1))); log('done_all'); } }
+        if (a.go) { if (a.ok !== true) return no('checks_failed'); s.votes = { ...s.votes, [user]: 'go' }; log('go'); if (players.every(p => s.votes[p] === 'go')) { s.phase = 'done'; s.points = Math.round(({ leo: 60, moon: 120, mars: 200 }[s.design.dest] || 60) * (1 + 0.1 * (players.length - 1))); log('done_all'); } }
         else { s.phase = 'design'; s.done[a.rework] = false; s.votes = {}; log('nogo', { role: a.rework }); }
       } else if (a.type === 'abandon') { if (user !== s.by && !admin) return no('forbidden'); s.phase = 'abandoned'; log('abandon'); }
       else return no('invalid');
@@ -1238,7 +1238,7 @@ window.GNGCLAN = (function () {
           if (c && body.points > 0) {
             me.science += body.points | 0; c.science += body.points | 0; sys(c, { code: 'science', user: myName(), mission: body.name || '', points: body.points | 0 }); demoLevel(c);
             const g = demoGoal().goal, f = body.facts;
-            if (f && f.ok && (!g.dest || f.dest === g.dest) && (!g.type || f.type === g.type) && (g.maxCost == null || f.cost <= g.maxCost) && (g.minMonths == null || f.months >= g.minMonths)) {
+            if (f && f.ok && (!g.dest || f.dest === g.dest) && (!g.type || f.type === g.type) && (g.maxCost == null || f.cost < g.maxCost) && (g.minMonths == null || f.months >= g.minMonths)) {
               c.weekly = (c.weekly || 0) + (body.points | 0); challenge = { matched: true, points: body.points | 0, goal: g.id };
               sys(c, { code: 'challenge_points', user: myName(), mission: body.name || '', points: body.points | 0 });
             }
