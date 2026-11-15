@@ -1640,6 +1640,8 @@ punti di soddisfazione invece di guadagnarne	satisfaction points instead of gain
 una deroga più avanti	a waiver later
 Qui si costruisce il satellite in fase C e lo si assembla in fase D.	Here the satellite is built in phase C and assembled in phase D.
 Banchi di lavoro	Workbenches
+Vai in sala controllo e tocca lo schermo: parte la simulazione della missione.	Go to the control room and tap the screen: the mission simulation starts.
+Tocca lo schermo per far partire la missione: in circa 15 secondi vedrai tutto il volo, dal lancio alla fase F.	Tap the screen to start the mission: in about 15 seconds you will see the whole flight, from launch to phase F.
 Sala delle Ricorrenze	Anniversary Hall
 Scegli il satellite da assemblare su questa postazione.	Choose the satellite to assemble at this station.
 Nessun satellite da costruire. Una missione arriva qui in fase C, dopo la revisione PDR.	No satellite to build. A mission arrives here in phase C, after the PDR review.
@@ -3524,7 +3526,7 @@ function nextPlace(M){ if(!M) return null; if(M.phase==='0'||M.phase==='A') retu
 function waitOf(k){ const n=G.missions.filter(M=>(k==='build'&&M.phase==='D'&&M.stage==='assembly'&&now()<M.buildEnd)||(k==='test'&&Object.keys(M.tr).some(t=>M.tr[t].res==='run'))||(k==='mcc'&&(M.phase==='E'||M.phase==='F'))||(k==='pad'&&M.phase==='D'&&M.ready&&M!==cur())).length; return n?'⏳'+n:''; }
 function hint(M){ if(!M) return 'Crea la tua prima missione con il tasto + in alto a sinistra.'; const p=M.phase;
   return p==='0'||p==='A'?(p==='A'?(M.stage==='type'?'Fase A: nell’edificio amministrativo scegli il satellite, poi senti lo staff tecnico.':'Il tuo staff tecnico ha delle richieste: sala riunioni.'):M.stage==='partners'?'Entra nell’edificio amministrativo e scegli gli stakeholder.':'Al tavolo ti aspettano gli stakeholder.'):p==='A'?'Il tuo staff tecnico ha delle richieste: sala riunioni.':p==='B'?(M.stage==='sat'?'Fase B, passo 2: progetta il satellite nell’edificio di costruzione.':M.stage==='orb'?'Fase B, passo 3: orbite in dettaglio, poi la revisione PDR.':lwPending(M)?'Fase B: prima scegli la finestra di lancio (tocca il Centro di dinamica del volo), poi crea la MDR.':'Fase B, passo 1: nel Centro di dinamica del volo disegna la missione (DRM).'):
-    p==='C'?'Fase C: progetto congelato. Ultimi ritocchi, poi la revisione CDR in cui compri i pezzi.':p==='D'&&M.stage==='assembly'?(now()>=M.buildEnd?'Assemblaggio completato: portalo al laboratorio prove.':'Assemblaggio in camera bianca. Intanto puoi lavorare a un’altra missione.'):p==='D'?(M.ready?(M.sat.lv==='HOME'?'Pronto al lancio: vai alla rampa.':'Fase E: vai all’edificio amministrativo per il lancio con l’ente terzo.'):'Porta il satellite al laboratorio prove.'):p==='E'||p==='F'?(M.pauseAt?'Il tempo è fermo: in sala controllo ti aspetta una decisione.':'In volo. Segui la telemetria dal Mission Control Center: gli eventi li decidi tu.'):'Missione completata. Guarda il bilancio nella cartella.'; }
+    p==='C'?'Fase C: progetto congelato. Ultimi ritocchi, poi la revisione CDR in cui compri i pezzi.':p==='D'&&M.stage==='assembly'?(now()>=M.buildEnd?'Assemblaggio completato: portalo al laboratorio prove.':'Assemblaggio in camera bianca. Intanto puoi lavorare a un’altra missione.'):p==='D'?(M.ready?(M.sat.lv==='HOME'?'Pronto al lancio: vai alla rampa.':'Fase E: vai all’edificio amministrativo per il lancio con l’ente terzo.'):'Porta il satellite al laboratorio prove.'):p==='E'||p==='F'?(M.simWait?'Vai in sala controllo e tocca lo schermo: parte la simulazione della missione.':M.pauseAt?'Il tempo è fermo: in sala controllo ti aspetta una decisione.':'In volo. Segui la telemetria dal Mission Control Center: gli eventi li decidi tu.'):'Missione completata. Guarda il bilancio nella cartella.'; }
 function plotModal(i){ if(i<0||G.plots[i]){ toast('Nessun lotto libero.'); return; } const lv=L.level(G.xp), el=$('#ov');
   el.innerHTML='<div class="rv wide"><h3>Lotto libero</h3><h2>Cosa costruisci qui?</h2><p class="fine">Ogni edificio si costruisce una volta e vale per tutte le missioni. Livello attuale: '+lv+'.</p><div class="cat">'+Object.keys(L.BUILD).map(k=>{ const b=L.BUILD[k], built=hasB(k), lock=lv<b.lvl;
     return '<button class="ccard'+(lock||built?' lock':'')+'" data-act="buildb" data-k="'+k+'" data-i="'+i+'"'+(lock||built?' disabled':'')+'><svg viewBox="'+(ip(0,0,0)[0]-80)+' '+(ip(0,0,0)[1]-130)+' 160 170">'+BDRAW[k](0,0)+'</svg><b>'+b.n+'</b><span>'+b.s+'</span><small>'+(built?'già costruito':lock?'🔒 livello '+b.lvl:keur(b.c))+'</small></button>'; }).join('')+'</div><div class="row"><button class="btn" data-act="closeov">Chiudi</button></div></div>'; el.hidden=false; }
@@ -4558,8 +4560,7 @@ function vMcc(v){ const M=cur(), flying=G.missions.filter(m=>m.phase==='E'||m.ph
   const fl=M&&(M.phase==='E'||M.phase==='F'||M.phase==='done')&&M.launchAt?flightNow(M):null;
   const scr=(i,title,inner)=>'<div class="scr" style="left:'+(4+i*31.5)+'%;top:15.2%;width:29%;height:35.7%"><h4>'+title+'</h4>'+inner+'</div>';
   v.innerHTML='<div class="head"><div><h3>Mission Control Center · Fasi E e F</h3><h1>Sala controllo</h1></div></div>'+
-    '<div class="stage0"><div class="sbox rbx"><div class="mccw fsc" style="--ar:1000/560"><section class="scene" style="height:100%">'+s+'<div class="ov-lay">'+scr(0,'Telemetria orbitale','<canvas id="orb"></canvas>')+scr(1,'Stato satellite','<div class="vit" id="vit"></div>')+scr(2,'Codice telemetria','<div class="code" id="code" tabindex="0" aria-label="Codice di telemetria, scorrevole"></div>')+'<div class="dec" id="dec" hidden></div></div></section>'+'<div class="mdesk" aria-hidden="true"><svg class="kb" viewBox="0 0 60 16"><rect x="1" y="1" width="58" height="14" rx="2" fill="#2B2F38" stroke="#4A5160"/><g fill="#6B7385">'+[0,1,2,3,4,5,6,7,8,9].map(i=>'<rect x="'+(4+i*5.3)+'" y="4" width="4" height="3" rx=".6"/><rect x="'+(4+i*5.3)+'" y="8.5" width="4" height="3" rx=".6"/>').join('')+'</g></svg><svg class="ms" viewBox="0 0 12 16"><rect x="1" y="1" width="10" height="14" rx="5" fill="#2B2F38" stroke="#4A5160"/><path d="M6 2v4" stroke="#6B7385"/></svg></div><div class="fmon fmL"><h4>Satellite</h4><div class="sat">'+(M&&M.sat&&Object.keys(M.sat.placed||{}).length?satThumb(M):'<span class="fine" style="color:#7FD3EA">—</span>')+'</div></div>'+'<div class="fmon fmC"><h4>In volo</h4><div class="flylist">'+(flying.length?flying.map(m=>'<button class="chip'+(m===M?' on':'')+(m.alert?' al':'')+'" data-act="pick" data-id="'+m.id+'">'+(m.alert?'⚠ ':'')+esc(m.name)+' <small>'+phn(m)+'</small></button>').join(''):'<span class="fine">Nessuna missione in volo.</span>')+'</div>'+
-      (M&&M.phase==='D'&&M.ready?'<p class="fine"><b>'+esc(M.name)+'</b> è sulla rampa: vai alla rampa per il lancio.</p>':'')+'<h4>Giornale di missione</h4><ol class="log" id="mlog"></ol></div>'+'<div class="fmon fmR"><div class="gng"><div class="gr">🚀</div><div class="gt">GO<span>/</span>NO-GO</div><div class="gs">SPACE MISSION GAME</div><div class="gb">▶ PREMI START</div><div class="gh">RECORD '+(G.sciTotal||0)+' PTS</div></div></div>'+'</div></div></div>'+docks(null,'<div id="dashw">'+dashHTML(M,fl)+'</div>'); scn(v,{bg:'#C5CAD0'});
+    '<div class="stage0"><div class="sbox rbx"><div class="mccw fsc" style="--ar:1000/560"><section class="scene" style="height:100%">'+s+'<div class="ov-lay">'+scr(0,'Telemetria orbitale','<canvas id="orb"></canvas>'+(M&&M.simWait?'<button class="simgo" data-act="simgo">▶ '+TX('Avvia la missione','Start the mission')+'<small>'+TX('circa 15 secondi, dal lancio alla fase F','about 15 seconds, from launch to phase F')+'</small></button>':''))+scr(1,'Stato satellite','<div class="vit" id="vit"></div>')+scr(2,'Codice telemetria','<div class="code" id="code" tabindex="0" aria-label="Codice di telemetria, scorrevole"></div>')+'<div class="dec" id="dec" hidden></div></div></section>'+'<div class="mdesk" aria-hidden="true"><svg class="kb" viewBox="0 0 60 16"><rect x="1" y="1" width="58" height="14" rx="2" fill="#2B2F38" stroke="#4A5160"/><g fill="#6B7385">'+[0,1,2,3,4,5,6,7,8,9].map(i=>'<rect x="'+(4+i*5.3)+'" y="4" width="4" height="3" rx=".6"/><rect x="'+(4+i*5.3)+'" y="8.5" width="4" height="3" rx=".6"/>').join('')+'</g></svg><svg class="ms" viewBox="0 0 12 16"><rect x="1" y="1" width="10" height="14" rx="5" fill="#2B2F38" stroke="#4A5160"/><path d="M6 2v4" stroke="#6B7385"/></svg></div><div class="fmon fmL"><h4>Satellite</h4><div class="sat">'+(M&&M.sat&&Object.keys(M.sat.placed||{}).length?satThumb(M):'<span class="fine" style="color:#7FD3EA">—</span>')+'</div></div>'+'<div class="fmon fmC">'+(flying.length>1?'<div class="flylist">'+flying.map(m=>'<button class="chip'+(m===M?' on':'')+(m.alert?' al':'')+'" data-act="pick" data-id="'+m.id+'">'+(m.alert?'⚠ ':'')+esc(m.name)+'</button>').join('')+'</div>':'')+'<h4>'+TX('Scelte nei safe mode','Safe-mode choices')+'</h4><ol class="log hist" id="mlog">'+histHTML(M)+'</ol></div>'+'<div class="fmon fmR"><div class="fgw"><canvas id="fgc"></canvas><div class="gng fgo" id="fgo"><div class="gr">🚀</div><div class="gt">GO<span>/</span>NO-GO</div><div class="gs">ASTEROID RUN</div><div class="gs fgl" id="fgl">'+TX('▲▼ evita gli asteroidi','▲▼ dodge the asteroids')+'</div><button class="fgb" data-act="fgstart">▶ START</button><div class="gh">RECORD <b id="fgrec">'+(G.fgRec||0)+'</b></div></div><button class="fgk up" data-fg="u" aria-label="'+TX('Su','Up')+'">▲</button><button class="fgk dn" data-fg="d" aria-label="'+TX('Giù','Down')+'">▼</button></div></div>'+'</div></div></div>'+docks(null,'<div id="dashw">'+dashHTML(M,fl)+'</div>'); scn(v,{bg:'#C5CAD0'});
   mccRefresh(true); mccLoop(); }
 function flightNow(M){ const mo=L.monthsNow(M,now()); const fl=L.flight(M,Math.floor(mo)); fl.mo=mo; return fl; }
 // La telemetria è legata al tempo della missione: 4 blocchi al mese, dal lancio alla fine. Si ricostruisce dal seme.
@@ -4578,20 +4579,20 @@ function teleUpTo(M){ const c=TELE[M.id]||(TELE[M.id]={s:-1,lines:[],fl:{},end:f
 function paintCode(el,c){ if(!el) return; const n=+(el.dataset.n||0), same=el.dataset.m===c.id; if(!same){ el.innerHTML=''; el.dataset.m=c.id; el.dataset.n=0; }
   const atEnd=el.scrollTop+el.clientHeight>=el.scrollHeight-24, from=same?n:0; if(c.lines.length>from){ el.insertAdjacentHTML('beforeend',c.lines.slice(from).map(t=>'<div>'+t+'</div>').join('')); el.dataset.n=c.lines.length; if(atEnd||!same) el.scrollTop=el.scrollHeight; } }
 function mccRefresh(full){ const M=cur(); if(view!=='mcc') return; const fl=M&&M.launchAt?flightNow(M):null; if(fl&&M.alert){ M.alert=false; M.seenBad=fl.log.filter(l=>l.tone==='bad').length; hud(); } const vit=$('#vit'), code=$('#code'), all=null, log=$('#mlog'); if(!vit) return; { const dw=$('#dashw'); if(dw&&(!mccRefresh.t||Date.now()-mccRefresh.t>900)){ mccRefresh.t=Date.now(); setH(dw,dashHTML(M,fl)); } }
-  if(!fl){ setH(vit,'<div>NESSUN SEGNALE</div><div style="opacity:.6">'+(M?esc(M.name)+' · '+phn(M):'')+'</div>'); code.innerHTML='<div class="c">// in attesa del lancio</div>'; code.dataset.m=''; if(all){ all.innerHTML='<div class="c">// la telemetria comincia quando il satellite lascia la rampa</div>'; all.dataset.m=''; } if(log) log.innerHTML='<li>Nessun evento.</li>'; return; }
+  if(!fl){ setH(vit,'<div>NESSUN SEGNALE</div><div style="opacity:.6">'+(M?esc(M.name)+' · '+phn(M):'')+'</div>'); code.innerHTML='<div class="c">// in attesa del lancio</div>'; code.dataset.m=''; if(all){ all.innerHTML='<div class="c">// la telemetria comincia quando il satellite lascia la rampa</div>'; all.dataset.m=''; } if(log) setH(log,histHTML(M)); return; }
   const f=fl.f, b=E.budget(M.sat), endM=f.endMonth||M.duration+1;
   const bar=(l,v2,t)=>'<div>'+l+' <span style="float:right">'+t+'</span><div class="vb"><i style="width:'+Math.max(0,Math.min(100,v2*100))+'%"></i></div></div>';
   setH(vit,bar('MISSIONE',Math.min(1,fl.mo/endM),'mese '+f.month+' / '+M.duration)+bar('ΔV',f.fuel/Math.max(1,b.fuel),nf(Math.max(0,f.fuel),0)+' m/s')+bar('BATTERIA',f.bat/Math.max(1,b.wh),pct(f.bat/Math.max(1,b.wh)))+bar('GAS FREDDO',f.gas/100,Math.round(f.gas)+'%')+
     '<div>SCIENZA <span style="float:right">'+nf(f.sci,0)+'</span></div><div>SCORTE <span style="float:right">OBC '+(f.spare.obc?'+1':'—')+' · RADIO '+(f.spare.com?'+1':'—')+' · RUOTE '+(f.spare.rw?'+1':'—')+'</span></div><div>STATO <span style="float:right;color:'+(!f.alive?'#FF7466':fl.pending?'#FFB454':'#4ED6A4')+'">'+(!f.alive?'PERSO':M.phase==='done'?'CHIUSA':fl.pending?'SAFE MODE':M.phase==='F'?'DISPOSAL':'NOMINALE')+'</span></div>');
-  if(full&&log) log.innerHTML=fl.log.slice().reverse().map(l=>'<li class="'+l.tone+'">'+(l.m?'M'+l.m+' · ':'')+esc(l.t)+'</li>').join('');
+  if(log) setH(log,histHTML(M));
   const c=teleUpTo(M); c.id=M.id; paintCode(code,c); paintCode(all,c); decCard(M,fl); }
 // Il giocatore al posto dell'autopilota: ogni evento con più strade si ferma qui
 /* problema in volo con una soluzione consigliata: si paga in crediti per farla, altrimenti si sceglie l'opzione rischiosa */
 function decFix(M,p){ const ev=E.EV&&E.EV[p.id], fx=ev&&ev.fix; if(!fx) return ''; const ro=p.opts.find(o=>o.k===fx.k&&!o.off), rk=p.opts.find(o=>o.k===fx.risk); if(!ro||!rk) return ''; const c=fx.cost, poor=G.money<c;
   if(fx.own) return '<div class="dops own"><button class="btn primary" data-act="decfix" data-k="'+fx.k+'" data-c="'+c+'"'+(poor?' disabled':'')+'><b>'+esc(ro.l)+' · −'+keur(c)+'</b><small>'+esc(ro.h||'')+(poor?' · '+TX('crediti insufficienti','not enough credits'):'')+'</small></button><button class="btn" data-act="decide" data-k="'+fx.risk+'"><b>'+esc(rk.l)+'</b><small>'+esc(rk.h||'')+'</small></button></div>';
   return '<p class="dfix">'+TX('Il controllo missione consiglia: ','Mission control recommends: ')+'<b>'+esc(ro.l)+'</b></p><div class="dops"><button class="btn primary" data-act="decfix" data-k="'+fx.k+'" data-c="'+c+'"'+(poor?' disabled':'')+'><b>'+TX('Fallo','Do it')+' · −'+keur(c)+'</b><small>'+esc(ro.h||'')+(poor?' · '+TX('crediti insufficienti','not enough credits'):'')+'</small></button><button class="btn" data-act="decide" data-k="'+fx.risk+'"><b>'+TX('Non farlo','Don’t')+'</b><small>'+esc(rk.h||'')+' · '+TX('rischi che la missione fallisca','you risk the mission failing')+'</small></button></div>'; }
-function decCard(M,fl){ const el=$('#dec'); if(!el){ document.body.classList.remove('decon'); return; } const p=fl&&fl.pending; if(!p){ document.body.classList.remove('decon'); if(!el.hidden){ el.hidden=true; el.dataset.k=''; } return; }
-  document.body.classList.add('decon'); $('#toast').hidden=true; const key=M.id+p.m; if(el.dataset.k===key&&!el.hidden) return; el.dataset.k=key; el.hidden=false;
+function decCard(M,fl){ const el=$('#dec'); if(!el){ document.body.classList.remove('decon'); return; } const p=fl&&fl.pending; if(!p){ document.body.classList.remove('decon'); if(!el.hidden){ el.hidden=true; el.dataset.k=''; if(M&&M.sim&&(M.phase==='E'||M.phase==='F')&&!$('#mzoomBox')){ const o=$('#orb'), s=o&&o.closest('.scr'); if(s) MZOOM.open(s); } } return; }
+  document.body.classList.add('decon'); $('#toast').hidden=true; if($('#mzoomBox')) MZOOM.close(); const key=M.id+p.m; if(el.dataset.k===key&&!el.hidden) return; el.dataset.k=key; el.hidden=false;
   el.innerHTML='<div class="dh"><span class="pause">🛰 '+TX('SAFE MODE · automatico · tempo fermo','SAFE MODE · automatic · time paused')+'</span><b>Mese '+p.m+' · '+esc(p.t)+'</b></div><p class="fine">'+TX('Il satellite ha rilevato un problema e si è messo in sicurezza da solo. Adesso tocca a te decidere come ripartire.','The satellite detected a problem and put itself in a safe state. Now it\'s up to you to decide how to carry on.')+'</p><p>'+esc(p.q)+'</p>'+(decFix(M,p)||'<div class="dops">'+p.opts.map(o=>'<button class="btn'+(o.k===p.auto?'':'')+'" data-act="decide" data-k="'+o.k+'"'+(o.off?' disabled':'')+'><b>'+esc(o.l)+'</b><small>'+esc(o.h||'')+'</small></button>').join('')+'</div>')+
     '<p class="fine">ΔV '+nf(Math.max(0,p.fuel),0)+' m/s · gas '+Math.max(0,Math.round(p.gas))+'% · '+(M.duration-p.m)+' mesi ancora. <button class="lnk small" data-act="autodec">Fai decidere all’autopilota</button></p>'; }
 // pianeta disegnato una volta per destinazione
@@ -4606,6 +4607,93 @@ function planetCanvas(k){ if(PLAN[k]) return PLAN[k]; const S=256, cv=document.c
   const sh=g.createRadialGradient(S*.3,S*.3,R*.5,S*.45,S*.45,R*1.15); sh.addColorStop(0,'rgba(0,0,0,0)'); sh.addColorStop(1,'rgba(0,0,0,.55)'); g.fillStyle=sh; g.fillRect(0,0,S,S); g.restore();
   if(k==='leo'||k==='venus'){ g.strokeStyle=k==='leo'?'rgba(127,184,255,.55)':'rgba(255,226,160,.5)'; g.lineWidth=5; g.beginPath(); g.arc(S/2,S/2,R+2,0,7); g.stroke(); }
   PLAN[k]=cv; return cv; }
+/* ---------- simulazione della missione sullo schermo «Telemetria orbitale» ----------
+   Lancio, detumbling, apertura dei pannelli, orbite della DRM, orbita di lavoro, fase F: tutto viene dalle scelte fatte
+   (orbite e fine vita della DRM, pannelli del satellite, eventi del volo calcolati da L.flight). */
+function simEl(B,el,k){ k=k||1; const rp=B.R+Math.max(0,el.pe)*k, ra=B.R+Math.max(el.pe,isFinite(el.ap)?el.ap:el.pe)*k, a=(rp+ra)/2, e=(ra-rp)/(ra+rp); return {a,e,rot:((el.argp||0)+(el.raan||0))*Math.PI/180}; }
+function simPt(o,th){ const r=o.a*(1-o.e*o.e)/(1+o.e*Math.cos(th)); return [r*Math.cos(th+o.rot),r*Math.sin(th+o.rot)]; }
+function simSat(c,x,y,ang,pan,wings,dead,z){ c.save(); c.translate(x,y); c.scale(z||1,z||1); c.rotate(ang); const L=(wings?13:5)*pan; c.lineWidth=1; c.strokeStyle='#0B1626';
+  if(L>.5){ c.fillStyle=dead?'#5A6170':'#3E7BD6'; c.fillRect(-5-L,-2.5,L,5); c.fillRect(5,-2.5,L,5); c.strokeRect(-5-L,-2.5,L,5); c.strokeRect(5,-2.5,L,5); }
+  c.fillStyle=dead?'#7A808A':'#F0B43A'; c.fillRect(-5,-5,10,10); c.strokeRect(-5,-5,10,10); c.restore(); }
+function simPlanet(c,dest,cx,cy,Rp){ const gl=typeof globe==='function'?globe(dest,Rp,20,15):null; if(gl) c.drawImage(gl,cx-Rp,cy-Rp,Rp*2,Rp*2); else c.drawImage(planetCanvas(dest),cx-Rp-3,cy-Rp-3,(Rp+3)*2,(Rp+3)*2); }
+function simDraw(c,w,h,M,ts){ const dest=M.sat.dest||'leo', B=O.BODY[dest];
+  if(M.simWait){ simPlanet(c,dest,w/2,h/2+8,Math.min(w,h)*.26); return; }
+  const p=O.plan(M), fl=flightNow(M), f=fl.f, D=Math.max(1,M.duration), endM=f.endMonth||D+1, mo=fl.mo, S=M.sim, e=Math.max(0,(M.pauseAt||now())-M.launchAt-(M.pausedMs||0));
+  const orbs=(p.orbits||[]).map(o=>o.el).filter(el=>el&&isFinite(el.pe)); if(!orbs.length&&p.final) orbs.push(p.final);
+  /* quote ingrandite solo nel disegno (le orbite basse altrimenti si confondono col pianeta) */ const eol0=(M.drm&&M.drm.eol&&M.drm.eol.k)||'reentry', gA=eol0==='grave'?(typeof drmGrave==='function'?drmGrave(M):0):0, mA=Math.max(gA,...orbs.map(el=>isFinite(el.ap)?el.ap:el.pe)), K=mA>0?Math.max(1,Math.min(30,.75*B.R/mA)):1;
+  const os=orbs.map(el=>simEl(B,el,K)), wi=Math.max(0,Math.min(os.length-1,p.si!=null&&p.si>=0?p.si:os.length-1)), W0=os[wi]||simEl(B,{pe:400,ap:400},K), rel=os[0]||W0;
+  const eol=(M.drm&&M.drm.eol&&M.drm.eol.k)||'reentry', zz=O.zoneOf(M), lnd=!!(zz&&(zz.surf||(zz.moon&&!zz.to))), gR=eol==='grave'?B.R+(gA?gA*K:(W0.a-B.R)*1.4):0;
+  let rmax=B.R*1.25; os.forEach(o=>{ rmax=Math.max(rmax,o.a*(1+o.e)); }); rmax=Math.max(rmax,gR);
+  const sc=Math.min(w,h-40)/2*.9/rmax, cx=w/2, cy=h/2+10, P=q=>[cx+q[0]*sc,cy-q[1]*sc], Rp=B.R*sc, z=Math.max(1,Math.min(2.4,Math.min(w,h)/260)); simPlanet(c,dest,cx,cy,Rp);
+  os.forEach((o,k)=>{ c.strokeStyle=k===wi?'rgba(111,168,255,.9)':'rgba(111,168,255,.35)'; c.lineWidth=k===wi?1.6:1; c.setLineDash(k===wi?[]:[4,4]); c.beginPath(); for(let i=0;i<=72;i++){ const q=P(simPt(o,i/72*6.2832)); if(i) c.lineTo(q[0],q[1]); else c.moveTo(q[0],q[1]); } c.stroke(); }); c.setLineDash([]);
+  if(gR){ c.strokeStyle='rgba(190,190,200,.35)'; c.setLineDash([2,5]); c.beginPath(); c.arc(cx,cy,gR*sc,0,7); c.stroke(); c.setLineDash([]); }
+  const wings=!!(E.SOLAR[M.sat.sol]&&E.SOLAR[M.sat.sol].wings), dead=!f.alive, relTh=2.3, T1=1200, T2=2300, T3=S.intro, trT=Math.min(2500,900*wi), wSpd=2.4*Math.pow(rel.a/Math.max(rel.a,W0.a),1.2);
+  let phase='', x, y, ang=0, pan=1;
+  if(e<T1){ const u=e/T1, s0=P(simPt({a:B.R,e:0,rot:0},relTh-.5)), s1=P(simPt(rel,relTh)); x=s0[0]+(s1[0]-s0[0])*u; y=s0[1]+(s1[1]-s0[1])*u-Math.sin(u*Math.PI)*12; phase=TX('LANCIO','LAUNCH');
+    c.save(); c.translate(x,y); c.scale(z,z); c.rotate(Math.atan2(s1[1]-s0[1],s1[0]-s0[0])+Math.PI/2); c.fillStyle='#F4F4F1'; c.beginPath(); c.moveTo(0,-9); c.lineTo(4,5); c.lineTo(-4,5); c.closePath(); c.fill(); c.fillStyle=Math.floor(ts/80)%2?'#FFB347':'#EB7D44'; c.beginPath(); c.moveTo(-3,5); c.lineTo(3,5); c.lineTo(0,12+(ts%7)); c.closePath(); c.fill(); c.restore(); }
+  else { let th, orb=rel, fire=false;
+    if(e<T3){ th=relTh+(e-T1)/1000*.25; pan=e<T2?0:Math.min(1,(e-T2)/(T3-T2)); ang=e<T2?(ts/1000)*(14*(1-(e-T1)/(T2-T1))+.5):0; phase=e<T2?'DETUMBLING':TX('APERTURA DEI PANNELLI SOLARI','SOLAR PANELS DEPLOY'); }
+    else if(mo<D||dead){ const em=e-T3; if(wi>0&&em<trT){ const k=Math.min(wi-1,Math.floor(em/trT*wi)), u=em/trT*wi-k; orb=os[k]; th=relTh+(k+u)*Math.PI; phase=TX('TRASFERIMENTO ','TRANSFER ')+(k+1)+'/'+wi; }
+      else { orb=W0; th=relTh+wi*Math.PI+(em-trT)/1000*wSpd; phase=lnd?TX('SULLA SUPERFICIE','ON THE SURFACE'):TX('ORBITA DI LAVORO','WORKING ORBIT'); } }
+    else { const u=Math.max(0,Math.min(1,(mo-D)/Math.max(.3,endM-D))), r1=eol==='grave'?gR:B.R; th=relTh+wi*Math.PI+(D*S.mspm-trT)/1000*wSpd+u*7; orb={a:W0.a+(r1-W0.a)*u,e:0,rot:0}; fire=eol!=='grave';
+      phase=eol==='grave'?TX('FASE F · ORBITA CIMITERO','PHASE F · GRAVEYARD ORBIT'):eol==='impact'?TX('FASE F · IMPATTO CONTROLLATO','PHASE F · CONTROLLED IMPACT'):eol==='surf'?TX('FASE F · FINE MISSIONE','PHASE F · END OF MISSION'):TX('FASE F · RIENTRO','PHASE F · RE-ENTRY'); }
+    const q=P(simPt(orb,th)); x=q[0]; y=q[1];
+    if(lnd&&e>=T3&&!(wi>0&&e-T3<trT)){ const s=P(simPt({a:B.R,e:0,rot:0},relTh)); x=s[0]; y=s[1]; fire=false; }
+    if(dead) ang=ts/700; if(fire&&!dead){ c.fillStyle='rgba(255,140,60,.85)'; c.beginPath(); c.arc(x,y,(6+(ts%5))*z,0,7); c.fill(); }
+    simSat(c,x,y,ang,pan,wings,dead,z); }
+  c.font='700 12px IBM Plex Mono, monospace'; c.fillStyle='#43D3E0'; c.textAlign='left'; c.fillText(phase,10,18);
+  c.fillStyle='rgba(207,227,255,.85)'; c.textAlign='right'; c.fillText(TX('MESE ','MONTH ')+Math.min(D,Math.floor(mo))+' / '+D,w-10,18); c.textAlign='left';
+  if(dead){ c.fillStyle='#FF7466'; c.fillText('LOSS OF SIGNAL',10,36); } else if(M.pauseAt&&Math.floor(ts/400)%2){ c.fillStyle='#FFB454'; c.fillText('SAFE MODE · '+TX('SCEGLI COSA FARE','CHOOSE WHAT TO DO'),10,36); }
+  if(K>1.05){ c.font='600 10px IBM Plex Mono, monospace'; c.fillStyle='rgba(207,227,255,.5)'; c.textAlign='right'; c.fillText(TX('quote non in scala','altitudes not to scale'),w-10,34); c.textAlign='left'; }
+  const ev=e>=T3?fl.log.filter(l=>!/^Mese \d+: \+/.test(l.t)).slice(-1)[0]:null; if(ev){ c.font='600 11px IBM Plex Mono, monospace'; c.fillStyle=ev.tone==='bad'?'#FF9C90':'#9EE6B8'; const t=I18N.tr(ev.t); c.fillText(t.length>64?t.slice(0,62)+'…':t,10,h-10); } }
+/* stile del Mission Control (simulazione, storico, minigioco): lo aggiunge il gioco, cosi' index.html non cresce */
+(function(){ const st=document.createElement('style'); st.id='mcc-css'; st.textContent=`
+/* Mission Control: invito ad avviare la simulazione della missione sullo schermo della telemetria orbitale */
+.simgo{position:absolute;left:0;right:0;bottom:0;top:30px;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:0;background:rgba(5,10,20,.5);color:#FFE08A;font:800 max(11px,1.3cqw)/1.1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.simgo small{font:600 max(8px,.8cqw)/1.2 'IBM Plex Mono',monospace;color:#CFE3EA;letter-spacing:.03em;text-transform:none}
+@media (prefers-reduced-motion:no-preference){.simgo{animation:simgoP 1.4s ease-in-out infinite}@keyframes simgoP{50%{background:rgba(5,10,20,.25)}}}
+/* monitor centrale: storico delle scelte nei safe mode */
+.fmC .hist li{display:flex;flex-direction:column;gap:2px}
+.fmC .hist li b{color:#FFB08A;font-weight:700}
+.fmC .hist li span{color:#E6EEF2}
+.fmC .hist li.none{opacity:.75;border-left-color:#4ED6A4}
+/* monitor di destra: minigioco della navicella */
+.fmR .fgw{position:absolute;inset:0}
+.fmR #fgc{position:absolute;inset:0;width:100%;height:100%;display:block}
+.fmR .fgo{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(circle at 50% 40%,rgba(24,50,74,.9),rgba(6,11,16,.95))}
+.fmR .fgo[hidden]{display:none}
+.fmR .fgl{color:#CFE3EA}
+.fmR .fgb{margin-top:8px;font:800 max(9px,1cqw)/1 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#1A1418;background:#FFE08A;border:0;border-radius:4px;padding:7px 14px;cursor:pointer}
+.fmR .fgk{position:absolute;right:8px;width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(255,255,255,.55);background:rgba(255,255,255,.14);color:#fff;font:700 17px/1 sans-serif;display:none;touch-action:none;z-index:2;cursor:pointer}
+.fmR .fgk.up{bottom:60px}.fmR .fgk.dn{bottom:10px}
+#mzoomBox .fmR .fgk{display:block}
+#mzoomBox .mzin>.fmR{min-height:100%}
+#mzoomBox .fmR .fgb{font-size:15px;padding:10px 18px}
+/*MCCCSS-END*/`; document.head.appendChild(st); })();
+/* storico delle decisioni prese nei safe mode (M.choiceL, scritto da L.decide), dalla piu' recente */
+function histHTML(M){ const ch=(M&&M.choiceL)||{}, ks=Object.keys(ch).map(Number).sort((a,b)=>b-a);
+  return ks.length?ks.map(m=>{ const x=ch[m]; return '<li><b>'+TX('Mese ','Month ')+m+' · '+esc(I18N.tr(x.t||''))+'</b><span>→ '+esc(I18N.tr(x.l||''))+'</span></li>'; }).join(''):'<li class="none">'+TX('Nessun safe mode finora: il satellite non ha avuto bisogno di te.','No safe mode so far: the satellite has not needed you.')+'</li>'; }
+/* ---------- minigioco del monitor di destra: la navicella evita gli asteroidi che arrivano (frecce su/giù, o i tasti ▲▼ sul telefono) ---------- */
+const FG={on:false,raf:0,y:.5,obs:[],t:0,spawn:0,last:0,up:false,dn:false,stars:null};
+function fgStart(){ const fm=$('.fmR'); if(fm&&!fm.closest('#mzoomBox')) MZOOM.open(fm); Object.assign(FG,{on:true,y:.5,obs:[],t:0,spawn:.6,last:0,up:false,dn:false}); const o=$('#fgo'); if(o) o.hidden=true; sfx.tap(); cancelAnimationFrame(FG.raf); FG.raf=requestAnimationFrame(fgLoop); }
+function fgOver(){ FG.on=false; const sc=Math.floor(FG.t*10); if(sc>(G.fgRec||0)){ G.fgRec=sc; save(); } sfx.bad(); const o=$('#fgo'), l=$('#fgl'), r=$('#fgrec'); if(l) l.textContent=TX('Colpito! Punti: ','Hit! Score: ')+sc; if(r) r.textContent=G.fgRec||0; if(o) o.hidden=false; }
+function fgLoop(ts){ const cv=$('#fgc'); if(!cv||!cv.isConnected||!FG.on){ FG.on=false; return; } FG.raf=requestAnimationFrame(fgLoop); const dt=Math.min(.05,FG.last?(ts-FG.last)/1000:0); FG.last=ts;
+  const w=cv.clientWidth, h=cv.clientHeight, dpr=Math.min(2,window.devicePixelRatio||1); if(!w||!h) return; if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); } const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0);
+  FG.t+=dt; const sp=.32+FG.t*.012, dir=(FG.up?-1:0)+(FG.dn?1:0); FG.y=Math.max(.07,Math.min(.93,FG.y+dir*dt*.95));
+  FG.spawn-=dt; if(FG.spawn<=0){ FG.spawn=Math.max(.3,1.05-FG.t*.02)*(.7+Math.random()*.6); const n=7+Math.floor(Math.random()*3); FG.obs.push({x:1.12,y:.06+Math.random()*.88,r:.045+Math.random()*.07,rot:Math.random()*6,vr:(Math.random()-.5)*2,k:Array.from({length:n},()=>.75+Math.random()*.3)}); }
+  FG.obs.forEach(o=>{ o.x-=sp*dt*(1+o.r*2); o.rot+=o.vr*dt; }); FG.obs=FG.obs.filter(o=>o.x>-.25);
+  if(!FG.stars) FG.stars=Array.from({length:50},()=>[Math.random(),Math.random(),.4+Math.random()]);
+  c.fillStyle='#060B14'; c.fillRect(0,0,w,h); FG.stars.forEach(s=>{ s[0]-=dt*.05*s[2]; if(s[0]<0) s[0]+=1; c.fillStyle='rgba(220,230,255,'+(.3+.4*s[2]/1.4)+')'; c.fillRect(s[0]*w,s[1]*h,1.5*s[2],1.5*s[2]); });
+  const sx=w*.18, sy=FG.y*h, sr=Math.max(8,h*.045);
+  FG.obs.forEach(o=>{ const ox=o.x*w, oy=o.y*h, R=o.r*h; c.save(); c.translate(ox,oy); c.rotate(o.rot); c.fillStyle='#8A7F74'; c.strokeStyle='#2B2622'; c.lineWidth=2; c.beginPath(); o.k.forEach((k,i)=>{ const a=i/o.k.length*6.2832, px=Math.cos(a)*R*k, py=Math.sin(a)*R*k; if(i) c.lineTo(px,py); else c.moveTo(px,py); }); c.closePath(); c.fill(); c.stroke(); c.fillStyle='rgba(0,0,0,.25)'; c.beginPath(); c.arc(R*.25,-R*.2,R*.22,0,7); c.fill(); c.restore();
+    if(Math.hypot(ox-sx,oy-sy)<R*.85+sr*.8) fgOver(); });
+  c.save(); c.translate(sx,sy); c.fillStyle=Math.floor(ts/70)%2?'#FFB347':'#EB7D44'; c.beginPath(); c.moveTo(-sr*1.1,-sr*.35); c.lineTo(-sr*2-Math.random()*sr*.6,0); c.lineTo(-sr*1.1,sr*.35); c.closePath(); c.fill();
+  c.fillStyle='#F4F4F1'; c.strokeStyle='#22313B'; c.lineWidth=1.5; c.beginPath(); c.moveTo(sr*1.4,0); c.lineTo(-sr*1.1,-sr*.7); c.lineTo(-sr*1.1,sr*.7); c.closePath(); c.fill(); c.stroke(); c.fillStyle='#7FB6C8'; c.beginPath(); c.arc(sr*.2,0,sr*.28,0,7); c.fill(); c.restore();
+  c.font='700 '+Math.max(11,Math.round(h*.05))+'px IBM Plex Mono, monospace'; c.fillStyle='#FFE08A'; c.fillText(String(Math.floor(FG.t*10)),10,Math.max(16,h*.08)); }
+addEventListener('keydown',e=>{ if(!FG.on) return; const k=e.key; if(k==='ArrowUp'||k==='w'||k==='W'){ FG.up=true; e.preventDefault(); } else if(k==='ArrowDown'||k==='s'||k==='S'){ FG.dn=true; e.preventDefault(); } });
+addEventListener('keyup',e=>{ const k=e.key; if(k==='ArrowUp'||k==='w'||k==='W') FG.up=false; else if(k==='ArrowDown'||k==='s'||k==='S') FG.dn=false; });
+document.addEventListener('pointerdown',e=>{ const b=e.target.closest&&e.target.closest('[data-fg]'); if(!b) return; e.preventDefault(); e.stopPropagation(); if(b.dataset.fg==='u') FG.up=true; else FG.dn=true; },true);
+['pointerup','pointercancel'].forEach(n=>document.addEventListener(n,()=>{ FG.up=false; FG.dn=false; },true));
 let mccRaf=0;
 /** Ferma l'animazione dell'orbita MCC (chiamata anche a ogni nuovo avvio e quando #orb esce dal DOM). */
 function mccStop(){ if(mccRaf){ cancelAnimationFrame(mccRaf); mccRaf=0; } }
@@ -4621,13 +4709,13 @@ function flyScreen(c,w,h,t){ const fly=G.missions.filter(m=>m.phase==='E'||m.pha
     c.strokeStyle='rgba(111,168,255,.9)'; c.lineWidth=2; c.beginPath(); c.ellipse(cx-a*e*sc,cy,a*sc,bb*sc,0,0,7); c.stroke();
     if(!M.pauseAt){ /* velocita' scalata sul raggio del pianeta: un'orbita bassa fa un giro in ~15 s, quelle alte piu' lente (terza legge di Keplero) */ const n=.42*Math.pow(B.R/a,1.5); FLYS.ang+=dt*n*(1+e*Math.cos(FLYS.ang))**2; }
     const r2=a*(1-e*e)/(1+e*Math.cos(FLYS.ang)), x=cx+r2*Math.cos(FLYS.ang)*sc, y=cy-r2*Math.sin(FLYS.ang)*sc; c.fillStyle='#F0B43A'; c.fillRect(x-5,y-5,10,10);
-    c.fillText(TX('VOLO · ','FLIGHT · ')+String(M.name).toUpperCase(),16,32); c.font='600 15px IBM Plex Mono, monospace'; c.fillStyle='rgba(207,227,255,.85)'; c.fillText(O.fmt(el),16,54); }
+    c.fillText(TX('VOLO · ','FLIGHT · ')+String(M.name).toUpperCase(),16,32); if(M.simWait&&Math.floor(t*2)%2===0){ c.fillStyle='#FFE08A'; c.fillText(TX('▶ TOCCA GLI SCHERMI: AVVIA LA MISSIONE','▶ TAP THE SCREENS: START THE MISSION'),16,h-24); } c.font='600 15px IBM Plex Mono, monospace'; c.fillStyle='rgba(207,227,255,.85)'; c.fillText(O.fmt(el),16,54); }
   if(al){ const on=Math.floor(t*2)%2===0; c.strokeStyle=on?'#FF3B2F':'#8A1C14'; c.lineWidth=16; c.strokeRect(8,8,w-16,h-16); c.fillStyle=on?'rgba(255,59,47,.92)':'rgba(160,30,24,.92)'; c.fillRect(0,h-58,w,58); c.fillStyle='#fff'; c.font='800 21px IBM Plex Mono, monospace'; c.fillText(TX('⚠ PROBLEMA IN VOLO · TOCCA LO SCHERMO','⚠ FLIGHT PROBLEM · TAP THE SCREEN'),16,h-21); } }
 function mccLoop(){ mccStop(); const cv=$('#orb'); if(!cv) return; let last=0, ang=0;
   (function loop(ts){ if(!cv.isConnected||$('#orb')!==cv){ mccRaf=0; return; } mccRaf=requestAnimationFrame(loop); const dt=Math.min(.05,(ts-last)/1000||0); last=ts; const M=cur(), w=cv.clientWidth, h=cv.clientHeight, dpr=Math.min(2,window.devicePixelRatio||1);
     if(cv.width!==Math.round(w*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); } const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.fillStyle='#0E1A2E'; c.fillRect(0,0,w,h);
     STARS.forEach(s2=>{ c.fillStyle='rgba(220,230,255,.7)'; c.fillRect(s2[0]*w,s2[1]*h,s2[2],s2[2]); });
-    if(!M) return; const dest=M.sat.dest||'leo', B=O.BODY[dest], p=O.plan(M), el=p.final, fly=M.phase==='E'||M.phase==='F';
+    if(!M) return; if(M.simWait||(M.sim&&M.launchAt&&(M.phase==='E'||M.phase==='F'))){ simDraw(c,w,h,M,ts); return; } const dest=M.sat.dest||'leo', B=O.BODY[dest], p=O.plan(M), el=p.final, fly=M.phase==='E'||M.phase==='F';
     const zz0=O.zoneOf(M), rp=B.R+el.pe, ra=Math.max(B.R+(isFinite(el.ap)?el.ap:el.pe), zz0&&zz0.alt?B.R+zz0.alt:0), a=(rp+ra)/2, e=(ra-rp)/(ra+rp), bb=a*Math.sqrt(1-e*e), sc=Math.min(w,h)/2*.86/ra, cx=w/2, cy=h/2+6;
     c.drawImage(planetCanvas(dest),cx-B.R*sc-3,cy-B.R*sc-3,(B.R*sc+3)*2,(B.R*sc+3)*2);
     const zz=O.zoneOf(M), lnd=!!(zz&&(zz.surf||(zz.moon&&!zz.to)));
@@ -4766,7 +4854,7 @@ let TVS=0; function tick(){ if(!G||SPECT) return; clock(); let dirty=false;
   G.missions.forEach(M=>{
     if(M.phase==='D'&&M.stage==='assembly'&&M.buildEnd&&now()>=M.buildEnd&&!M.buildNote){ M.buildNote=true; dirty=true; toast(M.name+': assemblaggio completato. Portalo al laboratorio prove.'); sfx.ok(); }
     Object.keys(M.tr).forEach(t=>{ const r=M.tr[t]; if(r.res==='run'&&now()>=r.end){ dirty=true; const Lx=E.layout(M.sat); if(t==='vib'&&Lx.topHeavy&&!M.stiff) r.res='struct'; else if(M.defects[t]) r.res='defect'; else { r.res='pass'; M.tests[t]=true; } (r.res==='pass'?sfx.ok:sfx.bad)(); toast(M.name+': prova '+L.MACH[t].tn+(r.res==='pass'?' superata.':' con problemi.')); } });
-    if(M.phase==='E'||M.phase==='F'){ const fl=flightNow(M), f=fl.f, endM=f.endMonth||M.duration+1;
+    if(M.phase==='E'||M.phase==='F'){ if(M.simWait) return; const fl=flightNow(M), f=fl.f, endM=f.endMonth||M.duration+1;
       if(fl.pending&&!M.pauseAt){ M.pauseAt=now(); M.alert=true; dirty=true; sfx.bad(); toast(TX('🛰 '+M.name+' · '+fl.pending.t+': il satellite è passato da solo in safe mode. Scegli cosa fare in sala controllo.','🛰 '+M.name+' · '+I18N.tr(fl.pending.t)+': the satellite switched to safe mode on its own. Choose what to do in the control room.')); hud(); return; }
       if(fl.pending) return;
       const bad=fl.log.filter(l=>l.tone==='bad').length; if(bad>(M.seenBad||0)){ if(view==='mcc'&&M===cur()) M.seenBad=bad; else if(!M.alert||bad>(M.alertN||0)){ M.alert=true; M.alertN=bad; sfx.bad(); toast('⚠ '+M.name+': problema in volo. Controlla il Mission Control Center.'); hud(); } }
@@ -4999,10 +5087,13 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
   openyard(t){ const id=t.dataset.id; const i=G.missions.findIndex(m=>m.id===id); if(i>=0){ G.cur=i; const m=G.missions[i]; if(m.phase==='B'&&m.stage==='orb') m.stage='sat'; } /* dalle orbite in dettaglio si puo' tornare al progetto */ BVIEW='yard'; sfx.tap(); render(); },
   benchfree(){ toast('Banco libero: crea una nuova missione con il tasto + e portala in fase C.'); },
   broom(t){ BROOM=t.dataset.k; BVIEW='room'; sfx.tap(); render(); }, toroom(){ BVIEW='room'; sfx.tap(); render(); },
-  mccwall(){ MCCV='wall'; sfx.tap(); render(); }, mccroom(){ MCCV='room'; sfx.tap(); render(); }, backph(){ backModal(); }, backgo(){ backGo(); }, tutend(){ endTutorial(false); },
+  mccwall(){ MCCV='wall'; sfx.tap(); render(); },
+  fgstart(){ fgStart(); },
+  /* parte la simulazione della missione: si apre in grande lo schermo della telemetria orbitale */
+  simgo(){ const M=cur(); if(SPECT||!M||!M.simWait) return; M.simWait=false; M.sim={intro:3500,mspm:8500/Math.max(1,M.duration),fms:2000}; M.launchAt=now(); M.pausedMs=0; M.pauseAt=0; sfx.ok(); save(); render(); setTimeout(()=>{ const o=$('#orb'), s=o&&o.closest('.scr'); if(s) MZOOM.open(s); },60); }, mccroom(){ MCCV='room'; sfx.tap(); render(); }, backph(){ backModal(); }, backgo(){ backGo(); }, tutend(){ endTutorial(false); },
 };
 const dishN=()=>hasB('ground')?Math.min(6,G.world.items.filter(i=>i.k==='dish').length):0;
-function startFlight(M){ M.phase='E'; M.launchAt=now(); M.dataK=dataBud(M).k; M.boost=(hasGS()?1.2:1)+.03*dishN(); M.sig=.05*dishN(); gainXP(L.XP.launch); save(); if(!M.tut&&!G.sandbox&&window.GNGCLAN) GNGCLAN.activity('launch',M.name); }
+function startFlight(M){ M.phase='E'; M.launchAt=0; M.simWait=true; /* il volo parte in sala controllo, al primo tocco dello schermo */ M.dataK=dataBud(M).k; M.boost=(hasGS()?1.2:1)+.03*dishN(); M.sig=.05*dishN(); gainXP(L.XP.launch); save(); if(!M.tut&&!G.sandbox&&window.GNGCLAN) GNGCLAN.activity('launch',M.name); }
 const durList=M=>[6,9,12,18,24].filter(m=>m>=L.minMonths(M));
 function durOptions(M){ return [6,9,12,18,24].filter(m=>m>=L.minMonths(M)).map(m=>'<option value="'+m+'">'+m+' mesi</option>').join(''); }
 // lancio affidato a un ente terzo: niente rampa, si parte da un sito esterno
@@ -5269,6 +5360,7 @@ function coachStep(){ const M=G.missions[0]; if(!G.tut||!M) return null; const d
     return S('[data-act="frr"]','Prova superata. Al livello 1 hai solo la tavola vibrante: gli altri macchinari si sbloccano salendo di livello. Chiedi la revisione FRR: decide se il satellite può volare.',8); }
   if(ph==='E'){ if(!here('mcc')) return go2('mcc','Il satellite è in orbita! Seguilo dalla sala controllo.',9);
     if(MCCV!=='wall') return S('#roomsvg [data-act="mccwall"]','Il satellite è in orbita! Tocca gli schermi della sala controllo per seguire la telemetria.',9);
+    if(M.simWait) return S('[data-act="simgo"]','Tocca lo schermo per far partire la missione: in circa 15 secondi vedrai tutto il volo, dal lancio alla fase F.',9);
     const db=$('#dec:not([hidden]) [data-act="decide"]'); if(db&&!$('#dec:not([hidden]) .dops.own')) return S('#dec:not([hidden]) [data-act="decide"]','Un imprevisto: scegli tu cosa fare. Ogni opzione ha un costo e un rischio.',9);
     if(db) return S('#dec:not([hidden]) .dops.own','Tempesta solare! Scegli tu: cambi assetto per schermare la camera, e costa crediti, oppure la spegni e perdi i dati finché dura.',9);
     return S(null,'Ogni mese il satellite raccoglie dati scientifici. Aspetta la fine della missione: nel tutorial il tempo scorre più veloce.',9); }
