@@ -4494,8 +4494,8 @@ function lwOpen(M){ if(!lwPending(M)) return; const P=L.LW, pp=Math.round(P.pay*
 function lwResolve(M,k){ if(!lwPending(M)) return false; const P=L.LW; M.lw.s='done'; M.lw.k=k; drmInit(M).win=k;
   if(k==='relaxed'){ M.joy=M.joy||{}; (M.stake||[]).forEach(id=>{ const j=M.joy[id]==null?60:M.joy[id]; M.joy[id]=Math.max(0,j-P.joy); }); if(M.payK==null) M.payK=1-P.pay; }
   zdClose(); sfx.ok(); save(); go('hub'); toast(k==='relaxed'?TX('Finestra rilassata scelta: gli stakeholder non sono contenti.','Relaxed window chosen: the stakeholders are not happy.'):TX('Finestra degli stakeholder accettata. Ora puoi creare la MDR.','Stakeholders’ window accepted. You can now create the MDR.')); return true; }
-function mdrState(M){ return M&&M.mdr&&M.mdr!=='done'?M.mdr:'ask'; }
-function mdrShow(M){ if(!M||M.phase!=='B'||M.stage!=='drm'||view!=='fd') return; if(lwPending(M)){ go('hub'); lwOpen(M); return; }
+function mdrState(M){ return M&&M.mdr&&M.mdr!=='done'?M.mdr:(M&&M.phase==='B'&&M.stage==='sat'?'edit':'ask'); } /* tornando dal satellite la DRM si apre gia' modificabile */
+function mdrShow(M){ if(!M||M.phase!=='B'||(M.stage!=='drm'&&M.stage!=='sat')||view!=='fd') return; if(lwPending(M)){ go('hub'); lwOpen(M); return; }
   const land=drmLand(M), D=drmInit(M), s=land?'final':mdrState(M), rel=drmRel(M), lvO=E.LV[M.sat.lv], at=rel.circ?drmKm((rel.pe+rel.ap)/2):nf(rel.pe)+' × '+nf(rel.ap)+' km';
   if(s==='edit') { zdClose(); return; }
   if(s==='ask') zdOpen({id:'mdr-ask',pose:'attento',sel:'#zdlg [data-act="mdrno"]',tt:'Il razzo ti lascia a '+at+': nessun’altra orbita serve, rispondi No.',
@@ -4823,7 +4823,7 @@ nmback(){ $('#nmZone').hidden=true; $('#nmMain').hidden=false; },
   drmstar(t){ const M=cur(), D=M.drm, i=+t.dataset.i; if(i<0){ if(!D.relMo) D.relMo=L.minMonths(M); } D.star=i; drmSync(M); sfx.tap(); save(); render(); },
   drmwin(t){ const M=cur(); drmInit(M); const k=t.dataset.k; if(WINK.indexOf(k)<0) return; M.drm.win=k; sfx.tap(); save(); render(); },
   drmeol(t){ const M=cur(), D=M.drm, k=t.dataset.k; D.eol={k}; sfx.put(); save(); render(); },
-  drmeolx(){ const M=cur(); M.drm.eol=null; M.drm.done=false; sfx.tap(); save(); render(); },
+  drmeolx(){ const M=cur(); M.drm.eol=null; M.drm.done=false; if(M.phase==='B'&&M.stage!=='drm'){ M.stage='drm'; M.mdr='edit'; } /* senza fine vita si torna al passo DRM: il bottone Fatto riporta al satellite */ sfx.tap(); save(); render(); },
   bstep(t){ const M=cur(), k=t.dataset.k; if(!M||M.phase!=='B') return; const D=drmInit(M); if(k!=='drm'&&!(drmLand(M)||(D.eol&&drmStarH(M)!=null))){ toast('Prima completa la DRM: orbita di lavoro ★ e fine vita.'); return; } if(k!=='drm') D.done=true; M.stage=k; DRMADD=false; DRMG=null; sfx.ok(); save(); if(k==='sat'){ toast(TX('DRM pronta! Ora vai all’Edificio di costruzione e apri il tavolo di progetto.','DRM done! Now head to the Assembly building and open the design table.')); go('hub'); } else if(k==='orb'){ toast(TX('Progetto del satellite confermato. Ora vai al Centro di dinamica del volo per le orbite in dettaglio.','Satellite design confirmed. Now head to the Flight Dynamics Centre for the detailed orbits.')); go('hub'); } else go('fd'); },
   pdrB(){ pdrB(); },
   toC(){ toC(); },
@@ -4978,7 +4978,7 @@ pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.sta
   /* toccare un macchinario apre il suo menu: lì si sceglie il satellite da provare (labPop) */
   mach(t){ MSEL=G.lab.indexOf(t.dataset.k); if(MSEL<0) MSEL=null; sfx.tap(); render(); },
   mtest(t){ const i=G.missions.findIndex(m=>m.id===t.dataset.id); if(i<0) return; G.cur=i; MSEL=null; ACT.runtest({dataset:{k:t.dataset.k}}); },
-  openyard(t){ const id=t.dataset.id; const i=G.missions.findIndex(m=>m.id===id); if(i>=0) G.cur=i; BVIEW='yard'; sfx.tap(); render(); },
+  openyard(t){ const id=t.dataset.id; const i=G.missions.findIndex(m=>m.id===id); if(i>=0){ G.cur=i; const m=G.missions[i]; if(m.phase==='B'&&m.stage==='orb') m.stage='sat'; } /* dalle orbite in dettaglio si puo' tornare al progetto */ BVIEW='yard'; sfx.tap(); render(); },
   benchfree(){ toast('Banco libero: crea una nuova missione con il tasto + e portala in fase C.'); },
   broom(t){ BROOM=t.dataset.k; BVIEW='room'; sfx.tap(); render(); }, toroom(){ BVIEW='room'; sfx.tap(); render(); },
   mccwall(){ MCCV='wall'; sfx.tap(); render(); }, mccroom(){ MCCV='room'; sfx.tap(); render(); }, backph(){ backModal(); }, backgo(){ backGo(); }, tutend(){ endTutorial(false); },
