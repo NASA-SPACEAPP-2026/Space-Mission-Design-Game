@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en" data-type="software" data-radius="soft" data-buttons="pill" data-motion>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Go No-Go: the game where you design and launch a space mission</title>
+<meta name="description" content="Run a space agency in your browser: pick the mission, build a CubeSat, pass its tests, launch it and fly it in orbit. Made for NASA Space Apps Challenge 2026 in Milan.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Go No-Go: the game where you design and launch a space mission">
+<meta property="og:description" content="Pick the mission, build a CubeSat, pass its tests and launch it. It runs in the browser.">
+<meta property="og:image" content="/landing/share.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
+<link rel="alternate" hreflang="it" href="/">
+<meta name="theme-color" content="#f5f6fa">
+<!-- <link rel="canonical" href="https://[production domain]/"> -->
+<meta name="site-kind" content="gaming">
+<meta name="page-type" content="software">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gabarito:wght@400..700&family=Figtree:wght@400..600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/landing/assets/system.css">
+<link rel="stylesheet" href="/landing/assets/ui/cards.css">
+<link rel="stylesheet" href="/landing/assets/motion/motion.css">
+<link rel="stylesheet" href="/landing/assets/backgrounds/backgrounds.css">
+<link rel="stylesheet" href="/landing/assets/layout/layout.css">
+<link rel="stylesheet" href="/landing/assets/icons/icon.css">
+<style>
+:root {
+  --p-bg: #f5f6fa; --p-surface: #e7eaf3; --p-ink: #10205a; --p-muted: #576792;
+  --p-accent: #b80000; --p-accent-ink: #f5f6fa; --p-action: #b80000; --p-action-ink: #f5f6fa;
+  --p-inv-bg: #10205a; --p-inv-surface: #1d2e65; --p-inv-ink: #f5f6fa; --p-inv-muted: #95a0bd;
+  --p-inv-accent: #f5f6fa; --p-inv-accent-ink: #10205a; --p-inv-action: #f5f6fa; --p-inv-action-ink: #10205a;
+  --font-display: "Gabarito", system-ui, sans-serif;
+  --font-text: "Figtree", system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --display-weight: 400;
+  --display-tracking: -0.03em;
+  --display-tracking-xl: -0.04em;
+  --ly-scale: 0.98;
+}
+</style>
+<script>document.documentElement.classList.add('m-enter');setTimeout(()=>document.documentElement.classList.add('m-enter-done'),700)</script>
+<script src="/landing/assets/backgrounds/backgrounds.js"></script>
+<script>document.documentElement.classList.add('mo-js');setTimeout(()=>document.documentElement.classList.add('mo-safe'),2500)</script>
+<link rel="modulepreload" href="/landing/assets/moments/moments.js">
+<link rel="modulepreload" href="/landing/assets/moments/lib.js">
+<link rel="modulepreload" href="/landing/assets/moments/giant-type-pass/moment.js">
+<link rel="modulepreload" href="/landing/assets/moments/iris-opens/moment.js">
+<!-- page CSS: the client's logo, the capture frames' ratio and one --p-h per card row -->
+<style>
+  .nav__logo img { display: block; height: 36px; width: auto; }
+  .hero__logo { display: block; height: clamp(84px, 15svh, 148px); width: auto; margin-bottom: var(--s-5); }
+  #video .frame, #consorzi .frame { --ratio: 56.25%; }
+  .footer__col .team { columns: 2; column-gap: var(--s-5); }
+  .menu-card .panel { --p-h: 200px; }
+  #gioco .group .panel { --p-h: 230px; }
+  #gioco .grid--two .panel { --p-h: 350px; }
+  /* a tablet keeps the desktop's rows (three cards, then two), so the section stays two screens */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    #gioco .group .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #gioco .grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #gioco .grid > .card { grid-column: auto; }
+    #gioco .group .panel { --p-h: 128px; }
+    #gioco .grid--two .panel { --p-h: 188px; }
+  }
+  /* below the desktop the capture frames are 4:3, so their sections fill their screen */
+  @media (max-width: 1023px) { #video .frame, #consorzi .frame { --ratio: 75%; } }
+  /* the three facts under the video: a phone and a tablet have the room, a desktop gives it to the frame */
+  #video .rows { margin-top: var(--s-5); }
+  @media (min-width: 1024px) { #video .rows { display: none; } }
+  @media (max-width: 639px) {
+    #gioco .group .panel, #gioco .grid--two .panel { --p-h: 126px; }
+    #video .frame { --ratio: 100%; }
+    #consorzi .frame { --ratio: 128%; }
+    #consorzi .frame__img { object-position: 8% 50%; }
+    .hero__logo { display: none; }
+  }
+  /* a phone held sideways (about 750x330): the capture fills the first screen and the words sit in a compact box on its
+     left, the main button above the fold; the stacked logo stays in the bar only */
+  @media (orientation: landscape) and (max-height: 480px) {
+    .hero.hero--photo { --photo: 0px; --hgap: 6px; --hpadb: 6px; }
+    .hero--photo > .hero__bg { height: calc(100svh - var(--nav)); }
+    .hero--photo .hero__text, .hero--photo:not([data-box="none"]) .hero__text { width: min(26rem, 58%); padding: 10px 16px; background: var(--bg); border-radius: var(--r-lg); }
+    .hero--photo .hero__logo { display: none; }
+    .hero--photo h1 { font-size: 26px; }
+    .hero--photo .hero__lead { font-size: 16px; line-height: 1.35; margin-top: 4px; }
+    .hero--photo .btn-row { margin-top: 10px; flex-direction: row; flex-wrap: nowrap; }
+    .hero--photo .btn-row .btn { width: auto; }
+    /* every later section is as tall as its content there, never cut to one short screen */
+    main > section.section, footer.closing { height: auto !important; min-height: 100svh; }
+    #metodo .wrap > .fill { flex: none; }
+    #metodo .fill > .frame--fill { flex: none; height: auto; aspect-ratio: 16 / 9; }
+  }
+</style>
+</head>
+<body>
+<!-- type: software, site-kind gaming (a game)
+     deal: hero photo (key art: the campus capture), nav nav-cards, close close-word, footer footer-dark,
+           rhythm space, buttons pill, mark: the client's own logo (sheet version 3), palette: the logo's
+           navy and red (start.mjs brand), type gabarito
+     moments: giant-type-pass (#decisione, the launch decision), iris-opens (#metodo, the ground change) -->
+
+<header class="nav">
+  <div class="wrap nav__bar">
+    <a class="skip-link" href="#top">Skip to content</a>
+    <a class="nav__logo" href="#top"><img src="/landing/img/logo-row.svg" alt="Go-No-Go" width="204" height="36"></a>
+    <nav class="nav__links" aria-label="Main">
+      <div class="nav__item"><a class="nav__link" href="#video">Video</a></div>
+      <div class="nav__item">
+        <a class="nav__link" href="#gioco">Game <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div class="nav__menu">
+          <div class="wrap grid">
+            <a class="menu-card span-4" href="#gioco">
+              <div class="panel"><img class="frame__img" src="/landing/img/build.jpg" srcset="/landing/img/build-640.jpg 640w, /landing/img/build.jpg 1280w" sizes="(max-width: 639px) 92vw, 410px" width="1280" height="720" alt="The CubeSat being assembled" loading="lazy"></div>
+              <span class="t-card">Build</span>
+              <span class="t-small muted">You fit the CubeSat one component at a time</span>
+            </a>
+            <a class="menu-card span-4" href="#gioco">
+              <div class="panel"><img class="frame__img" src="/landing/img/test.jpg" srcset="/landing/img/test-640.jpg 640w, /landing/img/test.jpg 1280w" sizes="(max-width: 639px) 92vw, 410px" width="1280" height="720" alt="A qualification test in progress" loading="lazy"></div>
+              <span class="t-card">Tests</span>
+              <span class="t-small muted">Vibration, balance and thermal vacuum</span>
+            </a>
+            <a class="menu-card span-4" href="#gioco">
+              <div class="panel"><img class="frame__img" src="/landing/img/launch.jpg" srcset="/landing/img/launch-640.jpg 640w, /landing/img/launch.jpg 1280w" sizes="(max-width: 639px) 92vw, 628px" width="1280" height="720" alt="The rocket on the pad" loading="lazy"></div>
+              <span class="t-card">Launch</span>
+              <span class="t-small muted">Pick the rocket and follow the countdown</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="nav__item"><a class="nav__link" href="#metodo">Method</a></div>
+      <div class="nav__item"><a class="nav__link" href="#consorzi">Consortia</a></div>
+    </nav>
+    <div class="nav__actions">
+      <a class="nav__link" href="/" lang="it" hreflang="it">Italiano</a>
+      <a class="btn btn--primary" href="/play">Play in your browser</a>
+    </div>
+    <button class="nav__toggle" type="button" aria-expanded="false" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 5h14M2 13h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO: photo. CLIENT FILE key art: /landing/img/campus.jpg (the campus, captured in the game) -->
+  <section class="hero hero--photo" data-enter data-calm="left" aria-labelledby="hero-h">
+    <img class="hero__bg" src="/landing/img/campus.jpg" srcset="/landing/img/campus-800.jpg 800w, /landing/img/campus.jpg 1920w" sizes="100vw" width="1920" height="1080" alt="The space agency campus in Go No-Go, seen from above" style="--ly-pos: 70% 50%; --ly-pos-phone: 60% 50%" fetchpriority="high" data-source="client" data-subject="the game's campus">
+    <div class="wrap"><div class="hero-text">
+      <div class="hero__text">
+        <img class="hero__logo" src="/landing/img/logo.svg" alt="Go-No-Go" width="216" height="148">
+        <h1 id="hero-h">A space mission design game</h1>
+        <p class="hero__lead">You run an agency: pick the mission, build a CubeSat, take it through testing and launch. Made for NASA Space Apps Challenge 2026 in Milan.</p>
+        <div class="btn-row"><a class="btn btn--primary" href="/play">Play in your browser</a><a class="btn btn--secondary" href="#video">Watch the video</a></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- VIDEO. CLIENT FILE trailer: /landing/img/gameplay.mp4 (1280x720, H.264, recorded in the game) and
+       /landing/img/gameplay-poster.jpg (its poster) -->
+  <section class="section" id="video" aria-labelledby="video-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="video-h">The game in half a minute.</h2>
+        <p>A real playthrough, from the campus to mission control: the CubeSat takes shape, passes its vibration test and lifts off.</p>
+      </div>
+      <figure class="frame frame--photo fit-screen">
+        <video class="frame__img" playsinline controls muted preload="none" poster="/landing/img/gameplay-poster.jpg" width="1280" height="720" aria-label="Video of a Go No-Go playthrough">
+          <source src="/landing/img/gameplay.mp4" type="video/mp4">
+        </video>
+      </figure>
+      <ul class="rows">
+        <li><span class="rows__name">In the browser</span><p>It runs on a computer and on a phone, with nothing to install.</p></li>
+        <li><span class="rows__name">Saves</span><p>Your game stays saved in the browser you play in.</p></li>
+        <li><span class="rows__name">Players</span><p>You play solo. Multiplayer missions arrive with the consortia.</p></li>
+        <li><span class="rows__name">Language</span><p>The game text is in English for now.</p></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- WHAT YOU DO: five open cards, one verb each with its capture; two screens -->
+  <section class="section g2" id="gioco" aria-labelledby="gioco-h">
+    <div class="wrap">
+      <div class="group">
+        <div class="section-head">
+          <h2 id="gioco-h">The game in 5 steps. <span class="muted">From idea to orbit.</span></h2>
+        </div>
+        <div class="grid">
+          <article class="card card--row card--open span-4">
+            <h3>Pick the mission</h3>
+            <p>You negotiate the objectives with the stakeholders and set the requirements: science, budget and deadlines have to fit together.</p>
+            <div class="panel"><img class="frame__img" src="/landing/img/mission.jpg" srcset="/landing/img/mission-640.jpg 640w, /landing/img/mission.jpg 1280w" sizes="(max-width: 639px) 92vw, 410px" width="1280" height="720" alt="Choosing the mission objectives" loading="lazy" data-source="client" data-subject="mission objectives screen"></div>
+          </article>
+          <article class="card card--row card--open span-4">
+            <h3>Build the CubeSat</h3>
+            <p>You fit instruments and subsystems one part at a time. Mass, power, data and cost change with every choice.</p>
+            <div class="panel"><img class="frame__img" src="/landing/img/build.jpg" srcset="/landing/img/build-640.jpg 640w, /landing/img/build.jpg 1280w" sizes="(max-width: 639px) 92vw, 410px" width="1280" height="720" alt="The CubeSat with its components fitted" loading="lazy" data-source="client" data-subject="satellite assembly"></div>
+          </article>
+          <article class="card card--row card--open span-4">
+            <h3>Pass the 3 tests</h3>
+            <p>Vibration, balance and thermal vacuum are minigames. Faults have to show up on the ground.</p>
+            <div class="panel"><img class="frame__img" src="/landing/img/test.jpg" srcset="/landing/img/test-640.jpg 640w, /landing/img/test.jpg 1280w" sizes="(max-width: 639px) 92vw, 410px" width="1280" height="720" alt="A satellite qualification test" loading="lazy" data-source="client" data-subject="qualification test minigame"></div>
+          </article>
+        </div>
+      </div>
+      <div class="grid grid--two">
+        <article class="card card--row card--open span-6">
+          <h3>Launch the mission</h3>
+          <p>You pick the launcher by ΔV and payload capacity, then the countdown starts.</p>
+          <div class="panel"><img class="frame__img" src="/landing/img/launch.jpg" srcset="/landing/img/launch-640.jpg 640w, /landing/img/launch.jpg 1280w" sizes="(max-width: 639px) 92vw, 628px" width="1280" height="720" alt="The rocket with the CubeSat on board" loading="lazy" data-source="client" data-subject="launch"></div>
+        </article>
+        <article class="card card--row card--open span-6">
+          <h3>Fly the CubeSat in orbit</h3>
+          <p>From Mission Control you follow the whole mission and decide what to do when the satellite drops into safe mode.</p>
+          <div class="panel"><img class="frame__img" src="/landing/img/mcc.jpg" srcset="/landing/img/mcc-640.jpg 640w, /landing/img/mcc.jpg 1280w" sizes="(max-width: 639px) 92vw, 628px" width="1280" height="720" alt="Mission Control during the mission" loading="lazy" data-source="client" data-subject="mission control"></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATEMENT with giant-type-pass: the launch decision the game is named after -->
+  <section class="section statement" id="decisione" data-moment="giant-type-pass" data-moment-opts='{"image": "/landing/img/orbit.jpg", "travel": 50, "focusY": 50}' aria-labelledby="decisione-h">
+    <div class="wrap">
+      <h2 class="mo-gt__type" id="decisione-h">Go or<br>No-Go</h2>
+      <div class="mo-gt__row"><p>Every launch comes down to this question. You answer it with your design's numbers: mass, power, ΔV and risk.</p><a class="link" href="#metodo">See the method</a></div>
+    </div>
+  </section>
+
+  <!-- METHOD: the surface ground, opened by iris-opens -->
+  <section class="section ground-surface" id="metodo" data-moment="iris-opens" data-moment-opts='{"from": "base"}' aria-labelledby="metodo-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="metodo-h">A game built on the NASA method.</h2>
+      </div>
+      <div class="grid grid--top fill">
+        <ul class="rows span-6">
+          <li><span class="rows__name">Phases A to F</span><p>The project moves through phases and passes the MCR, PDR, CDR and FRR reviews.</p></li>
+          <li><span class="rows__name">Components from NASA TechPort</span><p>Instruments and subsystems point to their TechPort record.</p></li>
+          <li><span class="rows__name">Orbits with NASA GMAT</span><p>GMAT R2025a works out ΔV, eclipses and ground-station contacts for Earth, the Moon, Mars and Venus.</p></li>
+          <li><span class="rows__name">CubeSat 101</span><p>The path follows NASA's guide for first-time CubeSat developers.</p></li>
+        </ul>
+        <div class="frame frame--photo frame--fill span-6 start-7">
+          <img class="frame__img" src="/landing/img/frr.jpg" srcset="/landing/img/frr-640.jpg 640w, /landing/img/frr.jpg 1200w" sizes="(max-width: 639px) 92vw, 628px" width="1200" height="1120" alt="The flight readiness review, with its Go and No-Go buttons" loading="lazy" data-source="client" data-subject="flight readiness review">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONSORTIA: coming, as the brief says -->
+  <section class="section" id="consorzi" aria-labelledby="consorzi-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="consorzi-h">Consortia, coming soon.</h2>
+        <p>Up to four players on the same mission, each with a role: Planning, Satellite, Science or Communications. Everyone votes before launch.</p>
+      </div>
+      <figure class="frame frame--photo fit-screen">
+        <img class="frame__img" src="/landing/img/consortium.jpg" srcset="/landing/img/consortium-800.jpg 800w, /landing/img/consortium.jpg 1600w" sizes="(max-width: 1023px) 92vw, 1280px" width="1600" height="900" alt="The consortium panel in Go No-Go" loading="lazy" data-source="client" data-subject="consortium panel">
+      </figure>
+    </div>
+  </section>
+</main>
+
+<footer class="footer closing footer--dark ground-inverse" id="contact" aria-labelledby="close-h">
+  <div class="wrap">
+    <div class="closing__cta close--word">
+      <div class="section-head--split">
+        <div><h2 id="close-h">Put a CubeSat in orbit.</h2><p class="t-lead">All you need to get in is a username and a password.</p></div>
+        <a class="btn btn--primary" href="/play">Play in your browser</a>
+      </div>
+      <p class="close__word" aria-hidden="true">Go-No-Go</p>
+    </div>
+    <div class="closing__links">
+      <div class="grid">
+        <div class="span-4 stack-4">
+          <p class="footer__mark">ExoPlay</p>
+          <p class="footer__lede">The team that made Go No-Go for NASA Space Apps Challenge 2026 in Milan.</p>
+        </div>
+        <div class="span-4 start-6 footer__col" id="squadra"><h3>ExoPlay team</h3><ul class="team"><li>Andrea De Mola</li><li>Alexandra Dumitrache</li><li>Matteo Faieta</li><li>Federico Giovanetti</li><li>Roki Rrotani</li><li>Solomon Taiwo</li></ul></div>
+        <div class="span-3 start-10 footer__col"><h3>Page</h3><ul><li><a href="#video">Video</a></li><li><a href="#gioco">Game</a></li><li><a href="#metodo">Method</a></li><li><a href="#consorzi">Consortia</a></li></ul></div>
+      </div>
+      <div class="footer__legal">
+        <span>&copy; 2026 ExoPlay &nbsp; Made for NASA Space Apps Challenge 2026, Milan</span>
+        <span>Independent project, not sponsored or endorsed by NASA.</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<nav class="actionbar" aria-label="Quick actions">
+  <a class="btn btn--primary" href="/play">Play in your browser</a>
+</nav>
+
+<script type="module" src="/landing/assets/system.js"></script>
+<script type="module" src="/landing/assets/motion/motion.js"></script>
+<script type="module" src="/landing/assets/layout/layout.js"></script>
+</body>
+</html>
