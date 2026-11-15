@@ -18,8 +18,10 @@ let SPECT=null;
 
 /* ---------- salvataggio ---------- */
 function payPhase(){ if(!G||G.tut||G.sandbox||!G.missions) return; G.missions.forEach(M=>{ if(M.tut) return; const ph=M.phase==='D'&&M.ready?'E':M.phase; if(['A','B','C','D','E'].indexOf(ph)<0) return; M.payd=M.payd||[]; if(M.payd.indexOf(ph)>=0) return; M.payd.push(ph); const p=Math.round(G.staff*SAL); if(p>0){ G.money-=p; setTimeout(()=>{ toast('Stipendi della '+PHN[ph]+' di '+M.name+': −'+keur(p)+' ('+G.staff+' dipendenti).'); hud(); },1400); } }); }
-function save(){ if(SPECT) return; /* mentre guardi un compagno G e' la sua partita: mai salvarla al posto della tua */ payPhase(); try{ localStorage.setItem('gng32.save',JSON.stringify(G)); }catch(e){} }
-function load(){ try{ const g=JSON.parse(localStorage.getItem('gng32.save')||'null'); if(g&&g.v===32) return g; }catch(e){} return null; }
+/* salvataggio e segno del tutorial sono per account (stesso browser, utenti diversi = partite diverse) */
+const UK=()=>{ const u=window.gngUser; return u&&u.username?':'+String(u.username).trim().toLowerCase():''; }, SAVEK=()=>'gng32.save'+UK();
+function save(){ if(SPECT) return; /* mentre guardi un compagno G e' la sua partita: mai salvarla al posto della tua */ payPhase(); try{ localStorage.setItem(SAVEK(),JSON.stringify(G)); }catch(e){} }
+function load(){ try{ const g=JSON.parse(localStorage.getItem(SAVEK())||'null'); if(g&&g.v===32) return g; }catch(e){} return null; }
 function now(){ return G.vt; }
 function clock(){ const r=Date.now(); G.vt+=(r-G.lastReal)*G.speed; G.lastReal=r; }
 const cur=()=>G.missions[G.cur];
@@ -4946,7 +4948,7 @@ nmback(){ $('#nmZone').hidden=true; $('#nmMain').hidden=false; },
   sec(t){ offSec=t.dataset.k; $$('[data-act="sec"]').forEach(b=>b.classList.toggle('on',b.dataset.k===offSec)); renderSponsors(); },
   recruit(t){ const id=t.dataset.k, lv=L.level(G.xp), picks=L.sponsorSlots(lv)-G.recruited.length; if(picks<=0){ toast('Un nuovo sponsor si sblocca al prossimo livello.'); return; } G.recruited.push(id); L.addSponsor(id); sfx.stamp(); toast(E.stk(id).n+' è nel tuo roster: lo trovi nell’edificio amministrativo.'); render(); },
   askreset(){ $('#drawer').hidden=true; review({eb:'Attenzione',name:'Ricominciare da capo?',code:'—',nasa:'—',body:'<p>Cancelli agenzia, missioni, edifici, macchinari, sponsor e livello. Non si torna indietro.</p>',actions:'<button class="btn no" data-act="reset">Sì, ricomincia</button><button class="btn" data-act="closeov">Annulla</button>'}); },
-  reset(){ try{ localStorage.removeItem('gng32.save'); }catch(e){} for(let i=E.STAKE.length-1;i>=0;i--) if(E.STAKE[i].sponsor||E.STAKE[i].ag) E.STAKE.splice(i,1); G=newG(); CUST=null; CBAR=false; closeOv(); view='hub'; render(); welcome(); },
+  reset(){ try{ localStorage.removeItem(SAVEK()); }catch(e){} for(let i=E.STAKE.length-1;i>=0;i--) if(E.STAKE[i].sponsor||E.STAKE[i].ag) E.STAKE.splice(i,1); G=newG(); CUST=null; CBAR=false; closeOv(); view='hub'; render(); welcome(); },
   speed(){ G.speed=1; },
   lang(){ try{ localStorage.setItem('gngLang',LANG==='en'?'it':'en'); }catch(e){} save(); location.reload(); },
   hmenu(){ document.body.classList.toggle('hmo'); sfx.tap(); hud(); },
@@ -7132,8 +7134,8 @@ const HEXI={home:'<path d="M5 12L12 6l7 6"/><path d="M7 11v8h10v-8"/><path d="M1
 const hexB=(act,t,ic,on,extra)=>'<button class="hx6'+(on?' on':'')+'" data-act="'+act+'" title="'+t+'" aria-label="'+t+'"'+(extra||'')+'>'+ICO(({x:'close',build:'home'})[ic]||ic)+'</button>';
 /* ---------- schermate iniziali ---------- */
 let TTL={s:'main',mode:'career',diff:'normale',crew:'giulia',from:'title',out:false};
-/* il tutorial si fa una volta per giocatore: il segno resta anche se si cancella la partita (la chiave non comincia con "gng") */
-const TUTK='goNoGo.tutorialSeen', tutSeen=()=>{ try{ return localStorage.getItem(TUTK)==='1'; }catch(e){ return false; } }, tutMark=()=>{ try{ localStorage.setItem(TUTK,'1'); }catch(e){} };
+/* il tutorial si fa una volta per account (stile Minecraft): il segno resta anche se si cancella la partita (la chiave non comincia con "gng"); i New Game successivi partono da zero senza tutorial */
+const TUTK='goNoGo.tutorialSeen', tutSeen=()=>{ try{ return localStorage.getItem(TUTK+UK())==='1'; }catch(e){ return false; } }, tutMark=()=>{ try{ localStorage.setItem(TUTK+UK(),'1'); }catch(e){} };
 /* prima missione di un giocatore nuovo (anche dopo il login, che salta il menu): prima si fa il tutorial, poi riparte la stessa modalità da zero */
 function tutFirst(){ if(!G||G.tut) return false; if(tutSeen()) return false; if(G.missions.length||G.xp>0&&!G.sandbox){ tutMark(); return false; } const keep={co:G.co,av:G.avatar,mu:G.music,bg:G.big,m:G.sandbox?'sand':'career',diff:G.diff||'normale'}; G=newG(); G.co=keep.co; G.avatar=keep.av; G.crew=[keep.av||'giulia']; G.music=keep.mu; G.big=keep.bg; G.after={m:keep.m,diff:keep.diff}; closeOv(); sfx.ok(); startTutorial(); save(); return true; }
 /* L'account serve per entrare nel gioco (CONTINUA / NEW GAME). Il menu iniziale resta la homepage; il modulo account si apre sopra. */
@@ -7166,7 +7168,7 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
   else if(s==='modes'||s==='modes2'){ const car=TTL.mode==='career';
     h='<div class="tsec"><h2 class="tt">SELECT A MODE</h2>'+(hasSave()&&!G.tut?'<p class="twarn">A new game replaces your saved game.</p>':'')+'<div class="tmodes">'+MODES.map(m=>'<button class="tmode'+(TTL.mode===m.k?' sel':'')+'" data-act="tmode" data-k="'+m.k+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+m.ic+'</svg><b>'+m.n+'</b><small>'+m.s+'</small></button>').join('')+'</div>'+
       '<div class="tdiff'+(car?'':' off')+'"><span>DIFFICULTY</span>'+DIFFS.map(d=>'<button class="'+(TTL.diff===d[0]?'sel':'')+'" data-act="tdiff" data-k="'+d[0]+'"'+(car?'':' disabled')+'><b>'+d[1]+'</b><small>'+d[2]+'</small></button>').join('')+'</div></div>'+foot(1,'tnext','CHOOSE'); }
-  else if(s==='crew'){ const c=crewOf(TTL.crew), tut=true;
+  else if(s==='crew'){ const c=crewOf(TTL.crew), tut=!tutSeen()&&!(G&&G.tutDone&&(G.missions.length||G.xp>0));
     h='<div class="tsec narrow"><h2 class="tt">'+TX('LA TUA AGENZIA','YOUR AGENCY')+'</h2><div class="tbox tsel">'+'<label for="tco">'+TX('Nome dell’agenzia','Agency name')+'</label><input type="text" id="tco" maxlength="28" value="" placeholder="'+TX('Es. Perigeo Labs','e.g. Perigeo Labs')+'" autocomplete="off">'+
       (tut?'<p class="tnote">'+TX('Prima partita: si comincia con un breve tutorial guidato su Marte, poi parte la modalità che hai scelto.','First game: you start with a short guided tutorial on Mars, then the mode you chose begins.')+'</p>':'')+'</div></div>'+foot(1,'tstart',tut?TX('INIZIA IL TUTORIAL','START TUTORIAL'):TX('INIZIA','START')); }
   else if(s==='settings'){ const fsOk=document.fullscreenEnabled||document.webkitFullscreenEnabled;
@@ -7180,9 +7182,12 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
 function beginGame(){ const m=TTL.mode, co=(($('#tco')&&$('#tco').value)||'Perigeo Labs').trim().slice(0,28)||'Perigeo Labs', av=TTL.crew, keepMusic=G.music, big=G.big;
   const mode=m==='sand'?'sand':'career', dd=TTL.diff||'normale';
   try{ localStorage.removeItem('gngPrev'); }catch(e){}
+  if(G&&G.tutDone&&(G.missions.length||G.xp>0)) tutMark(); /* chi ha già giocato non rifà il tutorial */
   G=newG(); G.co=co; G.avatar=av; G.crew=[av]; G.music=keepMusic; G.big=big;
-  /* ogni NEW GAME riparte dal tutorial (la modalità scelta parte dopo) */
-  G.after={m:mode,diff:dd}; closeTitle(); sfx.ok(); startTutorial(); return; }
+  /* solo il primo New Game dell'account fa il tutorial; poi la modalità scelta parte da zero */
+  if(!tutSeen()){ G.after={m:mode,diff:dd}; closeTitle(); sfx.ok(); startTutorial(); return; }
+  setupMode(mode,dd);
+  closeTitle(); view='hub'; sfx.ok(); render(); save(); toast(m==='sand'?TX('Modalità libera: tutto sbloccato. Non conta per la classifica.','Sandbox: everything unlocked. Does not count for the leaderboard.'):TX('Crea la tua prima missione con il tasto + in basso a sinistra.','Create your first mission with the + button bottom left.')); }
 function setupMode(m,dd){ G.tutDone=true; delete G.after;
   if(m==='sand'){ WDIFF='facile'; G.sandbox=true; G.diff='facile'; G.xp=L.LEVELS[L.LEVELS.length-1]+1; G.money=1000000; G.pad=true; ['factory','ground','rnd','office','visit'].forEach(k=>{ if(G.plots.indexOf(k)<0) G.plots.push(k); }); fixPlots(); }
   else { WDIFF=dd||'normale'; G.diff=WDIFF; G.money=Math.round(L.START_MONEY*dif().money); applyStartPerks(); } }
@@ -7198,7 +7203,7 @@ Object.assign(ACT,{
   tcrew(t){ const co=$('#tco')?$('#tco').value:null; TTL.crew=t.dataset.k; sfx.tap(); drawTitle(); if(co!=null&&$('#tco')) $('#tco').value=co; },
   tstart(){ beginGame(); },
   tlogin(){ sfx.tap(); if(window.gngRequireAccount) window.gngRequireAccount().then(u=>{ if(u) drawTitle(); }); },
-  tlogout(){ if(!TTL.out){ TTL.out=true; sfx.bad(); return drawTitle(); } TTL.out=false; sfx.tap(); try{ SPECT=null; ['gng32.save','gngPrev',TUTK].forEach(k=>localStorage.removeItem(k)); }catch(e){} G.tutDone=false; if(window.gngLogout) window.gngLogout().catch(e=>toast(e.message)); },
+  tlogout(){ if(!TTL.out){ TTL.out=true; sfx.bad(); return drawTitle(); } TTL.out=false; sfx.tap(); if(window.gngLogout) window.gngLogout().catch(e=>toast(e.message)); },
   tmusic(){ ACT.music(); drawTitle(); },
   tlang(){ ACT.lang(); },
   ttsize(){ ACT.tsize(); drawTitle(); },
@@ -7440,4 +7445,8 @@ window.gngEntryArtwork = () => artSVG('title');
 start();
 setTimeout(uxObs,300);
 })();
-window.addEventListener('gng:user',()=>{ try{ if(document.getElementById('title')&&TTL.s==='main') drawTitle(); }catch(e){} });
+window.addEventListener('gng:user',()=>{ try{
+  if(G&&!SPECT&&!G.tut&&document.getElementById('title')&&TTL.from!=='game'){ /* login dal menu: passa alla partita di questo account */
+    const keep={mu:G.music,bg:G.big}; for(let i=E.STAKE.length-1;i>=0;i--) if(E.STAKE[i].sponsor||E.STAKE[i].ag) E.STAKE.splice(i,1);
+    const sv=load(); G=sv||newG(); if(!sv){ G.music=keep.mu; G.big=keep.bg; } G.speed=1; G.recruited=G.recruited||[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m)); G.lastReal=G.lastReal||Date.now(); try{ clock(); fixPlots(); }catch(e){} }
+  if(document.getElementById('title')&&TTL.s==='main') drawTitle(); }catch(e){ console.warn(e); } });
