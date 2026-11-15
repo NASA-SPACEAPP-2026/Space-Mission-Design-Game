@@ -4702,8 +4702,8 @@ const BODIES={
 /* batch 4: i sei corpi esterni derivano da E.EXT (fonte unica) e sono volabili */
 Object.keys(E.EXT).forEach(k=>{ const x=E.EXT[k]; BODIES[k]={n:x.n,col:x.col,d:x.d,days:x.days,dv:x.dv,c:x.c,lvl:x.lvl,types:x.types,ext:x.ext,play:1}; });
 function nmAll(){ const lv=L.level(G.xp);
-  $('#nmZone').innerHTML='<h3>Catalogo</h3><h2>Tutti i corpi celesti</h2><p class="fine">Il Sole e tutti i pianeti del Sistema Solare. Distanze, tempi e costi sono stime di gioco.</p><div class="dests">'+Object.keys(BODIES).map(k=>{ const B=BODIES[k], lock=lv<B.lvl;
-    return '<button class="dcard'+(lock?' lock':'')+'" data-act="extpick" data-k="'+k+'"'+(lock?' disabled':'')+'>'+planet(k)+'<b>'+B.n+'</b><small>'+(lock?'🔒 livello '+B.lvl:(B.play?'volabile ora':'anteprima'))+' · '+B.d+' Mkm · '+B.days+' g · Δv '+B.dv+' m/s · '+keur(B.c)+'</small></button>'; }).join('')+'</div><div class="row"><button class="btn" data-act="nmback">← Indietro</button></div>';
+  $('#nmZone').innerHTML='<h3>Catalogo</h3><h2>Tutti i corpi celesti</h2><p class="fine">Il Sole e tutti i pianeti del Sistema Solare. Distanze, tempi e costi sono stime di gioco.</p><div class="dests ball">'+Object.keys(BODIES).map(k=>{ const B=BODIES[k], lock=lv<B.lvl;
+    return '<button class="dcard'+(lock?' lock':'')+'" data-act="extpick" data-k="'+k+'"'+(lock?' disabled':'')+'>'+planet(k)+'<b>'+B.n+'</b><small>'+(lock?'🔒 '+TX('livello ','level ')+B.lvl:keur(B.c))+'</small></button>'; }).join('')+'</div><div class="row"><button class="btn" data-act="nmback">← Indietro</button></div>';
   $('#nmMain').hidden=true; $('#nmZone').hidden=false; }
 const nmState={dest:'leo',zone:'low'};
 const STE={sci:'Measure the radiation environment around {A}, near and far.',obs:'Map {A} from a low polar orbit, as completely as possible.',tel:'Take a small telescope to a high, stable orbit around {A}.',com:'Put a relay into orbit around {A} to link future missions.',deb:'Reach an old abandoned stage around {A} and take it away.',demo:'Test in flight, around {A}, a technology that has never flown.'};

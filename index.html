@@ -1726,6 +1726,16 @@ body:has(#mg:not([hidden])) #zbtn,body:has(#mg:not([hidden])) #dock{visibility:h
   #p0go{box-shadow:0 6px 18px rgba(0,0,0,.35)}
 }
 </style>
+<style id="mfix3">
+/* catalogo dei corpi celesti: tutti visibili senza scorrere */
+#nmZone .dests.ball{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+#nmZone .ball .dcard{padding:6px 4px;gap:1px;min-height:0}
+#nmZone .ball .dcard svg{width:clamp(30px,9vh,56px);height:clamp(30px,9vh,56px)}
+#nmZone .ball .dcard b{font-size:clamp(12px,2.6vh,17px)}
+#nmZone .ball .dcard small{font-size:10.5px}
+@media (max-height:520px){#nmZone>p.fine{display:none}}
+@media (max-width:520px){#nmZone .dests.ball{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
 
 <div class="hud" id="hud"></div>
 <div class="app"><main id="view"></main></div>
