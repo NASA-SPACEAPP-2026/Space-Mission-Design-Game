@@ -18,8 +18,10 @@ let SPECT=null;
 
 /* ---------- salvataggio ---------- */
 function payPhase(){ if(!G||G.tut||G.sandbox||!G.missions) return; G.missions.forEach(M=>{ if(M.tut) return; const ph=M.phase==='D'&&M.ready?'E':M.phase; if(['A','B','C','D','E'].indexOf(ph)<0) return; M.payd=M.payd||[]; if(M.payd.indexOf(ph)>=0) return; M.payd.push(ph); const p=Math.round(G.staff*SAL); if(p>0){ G.money-=p; setTimeout(()=>{ toast('Stipendi della '+PHN[ph]+' di '+M.name+': −'+keur(p)+' ('+G.staff+' dipendenti).'); hud(); },1400); } }); }
-function save(){ if(SPECT) return; /* mentre guardi un compagno G e' la sua partita: mai salvarla al posto della tua */ payPhase(); try{ localStorage.setItem('gng32.save',JSON.stringify(G)); }catch(e){} }
-function load(){ try{ const g=JSON.parse(localStorage.getItem('gng32.save')||'null'); if(g&&g.v===32) return g; }catch(e){} return null; }
+/* salvataggio e segno del tutorial sono per account (stesso browser, utenti diversi = partite diverse) */
+const UK=()=>{ const u=window.gngUser; return u&&u.username?':'+String(u.username).trim().toLowerCase():''; }, SAVEK=()=>'gng32.save'+UK();
+function save(){ if(SPECT) return; /* mentre guardi un compagno G e' la sua partita: mai salvarla al posto della tua */ payPhase(); try{ localStorage.setItem(SAVEK(),JSON.stringify(G)); }catch(e){} }
+function load(){ try{ const g=JSON.parse(localStorage.getItem(SAVEK())||'null'); if(g&&g.v===32) return g; }catch(e){} return null; }
 function now(){ return G.vt; }
 function clock(){ const r=Date.now(); G.vt+=(r-G.lastReal)*G.speed; G.lastReal=r; }
 const cur=()=>G.missions[G.cur];
@@ -30,7 +32,7 @@ function tone(f,t,type,g,w){ if(mute()) return; try{ AC=AC||new (window.AudioCon
 const sfx={tap:()=>tone(520,.05,'triangle',.04),put:()=>{tone(300,.06,'square',.04);tone(450,.08,'triangle',.04,.05);},ok:()=>{tone(660,.09);tone(880,.14,'triangle',.05,.08);},bad:()=>tone(130,.28,'sawtooth',.05),
   stamp:()=>{tone(85,.2,'square',.08);tone(523,.25,'triangle',.05,.14);tone(659,.25,'triangle',.05,.22);tone(784,.45,'triangle',.05,.3);},cash:()=>{tone(988,.08,'square',.03);tone(1319,.15,'square',.03,.08);},leave:()=>{tone(392,.15);tone(330,.15,'triangle',.05,.15);tone(262,.3,'triangle',.05,.3);}};
 /* ---------- lingua: italiano / inglese ---------- */
-const LANG='en';
+const LANG='en'; window.gngLang=LANG; /* account.js (entry form) follows the game's language */
 const I18N=(()=>{ const RAW=`Particelle solari in arrivo: il satellite è passato da solo in safe mode per proteggersi. Riaccendi gli strumenti per misurare la tempesta?	Solar particles incoming: the satellite switched to safe mode by itself to protect itself. Switch the instruments back on to measure the storm?
 Riaccendi e misura	Switch on and measure
 Resta in safe mode	Stay in safe mode
@@ -4950,7 +4952,7 @@ nmback(){ $('#nmZone').hidden=true; $('#nmMain').hidden=false; },
   sec(t){ offSec=t.dataset.k; $$('[data-act="sec"]').forEach(b=>b.classList.toggle('on',b.dataset.k===offSec)); renderSponsors(); },
   recruit(t){ const id=t.dataset.k, lv=L.level(G.xp), picks=L.sponsorSlots(lv)-G.recruited.length; if(picks<=0){ toast('Un nuovo sponsor si sblocca al prossimo livello.'); return; } G.recruited.push(id); L.addSponsor(id); sfx.stamp(); toast(E.stk(id).n+' è nel tuo roster: lo trovi nell’edificio amministrativo.'); render(); },
   askreset(){ $('#drawer').hidden=true; review({eb:'Attenzione',name:'Ricominciare da capo?',code:'—',nasa:'—',body:'<p>Cancelli agenzia, missioni, edifici, macchinari, sponsor e livello. Non si torna indietro.</p>',actions:'<button class="btn no" data-act="reset">Sì, ricomincia</button><button class="btn" data-act="closeov">Annulla</button>'}); },
-  reset(){ try{ localStorage.removeItem('gng32.save'); }catch(e){} for(let i=E.STAKE.length-1;i>=0;i--) if(E.STAKE[i].sponsor||E.STAKE[i].ag) E.STAKE.splice(i,1); G=newG(); CUST=null; CBAR=false; closeOv(); view='hub'; render(); welcome(); },
+  reset(){ try{ localStorage.removeItem(SAVEK()); }catch(e){} for(let i=E.STAKE.length-1;i>=0;i--) if(E.STAKE[i].sponsor||E.STAKE[i].ag) E.STAKE.splice(i,1); G=newG(); CUST=null; CBAR=false; closeOv(); view='hub'; render(); welcome(); },
   speed(){ G.speed=1; },
   lang(){ try{ localStorage.setItem('gngLang',LANG==='en'?'it':'en'); }catch(e){} save(); location.reload(); },
   hmenu(){ document.body.classList.toggle('hmo'); sfx.tap(); hud(); },
@@ -7139,8 +7141,8 @@ const HEXI={home:'<path d="M5 12L12 6l7 6"/><path d="M7 11v8h10v-8"/><path d="M1
 const hexB=(act,t,ic,on,extra)=>'<button class="hx6'+(on?' on':'')+'" data-act="'+act+'" title="'+t+'" aria-label="'+t+'"'+(extra||'')+'>'+ICO(({x:'close',build:'home'})[ic]||ic)+'</button>';
 /* ---------- schermate iniziali ---------- */
 let TTL={s:'main',mode:'career',diff:'normale',crew:'giulia',from:'title',out:false};
-/* il tutorial si fa una volta per giocatore: il segno resta anche se si cancella la partita (la chiave non comincia con "gng") */
-const TUTK='goNoGo.tutorialSeen', tutSeen=()=>{ try{ return localStorage.getItem(TUTK)==='1'; }catch(e){ return false; } }, tutMark=()=>{ try{ localStorage.setItem(TUTK,'1'); }catch(e){} };
+/* il tutorial si fa una volta per account (stile Minecraft): il segno resta anche se si cancella la partita (la chiave non comincia con "gng"); i New Game successivi partono da zero senza tutorial */
+const TUTK='goNoGo.tutorialSeen', tutSeen=()=>{ try{ return localStorage.getItem(TUTK+UK())==='1'; }catch(e){ return false; } }, tutMark=()=>{ try{ localStorage.setItem(TUTK+UK(),'1'); }catch(e){} };
 /* prima missione di un giocatore nuovo (anche dopo il login, che salta il menu): prima si fa il tutorial, poi riparte la stessa modalità da zero */
 function tutFirst(){ if(!G||G.tut) return false; if(tutSeen()) return false; if(G.missions.length||G.xp>0&&!G.sandbox){ tutMark(); return false; } const keep={co:G.co,av:G.avatar,mu:G.music,bg:G.big,m:G.sandbox?'sand':'career',diff:G.diff||'normale'}; G=newG(); G.co=keep.co; G.avatar=keep.av; G.crew=[keep.av||'giulia']; G.music=keep.mu; G.big=keep.bg; G.after={m:keep.m,diff:keep.diff}; closeOv(); sfx.ok(); startTutorial(); save(); return true; }
 /* L'account serve per entrare nel gioco (CONTINUA / NEW GAME). Il menu iniziale resta la homepage; il modulo account si apre sopra. */
@@ -7168,12 +7170,12 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
     const nd=nextDest(), dd=nd&&E.DEST[nd];
     h='<div class="tmain"><div class="tleft"><div class="tlogo">'+logoSVG()+'<b>GO<br>NO-GO</b></div><nav class="tmenu">'+items.map(x=>{ const [a,v]=x[0].split(':'); return '<button data-act="'+a+'"'+(v?' data-s="'+v+'"':'')+'>'+x[1]+(x[2]?'<i class="tdia">!</i>':'')+'</button>'; }).join('')+'</nav><small class="tver">NASA Space Apps 2026</small></div>'+
       '<div class="tright">'+acctChip()+'<button class="tnow" data-act="tmusic"><span><small>'+TX('IN RIPRODUZIONE','NOW PLAYING')+'</small>'+(music?'Go No-Go · '+TX('tema principale','main theme'):TX('Musica spenta','Music off'))+'</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l12-2v11.5a3 3 0 1 1-2-2.8V6.3L9 7.8z"/></svg></button>'+lvlBox()+
-      '<div class="tunl"><h4>'+TX('Equipaggio','Crew')+'</h4><div class="tfaces">'+CREW.slice(0,4).map(c=>'<span>'+faceSVG(c)+'<small>'+c.n.split(' ')[0]+'</small></span>').join('')+'</div>'+(dd?'<div class="tdest"><span class="tart">'+artSVG(nd==='moon'?'moon':nd==='mars'?'mars':'free')+'</span><span><b>'+esc(dd.n)+'</b><small>'+TX('Si sblocca al livello ','Unlocks at level ')+dd.lvl+'</small></span></div>':'')+'</div></div></div>';
+      '<div class="tunl">'+(dd?'<div class="tdest"><span class="tart">'+artSVG(nd==='moon'?'moon':nd==='mars'?'mars':'free')+'</span><span><b>'+esc(dd.n)+'</b><small>'+TX('Si sblocca al livello ','Unlocks at level ')+dd.lvl+'</small></span></div>':'')+'</div></div></div>';
     if(s==='pause') h='<div class="tmain tpause"><div class="tleft"><div class="tlogo sm">'+logoSVG()+'<b>'+TX('PAUSA','PAUSED')+'</b></div><nav class="tmenu">'+items.map(x=>{ const [a,v]=x[0].split(':'); return '<button data-act="'+a+'"'+(v?' data-s="'+v+'"':'')+'>'+x[1]+'</button>'; }).join('')+'</nav></div><div class="tright">'+lvlBox()+'<div class="tunl"><h4>'+esc(G.co||TX('La tua agenzia','Your agency'))+'</h4><div class="tfaces">'+crewList().map(c=>'<span>'+faceSVG(c)+'<small>'+c.n.split(' ')[0]+'</small></span>').join('')+'</div></div></div></div>'; }
   else if(s==='modes'||s==='modes2'){ const car=TTL.mode==='career';
     h='<div class="tsec"><h2 class="tt">SELECT A MODE</h2>'+(hasSave()&&!G.tut?'<p class="twarn">A new game replaces your saved game.</p>':'')+'<div class="tmodes">'+MODES.map(m=>'<button class="tmode'+(TTL.mode===m.k?' sel':'')+'" data-act="tmode" data-k="'+m.k+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+m.ic+'</svg><b>'+m.n+'</b><small>'+m.s+'</small></button>').join('')+'</div>'+
       '<div class="tdiff'+(car?'':' off')+'"><span>DIFFICULTY</span>'+DIFFS.map(d=>'<button class="'+(TTL.diff===d[0]?'sel':'')+'" data-act="tdiff" data-k="'+d[0]+'"'+(car?'':' disabled')+'><b>'+d[1]+'</b><small>'+d[2]+'</small></button>').join('')+'</div></div>'+foot(1,'tnext','CHOOSE'); }
-  else if(s==='crew'){ const c=crewOf(TTL.crew), tut=true;
+  else if(s==='crew'){ const c=crewOf(TTL.crew), tut=!tutSeen()&&!(G&&G.tutDone&&(G.missions.length||G.xp>0));
     h='<div class="tsec narrow"><h2 class="tt">'+TX('LA TUA AGENZIA','YOUR AGENCY')+'</h2><div class="tbox tsel">'+'<label for="tco">'+TX('Nome dell’agenzia','Agency name')+'</label><input type="text" id="tco" maxlength="28" value="" placeholder="'+TX('Es. Perigeo Labs','e.g. Perigeo Labs')+'" autocomplete="off">'+
       (tut?'<p class="tnote">'+TX('Prima partita: si comincia con un breve tutorial guidato su Marte, poi parte la modalità che hai scelto.','First game: you start with a short guided tutorial on Mars, then the mode you chose begins.')+'</p>':'')+'</div></div>'+foot(1,'tstart',tut?TX('INIZIA IL TUTORIAL','START TUTORIAL'):TX('INIZIA','START')); }
   else if(s==='settings'){ const fsOk=document.fullscreenEnabled||document.webkitFullscreenEnabled;
@@ -7187,9 +7189,12 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
 function beginGame(){ const m=TTL.mode, co=(($('#tco')&&$('#tco').value)||'Perigeo Labs').trim().slice(0,28)||'Perigeo Labs', av=TTL.crew, keepMusic=G.music, big=G.big;
   const mode=m==='sand'?'sand':'career', dd=TTL.diff||'normale';
   try{ localStorage.removeItem('gngPrev'); }catch(e){}
+  if(G&&G.tutDone&&(G.missions.length||G.xp>0)) tutMark(); /* chi ha già giocato non rifà il tutorial */
   G=newG(); G.co=co; G.avatar=av; G.crew=[av]; G.music=keepMusic; G.big=big;
-  /* ogni NEW GAME riparte dal tutorial (la modalità scelta parte dopo) */
-  G.after={m:mode,diff:dd}; closeTitle(); sfx.ok(); startTutorial(); return; }
+  /* solo il primo New Game dell'account fa il tutorial; poi la modalità scelta parte da zero */
+  if(!tutSeen()){ G.after={m:mode,diff:dd}; closeTitle(); sfx.ok(); startTutorial(); return; }
+  setupMode(mode,dd);
+  closeTitle(); view='hub'; sfx.ok(); render(); save(); toast(m==='sand'?TX('Modalità libera: tutto sbloccato. Non conta per la classifica.','Sandbox: everything unlocked. Does not count for the leaderboard.'):TX('Crea la tua prima missione con il tasto + in basso a sinistra.','Create your first mission with the + button bottom left.')); }
 function setupMode(m,dd){ G.tutDone=true; delete G.after;
   if(m==='sand'){ WDIFF='facile'; G.sandbox=true; G.diff='facile'; G.xp=L.LEVELS[L.LEVELS.length-1]+1; G.money=1000000; G.pad=true; ['factory','ground','rnd','office','visit'].forEach(k=>{ if(G.plots.indexOf(k)<0) G.plots.push(k); }); fixPlots(); }
   else { WDIFF=dd||'normale'; G.diff=WDIFF; G.money=Math.round(L.START_MONEY*dif().money); applyStartPerks(); } }
@@ -7205,7 +7210,7 @@ Object.assign(ACT,{
   tcrew(t){ const co=$('#tco')?$('#tco').value:null; TTL.crew=t.dataset.k; sfx.tap(); drawTitle(); if(co!=null&&$('#tco')) $('#tco').value=co; },
   tstart(){ beginGame(); },
   tlogin(){ sfx.tap(); if(window.gngRequireAccount) window.gngRequireAccount().then(u=>{ if(u) drawTitle(); }); },
-  tlogout(){ if(!TTL.out){ TTL.out=true; sfx.bad(); return drawTitle(); } TTL.out=false; sfx.tap(); try{ SPECT=null; ['gng32.save','gngPrev',TUTK].forEach(k=>localStorage.removeItem(k)); }catch(e){} G.tutDone=false; if(window.gngLogout) window.gngLogout().catch(e=>toast(e.message)); },
+  tlogout(){ if(!TTL.out){ TTL.out=true; sfx.bad(); return drawTitle(); } TTL.out=false; sfx.tap(); if(window.gngLogout) window.gngLogout().catch(e=>toast(e.message)); },
   tmusic(){ ACT.music(); drawTitle(); },
   tlang(){ ACT.lang(); },
   ttsize(){ ACT.tsize(); drawTitle(); },
@@ -7444,7 +7449,13 @@ function uxObs(){ const q=id=>document.getElementById(id); const sync=()=>{ cons
   if(!q('zpanel')) setTimeout(uxObs,800); }
 // Share the game's own artwork with the entry screen, including in the IIFE build.
 window.gngEntryArtwork = () => artSVG('title');
+// Must live inside the IIFE: it needs G, TTL and drawTitle. When the session cookie is validated after the title is drawn,
+// this redraws the account chip (otherwise it keeps saying 'Sign in' for a player who is already logged in).
+window.addEventListener('gng:user',()=>{ try{
+  if(G&&!SPECT&&!G.tut&&document.getElementById('title')&&TTL.from!=='game'){ /* login dal menu: passa alla partita di questo account */
+    const keep={mu:G.music,bg:G.big}; for(let i=E.STAKE.length-1;i>=0;i--) if(E.STAKE[i].sponsor||E.STAKE[i].ag) E.STAKE.splice(i,1);
+    const sv=load(); G=sv||newG(); if(!sv){ G.music=keep.mu; G.big=keep.bg; } G.speed=1; G.recruited=G.recruited||[]; G.recruited.forEach(id=>L.addSponsor(id)); G.missions.forEach(m=>L.register(m)); G.lastReal=G.lastReal||Date.now(); try{ clock(); fixPlots(); }catch(e){} }
+  if(document.getElementById('title')&&TTL.s==='main') drawTitle(); }catch(e){ console.warn(e); } });
 start();
 setTimeout(uxObs,300);
 })();
-window.addEventListener('gng:user',()=>{ try{ if(document.getElementById('title')&&TTL.s==='main') drawTitle(); }catch(e){} });

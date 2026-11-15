@@ -38,10 +38,10 @@ export function createAuth({ db, origin, secure = true }) {
   if (!origins.length || origins.some((o) => { try { return new URL(o).origin !== o; } catch { return true; } })) throw new Error('APP_ORIGIN must be an exact origin');
   if (secure && origins.some((o) => !o.startsWith('https://'))) throw new Error('Production requires HTTPS APP_ORIGIN');
   const dummy = passwordHash(randomBytes(32).toString('hex'));
-  function send(res, status, body, cookie) {
+  function send(res, status, body, cookie, extraHeaders) {
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
-      ...(cookie ? { 'Set-Cookie': cookie } : {}) });
+      ...(cookie ? { 'Set-Cookie': cookie } : {}), ...(extraHeaders || {}) });
     res.end(JSON.stringify(body));
   }
   function cookie(token, age) {
@@ -70,7 +70,8 @@ export function createAuth({ db, origin, secure = true }) {
       if (!origins.includes(req.headers.origin)) return send(res, 403, { error: 'Origine non consentita' });
       if (pathname.endsWith('/logout')) {
         await db.query('DELETE FROM sessions WHERE token_hash=$1', [hash(token)]);
-        return send(res, 200, { user: null }, cookie('', 0));
+        // Wipe HTTP cache and cookies on logout. "storage" is deliberately NOT cleared: it would delete the local game saves (localStorage).
+        return send(res, 200, { user: null }, cookie('', 0), { 'Clear-Site-Data': '"cache", "cookies"' });
       }
       if (req.headers['content-type']?.split(';')[0] !== 'application/json') return send(res, 415, { error: 'Richiesto JSON' });
       // Do not trust arbitrary X-Forwarded-For supplied by a browser.
