@@ -15,7 +15,7 @@ import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createBrotliCompress, createGzip } from "node:zlib";
-import { database } from './backend/database.mjs';
+import { database, migrate } from './backend/database.mjs';
 import { createAuth } from './backend/auth.mjs';
 import { createConsortia } from './backend/consortia.mjs';
 
@@ -334,6 +334,8 @@ if (isMain) {
   const port = Number(process.env.PORT ?? 8080);
   const db = process.env.DATABASE_URL ? database() : null;
   if (process.env.NODE_ENV === 'production' && !db) throw new Error('DATABASE_URL is required in production');
+  // Apply the (repeatable) schema migrations before accepting requests, so a fresh database never causes 42P01 errors.
+  if (db) await migrate(db);
   const auth = db ? createAuth({ db, origin: process.env.APP_ORIGIN, secure: process.env.NODE_ENV === 'production' }) : null;
   const consortia = db ? createConsortia({ db, origin: process.env.APP_ORIGIN }) : null;
   // GMAT service: GMAT_URL if set (GMAT_URL=off disables it), else the shared default in gmat-service.json, so a fresh deployment works without any setting.

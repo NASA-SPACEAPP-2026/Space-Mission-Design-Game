@@ -33,7 +33,7 @@ html = html.replace(/(['"(])\/fonts\/([\w.-]+\.woff2)(['")])/g, (m, a, name, b) 
 
 // 3. icons (no external files)
 const svg = await readFile(resolve(dist, "favicon.svg"));
-html = html.replace(/<link rel="icon" href="\/favicon\.svg"[^>]*>/, () => `<link rel="icon" href="data:image/svg+xml;base64,${svg.toString("base64")}" type="image/svg+xml">`).replace(/<link rel="alternate icon"[^>]*>\s*/, "");
+html = html.replace(/<link rel="icon" href="\/favicon\.svg[^"]*"[^>]*>/, () => `<link rel="icon" href="data:image/svg+xml;base64,${svg.toString("base64")}" type="image/svg+xml">`).replace(/<link rel="(?:alternate icon|apple-touch-icon|icon)" href="\/(?:favicon\.ico|favicon-32x32\.png|apple-touch-icon\.png)[^"]*"[^>]*>\s*/g, "");
 
 await mkdir(dirname(outFile), { recursive: true });
 await writeFile(outFile, html);
