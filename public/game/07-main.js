@@ -1640,6 +1640,7 @@ punti di soddisfazione invece di guadagnarne	satisfaction points instead of gain
 una deroga più avanti	a waiver later
 Qui si costruisce il satellite in fase C e lo si assembla in fase D.	Here the satellite is built in phase C and assembled in phase D.
 Banchi di lavoro	Workbenches
+Sala delle Ricorrenze	Anniversary Hall
 Scegli il satellite da assemblare su questa postazione.	Choose the satellite to assemble at this station.
 Nessun satellite da costruire. Una missione arriva qui in fase C, dopo la revisione PDR.	No satellite to build. A mission arrives here in phase C, after the PDR review.
 Nessun satellite in assemblaggio. Ci arrivano dopo la CDR, in fase D. Più satelliti possono essere assemblati insieme.	No satellite in assembly. They arrive after the CDR, in phase D. Several satellites can be assembled together.
@@ -3436,11 +3437,11 @@ function wkSlot(el,d){ const par=el.parentNode; if(!par) return; let arr=par._dz
 WK.raf=requestAnimationFrame(wkFrame);
 
 function cCtx(){ const M=cur(), next=nextPlace(M), labels={}; ['admin','mcc','fd','build','test','pad'].forEach(k=>{ const w=waitOf(k); labels[k]=next===k?'!':w?w.replace('⏳',''):''; });
-  labels.council=CLANST.member?(CLANST.unread?CLANST.unread+' 💬':''):TX('Entra in un consorzio','Join a Consortium');
+  labels.council=CLANST.member?(CLANST.unread?CLANST.unread+' 💬':''):TX('Entra in un consorzio','Join a Consortium'); labels.events='🔒 '+TX('Chiusa','Locked');
   const pm=padMission(); return { walkers:wkScene('campus'), labels, flag:G.flag||null, pad:{ rocket:!!pm, rocketH:pm?.85*(E.LV[pm.sat.lv]||{h:1}).h:1, ready:!!(pm&&pm.phase==='D'&&pm.ready), name:pm?pm.name:'' } }; }
 /* anteprima 3D dell'edificio (stesso modello del campus); se il 3D non c'e', resta il disegno 2D */
 function tileImg(k){ let u=null; try{ u=C3.can()&&C3.snap?C3.snap(k):null; }catch(e){ u=null; } return u?'<img class="timg" alt="" src="'+u+'">':'<svg viewBox="-48 -44 96 66" aria-hidden="true">'+CAM.mini(k)+'</svg>'; }
-function vHub(v){ if(autoPlace('council')) save(); /* la Sala del Consiglio c'e' in ogni campus, anche nelle partite salvate prima */ { const oc=document.getElementById('flc'); if(oc&&CUST==='flag') FLDRAFT=oc.toDataURL(); } const sh=CUST&&!CPLACE, W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(G.xp), M=cur(), next=nextPlace(M);
+function vHub(v){ if(autoPlace('council')|autoPlace('events')) save(); /* anche la Sala delle Ricorrenze c'e' in ogni campus */ /* la Sala del Consiglio c'e' in ogni campus, anche nelle partite salvate prima */ { const oc=document.getElementById('flc'); if(oc&&CUST==='flag') FLDRAFT=oc.toDataURL(); } const sh=CUST&&!CPLACE, W=G.world, cam=W.cam||(W.cam={x:0,y:0,z:1}), lv=L.level(G.xp), M=cur(), next=nextPlace(M);
   const st={items:W.items,mode:G.cedit?'edit':'',sel:CSEL,moving:CPLACE&&CPLACE.moveId};
   const tiles=CMENU[CTAB].map(k=>{ const ki=cKind(k), lock=lv<ki.lvl, built=cBuilt(k); return '<button class="ctile'+(CPLACE&&CPLACE.k===k&&!CPLACE.moveId?' on':'')+(lock||built?' lock':'')+'" data-act="cplace" data-k="'+k+'"'+(lock||built?' disabled':'')+' title="'+esc(ki.s)+'">'+tileImg(k)+'<b>'+esc(ki.n)+'</b><small>'+(built?'costruito':k==='dish'&&!hasB('ground')?'serve la stazione di terra':lock?'livello '+ki.lvl:keur(ki.c)+(SREQ[k]?' · 👥'+SREQ[k]:'')+(k==='parking'?' · 🚗14':''))+'</small>'+(lock?'<span class="lk">🔒</span>':'')+'</button>'; }).join('');
   const pop=CSEL&&G.cedit&&!CPLACE?(()=>{ const it=W.items.find(i=>i.id===CSEL); if(!it) return ''; const d=CAM.K[it.k], ki=cKind(it.k), canDel=!d.core; return '<div class="cpop"><b>'+esc(d.n)+'</b><div class="row"><button class="btn small primary" data-act="cmove">Sposta</button>'+(canDel?'<button class="btn small" data-act="cdel">Rimuovi'+(ki.c?' · +'+keur(Math.round(ki.c/2)):'')+'</button>':'')+(it.k==='build'?'<button class="btn small" data-act="flagedit">Bandiera</button>':'')+'</div><span class="fine">'+(d.core?'Gli edifici principali si spostano ma non si demoliscono.':'Rimuovendolo recuperi metà del costo.')+'</span></div>'; })():'';
@@ -4877,6 +4878,10 @@ nmback(){ $('#nmZone').hidden=true; $('#nmMain').hidden=false; },
 pickType(t){ const M=cur(), d=M.sat; d.ride=t.dataset.k; M.rideFixed=true; d.stake=M.stake; d.acc=d.acc||{}; E.prune(d); d.sol=L.availSol(M,d.ride)[0]||d.sol; L.startMeeting(M,'A'); sfx.ok(); render(); },
   toB(){ const M=cur(); closeOv(); if(once(M,'SRR')) gainXP(L.XP.PRR); M.phase='B'; M.stage='drm'; if(!M.sat.lv){ const ks=Object.keys(E.LV).filter(k=>lvShown(k,M)&&!lvLock(k,M)&&E.LV[k].fits.indexOf(M.sat.ride)>=0); if(ks.length) M.sat.lv=ks[0]; } if(!M.lw){ M.lw={s:'done',k:'ontime'}; M.mdr='ask'; } go('hub'); lwOpen(M); toast(TX('Fase B: vai al Centro di dinamica del volo per la MDR.','Phase B: head to the Flight Dynamics Centre for the MDR.')); },
   lwacc(){ lwResolve(cur(),'ontime'); }, lwrel(){ lwResolve(cur(),'relaxed'); }, lwlater(){ zdClose(); sfx.tap(); },
+  /* Sala delle Ricorrenze: per ora chiusa, Zorty racconta a cosa servira' */
+  events(){ sfx.tap(); zdOpen({id:'events',pose:'festa',text:TX('Questa è la Sala delle Ricorrenze! Nei giorni speciali, come l’anniversario dello sbarco di Apollo 11 sulla Luna (20 luglio) o del lancio dello Sputnik (4 ottobre), qui si accendono le luci: tutti i giocatori possono rivivere insieme una versione semplificata della missione di quel giorno.','This is the Anniversary Hall! On special days, like the anniversary of the Apollo 11 Moon landing (20 July) or of the Sputnik launch (4 October), the lights come on here: all players can relive together a simplified version of that day’s mission.'),
+    note:TX('Per ora la sala è chiusa: si apre solo nei giorni delle ricorrenze.','For now the hall is closed: it only opens on anniversary days.'),btns:[{act:'evok',cls:'primary',t:'OK'}]}); },
+  evok(){ zdClose(); sfx.tap(); },
   mdryes(){ const M=cur(); zdClose(); M.mdr='edit'; sfx.tap(); render(); const vw=$('#view'); if(vw) vw.classList.add('openL'); },
   mdrno(){ const M=cur(); zdClose(); if(!drmLand(M)&&drmStarH(M)==null){ toast(TX('Nessuna orbita nella fascia obiettivo: aggiungine una.','No orbit in the target band: add one.')); M.mdr='edit'; } else M.mdr='eol'; sfx.tap(); render(); },
   mdredone(){ const M=cur(); if(drmStarH(M)==null){ sfx.bad(); return; } M.mdr='eol'; sfx.tap(); render(); },
@@ -5267,7 +5272,7 @@ const vis=el=>{ if(!el) return false; const r=el.getBoundingClientRect(); return
 /* ====== Missione 0 · tutorial invisibile ======
    Niente barra, niente blocchi: un alone arancione pulsante indica il prossimo passo logico, gli edifici non ancora utili restano nascosti
    e il personale spiega con una battuta breve, solo la prima volta che si entra in una schermata. */
-const TUT_HIDE=['build','fd','test','mcc','pad','council'];
+const TUT_HIDE=['build','fd','test','mcc','pad','council','events'];
 function tutUnlock(){ if(!G||!G.tut) return []; const M=G.missions[0]; if(!M) return []; const u=G.tutU=G.tutU||['admin'], nw=[], add=k=>{ if(u.indexOf(k)<0){ u.push(k); nw.push(k); } }, ph=M.phase;
   if(ph==='B'||ph==='C'||ph==='D'||ph==='E'||ph==='F'||ph==='done'){ add('build'); add('fd'); }
   if(ph==='D'||ph==='E'||ph==='F'||ph==='done') add('test');
@@ -5329,7 +5334,7 @@ function welcome(){ $('#ov').innerHTML='<div class="rv" role="dialog" aria-modal
 function start(){ try{ const nj=document.getElementById('nojs'); if(nj) nj.remove(); start0(); }catch(e){ console.error(e); document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:#DCE6EE;font:15px/1.5 sans-serif;padding:16px"><div style="max-width:440px;background:#fff;border-radius:16px;padding:22px;box-shadow:0 8px 30px rgba(0,0,0,.15)"><h2 style="font:700 22px/1.2 sans-serif;margin:0 0 8px">Salvataggio non compatibile</h2><p style="margin:0 0 14px">La partita salvata in questo browser viene da una versione precedente del gioco e non si riesce ad aprire.</p><p style="margin:0 0 14px;font-size:12px;color:#5F6E80">'+String(e&&e.message||e).replace(/</g,'&lt;')+'</p><button id="gngReset" style="background:#F07B3F;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer">Ricomincia da capo</button></div></div>'); document.getElementById('gngReset').onclick=()=>{ try{ Object.keys(localStorage).filter(k=>/^gng/i.test(k)).forEach(k=>localStorage.removeItem(k)); }catch(_){} try{ sessionStorage.clear(); }catch(_){} location.href=location.href.split('#')[0]; setTimeout(()=>location.reload(),300); }; } }
 // v33.1 · ogni edificio dichiarato costruito deve stare sulla mappa: lo piazza da solo vicino al centro del campus
 /* Posizionamento automatico degli edifici: sceglie, tra tutti i punti validi, quello vicino al centro del campus che non finisce dietro a un edificio alto (la camera guarda da sud) e che non nasconde gli altri */
-const BH={admin:3,mcc:2.8,fd:2.6,build:6,test:2.8,factory:3.6,ground:2.6,rnd:4.6,office:5,visit:2.8,pad:3.2,council:2.4};
+const BH={admin:3,mcc:2.8,fd:2.6,build:6,test:2.8,factory:3.6,ground:2.6,rnd:4.6,office:5,visit:2.8,pad:3.2,council:2.4,events:2.6};
 function hides(f,fk,b,bk){ /* il rettangolo f (alto BH[fk]) nasconde b? b sta dietro (y minore) entro l'ombra prospettica di f */
   const hh=BH[fk]||2.5, dep=hh*.9; if(b[3]>f[1]+.5||b[3]<f[1]-dep) return false; const sh=Math.max(0,f[1]-b[3])*.3; return b[0]<f[2]+.8+sh&&b[2]>f[0]-.8-sh; }
 function autoPlace(k,multi){ const W=G.world; if(!W||!CAM.K[k]||(!multi&&W.items.some(i=>i.k===k))) return false; syncSite(); const d=CAM.K[k], cx=13.75, cy=7.25; const SB=multi?CAM.site():null, xA=SB?Math.floor(Math.min(...SB.map(p=>p[0]))):-3, xB=SB?Math.ceil(Math.max(...SB.map(p=>p[0]))):21.5, yA=SB?Math.floor(Math.min(...SB.map(p=>p[1]))):-4, yB=SB?Math.ceil(Math.max(...SB.map(p=>p[1]))):20, stp=multi?1:.5;
@@ -5815,6 +5820,17 @@ const C3=(()=>{
       top=2.5; }
     else if(k==='parking'){ { const o=rslab(x+3,y+1.5,6,3,.45,0,.05,M('#D9D3C6',{roughness:.9}),.02); o.castShadow=false; } /* piastra bassa: quasi a filo con la strada */ for(let i=0;i<=6;i++){ add(new THREE.BoxGeometry(.04,.01,1.2),M('#F3F1EA'),x+.15+i*.9,.065,y+.8); add(new THREE.BoxGeometry(.04,.01,1.2),M('#F3F1EA'),x+.15+i*.9,.065,y+2.2); }
       const cg=['#E04A3C','#7BC043','#F2B83A','#2E86C1','#EB7D44','#1FA2A8']; const PLG=new THREE.Group(); [0,1,3,4,5].forEach((i,j)=>{ const g=rover(); g.children[4].material=M(cg[(i+1)%6]); g.position.set(x+.6+i*.9,.06,y+.8); g.rotation.y=Math.PI/2; flat(PLG,g); }); [1,2,4].forEach((i,j)=>{ const g=rover(); g.children[4].material=M(cg[(i+3)%6]); g.position.set(x+.6+i*.9,.06,y+2.2); g.rotation.y=-Math.PI/2; flat(PLG,g); }); mergeGroup(PLG); built.add(PLG); top=.6; }
+    else if(k==='events'){ apron(x,y,x+3.2,y+3.2,'#D9D3C6'); const cx=x+1.6, cz=y+1.45;
+      /* Sala delle Ricorrenze: padiglione ottagonale con tetto a punta arancione e stella in cima, porta chiusa col lucchetto, razzo-statua e bandierine */
+      cyl(cx,cz,1.15,.1,1.0,WHITE(),8).rotation.y=Math.PI/8; cyl(cx,cz,1.19,.82,.14,M(ORA),8).rotation.y=Math.PI/8;
+      const rf=add(new THREE.ConeGeometry(1.32,1.05,8),M(ORA),cx,1.1+.52,cz); rf.rotation.y=Math.PI/8; cyl(cx,cz,1.3,1.08,.06,WHITE(),8).rotation.y=Math.PI/8;
+      const st=add(new THREE.OctahedronGeometry(.17),EMI('#F2B83A'),cx,2.38,cz); anims.push(t=>{ st.rotation.y=t*1.2; });
+      add(new THREE.BoxGeometry(.56,.66,.06),M(DARK),cx,.43,cz+1.07); add(new THREE.BoxGeometry(.06,.66,.07),M('#5A6068'),cx,.43,cz+1.08);
+      add(new THREE.TorusGeometry(.07,.022,6,14,Math.PI),M('#F2B83A',{metalness:.6,roughness:.3}),cx,.66,cz+1.13); add(new THREE.BoxGeometry(.15,.13,.05),M('#F2B83A',{metalness:.6,roughness:.3}),cx,.6,cz+1.13);
+      [-1,1].forEach(s=>add(new THREE.BoxGeometry(.3,.22,.04),M('#9FC3CC'),cx+s*.55,.6,cz+.98).rotation.y=-s*Math.PI/8);
+      { const rx=x+.42, rz=y+2.78; cyl(rx,rz,.22,.1,.12,M('#C9C8C2'),16); cyl(rx,rz,.11,.22,.95,WHITE(),14); cyl(rx,rz,.115,.62,.08,M(DARK),14); cyl(rx,rz,.115,.9,.06,M(RED),14); add(new THREE.ConeGeometry(.11,.32,14),M(RED),rx,1.33,rz); [0,1,2].forEach(i=>{ const a=i*2.094; add(new THREE.BoxGeometry(.02,.2,.14),M(RED),rx+Math.cos(a)*.13,.32,rz+Math.sin(a)*.13).rotation.y=-a; }); }
+      const FC=['#E04A3C','#F2B83A','#2E86C1','#7BC043','#EB7D44']; for(let i=0;i<3;i++){ const px=x+2.2+i*.4, pz=y+3.0; add(new THREE.CylinderGeometry(.02,.02,1.2,6),M('#D8D7D2'),px,.6,pz); add(new THREE.PlaneGeometry(.3,.2),new THREE.MeshStandardMaterial({color:col(FC[i]),roughness:.8,side:THREE.DoubleSide}),px+.16,1.08,pz); }
+      top=2.6; }
     else if(k==='council'){ apron(x,y,x+3.4,y+3.4,'#D9D3C6'); const cx=x+1.7, cz=y+1.7;
       /* Sala del Consiglio: tamburo basso bianco con fascia di vetro, cupola di vetro che si accende del colore del consorzio */
       cyl(cx,cz,1.25,.1,.85,WHITE(),40); ring(cx,cz,1.27,.34,.3,glassMat()); cyl(cx,cz,1.4,.95,.1,WHITE(),40);

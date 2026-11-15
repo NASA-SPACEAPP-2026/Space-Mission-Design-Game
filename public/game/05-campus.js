@@ -94,6 +94,7 @@ const CAM = (() => {
     visit: { n: 'Centro visitatori', w: 4, h: 3, up: 1, act: 'binfo', draw(x, y) { return apron(x, y, x + 4, y + 3) + rshadow(x + .3, y + .3, x + 2.6, y + 2.2, 1.2) + rblock(x + .3, y + .3, x + 2.6, y + 2.2, 0, 1.2, '#EEEDE6', { win: [1, 6, 4], wo: { ribbon: 1, sill: .2, wh: .6 } }) + rocket(P(x + 3.3, y + 1.4, 0), .55) + rocket(P(x + 3.1, y + 2.4, 0), .42); }, top: 4 },
     // Sala del Consiglio: la casa del consorzio (clan). Si sposta ma non si demolisce; il tocco apre il pannello del consorzio.
     council: { n: 'Sala del Consiglio', w: 3.4, h: 3.4, core: 1, act: 'clan', draw(x, y) { return apron(x, y, x + 3.4, y + 3.4) + cyl(x + 1.7, y + 1.7, 1.25, 0, .9, '#EEEDE6') + cyl(x + 1.7, y + 1.7, .95, .9, 1.5, '#9FC3CC', true) + flags(x + .5, y + 3.1); }, top: 2.4 },
+    events: { n: 'Sala delle Ricorrenze', w: 3.2, h: 3.2, core: 1, act: 'events', draw(x, y) { return apron(x, y, x + 3.2, y + 3.2) + cyl(x + 1.6, y + 1.6, 1.1, 0, .9, '#EEEDE6') + cyl(x + 1.6, y + 1.6, .8, .9, 1.8, '#EB7D44', true) + flags(x + 2.3, y + 3); }, top: 2.6 },
     tree: { n: 'Albero', w: .9, h: .9, deco: 1, c: 5, draw(x, y) { return rtree(x + .45, y + .45, 1.05, 'round'); } },
     pine: { n: 'Pino', w: .9, h: .9, deco: 1, c: 5, draw(x, y) { return rtree(x + .45, y + .45, 1.05, 'pine'); } },
     poplar: { n: 'Pioppo', w: .6, h: .6, deco: 1, c: 4, draw(x, y) { return rtree(x + .3, y + .3, 1.05, 'poplar'); } },
