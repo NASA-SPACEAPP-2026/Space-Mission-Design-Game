@@ -351,6 +351,23 @@ describe('Consortia API', () => {
     expect((await get('Bob', '/mine')).body.consortium.science - before).toBe(300);
   });
 
+  it('levels up with the science points and unlocks stickers', async () => {
+    // 552 points after the joint mission, 992 with the challenge: level 2 (from 400), announced in the chat.
+    expect((await get('Bob', '/mine')).body.consortium).toMatchObject({ level: 2, science: 992 });
+    expect((await get('Bob', '/mine/messages')).body.messages.some(m => m.kind === 'system' && m.data.code === 'level_up' && m.data.level === 2)).toBe(true);
+    await cool();
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_cheer' })).status).toBe(201);
+    await cool();
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_think' })).body).toEqual({ error: 'sticker_locked', level: 3 });
+    // 300 more points cross 1200: level 3, and the next sticker unlocks.
+    await post('Bob', '/science', { mission: 'lv-1', points: 300, name: 'LEVEL' });
+    expect((await get('Bob', '/mine')).body.consortium.level).toBe(3);
+    expect((await get('Bob', '/mine/messages')).body.messages.at(-1).data).toEqual({ code: 'level_up', level: 3 });
+    await cool();
+    expect((await post('Bob', '/mine/messages', { kind: 'sticker', sticker: 'zorty_think' })).status).toBe(201);
+    expect((await get('Dan', '/mine')).body.consortium.level).toBe(1);
+  });
+
   it('hands over leadership when the director leaves or is inactive, and disbands when empty', async () => {
     expect((await post('Bob', '/leave')).body).toEqual({ left: true, disbanded: false });
     expect((await get('Ada', '/mine')).body.me.role).toBe('director');
@@ -368,8 +385,8 @@ describe('Consortia API', () => {
     expect((await post('Cyd', '/leave')).body).toEqual({ left: true, disbanded: true });
     expect((await get('Cyd', `/${id}`)).status).toBe(404);
     expect((await db.query('SELECT count(*)::int AS n FROM consortium_messages WHERE consortium_id=$1', [id])).rows[0].n).toBe(0);
-    // single-player missions (2 + 3 in the challenge test) + the joint mission for its three players
-    expect((await db.query('SELECT count(*)::int AS n FROM science_awards')).rows[0].n).toBe(8);
+    // single-player missions (2 + 3 in the challenge test + 1 in the levels test) + the joint mission for its three players
+    expect((await db.query('SELECT count(*)::int AS n FROM science_awards')).rows[0].n).toBe(9);
   });
 
   it('upgrades an existing accounts database and can run twice', async () => {

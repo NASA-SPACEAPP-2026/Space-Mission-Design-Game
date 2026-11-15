@@ -6,7 +6,11 @@ import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { sessionUser } from './auth.mjs';
 
 export const ROLES = ['member', 'chief_engineer', 'vice', 'director']; // index = rank
-export const STICKERS = ['zorty_happy', 'zorty_cry', 'zorty_angry', 'zorty_laugh'];
+export const STICKERS = ['zorty_happy', 'zorty_cry', 'zorty_angry', 'zorty_laugh', 'zorty_cheer', 'zorty_think', 'zorty_wow'];
+// Consortium levels from the all-time science points; some stickers unlock with them (the others are there from level 1).
+export const LEVELS = [0, 400, 1200, 3000, 6000];
+export const levelOf = science => LEVELS.reduce((l, min, i) => (science >= min ? i + 1 : l), 1);
+export const STICKER_LEVEL = { zorty_cheer: 2, zorty_think: 3, zorty_wow: 4 };
 export const CREST = {
   shapes: ['shield', 'circle', 'hexagon', 'star', 'diamond'],
   symbols: ['rocket', 'satellite', 'planet', 'moon', 'star', 'comet', 'telescope', 'orbit']
@@ -616,10 +620,11 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
       } else throw bad('kind');
       const saved = await tx(db, async t => {
         // Locking the player's own row serialises their messages, so the 2-second limit holds.
-        const [me] = await rows(t, `SELECT m.consortium_id AS cid, m.role, c.school_mode FROM consortium_members m
+        const [me] = await rows(t, `SELECT m.consortium_id AS cid, m.role, c.school_mode, c.level FROM consortium_members m
           JOIN consortia c ON c.id=m.consortium_id WHERE m.user_id=$1 FOR UPDATE OF m`, [user.id]);
         if (!me) throw new Fail(404, 'no_consortium');
         if (kind === 'text' && me.school_mode) throw new Fail(403, 'school_mode');
+        if (kind === 'sticker' && (STICKER_LEVEL[text] || 1) > me.level) throw new Fail(403, 'sticker_locked', { level: STICKER_LEVEL[text] });
         const recent = await rows(t, `SELECT 1 FROM consortium_messages WHERE author_id=$1
           AND created_at > now() - interval '2 seconds' LIMIT 1`, [user.id]);
         if (recent.length) throw new Fail(429, 'slow_down');
@@ -719,6 +724,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
               await t.query('UPDATE consortia SET science=science+$2 WHERE id=$1', [me.cid, s.points]);
             }
           }
+          await levelUp(t, me.cid);
           await system(t, me.cid, { code: 'joint_done', mission: s.name, users: players.map(p => p.username), points: s.points, design: s.design });
         }
         return { body: { id, status, version, state: s } };
@@ -791,6 +797,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
           await t.query('UPDATE consortium_members SET science=science+$2, last_seen_at=now() WHERE user_id=$1', [user.id, body.points]);
           await t.query('UPDATE consortia SET science=science+$2 WHERE id=$1', [me.cid, body.points]);
           await system(t, me.cid, { code: 'science', user: user.username, mission: name, points: body.points });
+          await levelUp(t, me.cid);
           // The weekly challenge: the same points, if the mission meets this week's goal.
           if (meetsGoal(goal, facts)) {
             await ensureWeek(t, week);
@@ -829,6 +836,14 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
     }
   };
 
+  // The level follows the all-time science points and never goes down; a new level is announced in the chat.
+  async function levelUp(t, cid) {
+    const [c] = await rows(t, 'SELECT science::float8 AS science, level FROM consortia WHERE id=$1', [cid]);
+    const next = c ? levelOf(c.science) : 1;
+    if (!c || next <= c.level) return;
+    await t.query('UPDATE consortia SET level=$2 WHERE id=$1', [cid, next]);
+    await system(t, cid, { code: 'level_up', level: next });
+  }
   async function ensureWeek(c, week) {
     await c.query(`INSERT INTO consortium_challenges(week,goal) VALUES($1,$2::jsonb) ON CONFLICT (week) DO NOTHING`, [week, JSON.stringify(goalOf(week))]);
   }
@@ -846,6 +861,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
           await t.query(`UPDATE consortia SET science=science+$2, trophies=trophies || jsonb_build_array(jsonb_build_object('week',$3::text,'place',$4::int)) WHERE id=$1`,
             [p.id, p.bonus, week, p.place]);
           await system(t, p.id, { code: 'challenge_won', place: p.place, points: p.points, bonus: p.bonus, week });
+          await levelUp(t, p.id);
         }
         await t.query(`UPDATE consortium_challenges SET results=$2::jsonb, finalized_at=now() WHERE week=$1`, [week, JSON.stringify(podium)]);
       });
