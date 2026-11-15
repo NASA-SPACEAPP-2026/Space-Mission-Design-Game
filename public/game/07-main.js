@@ -3135,7 +3135,18 @@ affidabilità	reliability
 sostenibilità	sustainability
 visibilità	visibility
 Sostenibilità	Sustainability
-{s} soddisfatto ({n} cr)	{s} satisfied ({n} cr)`, ex=new Map(); RAW.split('\n').forEach(l=>{ const i=l.indexOf('\t'); if(i>0) ex.set(l.slice(0,i),l.slice(i+1)); }); const exl=new Map(); ex.forEach((v,k)=>{ if(!exl.has(k.toLowerCase())) exl.set(k.toLowerCase(),k); });
+{s} soddisfatto ({n} cr)	{s} satisfied ({n} cr)
+Controllo attivo delle ottiche MARIO	MARIO active optics control
+Camere stereo SCALPSS	SCALPSS stereo cameras
+Navigazione autonoma lunare CAPS	CAPS autonomous lunar navigation
+Laboratorio chimico su robot	Chemistry lab on a robot
+Stazione meteo marziana MEDA	MEDA Martian weather station
+Sensore spettrale e polarimetrico	Spectral and polarimetric sensor
+Generatore a radioisotopi in miniatura	Miniature radioisotope generator
+gigante gassoso con anelli: niente atterraggio	ringed gas giant: no landing
+gigante di ghiaccio: niente atterraggio, comunicazioni molto lente	ice giant: no landing, very slow communications
+solo sorvolo ravvicinato e osservazione: niente orbita stabile e niente atterraggio	close flyby and observation only: no stable orbit and no landing
+Per la notte lunga di Marte: oltre 12 ore al buio	For the long Martian night: over 12 hours in the dark`, ex=new Map(); RAW.split('\n').forEach(l=>{ const i=l.indexOf('\t'); if(i>0) ex.set(l.slice(0,i),l.slice(i+1)); }); const exl=new Map(); ex.forEach((v,k)=>{ if(!exl.has(k.toLowerCase())) exl.set(k.toLowerCase(),k); });
   const NUM=/[−+\-]?\d[\d.,]*\d|[−+\-]?\d/g, enNum=x=>/^[−+\-]?\d{1,3}(\.\d{3})+(,\d+)?$|^[−+\-]?\d+,\d+$/.test(x)?x.replace(/[.,]/g,c=>c==='.'?',':'.'):x;
   let NM=[]; const setNames=()=>{ let ex2=[]; try{ ex2=Object.values(E.LV).map(o=>o.n).concat(Object.values(L.PEOPLE).map(o=>o.n),Object.values(L.PEOPLE).map(o=>o.org)); }catch(e){} NM=(G?[G.co].concat(G.missions.map(m=>m.name)):[]).concat(ex2).filter(x=>x&&String(x).length>2).map(String).filter((x,i,a)=>a.indexOf(x)===i).sort((a,b)=>b.length-a.length); };
   function one(s){ if(!s) return s; let e=ex.get(s); if(e!=null) return e;
@@ -4318,7 +4329,7 @@ function missionFacts(m){ const d=m.sat, b=E.budget(d), db=dataBud(m), lv=E.LV[d
     ['Durata',(r?r.months:m.duration||'—')+' mesi'],['Scienza',r?String(r.sci):'—'],['Esito',r?(r.ok?'Riuscita':'Non riuscita'):phn(m)],['Maturità (NASA CML)',cmlTag(m)],['Fonte del ΔV',p.gmat?'GMAT (NASA)':'Modello del gioco']].concat(p.an?[['Ombra massima per orbita (GMAT)',nf(p.an.eclipse.maxMin,0)+' min'],['Contatti con la terra (GMAT)',nf(contactMin(m),0)+' min al giorno']].concat(p.lf&&p.lf.nom?[['Vita dell’orbita (GMAT)',fmtLife(p.lf.nom,(m.sat.dest||'leo')==='moon'||(m.sat.dest||'leo')==='venus'?'oltre 1 anno':'oltre 5 anni')]]:[]):[]); }
 function reportHTML(M){ const f=missionFacts(M), mp=M.result?mcrParts(M):null, parts=Object.keys(M.sat.placed).map(c=>P[M.sat.placed[c].id]).filter(Boolean);
   const css='body{font:15px/1.5 system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#1E2A3A;background:#F3F6F9;margin:0;padding:24px}main{max-width:900px;margin:auto;background:#fff;border-radius:16px;padding:28px;box-shadow:0 4px 20px rgba(0,0,0,.08)}h1{font-size:28px;margin:0}h2{font-size:16px;text-transform:uppercase;letter-spacing:.08em;color:#5F6E80;margin:24px 0 8px}table{border-collapse:collapse;width:100%}td{padding:6px 8px;border-bottom:1px solid #E3E8ED;vertical-align:top}td:first-child{color:#5F6E80;width:38%}.num{font-family:ui-monospace,Menlo,monospace}.chain{display:grid;gap:8px}.chn{display:grid;grid-template-columns:1fr 20px 1.3fr 20px 1fr;gap:4px}.chn>div{border:1px solid #E3E8ED;border-radius:8px;padding:6px 8px;font-size:13px}.chn small{display:block;color:#5F6E80;font-size:11px;text-transform:uppercase}.bad{color:#B23A2C}.good{color:#1F7A44}.drm{border:1px solid #E3E8ED;border-radius:10px;overflow:hidden}.drm svg{display:block;width:100%;height:auto}table.pay td:last-child{text-align:right}footer{margin-top:24px;color:#8D99A6;font-size:12px}';
-  return '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Resoconto '+esc(M.name)+'</title><style>'+css+'</style></head><body><main><p style="color:#5F6E80;margin:0">Go No-Go · resoconto di missione · '+esc(G.co||'')+'</p><h1>'+esc(M.name)+'</h1>'+(M.statement?'<p><i>'+esc(M.statement)+'</i></p>':'')+
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Resoconto '+esc(M.name)+'</title><style>'+css+'</style></head><body><main><p style="color:#5F6E80;margin:0">Go No-Go · resoconto di missione · '+esc(G.co||'')+'</p><h1>'+esc(M.name)+'</h1>'+(M.statement?'<p><i>'+esc(M.statement)+'</i></p>':'')+
     '<h2>Profilo della missione</h2>'+(M.drm?'<div class="drm"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600">'+drmSVG(M,{H:600})+'</svg></div>':'')+
     '<h2>Numeri chiave</h2><table>'+f.map(x=>'<tr><td>'+esc(x[0])+'</td><td class="num">'+esc(x[1])+'</td></tr>').join('')+'</table>'+
     '<h2>Satellite</h2><table>'+parts.map(o=>'<tr><td>'+esc(o.n)+'</td><td class="num">'+nf(o.m||0,2)+' kg · '+nf(o.p||0,1)+' W · '+keur(o.c||0)+' · TRL '+o.trl+'</td></tr>').join('')+'</table>'+

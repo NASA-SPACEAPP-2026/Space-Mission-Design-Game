@@ -64,10 +64,10 @@ export function createAuth({ db, origin, secure = true }) {
         const user = await session(token);
         return send(res, 200, { user: user ? publicUser(user) : null });
       }
-      if (!['/api/auth/register', '/api/auth/login', '/api/auth/logout'].includes(pathname)) return send(res, 404, { error: 'Endpoint non trovato' });
-      if (req.method !== 'POST') return send(res, 405, { error: 'Metodo non consentito' });
+      if (!['/api/auth/register', '/api/auth/login', '/api/auth/logout'].includes(pathname)) return send(res, 404, { error: 'Endpoint not found' });
+      if (req.method !== 'POST') return send(res, 405, { error: 'Method not allowed' });
       // Exact Origin + JSON requests prevent cross-site form and fetch CSRF.
-      if (!origins.includes(req.headers.origin)) return send(res, 403, { error: 'Origine non consentita' });
+      if (!origins.includes(req.headers.origin)) return send(res, 403, { error: 'Origin not allowed' });
       if (pathname.endsWith('/logout')) {
         await db.query('DELETE FROM sessions WHERE token_hash=$1', [hash(token)]);
         // Wipe cookies on logout. "cache" is deliberately NOT cleared: the browser blocks the response until the whole HTTP cache
@@ -75,42 +75,42 @@ export function createAuth({ db, origin, secure = true }) {
         // it would delete the local game saves (localStorage).
         return send(res, 200, { user: null }, cookie('', 0), { 'Clear-Site-Data': '"cookies"' });
       }
-      if (req.headers['content-type']?.split(';')[0] !== 'application/json') return send(res, 415, { error: 'Richiesto JSON' });
+      if (req.headers['content-type']?.split(';')[0] !== 'application/json') return send(res, 415, { error: 'JSON required' });
       // Do not trust arbitrary X-Forwarded-For supplied by a browser.
-      if (await limited(`ip:${req.socket.remoteAddress}`, 100)) return send(res, 429, { error: 'Troppi tentativi. Riprova tra 15 minuti.' });
+      if (await limited(`ip:${req.socket.remoteAddress}`, 100)) return send(res, 429, { error: 'Too many attempts. Try again in 15 minutes.' });
       const chunks = []; let bytes = 0;
       for await (const chunk of req) {
         bytes += chunk.length;
-        if (bytes > 4096) return send(res, 413, { error: 'Richiesta troppo grande' });
+        if (bytes > 4096) return send(res, 413, { error: 'Request too large' });
         chunks.push(chunk);
       }
       let body;
-      try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return send(res, 400, { error: 'JSON non valido' }); }
-      if (!body || typeof body !== 'object' || typeof body.password !== 'string' || body.password.length > 128) return send(res, 400, { error: 'Dati non validi' });
+      try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return send(res, 400, { error: 'Invalid JSON' }); }
+      if (!body || typeof body !== 'object' || typeof body.password !== 'string' || body.password.length > 128) return send(res, 400, { error: 'Invalid data' });
       let user;
       if (pathname.endsWith('/register')) {
         const { username, email, password } = body;
         if (typeof username !== 'string' || !/^[a-zA-Z0-9_]{3,24}$/.test(username) ||
           (email != null && (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) || password.length < 1) {
-          return send(res, 400, { error: 'Username: 3–24 lettere, numeri o _. Password di 1–128 caratteri.' });
+          return send(res, 400, { error: 'Username: 3–24 letters, numbers or _. Password: 1–128 characters.' });
         }
-        if (await limited('register:global', 30)) return send(res, 429, { error: 'Registrazioni temporaneamente limitate' });
+        if (await limited('register:global', 30)) return send(res, 429, { error: 'Registrations temporarily limited' });
         try {
           const result = await db.query('INSERT INTO users(id,username,email,password_hash) VALUES($1,$2,$3,$4) RETURNING id,username,email',
             [randomUUID(), username, email?.toLowerCase() ?? null, await passwordHash(password)]);
           user = result.rows[0];
         } catch (error) {
-          if (error.code === '23505') return send(res, 409, { error: 'Username già in uso' });
+          if (error.code === '23505') return send(res, 409, { error: 'Username already in use' });
           throw error;
         }
       } else {
         const login = typeof body.login === 'string' ? body.login.toLowerCase().trim() : '';
-        if (!login || login.length > 254) return send(res, 400, { error: 'Inserisci username o email' });
-        if (await limited(`login:${login}`, 10)) return send(res, 429, { error: 'Troppi tentativi. Riprova tra 15 minuti.' });
+        if (!login || login.length > 254) return send(res, 400, { error: 'Enter a username or email' });
+        if (await limited(`login:${login}`, 10)) return send(res, 429, { error: 'Too many attempts. Try again in 15 minutes.' });
         const result = await db.query('SELECT * FROM users WHERE lower(username)=$1 OR lower(email)=$1', [login]);
         user = result.rows[0];
         const valid = await passwordMatches(body.password, user?.password_hash || await dummy);
-        if (!user || !valid) return send(res, 401, { error: 'Credenziali non valide' });
+        if (!user || !valid) return send(res, 401, { error: 'Invalid credentials' });
       }
       const nextToken = randomBytes(32).toString('hex');
       await db.query('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval \'7 days\')', [hash(nextToken), user.id]);
@@ -119,7 +119,7 @@ export function createAuth({ db, origin, secure = true }) {
     } catch (error) {
       // Never log request payloads, credentials, connection strings or SQL parameters.
       console.error('Authentication request failed', error.code || error.name);
-      return send(res, 503, { error: 'Servizio account temporaneamente non disponibile' });
+      return send(res, 503, { error: 'Account service temporarily unavailable' });
     }
   };
 }

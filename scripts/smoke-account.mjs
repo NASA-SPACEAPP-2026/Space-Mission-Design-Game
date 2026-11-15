@@ -79,7 +79,7 @@ try {
   await page.locator('[name=username]').fill('BrowserPilot');
   await page.locator('[name=password]').fill('wrong password');
   await page.locator('#account-submit').click();
-  await page.waitForFunction(()=>document.querySelector('#account-message')?.textContent.includes('Credenziali'));
+  await page.waitForFunction(()=>document.querySelector('#account-message')?.textContent.includes('Invalid credentials'));
   assert.ok(await page.locator('#account-entry').isVisible());
   await page.locator('[name=password]').fill('my unique browser password 123');
   await page.locator('#account-submit').click();
@@ -89,7 +89,7 @@ try {
   // Service failure must not grant access or hide the form.
   const other = await browser.newContext({viewport:{width:844,height:390}});
   const failed = await other.newPage();
-  await failed.route('**/api/auth/**',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Servizio account temporaneamente non disponibile'})}));
+  await failed.route('**/api/auth/**',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Account service temporarily unavailable'})}));
   await failed.goto(origin); await failed.locator(newGame).click();
   await failed.locator('#entry-panel').waitFor({state:'visible'});
   await failed.locator('[name=username]').fill('Unavailable');

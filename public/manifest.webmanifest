@@ -3,7 +3,7 @@
   "name": "Go No-Go",
   "short_name": "Go No-Go",
   "description": "Space Mission Design Game",
-  "lang": "it",
+  "lang": "en",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",
