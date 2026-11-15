@@ -6347,7 +6347,7 @@ const IR3=(()=>{
   const SCRM={}; function scrMat(map,k){ return SCRM[k]||(SCRM[k]=new THREE.MeshBasicMaterial({map})); }
   const CELLM={}; function cellMat(c,r){ const k=c+'x'+r; return CELLM[k]||(CELLM[k]=new THREE.MeshStandardMaterial({map:cellTex(c,r),roughness:.35,metalness:.3})); }
   /* ombre morbide pre-calcolate sul pavimento: le impronte degli arredi, sfocate una volta sola */
-  function aoTex(){ const S=48; return ctex(RW*S,RD*S,(g,w,h)=>{ g.clearRect(0,0,w,h); FP.forEach(f=>{ g.save(); g.shadowColor='rgba(46,36,28,'+Math.min(.7,f[4]*1.6)+')'; g.shadowBlur=26; g.shadowOffsetX=20000; g.fillStyle='#000'; g.fillRect(f[0]*S-20000-3,f[1]*S-3,(f[2]-f[0])*S+6,(f[3]-f[1])*S+6); g.restore(); }); }); }
+  function aoTex(){ const S=48; return ctex(RW*S,RD*S,(g,w,h)=>{ g.clearRect(0,0,w,h); FP.forEach(f=>{ if(f.w) return; g.save(); g.shadowColor='rgba(46,36,28,'+Math.min(.7,f[4]*1.6)+')'; g.shadowBlur=26; g.shadowOffsetX=20000; g.fillStyle='#000'; g.fillRect(f[0]*S-20000-3,f[1]*S-3,(f[2]-f[0])*S+6,(f[3]-f[1])*S+6); g.restore(); }); }); }
   let BLOB=null; function blobTex(){ return BLOB||(BLOB=ctex(64,64,(g)=>{ const r=g.createRadialGradient(32,32,2,32,32,30); r.addColorStop(0,'rgba(40,30,24,.5)'); r.addColorStop(1,'rgba(40,30,24,0)'); g.fillStyle=r; g.fillRect(0,0,64,64); })); }
   let BLOBM=null; const blobMat=()=>BLOBM||(BLOBM=new THREE.MeshBasicMaterial({map:blobTex(),transparent:true,depthWrite:false}));
 
@@ -6496,12 +6496,19 @@ const IR3=(()=>{
   /* contorni e unione dei pezzi fatti parete per parete, cosi' ogni parete resta un blocco a se' che si puo' nascondere */
   function wallsPrep(){ if(!WG) return; Object.values(WG).forEach(g=>{ g.userData.dyn=false; TOON.outlineStatic(g,{minDim:.05}); mergeStatic(g); g.userData.dyn=true; }); }
   /* nasconde le pareti tra la camera e la stanza: conta solo la direzione da cui si guarda, non lo spostamento della vista */
+  /* le pareti (e gli scaffali alti appoggiati) non spariscono di colpo: sfumano in circa 0,2 s */
+  let WA=null, WT=null;
   function wallsFor(){ if(!WG) return; const s=Math.sin(CAM.yaw), c=Math.cos(CAM.yaw), e=.02, was=WG.y0.visible+''+WG.x0.visible+WG.y1.visible+WG.x1.visible;
-    WG.y1.visible=!(c>e); WG.y0.visible=!(c<-e); WG.x1.visible=!(s>e); WG.x0.visible=!(s<-e);
+    WT={y1:!(c>e),y0:!(c<-e),x1:!(s>e),x0:!(s<-e)}; if(!WA){ WA={}; Object.keys(WT).forEach(k=>{ WA[k]=WT[k]?1:0; wallAlpha(k,WA[k]); }); }
     /* le ombre sono calcolate una volta sola: si rifanno solo quando una parete compare o sparisce, cosi' una parete nascosta non lascia la sua ombra */
     if(R&&was!==WG.y0.visible+''+WG.x0.visible+WG.y1.visible+WG.x1.visible) R.shadowMap.needsUpdate=true; }
+  function wallAlpha(k,a){ const g=WG[k]; g.visible=a>.01; g.traverse(o=>{ if(!o.isMesh) return; if(o.userData.ol||o.material===TOON.mat){ o.visible=a>.99; return; } const m=o.material; if(!m||Array.isArray(m)) return; if(!o.userData.wm){ o.material=m.clone(); o.userData.wm=1; } const q=o.material; q.transparent=a<.99; q.opacity=a; q.depthWrite=a>=.99; }); }
+  function wallFade(dt){ if(!WG||!WA||!WT) return false; let act=false, sh=false; Object.keys(WT).forEach(k=>{ const tg=WT[k]?1:0; if(WA[k]===tg) return; const v0=WA[k]>.01; WA[k]=tg>WA[k]?Math.min(1,WA[k]+dt/.2):Math.max(0,WA[k]-dt/.2); wallAlpha(k,WA[k]); if(v0!==WA[k]>.01) sh=true; act=true; }); if(sh&&R) R.shadowMap.needsUpdate=true; return act; }
   /* pareti: 'y' = fondo (y=0), 'x' = sinistra (x=0), 'y1' = davanti (y=RD), 'x1' = destra (x=RW); a..b e' il tratto lungo la parete, depth quanto sporge verso l'interno */
   const WK={y:'y0',x:'x0',y1:'y1',x1:'x1'};
+  let GK={}, GLW={}; function glowRoom(){ return false; }
+  /* scaffali alti appoggiati a una parete: sfumano con lei (e non lasciano la loro macchia d'ombra sul pavimento) */
+  function wallShelf(k,fn){ const n=FP.length; inGrp(WG[k],fn); for(let i=n;i<FP.length;i++) FP[i].w=1; }
   function onWall(wall,a,b,z0,z1,c,o,depth){ o=Object.assign({cs:false},o||{}); const d=depth||.05; let m; inGrp(WG[WK[wall]],()=>{ m=wall==='y'?bx(a,.0,b,d,z0,z1,c,o):wall==='x'?bx(.0,a,d,b,z0,z1,c,o):wall==='y1'?bx(a,RD-d,b,RD,z0,z1,c,o):bx(RW-d,a,RW,b,z0,z1,c,o); }); return m; }
   /* piano (schermo o pannello) appeso alla parete, rivolto verso l'interno della stanza */
   function onWallPlane(wall,m,a,b,z0,z1){ const c=(a+b)/2, zc=(z0+z1)/2; if(wall==='y') m.position.set(c,zc,.075); else if(wall==='x'){ m.rotation.y=Math.PI/2; m.position.set(.075,zc,c); } else if(wall==='y1'){ m.rotation.y=Math.PI; m.position.set(c,zc,RD-.075); } else { m.rotation.y=-Math.PI/2; m.position.set(RW-.075,zc,c); } WG[WK[wall]].add(m); }
@@ -6548,8 +6555,8 @@ const IR3=(()=>{
       pl(.5,6.6,RW-.5,6.85,.006,'#F2C14E'); pl(11.4,.5,11.65,RD-.5,.006,'#F2C14E'); pl(12.2,7.6,17.2,13.2,.006,'#A9AFB2');
       windows('y',.5,8.5,1.7,3.3,10); rollDoor('y',12.4,16.6,2.6);
       onWall('x',.6,3.2,1.2,2.6,'#3F6FB0',{r:.6},.06); wallScreen('x',4,9,1.5,3.1,'chart',2); wallScreen('x',9.6,13,1.5,3.1,'sat',3);
-      [0,1,2].forEach(i=>shelf(.4+i*3.6,.3,3.6+i*3.6,1.2,2.6,3,cols.slice(i*2).concat(cols.slice(0,i*2))));
-      [0,1].forEach(i=>shelf(.3,1.6+i*3.4,1.2,4.6+i*3.4,2.6,3,cols.slice(3+i).concat(cols.slice(0,3+i))));
+      wallShelf('y0',()=>[0,1,2].forEach(i=>shelf(.4+i*3.6,.3,3.6+i*3.6,1.2,2.6,3,cols.slice(i*2).concat(cols.slice(0,i*2)))));
+      wallShelf('x0',()=>[0,1].forEach(i=>shelf(.3,1.6+i*3.4,1.2,i?7.3:4.6,2.6,3,cols.slice(3+i).concat(cols.slice(0,3+i))))); /* il secondo scaffale e' piu' corto: prima entrava nella scrivania vicina */
       [[4.4,3],[7.6,3],[4.4,8],[7.6,8]].forEach((b,i)=>{ const m=(st.benches||[])[i]; desk(b[0],b[1],b[0]+2.6,b[1]+1.2,.82,'#E9EEF2',{drawers:false}); rb(b[0]+.1,b[1]+.1,b[0]+2.5,b[1]+1.1,.82,.85,m?'#5FA87A':'#B9C9BE',{cs:false}); computer(b[0]+2.1,b[1]+.6,.85,-Math.PI/2,{kind:'chart',s:.9}); bx(b[0]+.2,b[1]+.2,b[0]+.7,b[1]+.55,.85,.9,'#2B3138'); bx(b[0]+.3,b[1]+.75,b[0]+.7,b[1]+1.0,.85,.92,'#F06EAA');
         if(m){ bx(b[0]+.8,b[1]+.25,b[0]+1.4,b[1]+.95,.85,.9,'#4A545C',{cs:false}); satellite(b[0]+1.1,b[1]+.6,.9,m.size*1.4,{wings:true}); } });
       const who=[{top:'#3F6FB0',hair:'#6B4A30',skin:SKIN[0]},{top:'#7A3E58',hair:'#1C1714',skin:SKIN[2],hs:'long'},{top:'#4F6B48',hair:'#B98A4E',skin:SKIN[3],hs:'bun'}];
@@ -6564,7 +6571,7 @@ const IR3=(()=>{
       windows('y',11,17.4,.9,2.3,7); onWall('y',.8,2.8,1,1.9,'#2F8580',{r:.5},.06); wallScreen('x',9,12.5,1.3,2.6,'chart',4);
       [[5.6,4.6],[12.8,4.6]].forEach((p,i)=>{ const m=(st.stations||[])[i]; cy(p[0],p[1],1.1,0,.12,'#C9D3DD',{fp:.3,m:.2}); cy(p[0],p[1],.3,.12,1,'#9AA9B6',{m:.3}); for(let k=0;k<4;k++){ const a=k*1.57+.78; cy(p[0]+Math.cos(a)*.9,p[1]+Math.sin(a)*.9,.05,.12,1,'#9AA9B6'); } rb(p[0]-.65,p[1]-.65,p[0]+.65,p[1]+.65,1,1.08,'#D9E0E5'); bx(p[0]-.5,p[1]-.5,p[0]+.5,p[1]+.5,1.08,1.1,'#7FB6C8',{cs:false}); if(m) satellite(p[0],p[1],1.1,m.size*1.4,{wings:m.n>=5}); });
       rb(.3,10.4,3.6,13.6,0,.04,'#DCE6EA',{cs:false}); [[.3,10.4,3.6,10.45],[3.55,10.4,3.6,13.6]].forEach(r=>bx(r[0],r[1],r[2],r[3],0,2.4,'#BFE2EE',{t:.35})); FP.push([.3,10.4,3.6,13.6,.2]); rb(.5,11,1.3,12.8,0,.5,'#E9EEF2'); rb(2.2,12.6,3.3,13.4,0,1.9,'#BFE2EE',{t:.6});
-      shelf(.4,.3,4,1.1,2.2,3,['#E9EEF2','#DCE6EA','#BFE2EE','#F4F7F8']); workstation(.5,4.8,2.4,6.4,.82,'x1',[{suit:1,skin:SKIN[1]}],{n:1,laptop:true});
+      wallShelf('y0',()=>shelf(.4,.3,4,1.1,2.2,3,['#E9EEF2','#DCE6EA','#BFE2EE','#F4F7F8'])); workstation(.5,4.8,2.4,6.4,.82,'x1',[{suit:1,skin:SKIN[1]}],{n:1,laptop:true});
       [[8.9,2],[16.4,2],[9,8.4]].forEach((c,i)=>{ rb(c[0],c[1],c[0]+1.2,c[1]+.8,.6,.66,'#F4F7F8',{fp:.2}); [[0,0],[1.05,0],[0,.65],[1.05,.65]].forEach(q=>bx(c[0]+q[0],c[1]+q[1],c[0]+q[0]+.1,c[1]+q[1]+.1,0,.6,'#9AA9B6')); rb(c[0]+.3,c[1]+.2,c[0]+.6,c[1]+.5,.66,.9,['#F06EAA','#7C8CFF','#F0B43A'][i]); });
       rb(14.8,11,17.4,13.4,0,2.4,'#E8EEF1',{fp:.3}); bx(14.85,13.35,16.6,13.45,.1,2.2,'#BFE2EE',{t:.7}); bx(14.85,11.6,14.95,12.6,2.1,2.3,'#3FA86B',{cs:false});
       worker(5.6,6.1,{suit:1,skin:SKIN[0],h:Math.PI}); worker(12.8,6.1,{suit:1,skin:SKIN[2],h:Math.PI}); walkers_('clean',4,['suit']); }
@@ -6591,7 +6598,7 @@ const IR3=(()=>{
       windows('y',.5,10.5,1.8,3.3,12); rollDoor('y',12,16.8,2.7); wallScreen('x',.8,6,1.4,3.1,'bars',3); wallScreen('x',6.6,11,1.4,3.1,'chart',5);
       rb(2,5.8,16,7.2,0,.7,'#4A545C',{fp:.35}); rb(2,5.9,16,7.1,.7,.78,'#2E353B'); for(let i=0;i<14;i++) cy(2.5+i,6.5,.12,.78,.82,'#6C767E',{rz:.62,cs:false});
       [3.4,8,12.6].forEach((x,i)=>satellite(x+.6,6.5,.82,(st.sats&&st.sats[i])?1.5:1.1,{wings:i===2,panels:i!==0})); [[6,4.4,0],[10.6,4.4,1],[13.6,8.6,0]].forEach(p=>arm(p[0],p[1],p[2]));
-      shelf(.4,.3,3.4,1.2,2.6,3,['#F28B50','#7C8CFF','#4DB8E8','#DDE2E6']); shelf(.3,1.6,1.2,4.6,2.6,3,['#6CC4A1','#F0B43A','#B783E3']); forklift(14.5,11.2);
+      wallShelf('y0',()=>shelf(.4,.3,3.4,1.2,2.6,3,['#F28B50','#7C8CFF','#4DB8E8','#DDE2E6'])); wallShelf('x0',()=>shelf(.3,1.6,1.2,4.6,2.6,3,['#6CC4A1','#F0B43A','#B783E3'])); forklift(14.5,11.2);
       workstation(1.6,11,3.6,12.6,.82,'y0',[{top:'#3F6FB0',hair:'#6B4A30',skin:SKIN[0]}],{n:1,tower:true}); walkers_('factory',4,['vest','vest','coat','vest']); }
     else if(room==='ground'){ shell({floor:'#7E878F',tile:1.2,tileC:'#747C84',wallR:'#D9DDE0',wallL:'#CDD2D6',stripe:[1.1,'#43D3E0'],cap:'#2A323A'});
       wallScreen('y',1.5,12.5,1.1,3.3,'globe',4); wallPanel('y',13,17,1.6,3.3,textTex([['ANTENNAS '+(st.dishes||0)+'/6'],['DATA +'+(20+3*(st.dishes||0))+'%','#9EE6B8'],['RADIO '+(60+5*(st.dishes||0))+'%','#FFE08A']]));
@@ -6821,7 +6828,7 @@ const IR3=(()=>{
   function clearBuilt(){ if(!built) return; scene.remove(built); const cached=new Set(Object.values(MC)), tcache=new Set(Object.values(TC)), shr=new Set(Object.values(SCRM).concat(Object.values(CELLM),[BLOBM]));
     built.traverse(o=>{ if(o.geometry&&SHARED.indexOf(o.geometry)<0) o.geometry.dispose(); const m=o.material; if(m&&!cached.has(m)&&!shr.has(m)){ if(m.map&&m.map!==BLOB&&!tcache.has(m.map)) m.map.dispose(); m.dispose(); } }); }
   function saveWalkers(){ if(curRoom&&walkers.length) WSAVE[curRoom]=walkers.map(w=>({x:w.x,z:w.z})); }
-  function rebuild(room,st){ if(room===curRoom) saveWalkers(); clearBuilt(); built=new THREE.Group(); scene.add(built); anims=[]; walkers=[]; FP=[]; NF=[]; MACHP=[]; MEET=null; LCH=null; WG=null; clearGhost(); PAR=built; const kind=SKIND(room); applyScene(kind);
+  function rebuild(room,st){ if(room===curRoom) saveWalkers(); clearBuilt(); built=new THREE.Group(); scene.add(built); anims=[]; walkers=[]; FP=[]; NF=[]; MACHP=[]; MEET=null; LCH=null; WG=null; WA=null; WT=null; GK={}; GLW={}; clearGhost(); PAR=built; const kind=SKIND(room); applyScene(kind);
     if(kind==='room'){ CROWD=[]; buildRoom(room,st); adjustCrowd(room); navBuild(); walkers.forEach(w=>{ if(w.fresh||!freeAt(w.x,w.z)){ const p=randFree(); w.x=p[0]; w.z=p[1]; w.fresh=false; } w.P.g.position.set(w.x,0,w.z); }); }
     else if(kind==='meet') buildMeet(st); else buildLaunch(st);
     if(kind!=='launch'){ const ao=new THREE.Mesh(PLN,new THREE.MeshBasicMaterial({map:aoTex(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2})); ao.rotation.x=-Math.PI/2; ao.scale.set(RW,RD,1); ao.position.set(RW/2,.012,RD/2); ao.userData.keep=true; built.add(ao); }
@@ -6843,7 +6850,7 @@ const IR3=(()=>{
     const bub=document.getElementById('mbub'); if(bub&&MEET&&bub.dataset.seat!=null&&MSEATP[+bub.dataset.seat]){ const q=MSEATP[+bub.dataset.seat], p=scr(q.x,q.y,2.35), hr=host.getBoundingClientRect(), w=bub.offsetWidth||260, hud=document.getElementById('hud'); bub.style.left=Math.max(hr.left+w/2+8,Math.min(hr.right-w/2-8,hr.left+p[0]))+'px'; bub.style.top=Math.max(((hud&&hud.getBoundingClientRect().bottom)||60)+bub.offsetHeight+8,hr.top+p[1])+'px'; } }
   function frame(ts){ if(!running){ raf=0; return; } raf=requestAnimationFrame(frame); if(ts-lastT<33) return; const dt=Math.min(.05,(ts-lastT)/1000||.033); lastT=ts; const t=ts/1000; /* 30 fps regolari (con tolleranza), dt limitato a 50 ms */
     if(yawTo!=null){ const k=Math.min(1,dt*9); CAM.yaw+=(yawTo-CAM.yaw)*k; if(Math.abs(yawTo-CAM.yaw)<.002){ CAM.yaw=yawTo; yawTo=null; } camDirty=true; }
-    if(camDirty){ if(SK==='room') placeCam(); layout(); camDirty=false; dirty=true; } anims.forEach(f=>f(t,dt)); stepWalkers(dt,t); if(!anims.length&&!walkers.length&&!dirty) return; dirty=false; R.render(scene,cam); }
+    if(camDirty){ if(SK==='room') placeCam(); layout(); camDirty=false; dirty=true; } anims.forEach(f=>f(t,dt)); stepWalkers(dt,t); if(wallFade(dt)) dirty=true; if(glowRoom(t)) dirty=true; if(!anims.length&&!walkers.length&&!dirty) return; dirty=false; R.render(scene,cam); }
 
   /* ---------- controlli della camera: trascina per ruotare, rotella per lo zoom, tasto destro per spostare ---------- */
   const PT=new Map(); let drag=null, moved=false, pinch=null;
