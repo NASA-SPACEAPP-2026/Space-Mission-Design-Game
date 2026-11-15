@@ -10,7 +10,7 @@ export function database(env = process.env) {
     throw new Error('Production requires database TLS');
   }
   return new pg.Pool({ connectionString: url.toString(), max: 5,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: Number(env.DATABASE_CONNECT_TIMEOUT_MS) || 5000,
     ssl: env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: true } });
 }
 

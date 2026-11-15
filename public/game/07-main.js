@@ -7166,7 +7166,7 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
   else if(s==='modes'||s==='modes2'){ const car=TTL.mode==='career';
     h='<div class="tsec"><h2 class="tt">SELECT A MODE</h2>'+(hasSave()&&!G.tut?'<p class="twarn">A new game replaces your saved game.</p>':'')+'<div class="tmodes">'+MODES.map(m=>'<button class="tmode'+(TTL.mode===m.k?' sel':'')+'" data-act="tmode" data-k="'+m.k+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+m.ic+'</svg><b>'+m.n+'</b><small>'+m.s+'</small></button>').join('')+'</div>'+
       '<div class="tdiff'+(car?'':' off')+'"><span>DIFFICULTY</span>'+DIFFS.map(d=>'<button class="'+(TTL.diff===d[0]?'sel':'')+'" data-act="tdiff" data-k="'+d[0]+'"'+(car?'':' disabled')+'><b>'+d[1]+'</b><small>'+d[2]+'</small></button>').join('')+'</div></div>'+foot(1,'tnext','CHOOSE'); }
-  else if(s==='crew'){ const c=crewOf(TTL.crew), tut=!tutSeen()&&!(G&&G.tutDone&&(G.missions.length||G.xp>0));
+  else if(s==='crew'){ const c=crewOf(TTL.crew), tut=true;
     h='<div class="tsec narrow"><h2 class="tt">'+TX('LA TUA AGENZIA','YOUR AGENCY')+'</h2><div class="tbox tsel">'+'<label for="tco">'+TX('Nome dell’agenzia','Agency name')+'</label><input type="text" id="tco" maxlength="28" value="" placeholder="'+TX('Es. Perigeo Labs','e.g. Perigeo Labs')+'" autocomplete="off">'+
       (tut?'<p class="tnote">'+TX('Prima partita: si comincia con un breve tutorial guidato su Marte, poi parte la modalità che hai scelto.','First game: you start with a short guided tutorial on Mars, then the mode you chose begins.')+'</p>':'')+'</div></div>'+foot(1,'tstart',tut?TX('INIZIA IL TUTORIAL','START TUTORIAL'):TX('INIZIA','START')); }
   else if(s==='settings'){ const fsOk=document.fullscreenEnabled||document.webkitFullscreenEnabled;
@@ -7180,11 +7180,9 @@ function drawTitle(){ const el=ttlEl(), s=TTL.s, inGame=TTL.from==='game';
 function beginGame(){ const m=TTL.mode, co=(($('#tco')&&$('#tco').value)||'Perigeo Labs').trim().slice(0,28)||'Perigeo Labs', av=TTL.crew, keepMusic=G.music, big=G.big;
   const mode=m==='sand'?'sand':'career', dd=TTL.diff||'normale';
   try{ localStorage.removeItem('gngPrev'); }catch(e){}
-  if(G&&G.tutDone&&(G.missions.length||G.xp>0)) tutMark(); /* chi ha già giocato prima di questa versione non rifà il tutorial */
   G=newG(); G.co=co; G.avatar=av; G.crew=[av]; G.music=keepMusic; G.big=big;
-  if(!tutSeen()){ G.after={m:mode,diff:dd}; closeTitle(); sfx.ok(); startTutorial(); return; }
-  setupMode(mode,dd);
-  closeTitle(); view='hub'; sfx.ok(); render(); save(); toast(m==='sand'?TX('Modalità libera: tutto sbloccato. Non conta per la classifica.','Sandbox: everything unlocked. Does not count for the leaderboard.'):TX('Crea la tua prima missione con il tasto + in basso a sinistra.','Create your first mission with the + button bottom left.')); }
+  /* ogni NEW GAME riparte dal tutorial (la modalità scelta parte dopo) */
+  G.after={m:mode,diff:dd}; closeTitle(); sfx.ok(); startTutorial(); return; }
 function setupMode(m,dd){ G.tutDone=true; delete G.after;
   if(m==='sand'){ WDIFF='facile'; G.sandbox=true; G.diff='facile'; G.xp=L.LEVELS[L.LEVELS.length-1]+1; G.money=1000000; G.pad=true; ['factory','ground','rnd','office','visit'].forEach(k=>{ if(G.plots.indexOf(k)<0) G.plots.push(k); }); fixPlots(); }
   else { WDIFF=dd||'normale'; G.diff=WDIFF; G.money=Math.round(L.START_MONEY*dif().money); applyStartPerks(); } }
@@ -7200,7 +7198,7 @@ Object.assign(ACT,{
   tcrew(t){ const co=$('#tco')?$('#tco').value:null; TTL.crew=t.dataset.k; sfx.tap(); drawTitle(); if(co!=null&&$('#tco')) $('#tco').value=co; },
   tstart(){ beginGame(); },
   tlogin(){ sfx.tap(); if(window.gngRequireAccount) window.gngRequireAccount().then(u=>{ if(u) drawTitle(); }); },
-  tlogout(){ if(!TTL.out){ TTL.out=true; sfx.bad(); return drawTitle(); } TTL.out=false; sfx.tap(); if(window.gngLogout) window.gngLogout().catch(e=>toast(e.message)); },
+  tlogout(){ if(!TTL.out){ TTL.out=true; sfx.bad(); return drawTitle(); } TTL.out=false; sfx.tap(); try{ SPECT=null; ['gng32.save','gngPrev',TUTK].forEach(k=>localStorage.removeItem(k)); }catch(e){} G.tutDone=false; if(window.gngLogout) window.gngLogout().catch(e=>toast(e.message)); },
   tmusic(){ ACT.music(); drawTitle(); },
   tlang(){ ACT.lang(); },
   ttsize(){ ACT.tsize(); drawTitle(); },

@@ -301,7 +301,8 @@ const MESSAGE_COLUMNS = `m.id::float8 AS id, m.kind, m.body, m.data, m.created_a
   LEFT JOIN consortium_members cm ON cm.user_id = m.author_id AND cm.consortium_id = m.consortium_id`;
 
 export function createConsortia({ db, origin, now = () => new Date() }) {
-  if (!origin || new URL(origin).origin !== origin) throw new Error('APP_ORIGIN must be an exact origin');
+  const origins = String(origin || '').split(',').map((o) => o.trim()).filter(Boolean);
+  if (!origins.length || origins.some((o) => { try { return new URL(o).origin !== o; } catch { return true; } })) throw new Error('APP_ORIGIN must be an exact origin');
 
   function send(res, status, body) {
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8',
@@ -980,7 +981,7 @@ export function createConsortia({ db, origin, now = () => new Date() }) {
       if (!route) return send(res, 405, { error: 'method_not_allowed' });
       const writes = req.method !== 'GET';
       // Exact Origin + JSON body, as for the login API, block cross-site requests.
-      if (writes && req.headers.origin !== origin) return send(res, 403, { error: 'origin' });
+      if (writes && !origins.includes(req.headers.origin)) return send(res, 403, { error: 'origin' });
       const user = await sessionUser(db, req);
       if (!user) return send(res, 401, { error: 'login_required' });
       let body = {};
